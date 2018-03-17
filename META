@@ -1,0 +1,5 @@
+version = "1.0"
+description = "Rfsm: A package for describing and simulating StateChart-like state diagrams"
+requires="lascar camlp4"
+archive(byte) = "rfsm.cma"
+archive(native) = "rfsm.cmxa"

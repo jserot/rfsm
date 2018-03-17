@@ -1,0 +1,49 @@
+\chapter*{Appendix C1 - Example of generated C code}  
+\label{cha:ex1-c}
+
+This is the code generated from program given in Listing~\ref{lst:rfsm-example} 
+
+\begin{lstlisting}[language=ctask,frame=single,numbers=none,basicstyle=\small]
+task C1(
+  in event Top;
+  in event Clic;
+ out event SimpleClic;
+ out event DoubleClic;
+  )
+{
+  int ctr;
+  enum {Idle,Wait} state = Idle;
+  event received;
+  while ( 1 ) {
+    switch ( state ) {
+    case Wait:
+      received = wait_evs(Top,Clic);
+      switch ( received ) {
+        case Top:
+          if ( ctr<4 ) {
+            ctr=ctr+1;
+            }
+          else if ( ctr==4 ) {
+            notify_ev(SimpleClic);
+            state = Idle;
+            }
+          break;
+        case Clic:
+          notify_ev(DoubleClic);
+          state = Idle;
+          break;
+        }
+      break;
+    case Idle:
+      wait_ev(Clic);
+      ctr=0;
+      state = Wait;
+      break;
+    }
+  }
+};
+\end{lstlisting}
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "rfsm"
+%%% End: 

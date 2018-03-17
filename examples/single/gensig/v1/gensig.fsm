@@ -1,0 +1,24 @@
+# Generates an impulsion of duration 3.Th on output [s]
+# whenever [e=1] when [h] occurs
+
+fsm model gensig (
+  in H: event, 
+  in e: bool,
+  out s: bool)
+  {
+  states: E0, E1, E2, E3;
+  trans:
+    E0 -- H.e=1 | s:=1 -> E1,
+    E1 -- H -> E2,
+    E2 -- H -> E3,
+    E3 -- H | s:=0 -> E0;
+  itrans: | s:=0 -> E0;
+  }
+
+input H : event = periodic (10,10,80)
+input e : bool = value_changes (0:0, 25:1, 35:0)
+output s : bool 
+
+fsm g = gensig (H,e,s)
+
+

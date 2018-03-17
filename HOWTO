@@ -1,0 +1,18 @@
+* make local (dev) version
+- ./configure
+- make
+
+* make MacOS version
+- make macos-dist
+
+* make Win32 version
+- make win32-pre
+- on the Win32 side (VBox)
+  . launch a cygwin terminal
+  . cd /cygdrive/e/Caml/rfsm
+  . make win32-compiler
+  . launch a MinGW terminal
+  . cd /e/Caml/rfsm
+  . make win32-gui
+  . make win32-install
+  . make win32-installer

@@ -1,0 +1,141 @@
+open Utils
+open Printf
+open Types
+open Fsm
+open Simul
+
+let default_state_id = "state"
+let default_int_size = 8
+
+let bits_for_range min max = Misc.log2 (max-min) +1 
+
+let bits_of_int s n = 
+  let b = Bytes.make s '0' in
+  let rec h n i =
+    if i >= 0 then begin
+      Bytes.set b i (if n mod 2 = 1 then '1' else '0');
+      h (n/2) (i-1)
+      end in
+  h n (s-1);
+  Bytes.to_string b
+
+let vcd_size_of_range = function
+    None -> default_int_size
+  | Some (TiConst min, TiConst max) -> bits_for_range min max
+  | Some _ -> Error.fatal_error "Vcd.vcd_size_of_range"
+
+let vcd_kind_of ty = match ty with
+  TyEvent -> "event", 1
+| TyBool  -> "wire", 1
+| TyEnum _ -> "real", 1
+| TyInt r -> "wire", vcd_size_of_range r
+
+let start_symbol = 33 
+
+let signal_cnt = ref start_symbol
+
+type vcd_signal = string * (char * Types.typ) 
+
+let register_signal =
+  fun acc (id,ty)  ->
+    if List.mem_assoc id acc  then (* Already registered *)
+      acc
+    else
+      let acc' = (id, (Char.chr !signal_cnt, ty)) :: acc in
+      incr signal_cnt;
+      acc'
+
+let register_fsm acc f =
+  let sigs = (Ident.Local (f.f_name, "state"), TyEnum (states_of f))
+             :: List.map (function (id,(ty,_)) -> Ident.Local (f.f_name,id),ty) f.f_vars in
+  List.fold_left register_signal acc sigs
+
+let register_fsms fsms = List.fold_left register_fsm [] fsms
+
+let register_io gls acc (id,_) =
+  let ty =
+    try fst (List.assoc id gls)
+    with Not_found -> Error.fatal_error "Vcd.register_io" (* should not happen *) in
+  register_signal acc (Ident.Global id,ty)
+  
+let mk_evbuf_name id = id ^ ".val"
+
+let register_event =
+  fun acc (id,(ty,v))  ->
+    if List.mem_assoc (Ident.Global id) acc  then (* Already registered *)
+      acc
+    else
+      match ty with
+      | Types.TyEvent ->  (* Instantaneous event *)
+         let acc' = (Ident.Global id, (Char.chr !signal_cnt, ty)) :: acc in
+         signal_cnt := !signal_cnt + 1;
+         acc'
+      (* |  Types.TyMemEvent -> (\* Buffered event *\) *)
+      (*     let acc' = (mk_evbuf_name id, (Char.chr (!signal_cnt+1), Types.TyBool)) :: (id, (Char.chr !signal_cnt, ty)) :: acc in *)
+      (*     signal_cnt := !signal_cnt + 2; *)
+      (*     acc' *)
+      | _ ->
+         acc
+
+let register_ios gls ios l = List.fold_left (register_io gls) l ios
+let register_evs evs l = List.fold_left register_event l evs
+
+exception Error of string
+
+let dump_reaction oc signals (t,evs) =
+  let dump_event (name,value) =
+    let (id,ty) =
+      try List.assoc name signals
+      with Not_found -> raise (Error ("unknown signal: " ^ Ident.to_string name)) in
+    match ty, value with
+        TyEvent, _ -> fprintf oc "1%c\n" id          (* Instantaneous event *)
+      (* | TyMemEvent, Some (Expr.Val_int 1) -> *)
+      (*     fprintf oc "1%c\n" id; *)
+      (*     fprintf oc "b1 %c\n" (fst (List.assoc (mk_evbuf_name name) signals)) *)
+      (* | TyMemEvent, Some (Expr.Val_int 0) -> *)
+      (*     fprintf oc "b0 %c\n" (fst (List.assoc (mk_evbuf_name name) signals)) *)
+      | TyEnum _, Some (Expr.Val_enum s) -> fprintf oc "s%s %c\n" s id
+      | TyBool, Some (Expr.Val_int b) -> fprintf oc "b%d %c\n" (b mod 2) id
+      | TyInt r, Some (Expr.Val_int n) -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
+      | _, _ -> fprintf oc "s%s %c" "Unknown" id (* should not happen *) in
+  fprintf oc "#%d\n" t;
+  List.iter dump_event evs
+
+let output m ctx fname reacts =
+  let oc = open_out fname in
+  let local_signals = register_fsms (fst ctx.c_fsms @ snd ctx.c_fsms) in
+  let global_signals = 
+     []
+     |> register_ios m.Comp.m_inputs ctx.c_inputs
+     |> register_ios m.Comp.m_outputs ctx.c_outputs
+     |> register_ios m.Comp.m_shared ctx.c_vars
+     |> register_evs ctx.c_evs in
+  fprintf oc "$date\n";
+  fprintf oc "   %s\n" (Misc.time_of_day());
+  fprintf oc "$end\n";
+  fprintf oc "$version\n";
+  fprintf oc "   RFSM %s\n" Version.version;
+  fprintf oc "$end\n";
+  fprintf oc "$comment\n";
+  fprintf oc "   Generated from file <tbd>\n";
+  fprintf oc "$end\n";
+  fprintf oc "$timescale 1ns $end\n";
+  fprintf oc "$scope module top $end\n";
+  List.iter
+    (function (name,(id,ty)) ->
+      let kind, size = vcd_kind_of ty in
+      fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string name))
+    global_signals;
+  List.iter
+    (function (name,(id,ty)) ->
+      let kind, size = vcd_kind_of ty in
+      fprintf oc "$scope module %s $end\n" (Ident.local_of name);
+      fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string name);
+      fprintf oc "$upscope $end\n")
+    local_signals;
+  fprintf oc "$upscope $end\n";
+  fprintf oc "$enddefinitions\n$end\n";
+  List.iter (dump_reaction oc (global_signals @ local_signals)) reacts;
+  Logfile.write fname;
+  close_out oc  
+

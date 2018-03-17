@@ -1,0 +1,129 @@
+\chapter*{Appendix C3 - Example of generated VHDL code}  
+\label{cha:ex2-vhdl}
+
+This is the code generated from program given in Listing~\ref{lst:rfsm-example2} 
+
+\begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File g4.vhd]
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+library rfsm;
+use rfsm.core.all;
+
+entity g4 is
+  port(
+        h: in std_logic;
+        e: in std_logic;
+        s: out std_logic;
+        rst: in std_logic
+        );
+end g4;
+
+architecture RTL of g4 is
+  type t_state is ( E0, E1 );
+  signal state: t_state;
+  signal k: unsigned(2 downto 0);
+begin
+  process(rst, h)
+  begin
+    if ( rst='1' ) then
+      state <= E0;
+      s <= '0';
+    elsif rising_edge(h) then 
+      case state is
+      when E1 =>
+        if ( k<to_unsigned(4,3) ) then
+          k <= k+to_unsigned(1,3);
+        elsif  ( k = to_unsigned(4,3) ) then
+          s <= '0';
+          state <= E0;
+        end if;
+      when E0 =>
+        if ( e = '1' ) then
+          k <= to_unsigned(1,3);
+          s <= '1';
+          state <= E1;
+        end if;
+    end case;
+    end if;
+  end process;
+end RTL;
+\end{lstlisting}
+
+\begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File tb.vhd]
+library ieee;
+use ieee.std_logic_1164.all;	   
+use ieee.numeric_std.all;
+library rfsm;
+use rfsm.core.all;
+
+entity tb is
+end tb;
+
+architecture Bench of tb is
+
+component g4 
+  port(
+        h: in std_logic;
+        e: in std_logic;
+        s: out std_logic;
+        rst: in std_logic
+        );
+end component;
+
+signal E: std_logic;
+signal H: std_logic;
+signal S: std_logic;
+signal rst: std_logic;
+
+begin
+
+  inp_E: process
+    type t_vc is record date: time; val: std_logic; end record;
+    type t_vcs is array ( 0 to 2 ) of t_vc;
+    constant vcs : t_vcs := ( (0 ns,'0'), (25 ns,'1'), (35 ns,'0') );
+    variable i : natural := 0;
+    variable t : time := 0 ns;
+    begin
+      for i in 0 to 2 loop
+        wait for vcs(i).date-t;
+        E <= vcs(i).val;
+        t := vcs(i).date;
+      end loop;
+      wait;
+  end process;
+  inp_H: process
+    type t_periodic is record period: time; t1: time; t2: time; end record;
+    constant periodic : t_periodic := ( 9 ns, 0 ns, 80 ns );
+    variable t : time := 0 ns;
+    begin
+      H <= '0';
+      wait for periodic.t1;
+      notify_ev(H,1 ns);
+      while ( t < periodic.t2 ) loop
+        wait for periodic.period;
+        notify_ev(H,1 ns);
+        t := t + periodic.period;
+      end loop;
+      wait;
+  end process;
+
+  U0: G4 port map(H,E,S,rst);
+
+  process
+
+  begin
+    rst <= '1';
+    wait for 1 ns;
+    rst <= '0';
+    wait for 100 ns;
+    wait;
+
+  end process;
+end Bench;
+\end{lstlisting}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "rfsm"
+%%% End: 

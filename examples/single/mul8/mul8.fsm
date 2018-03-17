@@ -1,0 +1,31 @@
+# A naive model of a multiplier implemented with successive additions
+# The generated VHDL code is a good starting point for hardware implementation
+
+fsm model mult (
+  in h: event,
+  in start: bool,
+  in n1: int,
+  in n2: int,
+  out r: int,
+  out rdy: bool)
+  {
+  states: Repos, Calcul;
+  vars:
+    a:int,
+    b:int,
+    acc:int;
+  trans:
+    Repos -- h.start=1 | a:=n1;b:=n2;acc:=0;rdy:=0 -> Calcul,
+    Calcul -- h.b>0 | b:=b-1;acc:=acc+a -> Calcul,
+    Calcul -- h.b=0 | r:=acc;rdy:=1 -> Repos;
+  itrans: | rdy:=1 -> Repos;
+  }
+
+input H: event = periodic (10,10,100)
+input Start: bool = value_changes(0:0, 15:1, 35:0)
+input N1: int = value_changes(20:6)
+input N2: int = value_changes(20:5)
+output R: int
+output Rdy: bool
+
+fsm m1 = mult(H,Start,N1,N2,R,Rdy)

@@ -1,0 +1,187 @@
+\chapter*{Appendix C1 - Example of generated SystemC code}  
+\label{cha:ex1-systemc}
+
+This is the code generated from program given in Listing~\ref{lst:rfsm-example} 
+
+\begin{lstlisting}[language=systemc,frame=single,numbers=none,basicstyle=\small,caption=File c1.h]
+#include "systemc.h"
+
+SC_MODULE(C1)
+{
+  // Types
+  typedef enum { Idle, Wait } t_state;
+  // IOs
+  sc_in<bool> Top;
+  sc_in<bool> Clic;
+  sc_out<bool> SimpleClic;
+  sc_out<bool> DoubleClic;
+  sc_out<int> st;
+  // Constants
+  static const int D = 5;
+  // Local variables
+  t_state state;
+  int ctr;
+
+  void react();
+
+  SC_CTOR(C1) {
+    SC_THREAD(react);
+    }
+};
+\end{lstlisting}
+
+\begin{lstlisting}[language=systemc,frame=single,numbers=none,basicstyle=\small,caption=File c1.cpp]
+#include "c1.h"
+#include "rfsm.h"
+
+void C1::react()
+{
+  state = Idle;
+  while ( 1 ) {
+    st = state;
+    switch ( state ) {
+    case Wait:
+      wait(Top.posedge_event() | Clic.posedge_event());
+      if ( Top.read() ) {
+        if ( ctr<4 ) {
+          ctr=ctr+1;
+          }
+        else if ( ctr==4 ) {
+          notify_ev(SimpleClic,"SimpleClic");
+          state = Idle;
+          }
+        }
+      else if ( Clic.read() ) {
+        notify_ev(DoubleClic,"DoubleClic");
+        state = Idle;
+        }
+      wait(SC_ZERO_TIME);
+      break;
+    case Idle:
+      wait(Clic.posedge_event());
+      ctr=0;
+      state = Wait;
+      wait(SC_ZERO_TIME);
+      break;
+    }
+  }
+};
+\end{lstlisting}
+
+\begin{lstlisting}[language=systemc,frame=single,numbers=none,basicstyle=\small,caption=File
+  inp_Clic.h]
+#include "systemc.h"
+
+SC_MODULE(Inp_Clic)
+{
+  // Output
+  sc_out<bool> Clic;
+
+  void gen();
+
+  SC_CTOR(Inp_Clic) {
+    SC_THREAD(gen);
+    }
+};
+\end{lstlisting}
+
+\begin{lstlisting}[language=systemc,frame=single,numbers=none,basicstyle=\small,caption=File
+  inp_Clic.cpp]
+#include "inp_Clic.h"
+#include "rfsm.h"
+
+static int _dates[3] = { 25, 75, 95 };
+
+void Inp_Clic::gen()
+{
+  int _i=0, _t=0;
+  while ( _i < 3 ) {
+    wait(_dates[_i]-_t, SC_NS);
+    notify_ev(Clic,"Clic");
+    _t = _dates[_i];
+    _i++;
+    }
+};
+\end{lstlisting}
+
+\begin{lstlisting}[language=systemc,frame=single,numbers=none,basicstyle=\small,caption=File inp_Clk.h]
+#include "systemc.h"
+
+SC_MODULE(Inp_Clk)
+{
+  // Output
+  sc_out<bool> Clk;
+
+  void gen();
+
+  SC_CTOR(Inp_Clk) {
+    SC_THREAD(gen);
+    }
+};
+\end{lstlisting}
+
+\begin{lstlisting}[language=systemc,frame=single,numbers=none,basicstyle=\small,caption=File
+  inp_Clk.cpp]
+#include "inp_Clk.h"
+#include "rfsm.h"
+
+typedef struct { int period; int t1; int t2; } _periodic_t;
+
+static _periodic_t _clk = { 10, 10, 120 };
+
+void Inp_Clk::gen()
+{
+  int _t=0;
+  wait(_clk.t1, SC_NS);
+  notify_ev(Clk,"Clk");
+  _t = _clk.t1;
+  while ( _t <= _clk.t2 ) {
+    wait(_clk.period, SC_NS);
+    notify_ev(Clk,"Clk");
+    _t += _clk.period;
+    }
+};
+\end{lstlisting}
+
+\begin{lstlisting}[language=systemc,frame=single,numbers=none,basicstyle=\small,caption=File tb.cpp]
+#include "systemc.h"
+#include "rfsm.h"
+#include "inp_Clic.h"
+#include "inp_Clk.h"
+#include "c1.h"
+
+int sc_main(int argc, char *argv[])
+{
+  sc_signal<bool> Clic;
+  sc_signal<bool> Clk;
+  sc_signal<bool> DClic;
+  sc_signal<bool> SClic;
+  sc_signal<int> c1_state;
+  sc_trace_file *trace_file;
+  trace_file = sc_create_vcd_trace_file ("tb");
+  sc_trace(trace_file, Clic, "Clic");
+  sc_trace(trace_file, Clk, "Clk");
+  sc_trace(trace_file, DClic, "DClic");
+  sc_trace(trace_file, SClic, "SClic");
+  sc_trace(trace_file, c1_state, "c1_state");
+
+  Inp_Clic Inp_Clic("Inp_Clic");
+  Inp_Clic(Clic);
+  Inp_Clk Inp_Clk("Inp_Clk");
+  Inp_Clk(Clk);
+
+  C1 c1("c1");
+  c1(Clk,Clic,SClic,DClic,c1_state);
+
+  sc_start(120, SC_NS);
+
+  sc_close_vcd_trace_file (trace_file);
+
+  return EXIT_SUCCESS;
+}
+\end{lstlisting}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "rfsm"
+%%% End: 

@@ -1,0 +1,3 @@
+ide;general;-dot_external_viewer;Arg.Unit;;use DOTVIEWER external program for viewing .dot files
+ide;general;-txt_external_viewer;Arg.Unit;;use TXTVIEWER external program for viewing .{c,h,cpp,vhd} files
+ide;dot;-dot_options;Arg.String;;options for calling the DOT program (ex: -Nrankdir=LR)

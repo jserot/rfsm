@@ -1,0 +1,22 @@
+let options_spec = [
+"-lib", Arg.String (Options.set_lib_dir), "set location of the support library (default: /usr/local/rfsm/lib)";
+"-dump_model", Arg.Unit (Options.set_dump_model), "dump model in text format to stdout";
+"-target_dir", Arg.String (Options.set_target_dir), "set target directory (default: .)";
+"-dot", Arg.Unit (Options.set_dot), "generate top-level .dot representation(s)";
+"-sim", Arg.Unit (Options.set_sim), "run simulation (generating .vcd file)";
+"-ctask", Arg.Unit (Options.set_ctask), "generate CTask code";
+"-systemc", Arg.Unit (Options.set_systemc), "generate SystemC code";
+"-vhdl", Arg.Unit (Options.set_vhdl), "generate VHDL code";
+"-trace", Arg.Unit (Options.set_trace), "set trace mode for simulation, SystemC and VHDL backends";
+"-version", Arg.Unit (Options.set_print_version), "print version of the compiler and quit";
+"-dot_captions", Arg.Unit (Options.set_dot_captions), "Insert captions in .dot representation(s)";
+"-dot_fsm_insts", Arg.Unit (Options.set_dot_fsm_insts), "generate .dot representation of all FSM instances";
+"-dot_fsm_models", Arg.Unit (Options.set_dot_fsm_models), "generate .dot representation of all FSM models";
+"-vcd", Arg.String (Options.set_vcd_file), "set name of .vcd output file when running simulation (default: run.vcd)";
+"-sc_time_unit", Arg.String (Options.set_systemc_time_unit), "set time unit for the SystemC test-bench (default: SC_NS)";
+"-stop_time", Arg.Int (Options.set_stop_time), "set stop time for the SystemC and VHDL test-bench (default: 100)";
+"-vhdl_use_variables", Arg.Unit (Options.set_vhdl_use_variables), "implement variables as variables instead of signals";
+"-vhdl_time_unit", Arg.String (Options.set_vhdl_time_unit), "set time unit for the VHDL test-bench";
+"-vhdl_ev_duration", Arg.Int (Options.set_vhdl_ev_duration), "set duration of event signals (default: 1 ns)";
+"-vhdl_rst_duration", Arg.Int (Options.set_vhdl_ev_duration), "set duration of reset signals (default: 1 ns)";
+];

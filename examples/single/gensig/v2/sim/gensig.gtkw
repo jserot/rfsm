@@ -1,0 +1,26 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Fri Mar  2 11:55:33 2018
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/working/examples/single/gensig/v2/sim/gensig.vcd"
+[dumpfile_mtime] "Fri Mar  2 11:55:16 2018"
+[dumpfile_size] 505
+[savefile] "/Users/jserot/Dev/ml/rfsm/working/examples/single/gensig/v2/sim/gensig.gtkw"
+[timestart] 0
+[size] 996 299
+[pos] 90 13
+*-4.591389 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[sst_width] 198
+[signals_width] 116
+[sst_expanded] 1
+[sst_vpaned_height] 60
+@28
+top.E
+top.H
+top.S
+top.g4.\g4.state
+@24
+top.g4.\g4.k[2:0]
+[pattern_trace] 1
+[pattern_trace] 0

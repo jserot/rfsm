@@ -1,0 +1,11 @@
+- Readme with brief desc in all examples dirs
+- headers in src files
+- man page for rfsmc ?
+- FreeRTOS (or other RTOS) specialized C-backend
+- SCXML backend (www.w3.org/TR/scxml, Yakindu, ...)
+- SMV backend (for connection to model-checking tools)
+- state attributes (for SMV output)
+- communication via FIFOs (message queues) ?
+
+
+

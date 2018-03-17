@@ -1,0 +1,29 @@
+opam-version: "1.2"
+name: "rfsm"
+version: "1.0"
+maintainer: "jocelyn.serot@uca.fr"
+authors: [
+  "Jocelyn Sérot <jocelyn.serot@uca.fr>"
+]
+homepage: "http://cloud.ip.univ-bpclermont.fr/~serot/rfsm/"
+dev-repo: "https://github.com/jserot/rfsm.git"
+bug-reports: "jocelyn.serot@uca.fr"
+build: [
+  ["./configure"]
+  [make "lib"]
+  [make "doc"]
+]
+install: [
+  [make "install-lib"]
+  [make "install-doc"]
+]
+remove: [
+  [make "uninstall"]
+  [make "uninstall-doc"]
+]
+depends: [
+  "camlp4"
+  "ocamlfind"
+  "lascar"
+]
+available: [ ocaml-version >= "4.06" ]

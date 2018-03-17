@@ -1,0 +1,2 @@
+<main.{byte,native}>: use_rfsm
+<*.ml>: annot, use_rfsm

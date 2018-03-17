@@ -1,0 +1,27 @@
+# A simplified model of a mouse controler
+# Emits [DoubleClic] is [Clic] occurs and re-occurs before [D] periods of [Top] elapse
+# Emits [SimpleClic] otherwise
+# Instanciated here with D=5
+
+fsm model ctlr<D:int> (
+  in Top: event,
+  in Clic: event,
+  out SimpleClic: event,
+  out DoubleClic: event)
+  {
+  states:  Idle, Wait;
+  vars:  ctr: int<0..D>;
+  trans:
+    Idle -- Clic | ctr:=0 -> Wait,
+    Wait -- Clic | DoubleClic -> Idle,
+    Wait -- Top.ctr<D-1 | ctr:=ctr+1 -> Wait,
+    Wait -- Top.ctr=D-1 | SimpleClic -> Idle;
+  itrans: -> Idle;
+  }
+
+input Clk: event = periodic(10,10,120)
+input Clic: event = sporadic(25,75,95)
+output SClic: event
+output DClic: event
+
+fsm c1 = ctlr<5>(Clk,Clic,SClic,DClic)
