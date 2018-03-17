@@ -22,11 +22,13 @@ doc/lib/
 etc/
 examples/others/
 examples/scxmlcc/
+examples/*/*/rfsm.output
 examples/*/*/dot/
 examples/*/*/sim/
 examples/*/*/systemc/
 examples/*/*/vhdl/
-!examples/*/*/sim/*.{gtkw,sav}
+!examples/*/*/sim/*.gtkw
+!examples/*/*/sim/*.sav
 !examples/*/*/systemc/*.{gtkw,sav}
 !examples/*/*/vhdl/*.{gtkw,sav}
 examples/*/*/ml/dot/
