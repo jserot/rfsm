@@ -7,6 +7,7 @@
 _build/
 CHANGELOG.txt
 README.txt
+HOWTO
 config
 config-stamp
 *.pdf
@@ -33,8 +34,9 @@ lib/ml/
 *.dot
 *.o
 *.vcd
-bak
-gui/moc_*.*
-gui/qrc_resources.*
-gui/ui_*.h
-gui/rfsm.app/
+src/gui/moc_*.*
+src/gui/qrc_resources.*
+src/gui/ui_*.h
+src/gui/rfsm.app/
+src/gui/Makefile
+src/lib/rfsm.docdir
