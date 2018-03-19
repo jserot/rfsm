@@ -34,11 +34,7 @@
 %token GT
 %token LTE
 %token GTE
-%token PLUS
-%token MINUS
-%token TIMES
-%token DIV
-%token MOD
+%token PLUS MINUS TIMES DIV MOD
 %token DOTDOT
 %token ARROW_START
 %token ARROW_END
@@ -50,7 +46,7 @@
 
 %left PLUS MINUS       
 %left TIMES DIV MOD   
-(* %nonassoc UMINUS          (\* Highest precedence *\) *)
+%nonassoc UMINUS          (* Highest precedence *)
 
 %type <Syntax.program> program
 (* %type <Condition.t> fsm_condition *)
@@ -73,9 +69,9 @@ let mk_expression p desc = { Syntax.e_desc = desc; Syntax.e_loc = mk_location p 
 let mk_condition p desc = { Syntax.cond_desc = desc; Syntax.cond_loc = mk_location p }
 let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p }
 
-(* type io_dir = IO_In | IO_Out | IO_InOut *)
-
-(* let collect_io tag l = List.fold_left (fun acc (t,io) -> if t=tag then io::acc else acc) [] l *)
+(* let negate_expr = function
+ *     Expr.EConst c -> Expr.EConst (-c)
+ *   | e -> Expr.EBinop ("-", Expr.EConst 0, e) *)
 %}
 
 %%
@@ -203,7 +199,7 @@ stimuli:
       { mk_stim_decl ($symbolstartofs,$endofs) (Syntax.ValueChange(vcs)) }
   
 value_change:
-  | t=INT COLON v=INT { (t,Expr.Val_int v) }
+  | t=INT COLON v=const { (t,v) }
   
 (* INSTANCEs *)
 
@@ -233,7 +229,7 @@ int_range:
            mk_type_index_expression ($symbolstartofs,$endofs) hi) }
 
 type_index_expr:
-  | c = INT
+  | c = int
       { Syntax.TEConst c }
   | i = ID
       { Syntax.TEVar i }
@@ -267,7 +263,7 @@ rel_expr:
       { (e1, "<=", e2) }
 
 expr:
-  | c = INT
+  | c = int
       { Expr.EConst c }
   | i = ID
       { Expr.EVar i }
@@ -283,8 +279,13 @@ expr:
       { Expr.EBinop ("/", e1, e2) }
   | e1 = expr MOD e2 = expr
       { Expr.EBinop ("mod", e1, e2) }
-(*   | MINUS e = expr %prec UMINUS *)
-(*       { - e } *)
+
+const:
+  | v = int { Expr.Val_int v }
+
+int:
+  | c = INT { c }
+  | MINUS c = INT %prec UMINUS { -c }
 
 (* Separate, "standalone"  entries for string parsers *)
 
