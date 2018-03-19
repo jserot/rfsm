@@ -33,9 +33,10 @@ type itransition = TransLabel.t * State.t
 type model = { 
   fm_name: string;
   fm_params: (string * Types.typ) list;                      (** name, type *)
-  fm_inps: (string * Types.typ) list;                        (** name, type *)
-  fm_outps: (string * Types.typ) list;                       (** name, type *)
-  (* fm_inouts: (string * Types.typ) list;                      (\** name, type *\) *)
+  fm_ios : (string * (Types.dir * Types.typ)) list;          (** i/os *)
+  (* fm_inps: (string * Types.typ) list;                        (\** name, type *\)
+   * fm_outps: (string * Types.typ) list;                       (\** name, type *\)
+   * fm_inouts: (string * Types.typ) list;                      (\** name, type *\) *)
   fm_vars: (string * Types.typ) list;                        (** name, type *)
   fm_repr: Repr.t;                                           (** Static representation as a LTS *)
   fm_resolve: (transition list -> transition) option;
@@ -47,7 +48,7 @@ type inst = {
   f_params: (string * (Types.typ * Expr.value)) list;       (** name, type, actual value *)
   f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
   f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
-  (* f_inouts: (string * (Types.typ * global)) list;           (\** local name, (type, global) *\) *)
+  f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
   f_vars: (string * (Types.typ * Expr.value option)) list;  (** name, (type, value) *)
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
   f_l2g: string -> string;                                  (** local -> global name *)
@@ -92,9 +93,8 @@ let global_id = function
 exception Undef_symbol of string * string * string (** FSM, kind, name *)
 exception Internal_error of string (** where *)
 exception Invalid_state of string * string (** FSM, id *)
-exception Binding_mismatch of string * string * string  (** FSM, kind, name *)
+exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
 exception Invalid_parameter of string * string (** FSM, name *)
-exception Invalid_io of string * string * string (** FSM, kind, name *)
 exception Type_mismatch of string * string * string * Types.typ * Types.typ (** FSM, kind, id, type, type *)
 
 exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
@@ -124,14 +124,15 @@ let sanity_check f =
   (* Check that each input symbol occuring in transition rules is declared as input or local variable *)
   check_symbols "input or local variable"
     isymbols
-    (get f.f_inps (*@ get f.f_inouts*) @ get f.f_vars @ get f.f_params);
+    (get f.f_inps @ get f.f_inouts @ get f.f_vars @ get f.f_params);
   (* Check that each output symbol occuring in transition rules is declared as output or local variable *)
   check_symbols "output or local variable"
     osymbols
-    (get f.f_outps (*@ get f.f_inouts*) @ get f.f_vars);
+    (get f.f_outps @ get f.f_inouts @ get f.f_vars);
  (* Check that all type indexes have been instanciated *)
   List.iter (check_type "input") (List.map (function (id, (ty,_)) -> id,ty) f.f_inps);
   List.iter (check_type "output") (List.map (function (id, (ty,_)) -> id,ty) f.f_outps);
+  List.iter (check_type "inout") (List.map (function (id, (ty,_)) -> id,ty) f.f_inouts);
   List.iter (check_type "variable") (List.map (function (id, (ty,_)) -> id,ty) f.f_vars)
 
 (* Builders *)
@@ -142,7 +143,7 @@ let mk_bindings ~local_names:ls ~global_names:gs =
     with Invalid_argument _ -> raise (Internal_error "Fsm.mk_bindings") (* should not happen *) in
   (function id -> try List.assoc id l2g with Not_found -> id)
 
-let build_model ~name ~states ~params ~inps ~outps (*~inouts*) ~vars ~trans ~itrans = 
+let build_model ~name ~states ~params ~ios ~vars ~trans ~itrans = 
   (* let mk_cond { Syntax.cond_desc = e, guards } = (e, guards) in
    * let mk_act a = a.Syntax.act_desc in
    * let mk_trans (q,cond,acts,q') = q, (mk_cond cond, List.map mk_act acts, false), q' in
@@ -157,9 +158,13 @@ let build_model ~name ~states ~params ~inps ~outps (*~inouts*) ~vars ~trans ~itr
   let r = {
         fm_name = name;
         fm_params = params;
-        fm_inps = inps;
-        fm_outps = outps;
-        (* fm_inouts = inouts; *)
+        fm_ios = List.map (function (dir,id,ty) -> (id, (dir,ty))) ios;
+          (*   List.map (function (i,ty) -> (i,(IO_In,ty))) inps
+           * @ List.map (function (i,ty) -> (i,(IO_Out,ty))) outps
+           * @ List.map (function (i,ty) -> (i,(IO_Inout,ty))) inouts; *)
+        (* fm_inps = inps;
+         * fm_outps = outps;
+         * fm_inouts = inouts; *)
         fm_vars = vars;
         fm_repr =
           begin
@@ -174,7 +179,7 @@ let build_model ~name ~states ~params ~inps ~outps (*~inouts*) ~vars ~trans ~itr
       } in
   r
 
-let build_instance ~name ~model ~params ~inps ~outps (*~ioutps*)=
+let build_instance ~name ~model ~params ~ios =
     let bind_param vs (p,ty) =
       match ty, List.assoc p vs with 
         Types.TyInt _, (Expr.Val_int c as v) -> p, (ty,v)
@@ -191,36 +196,49 @@ let build_instance ~name ~model ~params ~inps ~outps (*~ioutps*)=
      *   with Invalid_argument _ -> raise (FsmMismatch (name, what, "")) in
      * let inps = bind_ios "inputs" model.fm_inps inps in
      * let outps = bind_ios "outputs" model.fm_outps outps in *)
-    let bind_inp (lid,ty') gl = match gl with 
-        GInp (id,ty,_)
-      | GShared (id,ty) -> type_check "input" id ty ty'; (lid,(ty, gl))
-      | _ -> raise (Invalid_io (name, "input", lid)) in
-    let bind_outp (lid,ty') gl  = match gl with
-        GOutp (id,ty)
-      | GShared (id,ty) -> type_check "output" id ty ty'; (lid, (ty, gl))
-      | _ -> raise (Invalid_io (name, "output", lid)) in
-    (* let bind_inout (lid,ty') gl  = match gl with
-     *   | GShared (id,ty) -> type_check id ty ty'; (lid, (ty, gl))
+    let bind_io (lid,(dir,ty')) gl = match dir, gl with 
+        Types.IO_In, GInp (gid,ty,_)
+      | Types.IO_In, GShared (gid,ty) -> type_check "input" gid ty ty'; (lid,gid,Types.IO_In,ty,gl)
+      | Types.IO_In, _ -> raise (Binding_mismatch (name, "input", lid))
+      | Types.IO_Out, GOutp (gid,ty)
+      | Types.IO_Out, GShared (gid,ty) -> type_check "output" gid ty ty'; (lid,gid,Types.IO_Out,ty,gl)
+      | Types.IO_Out, _ -> raise (Binding_mismatch (name, "output", lid))
+      | Types.IO_Inout, GShared (gid,ty) -> type_check "inout" gid ty ty'; (lid,gid,Types.IO_Inout,ty,gl)
+      | Types.IO_Inout, _ -> raise (Binding_mismatch (name, "inout", lid)) in
+    (* let bind_inp (lid,(_,ty')) gl = match gl with 
+     *     GInp (id,ty,_)
+     *   | GShared (id,ty) -> type_check "input" id ty ty'; (lid,(ty, gl))
+     *   | _ -> raise (Invalid_io (name, "input", lid)) in
+     * let bind_outp (lid,(_,ty')) gl  = match gl with
+     *     GOutp (id,ty)
+     *   | GShared (id,ty) -> type_check "output" id ty ty'; (lid, (ty, gl))
+     *   | _ -> raise (Invalid_io (name, "output", lid)) in
+     * let bind_inout (lid,(_,ty')) gl  = match gl with
+     *   | GShared (id,ty) -> type_check "inout" id ty ty'; (lid, (ty, gl))
      *   | _ -> raise (Invalid_io (name, "inout", lid)) in *)
-    let bind_ios what bind_io ios ios' =
-      try List.map2 bind_io ios ios' 
-      with Invalid_argument _ -> raise (Binding_mismatch (name, what, "")) in
-    let inps = bind_ios "inputs" bind_inp model.fm_inps inps in
-    let outps = bind_ios "outputs" bind_outp model.fm_outps outps in
-    (* let inouts = bind_ios "inouts" bind_inout model.fm_inouts ioutps in *)
+    let bounded_ios =
+      try List.map2 bind_io model.fm_ios ios
+      with Invalid_argument _ -> raise (Binding_mismatch (name, "IOs", "")) in
+    (* let inps = bind_ios "inputs" bind_inp (List.filter (function (_,(IO_In,_)) -> true | _ -> false) model.fm_ios) inps in
+     * let outps = bind_ios "outputs" bind_outp (List.filter (function (_,(IO_Out,_)) -> true | _ -> false) model.fm_ios) outps in
+     * let inouts = bind_ios "inouts" bind_inout (List.filter (function (_,(IO_Inout,_)) -> true | _ -> false) model.fm_ios) inouts in *)
+    let filter_ios kind bounded_ios =
+      bounded_ios
+      |> List.filter (function (_,_,k,_,_) -> k=kind)
+      |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
     let r =
       { f_name = name;
         f_model = model;
         f_repr = Repr.map_label (TransLabel.subst env) model.fm_repr;
         f_params = params';
-        f_inps = inps;
-        f_outps = outps;
-        (* f_inouts = inouts; *)
+        f_inps = filter_ios Types.IO_In bounded_ios;
+        f_outps = filter_ios Types.IO_Out bounded_ios;
+        f_inouts = filter_ios Types.IO_Inout bounded_ios;
         f_vars = List.map (function (id,ty) -> (id, (Types.subst env ty, None))) model.fm_vars;
         f_l2g =
           mk_bindings
-            ~local_names:(List.map (function (id,(ty,gl)) -> id) (inps @ outps (*@ inouts*)))
-            ~global_names:(List.map (function (id,(ty,gl)) -> global_id gl) (inps @ outps (*@ inouts*)));
+            ~local_names:(List.map (function (lid,_,_,_,_) -> lid) bounded_ios)
+            ~global_names:(List.map (function (_,gid,_,_,_) -> gid) bounded_ios);
         f_resolve = None; (* TO FIX *)
         f_state = "";  (* current state is not defined until the initial transition has been carried out *)
         f_has_reacted = false;
@@ -279,7 +297,7 @@ let mk_local_env f genv =
   let get_value id =
       try List.assoc (f.f_l2g id) genv
       with Not_found -> raise (Internal_error "Fsm.mk_local_env") in (* should not happen *)
-  List.map (function (id,ty) -> id, get_value id) (f.f_inps (*@ f.f_inouts*))
+  List.map (function (id,ty) -> id, get_value id) (f.f_inps @ f.f_inouts)
   @ List.map erase_type f.f_vars
 
 let rec react t genv f =
@@ -393,18 +411,23 @@ let dot_output_model ?(fname="") ?(dot_options=[]) ?(options=[]) ~dir f =
 
 (* TXT OUTPUT *)
 
+let inputs_of m = List.filter (function (_,(Types.IO_In,_)) -> true | _ -> false) m.fm_ios
+let outputs_of m = List.filter (function (_,(Types.IO_Out,_)) -> true | _ -> false) m.fm_ios
+let inouts_of m = List.filter (function (_,(Types.IO_Inout,_)) -> true | _ -> false) m.fm_ios
+
 let dump_model oc f =
   let of_list f xs = ListExt.to_string f ", " xs in
-  let string_of_item (id,ty) = id  ^ ":" ^ Types.string_of_type ty in
+  let string_of_io (id,(_,ty)) = id  ^ ":" ^ Types.string_of_type ty in
+  let string_of_var (id,ty) = id  ^ ":" ^ Types.string_of_type ty in
   let string_of_acts = ListExt.to_string Action.to_string "; " in
   Printf.fprintf oc "FSM MODEL %s{\n" f.fm_name;
   if f.fm_params <> []  then
-    Printf.fprintf oc "  PARAMS = { %s }\n" (of_list string_of_item f.fm_params);
+    Printf.fprintf oc "  PARAMS = { %s }\n" (of_list string_of_var f.fm_params);
   Printf.fprintf oc "  STATES = { %s }\n" (of_list (function n -> n) (Repr.states' f.fm_repr));
-  Printf.fprintf oc "  INPS = { %s }\n" (of_list string_of_item f.fm_inps);
-  Printf.fprintf oc "  OUTPS = { %s }\n" (of_list string_of_item f.fm_outps);
-  (* Printf.fprintf oc "  INOUTS = { %s }\n" (of_list (string_of_io f) f.fm_inouts); *)
-  Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_item f.fm_vars);
+  Printf.fprintf oc "  INPS = { %s }\n" (of_list string_of_io (inputs_of f));
+  Printf.fprintf oc "  OUTPS = { %s }\n" (of_list string_of_io (outputs_of f));
+  Printf.fprintf oc "  INOUTS = { %s }\n" (of_list string_of_io (inouts_of f));
+  Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_var f.fm_vars);
   Printf.fprintf oc "  TRANS = {\n";
   List.iter 
     (fun (q,(cond,acts,_),q') ->

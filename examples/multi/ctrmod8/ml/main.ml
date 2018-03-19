@@ -3,14 +3,17 @@ open Expr
 open Types
 open Action
   
-let t_bit = TyInt (Some (0,1))
+let t_bit = TyInt (Some (TiConst 0, TiConst 1))
           
 let ctrmod2 = Fsm.build_model
   ~name:"ctrmod2"
   ~states:["E0"; "E1"]
   ~params:[]
-  ~inps:["h",TyEvent]
-  ~outps:["s", t_bit; "r", TyEvent]
+  ~ios:[
+    IO_In, "h", TyEvent;
+    IO_Out, "s", t_bit;
+    IO_Out, "r", TyEvent
+    ]
   ~vars:[]
   ~trans:[
     ("E0", ("h",[]), [Assign ("s",EConst 1)], "E1");
@@ -29,8 +32,7 @@ let build_counter n =
                      ~name:("c"^string_of_int i)
                      ~model:ctrmod2
                      ~params:[]
-                     ~inps:[if i=0 then h else r.(i-1)]
-                     ~outps:[s.(i);r.(i)]) in
+                     ~ios:[if i=0 then h else r.(i-1); s.(i); r.(i)]) in
   Comp.build_composite ("ctrmod" ^ string_of_int (pow2 n)) (Array.to_list c)
 
 let p = build_counter 3

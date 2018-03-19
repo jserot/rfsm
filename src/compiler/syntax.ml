@@ -45,13 +45,13 @@ and fsm_desc = {
   fd_name: string;
   fd_states: string list;
   fd_params: (string * type_expression) list;
-  fd_ios: (io_dir * (string * type_expression)) list;
+  fd_ios: (Types.dir * (string * type_expression)) list;
   fd_vars: (string * type_expression) list;
   fd_trans: (string * condition * action list * string) list;
   fd_itrans: string * action list;
   }
 
-and io_dir = IO_In | IO_Out | IO_InOut
+(* and io_dir = IO_In | IO_Out | IO_InOut *)
 
 and condition = {
   cond_desc: Condition.t;
@@ -144,7 +144,7 @@ let string_of_type_expr t = match t with
           
 let string_of_type_expression t = string_of_type_expr t.te_desc
 
-let string_of_io_tag = function IO_In -> "in" | IO_Out -> "out" | IO_InOut -> "inout"
+let string_of_io_tag = function Types.IO_In -> "in" | Types.IO_Out -> "out" | Types.IO_Inout -> "inout"
                                                                             
 let string_of_io (tag,(id,ty)) = string_of_io_tag tag ^ " " ^ id ^ ": " ^ string_of_type_expression ty
 

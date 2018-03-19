@@ -121,7 +121,7 @@ let dump_module_impl m fname fsm =
   fprintf oc "task %s(\n" modname;
   List.iter (fun (id,ty) -> fprintf oc "  in %s %s;\n" (string_of_type ty) id) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc " out %s %s;\n" (string_of_type ty) id) m.c_outps;
-  (* List.iter (fun (id,ty) -> fprintf oc " inout %s %s;\n" (string_of_type ty) id) m.c_inouts; *)
+  List.iter (fun (id,ty) -> fprintf oc " inout %s %s;\n" (string_of_type ty) id) m.c_inouts;
   fprintf oc "  )\n";
   fprintf oc "{\n";
   List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s %s%s;\n" (string_of_type ty) id (string_of_ival iv)) m.c_vars;

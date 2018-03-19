@@ -175,7 +175,7 @@ let dump_module_intf fname m =
   fprintf oc "  // IOs\n";
   List.iter (fun (id,ty) -> fprintf oc "  sc_in<%s> %s;\n" (string_of_type ty) id) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc "  sc_out<%s> %s;\n" (string_of_type ty) id) m.c_outps;
-  (* List.iter (fun (id,ty) -> fprintf oc "  sc_inout<%s> %s;\n" (string_of_type ty) id) m.c_inouts; *)
+  List.iter (fun (id,ty) -> fprintf oc "  sc_inout<%s> %s;\n" (string_of_type ty) id) m.c_inouts;
   if cfg.sc_trace then fprintf oc "  sc_out<int> %s;\n" cfg.sc_trace_state_var;
   fprintf oc "  // Constants\n";
   List.iter (fun (id,(ty,v)) -> fprintf oc "  static const %s %s = %s;\n" (string_of_type ty) id (string_of_value v)) m.c_consts;
@@ -337,7 +337,7 @@ let dump_testbench_impl fname m =
       fprintf oc "  %s %s(\"%s\");\n" (modname f.f_name) f.f_name f.f_name;
       fprintf oc "  %s(%s%s);\n"
               f.f_name
-              (ListExt.to_string actual_name "," (m.c_inps @ m.c_outps (*@ m.c_inouts*)))
+              (ListExt.to_string actual_name "," (m.c_inps @ m.c_outps @ m.c_inouts))
               (if cfg.sc_trace then "," ^ f.f_name ^ "_state" else ""))
     m.m_fsms;
   fprintf oc "\n";

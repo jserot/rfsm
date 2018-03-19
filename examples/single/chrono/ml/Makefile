@@ -5,8 +5,8 @@ all: 		byte
 
 run:
 	./main.byte
-#	for i in ./dot/*.dot; do open -a Graphviz $$i; done
-	open -a Graphviz ./dot/chrono_top.dot
+	for i in ./dot/*.dot; do open -a Graphviz $$i; done
+#	open -a Graphviz ./dot/chrono_top.dot
 
 .PHONY: tags
 

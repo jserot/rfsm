@@ -2,6 +2,8 @@
 
 type date = int
 
+type dir = IO_In | IO_Out | IO_Inout
+
 type typ =
     TyEvent
   | TyBool

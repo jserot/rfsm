@@ -10,7 +10,7 @@ type c_model = {
   c_consts: (string * (Types.typ * Expr.value)) list;
   c_inps: (string * Types.typ) list;
   c_outps: (string * Types.typ) list;
-  (* c_inouts: (string * Types.typ) list; *)
+  c_inouts: (string * Types.typ) list;
   c_vars: (string * (Types.typ * Expr.value option)) list;  
   c_init: Fsm.state * Action.t list;
   c_body: c_state_case list;
@@ -80,7 +80,7 @@ let c_model_of_fsm m f =
     c_consts = f.f_params;
     c_inps = List.map (function (id, (ty,_)) -> id, ty) f.f_inps;
     c_outps = List.map (function (id, (ty,_)) -> id, ty) f.f_outps;
-    (* c_inouts = f.f_inouts; *)
+    c_inouts = List.map (function (id, (ty,_)) -> id, ty) f.f_inouts;
     c_vars = f.f_vars;
     c_init = mk_init f;
     c_body = List.map (mk_state_case f) (List.rev states);

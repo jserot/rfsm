@@ -211,7 +211,7 @@ let dump_module_arch oc m fsm =
   let _ = reset_types () in
   List.iter (function (id,ty) -> add_type (id, vhdl_type_of ty)) m.c_inps;
   List.iter (function (id,ty) -> add_type (id, vhdl_type_of ty)) m.c_outps;
-  (* List.iter (function (id,ty) -> add_type (id, vhdl_type_of ty)) m.c_inouts; *)
+  List.iter (function (id,ty) -> add_type (id, vhdl_type_of ty)) m.c_inouts;
   List.iter (function (id,(ty,_)) -> add_type (id, vhdl_type_of ty)) m.c_vars;
   let clk_sig = match List.filter (function (_, TyEvent) -> true | _ -> false) m.c_inps with
     [] -> raise (Vhdl_error (m.c_name, "no input event, hence no possible clock"))
@@ -262,7 +262,7 @@ let dump_module_intf kind oc m fsm =
   fprintf oc "  port(\n";
   List.iter (fun (id,ty) -> fprintf oc "        %s: in %s;\n" id (string_of_type ty)) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc "        %s: out %s;\n" id (string_of_type ty)) m.c_outps;
-  (* List.iter (fun (id,ty) -> fprintf oc "        %s: inout %s;\n" id (string_of_type ty)) m.c_inouts; *)
+  List.iter (fun (id,ty) -> fprintf oc "        %s: inout %s;\n" id (string_of_type ty)) m.c_inouts;
   fprintf oc "        %s: in std_logic" cfg.vhdl_reset_sig;
   if cfg.vhdl_trace then fprintf oc ";\n        %s: out integer\n" cfg.vhdl_trace_state_var else fprintf oc "\n";
   fprintf oc "        );\n";
@@ -408,7 +408,7 @@ let dump_testbench_impl fname m =
         i
         (modname f.f_name)
         (ListExt.to_string tb_name ","
-           (List.map actual_name (m.c_inps @  m.c_outps (*@ m.c_inouts*)) @ [cfg.vhdl_reset_sig]))
+           (List.map actual_name (m.c_inps @  m.c_outps @ m.c_inouts) @ [cfg.vhdl_reset_sig]))
         (if cfg.vhdl_trace then "," ^ f.f_name ^ "_state" else ""))
     m.m_fsms;
   (* Main process *)

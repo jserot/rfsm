@@ -31,8 +31,7 @@ type itransition = TransLabel.t * State.t
 type model = {
   fm_name : string;                                      (** name *)
   fm_params : (string * Types.typ) list;                 (** generic parameters *)
-  fm_inps : (string * Types.typ) list;                   (** inputs *)
-  fm_outps : (string * Types.typ) list;                  (** outputs *)
+  fm_ios : (string * (Types.dir * Types.typ)) list;      (** i/os *)
   fm_vars : (string * Types.typ) list;                   (** internal variables *)
   fm_repr : Repr.t;                                      (** underlying LTS *)
   fm_resolve : (transition list -> transition) option;   (** resolution fonction for non-deterministic transitions *)
@@ -45,6 +44,7 @@ type inst = {
   f_params : (string * (Types.typ * Expr.value)) list;         (** actual parameters *)
   f_inps : (string * (Types.typ * global)) list;               (** inputs, with bounded global *)
   f_outps : (string * (Types.typ * global)) list;              (** outputs, with bounded global *)
+  f_inouts : (string * (Types.typ * global)) list;             (** in/outs, with bounded global *)
   f_vars : (string * (Types.typ * Expr.value option)) list;    (** internal variable, with value ([None] if not initialized) *)
   f_repr : Repr.t;                                             (** underlying LTS *)
   f_l2g : string -> string;                                    (** local to global name conversion function *)
@@ -85,8 +85,7 @@ val build_model :
   name:string ->
   states:state list ->
   params:(string * Types.typ) list ->
-  inps:(string * Types.typ) list ->
-  outps:(string * Types.typ) list ->
+  ios:(Types.dir * string * Types.typ) list ->
   vars:(string * Types.typ) list ->
   trans:(state * (Condition.event * Condition.guard list) * Action.t list * state) list ->
   itrans:state * Action.t list ->
@@ -96,19 +95,17 @@ val build_instance :
   name:string ->
   model:model ->
   params:(string * Expr.value) list ->
-  inps:global list -> outps:global list ->
+  ios:global list ->
   inst
 
 val sanity_check : inst -> unit
 
-exception Undef_symbol of string * string * string
-exception Internal_error of string
-exception Invalid_state of string * string
-exception Binding_mismatch of string * string * string
-exception Invalid_parameter of string * string
-exception Invalid_io of string * string * string
-exception Type_mismatch of string * string * string * Types.typ * Types.typ
-
+exception Undef_symbol of string * string * string (** FSM, kind, name *)
+exception Internal_error of string (** where *)
+exception Invalid_state of string * string (** FSM, id *)
+exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
+exception Invalid_parameter of string * string (** FSM, name *)
+exception Type_mismatch of string * string * string * Types.typ * Types.typ (** FSM, kind, id, type, type *)
 
 (** {2 Dynamic behavior} *)
 

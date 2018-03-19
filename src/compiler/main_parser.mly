@@ -133,9 +133,9 @@ param:
   | id=ID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 io:
-  | IN d=io_desc { (Syntax.IO_In, d) }
-  | OUT d=io_desc { (Syntax.IO_Out, d) }
-  | INOUT d=io_desc { (Syntax.IO_InOut, d) }
+  | IN d=io_desc { (Types.IO_In, d) }
+  | OUT d=io_desc { (Types.IO_Out, d) }
+  | INOUT d=io_desc { (Types.IO_Inout, d) }
 
 io_desc:
   | id=ID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }

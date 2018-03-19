@@ -43,7 +43,12 @@ try
   begin match !Options.target with
   | Some Options.Dot ->
        check_dir !Options.target_dir;
-       Comp.dot_output ~with_insts:!Options.dot_fsm_insts ~with_models:!Options.dot_fsm_models !Options.target_dir m;
+       Comp.dot_output
+         ~fsm_options:(if !Options.dot_captions then [] else [Fsm.NoCaption])
+         ~with_insts:!Options.dot_fsm_insts
+         ~with_models:!Options.dot_fsm_models
+         !Options.target_dir
+         m;
   | Some Options.CTask ->
        check_dir !Options.target_dir;
        (* List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Comp.m_fsm_models; *)
@@ -95,12 +100,12 @@ with
     eprintf "Undefined %s in FSM %s:  %s\n" what fsm id; flush stderr; exit 4
 | Fsm.Invalid_state (fsm, id) ->
     eprintf "Invalid state in FSM %s:  %s\n" fsm id; flush stderr; exit 4
+| Fsm.Binding_mismatch (fsm, what, "") ->
+    eprintf "Error when binding %s for FSM %s\n" what fsm; flush stderr; exit 4
 | Fsm.Binding_mismatch (fsm, what, id) ->
     eprintf "Error when binding %s for FSM %s:  %s\n" what fsm id; flush stderr; exit 4
 | Fsm.Invalid_parameter (fsm, id) ->
     eprintf "Invalid parameter for FSM %s:  %s\n" fsm id; flush stderr; exit 4
-| Fsm.Invalid_io (fsm, what, id) ->
-    eprintf "Invalid %s for FSM %s:  %s\n" what fsm id; flush stderr; exit 4
 | Fsm.Type_mismatch (fsm, what, id, ty, ty') ->
    eprintf "Error when typing %s for FSM %s: types %s and %s are not compatible\n"
      what fsm (Types.string_of_type ty) (Types.string_of_type ty');

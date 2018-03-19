@@ -182,6 +182,9 @@ let build_stim st =
  *        outputs,
  *        (g.gd_name, (Types.type_of_type_expression [] ~strict:false g.gd_type, MShared ([],[]))) :: shared *)
 
+
+let fold_left f l acc = List.fold_left f acc l
+  (* This variant allows [fold_left]s to be chained with [|>] *)
           
 let extract_globals (inputs,outputs,shared) f =
   let add_reader (ty,mg) id = match mg with
@@ -192,35 +195,42 @@ let extract_globals (inputs,outputs,shared) f =
       MOutp wrs -> ty, MOutp (id::wrs)
     | MShared (wrs, rdrs) -> ty, MShared (id::wrs, rdrs)
     | m -> ty, m in
-  let inputs',shared' = 
-    List.fold_left
-      (fun (inps,shrds) (_,(_,gl)) -> match gl with
+  let add_reader_writer (ty,mg) id = match mg with
+    | MShared (wrs, rdrs) -> ty, MShared (id::wrs, id::rdrs)
+    | m -> ty, m in
+  (inputs,outputs,shared)
+  |> fold_left
+      (fun (inps,outps,shrds) (_,(_,gl)) -> match gl with
        | Fsm.GInp (id,ty,sd) ->
           if List.mem_assoc id inps
-          then ListExt.update_assoc add_reader id f.Fsm.f_name inps, shrds
-          else (id, (ty, MInp (build_stim sd, [f.Fsm.f_name]))) :: inps, shrds
+          then ListExt.update_assoc add_reader id f.Fsm.f_name inps, outps, shrds
+          else (id, (ty, MInp (build_stim sd, [f.Fsm.f_name]))) :: inps, outps, shrds
        | Fsm.GShared (id,ty) ->
           if List.mem_assoc id shrds
-          then inps, ListExt.update_assoc add_reader id f.Fsm.f_name shrds
-          else inps, (id, (ty, MShared ([], [f.Fsm.f_name]))) :: shrds
-       | _ -> inps, shrds)
-      (inputs, shared)
-      f.f_inps in
-  let outputs',shared'' = 
-    List.fold_left
-      (fun (outps,shrds) (_,(_,gl)) -> match gl with
+          then inps, outps, ListExt.update_assoc add_reader id f.Fsm.f_name shrds
+          else inps, outps, (id, (ty, MShared ([], [f.Fsm.f_name]))) :: shrds
+       | _ -> inps, outps, shrds)
+      f.f_inps
+  |> fold_left
+      (fun (inps,outps,shrds) (_,(_,gl)) -> match gl with
        | Fsm.GOutp (id,ty) ->
           if List.mem_assoc id outps
-          then ListExt.update_assoc add_writer id f.Fsm.f_name outps, shrds
-          else (id, (ty, MOutp [f.Fsm.f_name])) :: outps, shrds
+          then inps, ListExt.update_assoc add_writer id f.Fsm.f_name outps, shrds
+          else inps, (id, (ty, MOutp [f.Fsm.f_name])) :: outps, shrds
        | Fsm.GShared (id,ty) ->
           if List.mem_assoc id shrds
-          then outps, ListExt.update_assoc add_writer id f.Fsm.f_name shrds
-          else outps, (id, (ty, MShared ([f.Fsm.f_name],[]))) :: shrds
-       | _ -> outps, shrds)
-      (outputs, shared')
-      f.f_outps in
-  inputs', outputs', shared''
+          then inps, outps, ListExt.update_assoc add_writer id f.Fsm.f_name shrds
+          else inps, outps, (id, (ty, MShared ([f.Fsm.f_name],[]))) :: shrds
+       | _ -> inps, outps, shrds)
+      f.f_outps
+  |> fold_left
+      (fun (inps,outps,shrds) (_,(_,gl)) -> match gl with
+       | Fsm.GShared (id,ty) ->
+          if List.mem_assoc id shrds
+          then inps, outps, ListExt.update_assoc add_reader_writer id f.Fsm.f_name shrds
+          else inps, outps, (id, (ty, MShared ([f.Fsm.f_name],[]))) :: shrds
+       | _ -> inps, outps, shrds)
+      f.f_inouts 
 
 let build_dependencies fsms shared =
   let g = DepG.create () in
