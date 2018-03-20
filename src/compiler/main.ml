@@ -88,6 +88,8 @@ with
     eprintf "Illegal value for type index %s: %s\n" v (Expr.string_of_value e); flush stderr; exit 2
 | Types.Unbound_type_index v -> 
     eprintf "Unbound type index: %s\n" v; flush stderr; exit 2
+| Typing.Unbound_type_ctor c -> 
+    eprintf "Unbound type constructor: %s\n" c; flush stderr; exit 2
 | Expr.Builtins.Illegal_op op -> 
     eprintf "Illegal operator in expression: %s\n" op; flush stderr; exit 3
 | Expr.Unknown_id id -> 

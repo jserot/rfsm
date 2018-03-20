@@ -1,7 +1,7 @@
 - Readme with brief desc in all examples dirs
 - headers in src files
 - man page for rfsmc ?
-- negative constants in parser
+- support for enumerated types for the SystemC and VHDL backend
 - VHDL implementation for multi-event and multi-FSM models
 - FreeRTOS (or other RTOS) specialized C-backend
 - SCXML backend (www.w3.org/TR/scxml, Yakindu, ...)
