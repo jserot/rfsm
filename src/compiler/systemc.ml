@@ -40,15 +40,18 @@ let rec string_of_type t = match t with
   | TyBool -> "bool"
   | TyEnum cs -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
   | TyInt _ -> "int"
+  | _ -> raise (Error ("string_of_type", "unsupported type"))
 
 let string_of_value v = match v with
   Expr.Val_int i -> string_of_int i
+| Expr.Val_bool i -> string_of_bool i
 | Expr.Val_enum s -> s
 
 exception Type_of_value
         
 let type_of_value v = match v with
   Expr.Val_int _ -> "int"
+| Expr.Val_bool _ -> "bool"
 | Expr.Val_enum _ -> raise Type_of_value
 
 let string_of_ival = function
@@ -56,7 +59,8 @@ let string_of_ival = function
   | Some v -> " = " ^ string_of_value v
 
 let rec string_of_expr e = match e with
-    Expr.EConst c -> string_of_int c
+    Expr.EInt c -> string_of_int c
+  | Expr.EBool c -> string_of_bool c
   | Expr.EEnum c -> c
   | Expr.EVar n ->  n
   | Expr.EBinop (op,e1,e2) -> string_of_expr e1 ^ string_of_op op ^ string_of_expr e2 (* TODO : add parens *)

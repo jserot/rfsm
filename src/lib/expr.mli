@@ -1,12 +1,16 @@
 (** Expressions and values *)
 
-type t =
-    EConst of int
+type t = 
+    EInt of int
+  | EBool of bool
   | EEnum of string
   | EVar of string
   | EBinop of string * t * t
 
-and value = Val_enum of string | Val_int of int
+and value = 
+  | Val_int of int
+  | Val_bool of bool
+  | Val_enum of string
 
 and env = (string * value) list
 

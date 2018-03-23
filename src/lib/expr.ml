@@ -1,12 +1,14 @@
 type t = 
-    EConst of int
+    EInt of int
+  | EBool of bool
   | EEnum of string
   | EVar of string
   | EBinop of string * t * t
 
 and value = 
-    Val_enum of string
   | Val_int of int
+  | Val_bool of bool
+  | Val_enum of string
 
 and env = (string * value) list
 
@@ -38,7 +40,8 @@ end
 
 
 let of_value = function
-    Val_int v -> EConst v
+    Val_int v -> EInt v
+  | Val_bool b -> EBool b
   | Val_enum c -> EEnum c
 
 let unset_event = None
@@ -59,7 +62,7 @@ let rec subst vs expr = match expr with
   | EVar v when List.mem_assoc v vs -> of_value (List.assoc v vs)
   | EBinop (op,e1,e2) ->
      begin match Builtins.lookup Builtins.binops op, subst vs e1, subst vs e2 with
-       f, EConst c1, EConst c2 -> EConst (f c1 c2)   (* Immediate reduction *)
+       f, EInt c1, EInt c2 -> EInt (f c1 c2)   (* Immediate reduction *)
      | _, e1', e2' -> EBinop (op, e1', e2') 
      end
   | _ -> expr
@@ -88,7 +91,8 @@ let lookup env id =
 
 let rec eval env exp = 
   match exp with
-    EConst v -> Val_int v
+    EInt v -> Val_int v
+  | EBool v -> Val_bool v
   | EEnum c -> Val_enum c
   | EVar id -> lookup env id 
   | EBinop (op, exp1, exp2) ->
@@ -107,7 +111,7 @@ let rec eval_rel env exp =
 
 (* let subst_vars vars exp =
  *   let rec subst e = match e with
- *     EConst _ -> e
+ *     EInt _ -> e
  *   | EEnum _ -> e
  *   | EVar v -> if List.mem_assoc v vars then of_value (List.assoc v vars) else e
  *   | EBinop (op, exp1, exp2) -> EBinop (op, subst exp1, subst exp2) in
@@ -117,6 +121,7 @@ let rec eval_rel env exp =
 
 let string_of_value v = match v with
   Val_int i -> string_of_int i
+| Val_bool b -> string_of_bool b
 | Val_enum s -> s
 
 let string_of_opt_value = function
@@ -128,7 +133,8 @@ let string_of_op = function
   | op -> op
 
 let rec to_string e = match e with
-    EConst c -> string_of_int c
+    EInt c -> string_of_int c
+  | EBool b -> string_of_bool b
   | EEnum c -> c
   | EVar n -> n
   | EBinop (op,e1,e2) -> to_string e1 ^ string_of_op op ^ to_string e2 (* TODO : add parens *)

@@ -1,4 +1,4 @@
-true:   annot, explain
+true:   annot, explain, debug
 <{version,ident,logfile,types,expr,stimuli,condition,action,fsm,comp,simul}.{cmo,cmx}>: for-pack(Rfsm)
 
 

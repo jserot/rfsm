@@ -47,6 +47,7 @@ type inst = {
   f_inouts : (string * (Types.typ * global)) list;             (** in/outs, with bounded global *)
   f_vars : (string * (Types.typ * Expr.value option)) list;    (** internal variable, with value ([None] if not initialized) *)
   f_repr : Repr.t;                                             (** underlying LTS *)
+  (* f_enums: (string * Types.typ);                               (\** Locally used enums, with their associated type *\) *)
   f_l2g : string -> string;                                    (** local to global name conversion function *)
   f_resolve : (transition list -> transition) option;          (** resolution fonction for non-deterministic transitions *)
   f_state : string;                                            (** current state *)
@@ -98,7 +99,7 @@ val build_instance :
   ios:global list ->
   inst
 
-val sanity_check : inst -> unit
+val sanity_check : Types.tenv -> inst -> unit
 
 exception Undef_symbol of string * string * string (** FSM, kind, name *)
 exception Internal_error of string (** where *)
@@ -106,6 +107,7 @@ exception Invalid_state of string * string (** FSM, id *)
 exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
 exception Invalid_parameter of string * string (** FSM, name *)
 exception Type_mismatch of string * string * string * Types.typ * Types.typ (** FSM, kind, id, type, type *)
+exception Type_error of string * string * string * Types.typ * Types.typ (** FSM, what, id, type, type *)
 
 (** {2 Dynamic behavior} *)
 

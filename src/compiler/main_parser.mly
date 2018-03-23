@@ -17,6 +17,8 @@
 %token TYBOOL
 %token TYINT
 %token TYEVENT
+%token TRUE
+%token FALSE
 %token <string> ID
 (* %token <string> STRING *)
 %token SEMICOLON
@@ -264,7 +266,9 @@ rel_expr:
 
 expr:
   | c = int
-      { Expr.EConst c }
+      { Expr.EInt c }
+  | c = bool
+      { Expr.EBool c }
   | i = ID
       { Expr.EVar i }
   | LPAREN e = expr RPAREN
@@ -282,10 +286,15 @@ expr:
 
 const:
   | v = int { Expr.Val_int v }
+  | v = bool { Expr.Val_bool v }
 
 int:
   | c = INT { c }
   | MINUS c = INT %prec UMINUS { -c }
+
+bool:
+  | TRUE { true }
+  | FALSE { false }
 
 (* Separate, "standalone"  entries for string parsers *)
 

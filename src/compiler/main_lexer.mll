@@ -27,6 +27,8 @@ let keyword_table = [
   "event", TYEVENT;
   "int", TYINT;
   "bool", TYBOOL;
+  "true", TRUE;
+  "false", FALSE;
 ]
 }
 

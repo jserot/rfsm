@@ -29,6 +29,7 @@ let vcd_kind_of ty = match ty with
 | TyBool  -> "wire", 1
 | TyEnum _ -> "real", 1
 | TyInt r -> "wire", vcd_size_of_range r
+  | _ -> Error.fatal_error "Vcd.vcd_kind_of"
 
 let start_symbol = 33 
 
@@ -95,7 +96,7 @@ let dump_reaction oc signals (t,evs) =
       (* | TyMemEvent, Some (Expr.Val_int 0) -> *)
       (*     fprintf oc "b0 %c\n" (fst (List.assoc (mk_evbuf_name name) signals)) *)
       | TyEnum _, Some (Expr.Val_enum s) -> fprintf oc "s%s %c\n" s id
-      | TyBool, Some (Expr.Val_int b) -> fprintf oc "b%d %c\n" (b mod 2) id
+      | TyBool, Some (Expr.Val_bool b) -> fprintf oc "b%d %c\n" (if b then 1 else 0) id
       | TyInt r, Some (Expr.Val_int n) -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
       | _, _ -> fprintf oc "s%s %c" "Unknown" id (* should not happen *) in
   fprintf oc "#%d\n" t;

@@ -106,9 +106,13 @@ with
     eprintf "Error when binding %s for FSM %s:  %s\n" what fsm id; flush stderr; exit 4
 | Fsm.Invalid_parameter (fsm, id) ->
     eprintf "Invalid parameter for FSM %s:  %s\n" fsm id; flush stderr; exit 4
-| Fsm.Type_mismatch (fsm, what, id, ty, ty') ->
-   eprintf "Error when typing %s for FSM %s: types %s and %s are not compatible\n"
-     what fsm (Types.string_of_type ty) (Types.string_of_type ty');
+| Fsm.Type_mismatch (fsm, what, where, ty, ty') ->
+   eprintf "Error when typing %s %s in FSM %s: types %s and %s are not compatible\n"
+     what where fsm (Types.string_of_type ty) (Types.string_of_type ty');
+   flush stderr; exit 4
+| Fsm.Type_error (fsm, what, item, ty, ty') ->
+   eprintf "Error when typing %s \"%s\" for FSM %s: types %s and %s are not compatible\n"
+     what item fsm (Types.string_of_type ty) (Types.string_of_type ty');
    flush stderr; exit 4
 | Fsm.NonDetTrans (m,ts,t) ->
     eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Fsm.f_name t;

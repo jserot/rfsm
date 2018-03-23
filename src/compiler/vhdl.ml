@@ -68,7 +68,8 @@ let rec vhdl_type_of t = match t with
 (*       end *)
   | TyInt (Some (TiConst lo,TiConst hi)) ->
       if lo < 0 then Signed (bit_size (max (-lo) hi)) else Unsigned (bit_size hi)
-  | TyInt _ ->
+  | TyInt _
+  | _ ->
      Error.fatal_error "Vhdl.vhdl_type_of"
 
 let rec string_of_vhdl_type t = match t with 
@@ -114,6 +115,7 @@ let string_of_value ?(ty=None) v = match v, ty with
 | Expr.Val_int i, Some Std_logic -> Printf.sprintf "'%d'" i
 | Expr.Val_int i, Some Integer -> Printf.sprintf "%d" i
 | Expr.Val_int i, None -> Printf.sprintf "%d" i
+| Expr.Val_bool b, _ -> string_of_bool b
 | Expr.Val_enum s, _ -> Error.not_implemented "VHDL translation of enumerated value"
 
 let string_of_ival ?(ty=None) = function
@@ -121,7 +123,8 @@ let string_of_ival ?(ty=None) = function
   | Some v -> " = " ^ string_of_value ~ty:ty v
 
 let rec type_of_expr e = match e with
-    Expr.EConst c -> None (* too late .. *)
+    Expr.EInt c -> None (* too late .. *)
+  | Expr.EBool c -> Some (vhdl_type_of TyBool)
   | Expr.EEnum c -> None
   | Expr.EVar n -> lookup_type n 
   | Expr.EBinop (op,e1,e2) -> 
@@ -142,7 +145,8 @@ let vhdl_string_of_int ?(ty=None) n =
   | _ -> string_of_int n (* will probably not compile but can't do better at this level.. *)
 
 let rec string_of_expr ?(ty=None) e = match e with
-    Expr.EConst c -> vhdl_string_of_int ~ty:ty  c
+    Expr.EInt c -> vhdl_string_of_int ~ty:ty  c
+  | Expr.EBool c -> string_of_bool c
   | Expr.EEnum c -> c
   | Expr.EVar n ->  n
   | Expr.EBinop (op,e1,e2) -> 

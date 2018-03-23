@@ -13,9 +13,6 @@ let mk_fsm_model { fsm_desc = f; fsm_loc = loc } =
     ~states:f.fd_states
     ~params:(List.map mk_typed f.fd_params)
     ~ios:(List.map (function (dir,desc) -> let id,ty = mk_typed desc in dir,id,ty) f.fd_ios)
-    (* ~inps:(Utils.ListExt.filter_map (function (IO_In,_) -> true | _ -> false) (function (_,x) -> mk_typed x) f.fd_ios)
-     * ~outps:(Utils.ListExt.filter_map (function (IO_Out,_) -> true | _ -> false) (function (_,x) -> mk_typed x) f.fd_ios)
-     * ~inouts:(Utils.ListExt.filter_map (function (IO_InOut,_) -> true | _ -> false) (function (_,x) -> mk_typed x) f.fd_ios) *)
     ~vars:(List.map mk_typed f.fd_vars)
     ~trans:(List.map (function (s,cond,acts,s') -> s, mk_cond cond, List.map mk_act acts, s') f.fd_trans)
     ~itrans:(let q0,acts = f.fd_itrans in q0, List.map mk_act acts)
@@ -27,19 +24,6 @@ let mk_fsm_inst models globals { fi_desc=f; fi_loc=loc } =
   let params =
     try List.map2 (fun (p,ty) v -> p, v) model.Fsm.fm_params f.fi_params
     with Invalid_argument _ -> Error.fsm_mismatch "parameter(s)" loc f.fi_name in
-  (* let inps, outps, inouts =
-   *   try
-   *     List.fold_left2
-   *       (fun (inps,outps,inouts) formal actual ->
-   *         match formal with
-   *           _, (Fsm.IO_In,_) -> actual::inps, outps, inouts
-   *         | _, (Fsm.IO_Out,_) -> inps, actual::outps, inouts
-   *         | _, (Fsm.IO_Inout,_) -> inps, outps, actual::inouts)
-   *       ([],[],[])
-   *       model.fm_ios
-   *       globals
-   *   with Invalid_argument _ ->
-   *     Error.fsm_mismatch "input/output(s)" loc f.fi_name in *)
   let mk_global id =
     try List.assoc id globals
     with Not_found -> Error.unbound_global loc id in
@@ -48,9 +32,6 @@ let mk_fsm_inst models globals { fi_desc=f; fi_loc=loc } =
       ~model:model
       ~params:params
       ~ios:(List.map mk_global f.fi_args)
-    (* ~inps:(List.rev inps)
-     * ~outps:(List.rev outps)
-     * ~inouts:(List.rev inouts) *)
 
 let mk_stim_desc = function
   | Periodic (p,t1,t2) -> Fsm.Periodic (p,t1,t2)

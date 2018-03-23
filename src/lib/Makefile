@@ -36,8 +36,14 @@ top:
 profile:
 			$(OCB) -tag profile rfsm.cmxa
 
-debug: 
+debug: _build/main.ml
 			$(OCB) -tag debug rfsm.cma
+			echo "all:\n" > _build/Makefile
+			echo "\tocamlc -g  -c main.cmo main.ml" >> _build/Makefile
+			echo "\tocamlc -g  -I ~/.opam/4.06.0/lib/lascar -I ~/.opam/4.06.0/lib/ocamlgraph -o main.byte utils.cma ltsa.cma graph.cma rfsm.cmo main.cmo" >> _build/Makefile
+			(cd _build; make)
+#			\rm -f ../../lib/ml/*      # Note 2018-03-22: debugging with rfsm.cma crashes ocamldebug :(
+#			cp _build/* ../../lib/ml
 
 DOCSRCS=*.mli *.ml
 

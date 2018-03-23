@@ -4,7 +4,7 @@ OBELISK=obelisk
 
 OCB = 		ocamlbuild $(OCB_FLAGS)
 
-all: 		byte native # profile debug
+all: 		byte # native # profile debug
 
 byte: 		
 			$(OCB) main.byte

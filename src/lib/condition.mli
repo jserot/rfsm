@@ -26,7 +26,6 @@ val subst : Expr.env -> t -> t
 
 (** {2 Printers} *)
 
-(* val string_of_guard : Expr.t * string * Expr.t -> string
- * val string_of_guards : (Expr.t * string * Expr.t) list -> string *)
+val string_of_guard : Expr.t * string * Expr.t -> string
 val to_string : t -> string
 (* val to_string' : t -> string *)
