@@ -1,3 +1,4 @@
+%token TYPE
 %token FSM
 %token MODEL
 %token IN
@@ -19,7 +20,8 @@
 %token TYEVENT
 %token TRUE
 %token FALSE
-%token <string> ID
+%token <string> LID
+%token <string> UID
 (* %token <string> STRING *)
 %token SEMICOLON
 %token COMMA
@@ -49,18 +51,18 @@
 %left PLUS MINUS       
 %left TIMES DIV MOD   
 %nonassoc UMINUS          (* Highest precedence *)
+(* TO FIX : the previous decl is flagged as useless by Menhir. Why ? *)
 
 %type <Syntax.program> program
-(* %type <Condition.t> fsm_condition *)
-(* %type <Action.t list> fsm_actions *)
 
-%start program (*fsm_condition fsm_actions*)
+%start program
 
 %{
 open Location
 
 let mk_location (p1,p2) = Loc (!input_name, p1, p2)
 
+let mk_type_decl p desc = { Syntax.td_desc = desc; Syntax.td_loc = mk_location p }
 let mk_global_decl p desc = { Syntax.g_desc = desc; Syntax.g_loc = mk_location p }
 let mk_fsm_decl p desc = { Syntax.fsm_desc = desc; Syntax.fsm_loc = mk_location p }
 let mk_stim_decl p desc = { Syntax.stim_desc = desc; Syntax.stim_loc = mk_location p }
@@ -89,24 +91,34 @@ let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p 
   | x=X { x }
 
 program:
-  | models=nonempty_list(fsm_model)
+  | tydecls=list(type_decl)
+    models=nonempty_list(fsm_model)
     globals=nonempty_list(global)
     fsms=nonempty_list(fsm_inst)
     EOF
-      { { Syntax.p_fsm_models = models;
-          Syntax.p_globals = globals;
-          Syntax.p_fsm_insts = fsms; }
+    { { Syntax.p_type_decls = tydecls;
+        Syntax.p_fsm_models = models;
+        Syntax.p_globals = globals;
+        Syntax.p_fsm_insts = fsms; }
       }
   
+(* TYPE DECLARATION *)
+
+type_decl:
+  | TYPE id=LID EQUAL t=typ
+      { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Alias (id,t)) }
+  | TYPE id=LID EQUAL cs=braced(separated_list(COMMA,UID))
+      { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Enum (id,cs)) }
+
 (* FSM MODEL *)
 
 fsm_model:
   | FSM MODEL
-      name=ID 
+      name=id 
       params=optional(params)
       LPAREN ios=separated_list(COMMA, io) RPAREN
       LBRACE
-      STATES COLON states=terminated(separated_list(COMMA, ID),SEMICOLON)
+      STATES COLON states=terminated(separated_list(COMMA, UID),SEMICOLON)
       vars = optional(vars)
       TRANS COLON trans=terminated(separated_list(COMMA,transition),SEMICOLON)
       ITRANS COLON itrans=terminated(itransition,SEMICOLON)
@@ -117,9 +129,6 @@ fsm_model:
             Syntax.fd_params=params;
             Syntax.fd_states=states;
             Syntax.fd_ios=ios;
-            (* Syntax.fd_inps=collect_io IO_In ios; *)
-            (* Syntax.fd_outps=collect_io IO_Out ios; *)
-            (* Syntax.fd_inouts=collect_io IO_InOut ios; *)
             Syntax.fd_vars=vars;
             Syntax.fd_trans=trans;
             Syntax.fd_itrans=itrans } }
@@ -128,7 +137,7 @@ params:
   | LT params=separated_list(COMMA, param) GT { params }
 
 param:
-  | id=ID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=id COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 io:
   | IN d=io_desc { (Types.IO_In, d) }
@@ -136,29 +145,29 @@ io:
   | INOUT d=io_desc { (Types.IO_Inout, d) }
 
 io_desc:
-  | id=ID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=id COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 vars:
   | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { vars }
 
 var:
-  | id=ID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=id COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 transition:
-  | src=ID
+  | src=UID
     ARROW_START
     cond=condition
     actions=optional(actions)
     ARROW_END
-    dst=ID
+    dst=UID
       { src, mk_condition ($symbolstartofs,$endofs) cond, actions, dst }
 
 itransition:
-  | actions=optional(actions) ARROW_END dst=ID { dst, actions }
+  | actions=optional(actions) ARROW_END dst=UID { dst, actions }
 
 condition:
-  | ev=ID { ([ev],[]) }
-  | ev=ID DOT guards=separated_nonempty_list(DOT, guard) { ([ev], guards) }
+  | ev=id { ([ev],[]) }
+  | ev=id DOT guards=separated_nonempty_list(DOT, guard) { ([ev], guards) }
 
 guard:
   | e=rel_expr { e }
@@ -167,25 +176,25 @@ actions:
   | BAR actions=separated_nonempty_list(SEMICOLON, action) { actions }
 
 action:
-  | i=ID               { mk_action ($symbolstartofs,$endofs) (Action.Emit i) }
-  | i=ID COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign (i,e)) }
+  | i=id               { mk_action ($symbolstartofs,$endofs) (Action.Emit i) }
+  | i=id COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign (i,e)) }
 
 (* GLOBALS *)
 
 global:
-  | INPUT id=ID COLON ty=typ EQUAL st=stimuli
+  | INPUT id=id COLON ty=typ EQUAL st=stimuli
       { mk_global_decl
          ($symbolstartofs,$endofs)
          { Syntax.gd_name = id;
            Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
            Syntax.gd_desc = Syntax.GInp st } }
-  | OUTPUT id=ID COLON ty=typ
+  | OUTPUT id=id COLON ty=typ
       { mk_global_decl
          ($symbolstartofs,$endofs)
          { Syntax.gd_name = id;
            Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
            Syntax.gd_desc = Syntax.GOutp } }
-  | SHARED id=ID COLON ty=typ
+  | SHARED id=id COLON ty=typ
       { mk_global_decl
          ($symbolstartofs,$endofs)
          { Syntax.gd_name = id;
@@ -206,7 +215,7 @@ value_change:
 (* INSTANCEs *)
 
 fsm_inst:
-  | FSM name=ID EQUAL model=ID pvs=opt_inst_params args=paren(separated_list(COMMA,ID))
+  | FSM name=id EQUAL model=id pvs=opt_inst_params args=paren(separated_list(COMMA,id))
       { mk_fsm_inst
           ($symbolstartofs,$endofs)
           { Syntax.fi_name = name;
@@ -218,12 +227,13 @@ opt_inst_params:
     /* Nothing */ { [] }
   |  LT params=separated_nonempty_list(COMMA, INT) GT { List.map (function v -> Expr.Val_int v) params }
   
-(* TYPE EXPRESSIONs *)
+(* CORE TYPE EXPRESSIONs *)
 
 typ:
   | TYEVENT { Syntax.TEEvent }
   | TYINT r=option(int_range) { Syntax.TEInt r }
   | TYBOOL { Syntax.TEBool }
+  | i=LID { Syntax.TEName i }
 
 int_range:
     | LT lo=type_index_expr DOTDOT hi=type_index_expr GT
@@ -233,7 +243,7 @@ int_range:
 type_index_expr:
   | c = int
       { Syntax.TEConst c }
-  | i = ID
+  | i = id
       { Syntax.TEVar i }
   | LPAREN e = type_index_expr RPAREN
       { e }
@@ -269,8 +279,10 @@ expr:
       { Expr.EInt c }
   | c = bool
       { Expr.EBool c }
-  | i = ID
-      { Expr.EVar i }
+  | c = UID
+      { Expr.EEnum c }
+  | v = LID
+      { Expr.EVar v }
   | LPAREN e = expr RPAREN
       { e }
   | e1 = expr PLUS e2 = expr
@@ -287,6 +299,7 @@ expr:
 const:
   | v = int { Expr.Val_int v }
   | v = bool { Expr.Val_bool v }
+  | c = UID { Expr.Val_enum c }
 
 int:
   | c = INT { c }
@@ -304,3 +317,8 @@ bool:
 (* fsm_actions:  *)
 (*   | acts = action_list EOF { acts } *)
 
+=======
+id:
+  | i = LID { i }
+  | i = UID { i }
+>>>>>>> enums

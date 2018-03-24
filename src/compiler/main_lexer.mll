@@ -9,6 +9,7 @@ exception Lexical_error of lexical_error * int * int
 (* The table of keywords *)
 
 let keyword_table = [
+  "type", TYPE;
   "fsm", FSM;
   "model", MODEL;
   "states", STATES;
@@ -35,10 +36,12 @@ let keyword_table = [
 rule main = parse
   | [' ' '\t' '\010' '\013' ] +
       { main !Location.input_lexbuf }
-  | ['A'-'Z' 'a'-'z' ] ( ['A'-'Z' 'a'-'z' '0'-'9' '_' ] ) *
+  | ['a'-'z' ] ( ['A'-'Z' 'a'-'z' '0'-'9' '_' ] ) *
       { let s = Lexing.lexeme !Location.input_lexbuf  in
         try List.assoc s keyword_table
-        with Not_found -> ID s }
+        with Not_found -> LID s }
+  | ['A'-'Z' 'a'-'z' ] ( ['A'-'Z' 'a'-'z' '0'-'9' '_' ] ) *
+      { UID (Lexing.lexeme !Location.input_lexbuf) }
   | "#"
       { comment !Location.input_lexbuf; main !Location.input_lexbuf }
   | ['0'-'9']+

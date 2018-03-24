@@ -12,8 +12,9 @@ type type_expression = {
 and type_expr = 
   | TEBool
   | TEInt of int_range option
-  | TEEnum of string list
+  (* | TEEnum of string list *)
   | TEEvent
+  | TEName of string
 
 and int_range = type_index_expression * type_index_expression (* min, max *)
 
@@ -34,6 +35,17 @@ type expression = {
   e_loc: Location.location;
   }
 
+(* Type declarations *)
+
+type type_declaration = {
+  td_desc: type_decl;
+  td_loc: Location.location;
+  }
+
+and type_decl =
+  TD_Enum of string * string list  (* Name, constructors *)
+| TD_Alias of string * type_expr   (* Name, abbreviated type expr *)
+            
 (* FSM declarations *)
 
 type fsm_model = {
@@ -110,12 +122,13 @@ and fsm_inst_desc = {
 (* Programs *)
                   
 type program = {
+  p_type_decls: type_declaration list;
   p_fsm_models: fsm_model list;
   p_globals: global_decl list;
   p_fsm_insts: fsm_inst list
   }
 
-let empty={ p_fsm_models=[]; p_globals=[]; p_fsm_insts=[] }
+let empty={ p_type_decls=[]; p_fsm_models=[]; p_globals=[]; p_fsm_insts=[] }
 
 (* Printing *)
 
@@ -137,16 +150,23 @@ let string_of_range (lo,hi) = string_of_type_index lo.ti_desc ^ ".." ^ string_of
 
 let string_of_type_expr t = match t with 
   | TEBool -> "bool"
-  | TEEnum cs -> "{" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
+  (* | TEEnum cs -> "{" ^ ListExt.to_string (function c -> c) "," cs ^ "}" *)
   | TEInt None -> "int"
   | TEInt (Some (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
   | TEEvent -> "event"
+  | TEName n -> n
           
 let string_of_type_expression t = string_of_type_expr t.te_desc
 
 let string_of_io_tag = function Types.IO_In -> "in" | Types.IO_Out -> "out" | Types.IO_Inout -> "inout"
                                                                             
 let string_of_io (tag,(id,ty)) = string_of_io_tag tag ^ " " ^ id ^ ": " ^ string_of_type_expression ty
+
+let dump_type_decl oc { td_desc=d } = match d with
+    TD_Alias (name,te) ->
+     Printf.printf "TYPE %s = %s\n" name (string_of_type_expr te)
+  | TD_Enum (name, cs) ->
+     Printf.printf "TYPE %s = { %s }\n" name (ListExt.to_string (function c -> c) "," cs)
 
 let dump_fsm_model oc { fsm_desc=m } =
   let of_list f xs = ListExt.to_string f ", " xs in
@@ -181,6 +201,7 @@ let dump_fsm_inst oc {fi_desc=f} =
     (ListExt.to_string Misc.id "," f.fi_args)
   
 let dump_program p =   (* for debug only *)
+  List.iter (dump_type_decl stdout) p.p_type_decls;
   List.iter (dump_fsm_model stdout) p.p_fsm_models;
   List.iter (dump_global stdout) p.p_globals;
   List.iter (dump_fsm_inst stdout) p.p_fsm_insts
