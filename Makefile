@@ -14,7 +14,7 @@ MAKE_WIN = C:/Qt/Qt5.8.0/Tools/mingw530_32/bin/mingw32-make
 
 .PHONY: compiler lib gui clean test doc
 
-all: 		lib compiler libs gui doc
+all: 		lib compiler libs #gui doc
 
 compiler:
 			(cd src/compiler; make)

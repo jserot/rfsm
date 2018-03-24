@@ -177,7 +177,8 @@ let sanity_check tenv f =
           ~strict:true f.f_name "guard" (Condition.string_of_guard g)
           (Types.type_expression tenv (Expr.EBinop (op,e1,e2))) Types.TyBool
     with
-      Types.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "guard", Expr.to_string expr, ty, ty')) in
+      | Types.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "guard", Expr.to_string expr, ty, ty'))
+      | Types.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
   let type_check_condition (_,gs) = List.iter type_check_guard gs in
   let type_check_action act = match act with 
     | Action.Assign (v, exp) -> 
@@ -188,7 +189,8 @@ let sanity_check tenv f =
                (* [strict=false] here to accept actions like [v:=1] where [v:int<lo..hi>] *)
                (Action.to_string act) (Types.type_expression tenv exp) t
          with
-           Types.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "action", Expr.to_string expr, ty, ty'))
+           | Types.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "action", Expr.to_string expr, ty, ty'))
+           | Types.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) 
        end
     | Action.Emit s ->
        let t = try List.assoc s tenv.te_vars with Not_found -> raise (Internal_error "Fsm.type_check_action") in

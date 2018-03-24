@@ -35,10 +35,15 @@ let cfg = {
   sc_trace_state_var = "st";
   }
 
+let rec bit_size n = if n=0 then 0 else 1 + bit_size (n/2)
+
 let rec string_of_type t = match t with 
   | TyEvent -> "bool"
   | TyBool -> "bool"
   | TyEnum cs -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
+  | TyInt (Some (TiConst lo,TiConst hi)) ->
+     if lo < 0 then "sc_int<" ^ string_of_int (bit_size (max (-lo) hi)) ^ "> "
+     else "sc_uint<" ^ string_of_int (bit_size hi) ^ "> "
   | TyInt _ -> "int"
   | _ -> raise (Error ("string_of_type", "unsupported type"))
 
@@ -58,23 +63,25 @@ let string_of_ival = function
     None -> ""
   | Some v -> " = " ^ string_of_value v
 
-let rec string_of_expr e = match e with
+let rec string_of_expr m e = match e with
     Expr.EInt c -> string_of_int c
   | Expr.EBool c -> string_of_bool c
   | Expr.EEnum c -> c
-  | Expr.EVar n ->  n
-  | Expr.EBinop (op,e1,e2) -> string_of_expr e1 ^ string_of_op op ^ string_of_expr e2 (* TODO : add parens *)
+  | Expr.EVar n -> if List.mem_assoc n (m.c_inps @ m.c_inouts) then n ^ ".read()" else n
+  | Expr.EBinop (op,e1,e2) -> string_of_expr m e1 ^ string_of_op op ^ string_of_expr m e2 (* TODO : add parens *)
 
 and string_of_op = function
     "=" -> "=="
   | "mod" -> "%"
   | op ->  op
 
-let string_of_guard (e1, op, e2) = 
-  string_of_expr e1 ^ string_of_op op ^ string_of_expr e2 (* TODO : add parens *)
+let string_of_guard m (e1, op, e2) = 
+  string_of_expr m e1 ^ string_of_op op ^ string_of_expr m e2 (* TODO : add parens *)
 
-let string_of_action a = match a with
-    | Action.Assign (id, expr) -> id ^ "=" ^ string_of_expr expr
+let string_of_action m a = match a with
+  | Action.Assign (id, expr) ->
+       if List.mem_assoc id m.c_outps then id ^ ".write(" ^ string_of_expr m expr ^ ")"
+       else id ^ "=" ^ string_of_expr m expr
     | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
     | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
@@ -85,47 +92,47 @@ let string_of_action a = match a with
 (*     [] -> string_of_ev e *)
 (*   |  _ -> string_of_ev e ^ " && " ^ Ext.List.to_string string_of_guard " && " cs *)
 
-let dump_action oc tab a = fprintf oc "%s%s;\n" tab (string_of_action a)
+let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
 
-let dump_transition oc tab is_first src delta (q',(cond,acts,_)) =
+let dump_transition oc tab is_first src m (q',(cond,acts,_)) =
   match cond with
   | [ev], [] ->
-       List.iter (dump_action oc tab) acts;
+       List.iter (dump_action oc tab m) acts;
        if q' <> src then fprintf oc "%s%s = %s;\n" tab cfg.sc_state_var q'
   | [ev], guards -> 
-       for i=0 to delta-1 do 
+       for i=0 to m.c_ddepth-1 do 
          fprintf oc "%swait(SC_ZERO_TIME);\n" tab
        done;
        fprintf oc "%s%sif ( %s ) {\n"
         tab
         (if is_first then "" else "else ")
-        (ListExt.to_string string_of_guard " && " guards);
-       List.iter (dump_action oc (tab^"  ")) acts;
+        (ListExt.to_string (string_of_guard m) " && " guards);
+       List.iter (dump_action oc (tab^"  ") m) acts;
        if q' <> src then fprintf oc "%s  %s = %s;\n" tab cfg.sc_state_var q';
        fprintf oc "%s  }\n" tab
   | _, _ ->
        failwith "Systemc.dump_transition"
 
-let dump_ev_transition oc tab is_first src delta (ev,ts) = 
+let dump_ev_transition oc tab is_first src m (ev,ts) = 
   fprintf oc "%s%sif ( %s.read() ) {\n" tab (if is_first then "" else "else ") ev;
-  ListExt.iter_fst (fun is_first t -> dump_transition oc (tab^"  ") is_first src delta t) ts;
+  ListExt.iter_fst (fun is_first t -> dump_transition oc (tab^"  ") is_first src m t) ts;
   fprintf oc "%s  }\n" tab
 
 let sysc_event e = e ^ ".posedge_event()" 
   (* Events are implemented as boolean signals because it is not possible to wait on multiple [sc_event]s 
      and telling afterwards which one occurred in SystemC 2.3.0 !! *)
 
-let dump_transitions oc g src after evs delta tss =
+let dump_transitions oc g src after evs m tss =
    if after then fprintf oc "      else {\n";
    let tab = if after then "        " else "      " in
    begin match tss with 
       [] -> ()  (* no wait in this case *)
     | [ev,ts] ->
        fprintf oc "%swait(%s);\n" tab (sysc_event ev);
-       ListExt.iter_fst (fun is_first t -> dump_transition oc tab is_first src delta t) ts;
+       ListExt.iter_fst (fun is_first t -> dump_transition oc tab is_first src m t) ts;
     | _ ->
        fprintf oc "%swait(%s);\n" tab (ListExt.to_string sysc_event " | " evs);
-       ListExt.iter_fst (fun is_first t -> dump_ev_transition oc tab is_first src delta t) tss
+       ListExt.iter_fst (fun is_first t -> dump_ev_transition oc tab is_first src m t) tss
    end;
    fprintf oc "%swait(SC_ZERO_TIME);\n" tab;
        (* Waiting at least one delta cycle so that 
@@ -134,11 +141,11 @@ let dump_transitions oc g src after evs delta tss =
    if after then fprintf oc "      }\n"
      
 let dump_state oc g m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
-   dump_transitions oc g q false evs m.c_ddepth tss
+   dump_transitions oc g q false evs m tss
 
 let dump_state_case oc g m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   fprintf oc "    case %s:\n" q;
-  dump_transitions oc g q false evs m.c_ddepth tss;
+  dump_transitions oc g q false evs m tss;
   fprintf oc "      break;\n"
 
 let dump_module_impl g fname m =
@@ -150,7 +157,7 @@ let dump_module_impl g fname m =
   fprintf oc "void %s::%s()\n" modname cfg.sc_proc_name;
   fprintf oc "{\n";
   fprintf oc "  %s = %s;\n" cfg.sc_state_var (fst m.c_init);
-  List.iter (dump_action oc "  ") (snd m.c_init);
+  List.iter (dump_action oc "  " m) (snd m.c_init);
   fprintf oc "  while ( 1 ) {\n";
   if cfg.sc_trace then fprintf oc "    %s = %s;\n" cfg.sc_trace_state_var cfg.sc_state_var;
   begin match m.c_body with

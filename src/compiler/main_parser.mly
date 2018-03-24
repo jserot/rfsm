@@ -309,16 +309,6 @@ bool:
   | TRUE { true }
   | FALSE { false }
 
-(* Separate, "standalone"  entries for string parsers *)
-
-(* fsm_condition:  *)
-(*   | cond = option(condition) EOF { mk_cond cond } *)
-
-(* fsm_actions:  *)
-(*   | acts = action_list EOF { acts } *)
-
-=======
 id:
   | i = LID { i }
   | i = UID { i }
->>>>>>> enums

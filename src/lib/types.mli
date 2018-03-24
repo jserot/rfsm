@@ -31,6 +31,7 @@ and type_index =
 exception Illegal_type_index of string * Expr.value 
 exception Unbound_type_index of string
 
+exception Unbound_id of string * string 
 exception Typing_error of Expr.t * typ * typ 
 
 val is_event_type : typ -> bool

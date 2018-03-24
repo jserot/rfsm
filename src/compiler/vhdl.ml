@@ -48,9 +48,6 @@ let cfg = {
   vhdl_trace_state_var = "st";
   }
 
-let rec  bit_size n = if n=0 then 0 else 1 + bit_size (n/2)
-let max x y = if x > y then x else y
-
 type vhdl_type = 
     Std_logic 
   | Unsigned of int
@@ -67,7 +64,7 @@ let rec vhdl_type_of t = match t with
 (*       | _ -> Unsigned cfg.vhdl_default_int_size *)
 (*       end *)
   | TyInt (Some (TiConst lo,TiConst hi)) ->
-      if lo < 0 then Signed (bit_size (max (-lo) hi)) else Unsigned (bit_size hi)
+      if lo < 0 then Signed (Systemc.bit_size (max (-lo) hi)) else Unsigned (Systemc.bit_size hi)
   | TyInt _
   | _ ->
      Error.fatal_error "Vhdl.vhdl_type_of"
