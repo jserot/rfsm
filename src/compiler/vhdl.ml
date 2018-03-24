@@ -53,10 +53,11 @@ type vhdl_type =
   | Unsigned of int
   | Signed of int
   | Integer
+  | Boolean
 
 let rec vhdl_type_of t = match t with 
   | TyEvent -> Std_logic
-  | TyBool -> Std_logic
+  | TyBool -> Boolean
   | TyEnum cs -> Error.not_implemented "VHDL translation of enumerated type"
   | TyInt None -> Integer
 (*       begin match cfg.vhdl_default_int_type with *)
@@ -74,6 +75,7 @@ let rec string_of_vhdl_type t = match t with
   | Unsigned n -> Printf.sprintf "unsigned(%d downto 0)" (n-1)
   | Signed n -> Printf.sprintf "signed(%d downto 0)" (n-1)
   | Integer -> "integer"
+  | Boolean -> "boolean"
 
 let string_of_type t = string_of_vhdl_type (vhdl_type_of t)
 
@@ -111,6 +113,7 @@ let string_of_value ?(ty=None) v = match v, ty with
 | Expr.Val_int i, Some (Signed n) -> Printf.sprintf "to_signed(%d,%d)" i n
 | Expr.Val_int i, Some Std_logic -> Printf.sprintf "'%d'" i
 | Expr.Val_int i, Some Integer -> Printf.sprintf "%d" i
+| Expr.Val_int i, Some Boolean -> Error.fatal_error "Vhdl.string_of_value"
 | Expr.Val_int i, None -> Printf.sprintf "%d" i
 | Expr.Val_bool b, _ -> string_of_bool b
 | Expr.Val_enum s, _ -> Error.not_implemented "VHDL translation of enumerated value"
