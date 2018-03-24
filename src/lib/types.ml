@@ -203,11 +203,14 @@ let rec type_equal ~strict t1 t2 =
   match real_type t1, real_type t2 with
   | TyBool, TyBool -> true
   | TyEvent, TyEvent -> true
-  | TyEnum cs1, TyEnum cs2 -> List.sort compare cs1 = List.sort compare cs2
   | TyInt (Some (lo1,hi1)), TyInt (Some (lo2,hi2)) -> if strict then lo1=lo2 && hi1=hi2 else true
   | TyInt (Some _), TyInt None
   | TyInt None, TyInt (Some _) -> if strict then false else true
   | TyInt None, TyInt None -> true
+  | TyEnum cs1, TyEnum cs2 ->
+     if strict then List.sort compare cs1 = List.sort compare cs2
+     else List.for_all (function c -> List.mem c cs1) cs2
+        (* so that, for ex, [type_equal ~strict:false {On,Off} {On} = true] *)
   | TyVar { stamp=s1; value=Unknown }, TyVar { stamp=s2; value=Unknown } -> s1 = s2
   | TyArrow (ty1, ty1'), TyArrow (ty2, ty2') ->
       type_equal ~strict ty1 ty2 && type_equal ~strict ty1' ty2'

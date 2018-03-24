@@ -168,10 +168,6 @@ let sanity_check tenv f =
   List.iter (check_type "inout") (List.map (function (id, (ty,_)) -> id,ty) f.f_inouts);
   List.iter (check_type "variable") (List.map (function (id, (ty,_)) -> id,ty) f.f_vars);
   (* Type checking *)
-  (* let type_check what item ty ty' =
-   *   if not (Types.type_equal [] ty ty')
-   *     (\* Checking is here carried out with an empty index env since all indexes are supposed to have been instanciated *\)
-   *   then raise (Type_error (f.f_name, what, item, ty, ty')) in *)
   let type_check_guard ((e1,op,e2) as g) =
     try type_check
           ~strict:true f.f_name "guard" (Condition.string_of_guard g)

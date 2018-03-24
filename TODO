@@ -1,6 +1,7 @@
 - Readme with brief desc in all examples dirs
 - headers in src files
 - man page for rfsmc ?
+- support for enum values in the SystemC and VHDL backends
 - bound check for ranged integers
 - VHDL implementation for multi-event and multi-FSM models
 - FreeRTOS (or other RTOS) specialized C-backend
