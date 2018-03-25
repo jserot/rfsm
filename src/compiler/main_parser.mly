@@ -137,7 +137,7 @@ params:
   | LT params=separated_list(COMMA, param) GT { params }
 
 param:
-  | id=id COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 io:
   | IN d=io_desc { (Types.IO_In, d) }
@@ -145,29 +145,34 @@ io:
   | INOUT d=io_desc { (Types.IO_Inout, d) }
 
 io_desc:
-  | id=id COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 vars:
   | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { vars }
 
 var:
-  | id=id COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 transition:
-  | src=UID
+  | prio=prio
+    src=UID
     ARROW_START
     cond=condition
     actions=optional(actions)
     ARROW_END
     dst=UID
-      { src, mk_condition ($symbolstartofs,$endofs) cond, actions, dst }
+      { src, mk_condition ($symbolstartofs,$endofs) cond, actions, dst, prio }
 
+prio:
+    | (* Nothing *) { false }
+    | TIMES { true } 
+      
 itransition:
   | actions=optional(actions) ARROW_END dst=UID { dst, actions }
 
 condition:
-  | ev=id { ([ev],[]) }
-  | ev=id DOT guards=separated_nonempty_list(DOT, guard) { ([ev], guards) }
+  | ev=LID { ([ev],[]) }
+  | ev=LID DOT guards=separated_nonempty_list(DOT, guard) { ([ev], guards) }
 
 guard:
   | e=rel_expr { e }
@@ -176,8 +181,8 @@ actions:
   | BAR actions=separated_nonempty_list(SEMICOLON, action) { actions }
 
 action:
-  | i=id               { mk_action ($symbolstartofs,$endofs) (Action.Emit i) }
-  | i=id COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign (i,e)) }
+  | i=LID               { mk_action ($symbolstartofs,$endofs) (Action.Emit i) }
+  | i=LID COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign (i,e)) }
 
 (* GLOBALS *)
 
@@ -243,7 +248,7 @@ int_range:
 type_index_expr:
   | c = int
       { Syntax.TEConst c }
-  | i = id
+  | i = LID
       { Syntax.TEVar i }
   | LPAREN e = type_index_expr RPAREN
       { e }
@@ -279,10 +284,10 @@ expr:
       { Expr.EInt c }
   | c = bool
       { Expr.EBool c }
-  | c = UID
-      { Expr.EEnum c }
   | v = LID
       { Expr.EVar v }
+  | c = UID
+      { Expr.EEnum c }
   | LPAREN e = expr RPAREN
       { e }
   | e1 = expr PLUS e2 = expr
@@ -308,6 +313,7 @@ int:
 bool:
   | TRUE { true }
   | FALSE { false }
+
 
 id:
   | i = LID { i }

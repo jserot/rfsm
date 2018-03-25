@@ -74,7 +74,7 @@ let string_of_action a = match a with
   
 let dump_action oc tab a = fprintf oc "%s%s;\n" tab (string_of_action a)
 
-let dump_transition oc tab is_first src (q',((evs,guards),acts,_)) =
+let dump_transition oc tab is_first src (q',((evs,guards),acts,_,_)) =
   match guards with
   | [] ->
        List.iter (dump_action oc tab) acts;

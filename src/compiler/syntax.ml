@@ -59,7 +59,7 @@ and fsm_desc = {
   fd_params: (string * type_expression) list;
   fd_ios: (Types.dir * (string * type_expression)) list;
   fd_vars: (string * type_expression) list;
-  fd_trans: (string * condition * action list * string) list;
+  fd_trans: (string * condition * action list * string * bool) list;
   fd_itrans: string * action list;
   }
 
@@ -180,8 +180,9 @@ let dump_fsm_model oc { fsm_desc=m } =
   Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_comp_t m.fd_vars);
   Printf.fprintf oc "  TRANS = {\n";
   List.iter 
-    (fun (q,cond,acts,q') ->
-      Printf.fprintf oc "    { %s {%s} {%s} %s }\n" q (Condition.to_string cond.cond_desc) (string_of_acts acts) q')
+    (fun (q,cond,acts,q',p) ->
+      Printf.fprintf oc "    { %s%s {%s} {%s} %s }\n"
+        (if p then "*" else "") q (Condition.to_string cond.cond_desc) (string_of_acts acts) q')
     (m.fd_trans);
   Printf.fprintf oc "    }\n";
   let (q,iacts) = m.fd_itrans in

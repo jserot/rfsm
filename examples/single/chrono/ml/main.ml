@@ -14,9 +14,9 @@ let chrono = Fsm.build_model
     ]
   ~vars:["ctr", TyInt None]
   ~trans:[
-    ("Stopped", ("startstop",[]), [Assign ("ctr",EConst 0); Assign ("aff",EConst 0)], "Running");
-    ("Running", ("h",[]), [Assign ("ctr",EBinop("+",EVar "ctr",EConst 1)); Assign ("aff",EVar "ctr")], "Running");
-    ("Running", ("startstop",[]), [], "Stopped")
+    ("Stopped", ("startstop",[]), [Assign ("ctr",EConst 0); Assign ("aff",EConst 0)], "Running", 0);
+    ("Running", ("h",[]), [Assign ("ctr",EBinop("+",EVar "ctr",EConst 1)); Assign ("aff",EVar "ctr")], "Running", 0);
+    ("Running", ("startstop",[]), [], "Stopped", 0)
     ]
   ~itrans:("Stopped",[])
 

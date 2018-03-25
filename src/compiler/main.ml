@@ -118,7 +118,7 @@ with
    flush stderr; exit 4
 | Fsm.NonDetTrans (m,ts,t) ->
     eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Fsm.f_name t;
-    List.iter (function t -> eprintf "\t- %s\n" (Fsm.Repr.string_of_transition t)) ts;
+    List.iter (function t -> eprintf "\t- %s\n" (Fsm.string_of_transition t)) ts;
     flush stderr; exit 7
 | Fsm.IllegalTrans (m,msg) ->
     eprintf "Error when simulating FSM %s: %s\n" m.Fsm.f_name msg; flush stderr; exit 7

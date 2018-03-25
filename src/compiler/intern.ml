@@ -10,6 +10,7 @@ let mk_fsm_model (tdefns,tctors) { fsm_desc = f; fsm_loc = loc } =
   let mk_cond c = match c.cond_desc with
       [ev],guards -> ev, guards
     | _ -> Error.fatal_error "Intern.mk_fsm_model" in
+  let mk_prio p = if p then 1 else 0 in
   let mk_act a = a.act_desc in
   Fsm.build_model
     ~name:f.fd_name
@@ -17,7 +18,7 @@ let mk_fsm_model (tdefns,tctors) { fsm_desc = f; fsm_loc = loc } =
     ~params:(List.map (mk_typed "parameter") f.fd_params)
     ~ios:(List.map (function (dir,desc) -> let id,ty = mk_typed "input/output" desc in dir,id,ty) f.fd_ios)
     ~vars:(List.map (mk_typed "variable") f.fd_vars)
-    ~trans:(List.map (function (s,cond,acts,s') -> s, mk_cond cond, List.map mk_act acts, s') f.fd_trans)
+    ~trans:(List.map (function (s,cond,acts,s',p) -> s, mk_cond cond, List.map mk_act acts, s', mk_prio p) f.fd_trans)
     ~itrans:(let q0,acts = f.fd_itrans in q0, List.map mk_act acts)
 
 let mk_fsm_inst tdefns models globals { fi_desc=f; fi_loc=loc } = 

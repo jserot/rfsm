@@ -1,23 +1,25 @@
 # Generates an impulsion of duration 3.Th on output [s]
 # whenever [e=1] when [h] occurs
 
+type bit = int<0..1>
+
 fsm model gensig (
-  in H: event, 
-  in e: bool,
-  out s: bool)
+  in h: event, 
+  in e: bit,
+  out s: bit)
   {
   states: E0, E1, E2, E3;
   trans:
-    E0 -- H.e=1 | s:=1 -> E1,
-    E1 -- H -> E2,
-    E2 -- H -> E3,
-    E3 -- H | s:=0 -> E0;
+    E0 -- h.e=1 | s:=1 -> E1,
+    E1 -- h -> E2,
+    E2 -- h -> E3,
+    E3 -- h | s:=0 -> E0;
   itrans: | s:=0 -> E0;
   }
 
 input H : event = periodic (10,10,80)
-input e : bool = value_changes (0:0, 25:1, 35:0)
-output s : bool 
+input e : bit = value_changes (0:0, 25:1, 35:0)
+output s : bit 
 
 fsm g = gensig (H,e,s)
 

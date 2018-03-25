@@ -1,18 +1,20 @@
 open Utils
    
 module TransLabel = struct
-  type t = Condition.t * Action.t list * bool
-   (* Cond will be ([],[]) for initial transitions, [bool] is true for "implicit" transitions *)
+  type t = Condition.t * Action.t list * int * bool
+   (* Cond will be ([],[]) for initial transitions,
+      [int] is the priority level (used to resolve non-deterministic transitions)
+      [bool] is true for "implicit" transitions *)
   let compare = Pervasives.compare
-  let to_string (cond,acts,_) =
+  let to_string (cond,acts,_,_) =  (* This function is used for .dot representations *)
     let s1 = Condition.to_string cond in
     let s2 = ListExt.to_string Action.to_string "; " acts in
     let l = String.make (Misc.max (String.length s1) (String.length s2)) '_' in
     if s2 <> ""
     then Printf.sprintf "%s\\n%s\\n%s" s1 l s2 
     else Printf.sprintf "%s" s1
-  let rename f (cond,acts,is_impl) = (Condition.rename f cond, List.map (Action.rename f) acts, is_impl)
-  let subst env (cond,acts,is_impl) = (Condition.subst env cond, List.map (Action.subst env) acts, is_impl)
+  let rename f (cond,acts,prio,is_impl) = (Condition.rename f cond, List.map (Action.rename f) acts, prio, is_impl)
+  let subst env (cond,acts,prio,is_impl) = (Condition.subst env cond, List.map (Action.subst env) acts, prio, is_impl)
 end
 
 module State = struct
@@ -27,13 +29,24 @@ type state = State.t
 type transition = State.t * TransLabel.t * State.t
 type itransition = TransLabel.t * State.t
 
+let string_of_state s = State.to_string s
+                      
+let string_of_transition (s,(cond,acts,prio,_),s') =
+  let lbl = 
+    let s1 = Condition.to_string cond in
+    let s2 = ListExt.to_string Action.to_string "; " acts in
+    if s2 <> ""
+    then s1 ^ "|" ^ s2 
+    else s1 in
+  State.to_string s ^ "--" ^ lbl ^ "->" ^ State.to_string s' ^ "[" ^ string_of_int prio ^ "]"
+  
 type model = { 
   fm_name: string;
   fm_params: (string * Types.typ) list;                      (** name, type *)
   fm_ios : (string * (Types.dir * Types.typ)) list;          (** i/os *)
   fm_vars: (string * Types.typ) list;                        (** name, type *)
   fm_repr: Repr.t;                                           (** Static representation as a LTS *)
-  fm_resolve: (transition list -> transition) option;
+  (* fm_resolve: (transition list -> transition) option; *)
   }
 
 type inst = { 
@@ -47,7 +60,7 @@ type inst = {
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
   (* f_enums: (string * Types.typ);                            (\** Locally used enums, with their associated type *\) *)
   f_l2g: string -> string;                                  (** local -> global name *)
-  f_resolve: (transition list -> transition) option;
+  (* f_resolve: (transition list -> transition) option; *)
   f_state: string;                                          (** current state *)
   f_has_reacted: bool;                                      (** true when implied in the last reaction *)
   }
@@ -111,12 +124,12 @@ let build_model ~name ~states ~params ~ios ~vars ~trans ~itrans =
           begin
             try Repr.create
                    ~states:states
-                   ~trans:(List.map (function (s,(ev,gds),acts,s') -> s, (([ev],gds),acts,false), s') trans)
-                   ~itrans:(let q0,iacts = itrans in [(([],[]),iacts,false),q0])
+                   ~trans:(List.map (function (s,(ev,gds),acts,s',p) -> s, (([ev],gds),acts,p,false), s') trans)
+                   ~itrans:(let q0,iacts = itrans in [(([],[]),iacts,0,false),q0])
             with
               Repr.Invalid_state s -> raise (Invalid_state (name, s))
           end;
-        fm_resolve = None; (* TO FIX *)
+        (* fm_resolve = None; (\* TO FIX *\) *)
       } in
   r
 
@@ -135,7 +148,7 @@ let type_check_stim fsm id ty st = match st with
 let sanity_check tenv f =
   let isymbols, osymbols =
     List.fold_left
-      (fun (ivs,ovs) (_,(cond,acts,_),_) ->
+      (fun (ivs,ovs) (_,(cond,acts,_,_),_) ->
         let ivs' = Expr.VarSet.union ivs (Condition.vars_of cond) in
         List.fold_left
           (fun (ivs,ovs) act ->
@@ -192,7 +205,7 @@ let sanity_check tenv f =
        let t = try List.assoc s tenv.te_vars with Not_found -> raise (Internal_error "Fsm.type_check_action") in
        type_check ~strict:true f.f_name "action" (Action.to_string act) t TyEvent
     | _ -> () in
-  let type_check_transition (_,(cond,acts,_),_) =
+  let type_check_transition (_,(cond,acts,_,_),_) =
     type_check_condition cond;
     List.iter type_check_action acts in
   List.iter type_check_transition (Repr.transitions f.f_repr)
@@ -249,7 +262,7 @@ let build_instance ~name ~model ~params ~ios =
           mk_bindings
             ~local_names:(List.map (function (lid,_,_,_,_) -> lid) bound_ios)
             ~global_names:(List.map (function (_,gid,_,_,_) -> gid) bound_ios);
-        f_resolve = None; (* TO FIX *)
+        (* f_resolve = None; (\* TO FIX *\) *)
         f_state = "";  (* current state is not defined until the initial transition has been carried out *)
         f_has_reacted = false;
       } in
@@ -335,7 +348,7 @@ let rec react t genv f =
      - updates to global outputs or shared objects
      - updates to local variables (including state move) *)
   let env = mk_local_env f genv in
-  let cross_transition (s,(cond,acts,_),s') =
+  let cross_transition (s,(cond,acts,_,_),s') =
     let acts' = if s <> s' then Action.StateMove(f.f_name,s,s')::acts else acts in
     let f', resps' = do_actions env f acts'  in   (* .. perform associated actions .. *)
     { f' with f_has_reacted=true }, resps' in
@@ -346,19 +359,35 @@ let rec react t genv f =
   | [t1] ->                                                               (* One found *)
      cross_transition t1
   | ts ->                                                                 (* Several found *)
-     begin match f.f_resolve with
-       None -> raise (NonDetTrans (f,ts,t))
-     | Some select ->
-        let t1 = select ts in
-        Printf.printf "Non deterministic transitions found for FSM %s at t=%d: {%s}; chose %s\n"
-                      f.f_name
-                      t
-                      (ListExt.to_string Repr.string_of_transition "," ts)
-                      (Repr.string_of_transition t1);
-        cross_transition (select ts)
+     let priority_of (_,(_,_,p,_),_) = p in
+     let compare_priority t1 t2 = Pervasives.compare (priority_of t2) (priority_of t1) in (* reverse order *)
+     begin match List.sort compare_priority ts with
+       t1::t2::_ ->
+        if priority_of t1 > priority_of t2 then begin
+            Printf.printf "Non deterministic transitions found for FSM %s at t=%d: {%s}; chose %s\n"
+              f.f_name
+              t
+              (ListExt.to_string string_of_transition "," ts)
+              (string_of_transition t1);
+            cross_transition t1
+          end
+        else
+          raise (NonDetTrans (f,ts,t))
+     | _ -> raise (Internal_error "Fsm.react")
      end
+     (* begin match f.f_resolve with
+      *   None -> raise (NonDetTrans (f,ts,t))
+      * | Some select ->
+      *    let t1 = select ts in
+      *    Printf.printf "Non deterministic transitions found for FSM %s at t=%d: {%s}; chose %s\n"
+      *                  f.f_name
+      *                  t
+      *                  (ListExt.to_string string_of_transition "," ts)
+      *                  (string_of_transition t1);
+      *    cross_transition (select ts)
+      * end *)
 
-and fireable f env (s,(cond,acts,_),s') =
+and fireable f env (s,(cond,acts,_,_),s') =
   f.f_state = s && check_cond f env cond 
 
 and check_cond f env (evs,guards) =
@@ -370,7 +399,7 @@ and is_event_set evs e = match List.assoc e evs with
   | exception Not_found -> false
 
 let init_fsm genv f = match Repr.itransitions f.f_repr with
-  | [(([],[]),acts,_), s] ->
+  | [(([],[]),acts,_,_), s] ->
      let env = mk_local_env f genv in
      do_actions env f (Action.StateMove (f.f_name,"",s) :: acts)
   | [_] ->
@@ -400,7 +429,7 @@ let dot_output_oc oc ?(dot_options=[]) ?(options=[]) f =
   let caption_style = {Utils.Dot.node_shape="rect"; Utils.Dot.node_style="rounded"} in
   let impl_ts f opts =
     if List.mem OmitImplicitTransitions opts
-    then List.filter (function (_,(_,_,is_impl),_) -> is_impl) (Repr.transitions f.f_repr)
+    then List.filter (function (_,(_,_,_,is_impl),_) -> is_impl) (Repr.transitions f.f_repr)
     else [] in
   Repr.dot_output_oc
     f.f_name
@@ -425,7 +454,7 @@ let dot_output_model ?(fname="") ?(dot_options=[]) ?(options=[]) ~dir f =
   let caption_style = {Utils.Dot.node_shape="rect"; Utils.Dot.node_style="rounded"} in
   let impl_ts f opts =
     if List.mem OmitImplicitTransitions opts
-    then List.filter (function (_,(_,_,is_impl),_) -> is_impl) (Repr.transitions f.fm_repr)
+    then List.filter (function (_,(_,_,_,is_impl),_) -> is_impl) (Repr.transitions f.fm_repr)
     else [] in
   Repr.dot_output_oc
     f.fm_name
@@ -458,11 +487,11 @@ let dump_model oc f =
   Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_var f.fm_vars);
   Printf.fprintf oc "  TRANS = {\n";
   List.iter 
-    (fun (q,(cond,acts,_),q') ->
-      Printf.fprintf oc "    { %s {%s} {%s} %s }\n" q (Condition.to_string cond) (string_of_acts acts) q')
+    (fun (q,(cond,acts,p,_),q') ->
+      Printf.fprintf oc "    { %s {%s} {%s} %s [%d]}\n" q (Condition.to_string cond) (string_of_acts acts) q' p)
     (Repr.transitions f.fm_repr);
   Printf.fprintf oc "    }\n";
-  let (_,iacts,_),iq = List.hd (Repr.itransitions f.fm_repr) in
+  let (_,iacts,_,_),iq = List.hd (Repr.itransitions f.fm_repr) in
   Printf.fprintf oc "  ITRANS = { %s \"%s\" }\n" iq (string_of_acts iacts);
   Printf.fprintf oc "  }\n"
 
@@ -480,10 +509,10 @@ let dump_inst oc f =
   Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_var f.f_vars);
   Printf.fprintf oc "  TRANS = {\n";
   List.iter 
-    (fun (q,(cond,acts,_),q') ->
-      Printf.fprintf oc "    { %s {%s} {%s} %s }\n" q (Condition.to_string cond) (string_of_acts acts) q')
+    (fun (q,(cond,acts,p,_),q') ->
+      Printf.fprintf oc "    { %s {%s} {%s} %s [%d]}\n" q (Condition.to_string cond) (string_of_acts acts) q' p)
     (transitions_of f);
   Printf.fprintf oc "    }\n";
-  let (_,iacts,_),iq = List.hd (itransitions_of f) in
+  let (_,iacts,_,_),iq = List.hd (itransitions_of f) in
   Printf.fprintf oc "  ITRANS = { %s \"%s\" }\n" iq (string_of_acts iacts);
   Printf.fprintf oc "  }\n"

@@ -4,10 +4,12 @@
 # whenever [e=1] when [h] occurs
 # Here the model is instanciated with n=4 as [g4]
 
+type bit = int<0..1>
+
 fsm model gensig<n:int> (
   in h: event,
-  in  e: bool,
-  out s: bool)
+  in  e: bit,
+  out s: bit)
   {
   states: E0, E1;
   vars: k: int<0..n>;
@@ -19,7 +21,7 @@ fsm model gensig<n:int> (
   }
 
 input H : event = periodic (10,0,80)
-input E : bool = value_changes (0:0, 25:1, 35:0)
-output S : bool 
+input E : bit = value_changes (0:0, 25:1, 35:0)
+output S : bit 
 
 fsm g4 = gensig<4>(H,E,S)

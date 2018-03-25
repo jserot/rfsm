@@ -16,10 +16,10 @@ let ctrmod2 = Fsm.build_model
     ]
   ~vars:[]
   ~trans:[
-    ("E0", ("h",[]), [Assign ("s",EConst 1)], "E1");
-    ("E1", ("h",[]), [Emit "r"; Assign ("s",EConst 0)], "E0");
+    ("E0", ("h",[]), [Assign ("s",EInt 1)], "E1", 0);
+    ("E1", ("h",[]), [Emit "r"; Assign ("s",EInt 0)], "E0", 0);
     ]
-  ~itrans:("E0",[Assign ("s",EConst 0)])
+  ~itrans:("E0",[Assign ("s",EInt 0)])
 
 let rec pow2 n = if n=0 then 1 else 2 * pow2 (n-1)
            

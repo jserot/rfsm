@@ -79,7 +79,6 @@ let rec string_of_vhdl_type t = match t with
 
 let string_of_type t = string_of_vhdl_type (vhdl_type_of t)
 
-
 let global_types = ref ( [] : (string * vhdl_type) list )
 
 (* exception Type_of_value *)
@@ -183,7 +182,7 @@ let string_of_condition (e,cs) =
 
 let dump_action ?(lvars=[]) oc tab a = fprintf oc "%s%s;\n" tab (string_of_action ~lvars:lvars a)
 
-let dump_transition ?(lvars=[]) oc tab src clk (is_first,needs_endif) (q',(cond,acts,_)) =
+let dump_transition ?(lvars=[]) oc tab src clk (is_first,needs_endif) (q',(cond,acts,_,_)) =
   match cond with
     _, [] -> 
        List.iter (dump_action ~lvars:lvars oc tab) acts;

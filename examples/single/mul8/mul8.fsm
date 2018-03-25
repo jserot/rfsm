@@ -3,11 +3,11 @@
 
 fsm model mult (
   in h: event,
-  in start: bool,
+  in start: int<0..1>,
   in n1: int,
   in n2: int,
   out r: int,
-  out rdy: bool)
+  out rdy: int<0..1>)
   {
   states: Repos, Calcul;
   vars:
@@ -22,10 +22,10 @@ fsm model mult (
   }
 
 input H: event = periodic (10,10,100)
-input Start: bool = value_changes(0:0, 15:1, 35:0)
+input Start: int<0..1> = value_changes(0:0, 15:1, 35:0)
 input N1: int = value_changes(20:6)
 input N2: int = value_changes(20:5)
 output R: int
-output Rdy: bool
+output Rdy: int<0..1>
 
 fsm m1 = mult(H,Start,N1,N2,R,Rdy)

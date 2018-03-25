@@ -1,14 +1,13 @@
 - Readme with brief desc in all examples dirs
 - headers in src files
 - man page for rfsmc ?
+- emacs mode for .fsm files
 - support for enum values in the SystemC and VHDL backends
 - bound check for ranged integers
+- var and output attr on states (Moore-style)
+- resolve mechanism when non-deterministic transitions
 - VHDL implementation for multi-event and multi-FSM models
 - FreeRTOS (or other RTOS) specialized C-backend
 - SCXML backend (www.w3.org/TR/scxml, Yakindu, ...)
-- SMV backend (for connection to model-checking tools)
-- state attributes (for SMV output)
+- SMV backend (with state predicated for connection to model-checking tools)
 - communication via FIFOs (message queues) ?
-
-
-

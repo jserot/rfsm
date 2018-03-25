@@ -94,7 +94,7 @@ let string_of_action m a = match a with
 
 let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
 
-let dump_transition oc tab is_first src m (q',(cond,acts,_)) =
+let dump_transition oc tab is_first src m (q',(cond,acts,_,_)) =
   match cond with
   | [ev], [] ->
        List.iter (dump_action oc tab m) acts;

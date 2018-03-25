@@ -9,7 +9,10 @@ module State :
 
 module TransLabel :
   sig
-    type t = Condition.t * Action.t list * bool  (* Boolean flag is true for implicit transitions *)
+    type t = Condition.t * Action.t list * int * bool
+   (* Cond will be ([],[]) for initial transitions,
+      [int] is the priority level (used to resolve non-deterministic transitions)
+      [bool] is true for "implicit" transitions *)
     val compare : t -> t -> int
     val to_string : t -> string
     val rename : (string -> string) -> t -> t 
@@ -27,6 +30,9 @@ type state = State.t
 type transition = State.t * TransLabel.t * State.t
 type itransition = TransLabel.t * State.t
 
+val string_of_transition: transition -> string
+val string_of_state: state -> string
+  
 (** Generic model *)
 type model = {
   fm_name : string;                                      (** name *)
@@ -34,7 +40,7 @@ type model = {
   fm_ios : (string * (Types.dir * Types.typ)) list;      (** i/os *)
   fm_vars : (string * Types.typ) list;                   (** internal variables *)
   fm_repr : Repr.t;                                      (** underlying LTS *)
-  fm_resolve : (transition list -> transition) option;   (** resolution fonction for non-deterministic transitions *)
+  (* fm_resolve : (transition list -> transition) option;   (\** resolution fonction for non-deterministic transitions *\) *)
 }
 
 (** Model instances *)
@@ -49,7 +55,7 @@ type inst = {
   f_repr : Repr.t;                                             (** underlying LTS *)
   (* f_enums: (string * Types.typ);                               (\** Locally used enums, with their associated type *\) *)
   f_l2g : string -> string;                                    (** local to global name conversion function *)
-  f_resolve : (transition list -> transition) option;          (** resolution fonction for non-deterministic transitions *)
+  (* f_resolve : (transition list -> transition) option;          (\** resolution fonction for non-deterministic transitions *\) *)
   f_state : string;                                            (** current state *)
   f_has_reacted: bool;                                         (** true when implied in the last reaction *)
 }
@@ -88,7 +94,7 @@ val build_model :
   params:(string * Types.typ) list ->
   ios:(Types.dir * string * Types.typ) list ->
   vars:(string * Types.typ) list ->
-  trans:(state * (Condition.event * Condition.guard list) * Action.t list * state) list ->
+  trans:(state * (Condition.event * Condition.guard list) * Action.t list * state * int) list ->
   itrans:state * Action.t list ->
   model
 
