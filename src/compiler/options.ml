@@ -35,10 +35,9 @@ let set_stop_time d =
   Systemc.cfg.Systemc.sc_stop_time <- d;
   Vhdl.cfg.Vhdl.vhdl_stop_time <- d
 
-let set_trace level =
-  Trace.level := level;
-  Systemc.cfg.Systemc.sc_trace <- level > 0;
-  Vhdl.cfg.Vhdl.vhdl_trace <- level > 0
+let set_trace level = Trace.level := level
+let set_sc_trace () = Systemc.cfg.Systemc.sc_trace <- true
+let set_vhdl_trace () = Vhdl.cfg.Vhdl.vhdl_trace <- true
 
 (* let set_dot_global_names () = FsmModel.global_names := true *)
 let set_dot_captions () = dot_captions := true

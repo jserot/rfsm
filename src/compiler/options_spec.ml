@@ -7,15 +7,17 @@ let options_spec = [
 "-ctask", Arg.Unit (Options.set_ctask), "generate CTask code";
 "-systemc", Arg.Unit (Options.set_systemc), "generate SystemC code";
 "-vhdl", Arg.Unit (Options.set_vhdl), "generate VHDL code";
-"-trace", Arg.Int (Options.set_trace), "set trace level for simulation, SystemC and VHDL backends (default: 0)";
 "-version", Arg.Unit (Options.set_print_version), "print version of the compiler and quit";
 "-dot_captions", Arg.Unit (Options.set_dot_captions), "Insert captions in .dot representation(s)";
 "-dot_fsm_insts", Arg.Unit (Options.set_dot_fsm_insts), "generate .dot representation of all FSM instances";
 "-dot_fsm_models", Arg.Unit (Options.set_dot_fsm_models), "generate .dot representation of all FSM models";
+"-trace", Arg.Int (Options.set_trace), "set trace level for simulation (default: 0)";
 "-vcd", Arg.String (Options.set_vcd_file), "set name of .vcd output file when running simulation (default: run.vcd)";
 "-sc_time_unit", Arg.String (Options.set_systemc_time_unit), "set time unit for the SystemC test-bench (default: SC_NS)";
+"-sc_trace", Arg.Unit (Options.set_sc_trace), "set trace mode for SystemC backend (default: false)";
 "-stop_time", Arg.Int (Options.set_stop_time), "set stop time for the SystemC and VHDL test-bench (default: 100)";
 "-vhdl_use_variables", Arg.Unit (Options.set_vhdl_use_variables), "implement variables as variables instead of signals";
+"-vhdl_trace", Arg.Unit (Options.set_vhdl_trace), "set trace mode for VHDL backend (default: false)";
 "-vhdl_time_unit", Arg.String (Options.set_vhdl_time_unit), "set time unit for the VHDL test-bench";
 "-vhdl_ev_duration", Arg.Int (Options.set_vhdl_ev_duration), "set duration of event signals (default: 1 ns)";
 "-vhdl_rst_duration", Arg.Int (Options.set_vhdl_ev_duration), "set duration of reset signals (default: 1 ns)";

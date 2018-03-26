@@ -27,9 +27,11 @@ examples/*/*/rfsm.output
 examples/*/*/*/rfsm.output
 examples/*/*/dot/
 examples/*/*/sim/
+examples/*/*/ctask/
 examples/*/*/systemc/
 examples/*/*/vhdl/
 examples/*/*/*/dot/
+examples/*/*/*/ctask/
 examples/*/*/*/sim/
 examples/*/*/*/systemc/
 examples/*/*/*/vhdl/
