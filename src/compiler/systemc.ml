@@ -100,9 +100,9 @@ let dump_transition oc tab is_first src m (q',(cond,acts,_,_)) =
        List.iter (dump_action oc tab m) acts;
        if q' <> src then fprintf oc "%s%s = %s;\n" tab cfg.sc_state_var q'
   | [ev], guards -> 
-       for i=0 to m.c_ddepth-1 do 
-         fprintf oc "%swait(SC_ZERO_TIME);\n" tab
-       done;
+       (* for i=0 to m.c_ddepth-1 do 
+        *   fprintf oc "%swait(SC_ZERO_TIME);\n" tab
+        * done; *)
        fprintf oc "%s%sif ( %s ) {\n"
         tab
         (if is_first then "" else "else ")
@@ -129,6 +129,9 @@ let dump_transitions oc g src after evs m tss =
       [] -> ()  (* no wait in this case *)
     | [ev,ts] ->
        fprintf oc "%swait(%s);\n" tab (sysc_event ev);
+       for i=0 to m.c_ddepth-1 do 
+         fprintf oc "%swait(SC_ZERO_TIME);\n" tab
+       done;
        ListExt.iter_fst (fun is_first t -> dump_transition oc tab is_first src m t) ts;
     | _ ->
        fprintf oc "%swait(%s);\n" tab (ListExt.to_string sysc_event " | " evs);
