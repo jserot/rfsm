@@ -29,7 +29,7 @@ debug:
 
 options_spec.ml: options_spec.txt
 	echo "let options_spec = [" > options_spec.ml
-	awk -F ";" '{ printf("\"%s\", %s (Options.%s), \"%s\";\n", $$2, $$3, $$4, $$5) }' < options_spec.txt >> options_spec.ml
+	awk -F ";" '{ printf("\"%s\", %s (Options.%s), \"%s\";\n", $$3, $$4, $$5, $$6) }' < options_spec.txt >> options_spec.ml
 	echo "];" >> options_spec.ml
 
 gen_tex_option = \

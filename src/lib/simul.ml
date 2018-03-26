@@ -54,6 +54,12 @@ let global_updates resps =
 
 let erase_type (id,(ty,v)) = id, v
 
+let string_of_event (id,v) = match v with
+  None -> Ident.to_string id
+| Some v -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
+
+let string_of_events evs = "[" ^ ListExt.to_string string_of_event "," evs ^ "]"
+
 let rec react t (ctx:context) (stimuli:(Ident.t * Expr.value option) list) =
   (* Compute a global reaction in [ctx] at time [t] given a set of stimuli [stimuli],
      producing an updated context [ctx'] and a set of responses [resps].
@@ -90,10 +96,13 @@ let rec react t (ctx:context) (stimuli:(Ident.t * Expr.value option) list) =
     | Types.TyEvent -> (id,(ty,Expr.unset_event))
     | _ -> i in
   let rec iter n ctx resps stimuli = match stimuli with
-    [] -> ctx, resps   (* Done *)
+  | [] ->   (* Done *)
+       Trace.msg0 2 "reaction completed\n";
+       ctx, resps
   | evs ->
       if n > cfg.max_micro_reactions then raise (OverReaction t) else
       let ctx', resps' = micro_react ctx evs in
+      Trace.msg3 2 "t=%d.%d:  resps=%s\n" t n (string_of_events resps');
       match List.filter is_reentrant resps' with
       | [] ->                        (* Ok, all's quiet now. End of macro-reaction *)
          let ctx'' =
@@ -117,7 +126,9 @@ let run m =
     match stims with
       [] -> ctx, List.rev resps (* End of simulation *)
     | (t,evs)::stims' ->
+        Trace.msg2 1 (if !Trace.level = 1 then "t=%d: evs=%s ==> " else "t=%d: evs=%s ...\n") t (string_of_events evs);
         let ctx', resps' = react t ctx evs in
+        Trace.msg1 1 (if !Trace.level = 1 then "%s\n" else "==> %s\n") (string_of_events resps');
         step (ctx', (t, evs @ resps') :: resps) stims' in
           (* The events [evs] causing the reaction are included in the responses [resps] for tracing facilities .. *)
   let mk_ival (id,(ty,desc)) = id, (ty, None) in
@@ -161,10 +172,6 @@ let dump_context c =
     (ListExt.to_string string_of_comp " " c.c_vars)
     (ListExt.to_string string_of_comp " " c.c_evs)
     
-let string_of_event (id,v) = match v with
-  None -> Ident.to_string id
-| Some v -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
-
 let rec dump_reaction (t,evs) =
   Printf.printf "t=%4d: %s\n" t (ListExt.to_string string_of_event " " evs)
 

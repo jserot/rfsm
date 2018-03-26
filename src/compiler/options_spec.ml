@@ -7,7 +7,7 @@ let options_spec = [
 "-ctask", Arg.Unit (Options.set_ctask), "generate CTask code";
 "-systemc", Arg.Unit (Options.set_systemc), "generate SystemC code";
 "-vhdl", Arg.Unit (Options.set_vhdl), "generate VHDL code";
-"-trace", Arg.Unit (Options.set_trace), "set trace mode for simulation, SystemC and VHDL backends";
+"-trace", Arg.Int (Options.set_trace), "set trace level for simulation, SystemC and VHDL backends (default: 0)";
 "-version", Arg.Unit (Options.set_print_version), "print version of the compiler and quit";
 "-dot_captions", Arg.Unit (Options.set_dot_captions), "Insert captions in .dot representation(s)";
 "-dot_fsm_insts", Arg.Unit (Options.set_dot_fsm_insts), "generate .dot representation of all FSM instances";

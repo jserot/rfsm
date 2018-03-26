@@ -6,7 +6,6 @@ let target_dir = ref "."
 let vcd_file = ref "run.vcd"
 let print_version = ref false
 let do_run = ref false
-let trace = ref false
 let dump_model = ref false
 let dot_captions = ref false
 let dot_fsm_insts = ref false
@@ -36,10 +35,10 @@ let set_stop_time d =
   Systemc.cfg.Systemc.sc_stop_time <- d;
   Vhdl.cfg.Vhdl.vhdl_stop_time <- d
 
-let set_trace () =
-  trace := true;
-  Systemc.cfg.Systemc.sc_trace <- true;
-  Vhdl.cfg.Vhdl.vhdl_trace <- true
+let set_trace level =
+  Trace.level := level;
+  Systemc.cfg.Systemc.sc_trace <- level > 0;
+  Vhdl.cfg.Vhdl.vhdl_trace <- level > 0
 
 (* let set_dot_global_names () = FsmModel.global_names := true *)
 let set_dot_captions () = dot_captions := true
