@@ -66,12 +66,9 @@ try
        Vhdl.dump_testbench ~dir:!Options.target_dir m;
        Vhdl.dump_makefile ~dir:!Options.target_dir m
   | Some Options.Sim ->
-       let ctxs, reacts = Simul.run m in
-       if !Options.trace then begin
-           List.iter Simul.dump_reaction reacts;
-           List.iter Simul.dump_context ctxs
-         end;
-       Vcd.output m (List.hd ctxs) !Options.vcd_file reacts
+       let ctx, reacts = Simul.run m in
+       if !Options.trace then List.iter Simul.dump_reaction reacts;
+       Vcd.output m ctx !Options.vcd_file reacts
   | None ->
      ()
   end;

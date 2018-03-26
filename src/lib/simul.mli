@@ -35,10 +35,8 @@ val react : Types.date -> context -> stimulus list -> context * response list
      A reaction ends when all the micro-reactions have taken place, i.e. when the last one did not produce
      any further re-entrant stimulus. *)
 
-val run :
-  ?ctx:context option ->
-  Comp.t ->
-  context list * (Types.date * (Ident.t * Expr.value option) list) list
+val run : Comp.t -> context * (Types.date * response list) list
+  (** [run m] runs a simulation of system [m], returning the final context and a list of dated responses *)
 
 (** {2 Printers} *)
 

@@ -107,24 +107,21 @@ let rec react t (ctx:context) (stimuli:(Ident.t * Expr.value option) list) =
 
 (* RUN *)
 
-let run ?(ctx=None) m =
+let run m =
   let open Comp in
   let extract_shared (vars,evs) (name,(ty,desc)) = match desc, ty with
     | MShared _, Types.TyEvent -> vars, (name,(ty,None))::evs  (* Initially not set *)
     | MShared _, _ -> (name, (ty,None))::vars, evs (* Uninitialized *)
     | _, _ -> vars, evs in
-  let rec step (ctxs,resps) stims =
+  let rec step (ctx,resps) stims =
     match stims with
-      [] -> List.rev ctxs, List.rev resps (* End of simulation *)
+      [] -> ctx, List.rev resps (* End of simulation *)
     | (t,evs)::stims' ->
-        let ctx = List.hd ctxs in  (* The last (current) context is at head *)
         let ctx', resps' = react t ctx evs in
-        step (ctx' :: ctxs, (t, evs @ resps') :: resps) stims' in
+        step (ctx', (t, evs @ resps') :: resps) stims' in
           (* The events [evs] causing the reaction are included in the responses [resps] for tracing facilities .. *)
   let mk_ival (id,(ty,desc)) = id, (ty, None) in
-  let ctx0, resps0 = match ctx with 
-    Some ctx -> ctx, []
-  | None ->
+  let ctx0, resps0 =
       let shared_vars, shared_evs = List.fold_left extract_shared ([],[]) m.m_shared in
       let init_ctx = {
           c_date = 0;
@@ -138,9 +135,9 @@ let run ?(ctx=None) m =
       let resps' = List.concat resps in
       let ctx' = List.fold_left update_ctx init_ctx resps' in
       {ctx' with c_fsms=fsms',[]}, [0, resps' (*@ resps''*)] in
-  let ctxs, reacts = step ([ctx0],resps0) m.m_stimuli in
+  let ctx, resps = step (ctx0,resps0) m.m_stimuli in
   (* TODO: post-processing ? *)
-  ctxs, reacts
+  ctx, resps
 
 (* Printing *)
 
