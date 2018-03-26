@@ -147,7 +147,8 @@ let run ?(ctx=None) m =
 let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_opt_value v
 
 let string_of_fsm f = (* short version for context printing *)
-  let string_of_var (id,(ty,_)) = id  ^ ":" ^ Types.string_of_type ty in
+  let string_of_val = function None -> "?" | Some v -> Expr.string_of_value v in
+  let string_of_var (id,(ty,v)) = id  ^ "=" ^ string_of_val v in
   let open Fsm in
   match f.f_vars with
     [] -> f.f_name ^ ".st=" ^ f.f_state
