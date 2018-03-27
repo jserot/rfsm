@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 type date = int
 
 type dir = IO_In | IO_Out | IO_Inout
@@ -116,13 +127,13 @@ let subst_indexes ienv ty =
 
 module VarSet = Set.Make(struct type t = string let compare = Pervasives.compare end)
                  
-let rec vars_of_index = function
+let rec ivars_of_index = function
   | TiConst _ -> VarSet.empty
   | TiVar v -> VarSet.singleton v
-  | TiBinop (_,e1,e2) -> VarSet.union (vars_of_index e1) (vars_of_index e2)
+  | TiBinop (_,e1,e2) -> VarSet.union (ivars_of_index e1) (ivars_of_index e2)
 
-let vars_of = function
-  | TyInt (Some (lo,hi)) -> VarSet.elements (VarSet.union (vars_of_index lo) (vars_of_index hi))
+let ivars_of = function
+  | TyInt (Some (lo,hi)) -> VarSet.elements (VarSet.union (ivars_of_index lo) (ivars_of_index hi))
   | _ -> []
 
 (* Typing *)
@@ -255,7 +266,7 @@ let builtin_tenv = {
 
 (* Accessors *)
                  
-let rec tycons_of ty = match ty with
+let rec enums_of ty = match ty with
   | TyEnum cs -> List.map (function c -> c, ty) cs
   | _ -> []
 

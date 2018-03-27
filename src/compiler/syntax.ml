@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* Abstract syntax of programs *)
 
 open Utils
@@ -12,7 +23,6 @@ type type_expression = {
 and type_expr = 
   | TEBool
   | TEInt of int_range option
-  (* | TEEnum of string list *)
   | TEEvent
   | TEName of string
 
@@ -62,8 +72,6 @@ and fsm_desc = {
   fd_trans: (string * condition * action list * string * bool) list;
   fd_itrans: string * action list;
   }
-
-(* and io_dir = IO_In | IO_Out | IO_InOut *)
 
 and condition = {
   cond_desc: Condition.t;
@@ -150,7 +158,6 @@ let string_of_range (lo,hi) = string_of_type_index lo.ti_desc ^ ".." ^ string_of
 
 let string_of_type_expr t = match t with 
   | TEBool -> "bool"
-  (* | TEEnum cs -> "{" ^ ListExt.to_string (function c -> c) "," cs ^ "}" *)
   | TEInt None -> "int"
   | TEInt (Some (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
   | TEEvent -> "event"

@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (** Trigerring condition for transitions *)
 
 type t = event list * guard list
@@ -28,4 +39,3 @@ val subst : Expr.env -> t -> t
 
 val string_of_guard : Expr.t * string * Expr.t -> string
 val to_string : t -> string
-(* val to_string' : t -> string *)

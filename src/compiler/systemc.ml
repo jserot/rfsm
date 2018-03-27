@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* SystemC backend *)
 
 open Utils
@@ -84,13 +95,6 @@ let string_of_action m a = match a with
        else id ^ "=" ^ string_of_expr m expr
     | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
     | Action.StateMove (id,s,s') -> "" (* should not happen *)
-
-(* let string_of_condition (e,cs) =   *)
-(*   let string_of_ev id = let e = Ident.to_string id in sprintf "%s.event() && %s.read() == 1" e e  in *)
-(*   let string_of_guard (e,op,e') = string_of_expr e ^ string_of_op op ^ string_of_expr e' in *)
-(*   match cs with *)
-(*     [] -> string_of_ev e *)
-(*   |  _ -> string_of_ev e ^ " && " ^ Ext.List.to_string string_of_guard " && " cs *)
 
 let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
 
@@ -215,7 +219,7 @@ let dump_inp_module_impl fname (id,(ty,desc)) =
   fprintf oc "#include \"%s.h\"\n" name;
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
   fprintf oc "\n";
-  let open Comp in
+  let open Sysm in
   begin match desc with
     | MInp ({sd_comprehension=Sporadic ts}, _) ->
        fprintf oc "static int _dates[%d] = { %s };\n" (List.length ts) (ListExt.to_string string_of_int ", " ts)
@@ -300,7 +304,7 @@ let dump_stimulus oc (id,v) = match v with
 
 let dump_testbench_impl fname m = 
   let oc = open_out fname in
-  let open Comp in
+  let open Sysm in
   let modname n = String.capitalize_ascii n in
   fprintf oc "#include \"systemc.h\"\n";
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
@@ -355,14 +359,6 @@ let dump_testbench_impl fname m =
               (if cfg.sc_trace then "," ^ f.f_name ^ "_state" else ""))
     m.m_fsms;
   fprintf oc "\n";
-  (* Stimuli *)
-  (* let _ = List.fold_left  (\* Systemc stimuli are specified in relative mode, not absolute .. *\) *)
-  (*  (fun t (t',sts) -> *)
-  (*     fprintf oc "  sc_start(%d, %s);\n" (t'-t) cfg.sc_time_unit; *)
-  (*     List.iter (dump_stimulus oc) sts; *)
-  (*     t') *)
-  (*  0 *)
-  (*  stimuli in *)
   (* Start *)
   fprintf oc "  sc_start(%d, %s);\n" cfg.sc_stop_time cfg.sc_time_unit;
   fprintf oc "\n";
@@ -380,7 +376,7 @@ let dump_makefile ?(dir="./systemc") m =
   let oc = open_out fname in
   let modname suff f = f.Fsm.f_name ^ suff in
   let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
-  let open Comp in
+  let open Sysm in
   fprintf oc "include %s/etc/Makefile.systemc\n\n" cfg.sc_lib_dir;
   (* fprintf oc "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
   List.iter
@@ -449,8 +445,8 @@ let dump_input ?(prefix="") ?(dir="./systemc") ((id,_) as inp) =
   dump_inp_module_impl (dir ^ "/" ^ prefix ^ ".cpp") inp
 
 let dump_model ?(dir="./systemc") m = 
-  List.iter (dump_input ~dir:dir) m.Comp.m_inputs;
-  List.iter (dump_fsm ~dir:dir m) m.Comp.m_fsms
+  List.iter (dump_input ~dir:dir) m.Sysm.m_inputs;
+  List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms
 
 let dump_testbench ?(name="") ?(dir="./systemc") m =
   let prefix = match name with "" -> cfg.sc_tb_name | p -> p in

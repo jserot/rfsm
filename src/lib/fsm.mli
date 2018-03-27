@@ -1,4 +1,17 @@
-(** Reactive Finite State Machines *)
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
+(** Model for Reactive Finite State Machines *)
+
+(** States *)
 
 module State :
   sig
@@ -7,12 +20,15 @@ module State :
     val to_string : t -> t
   end
 
+(** Transition labels *)
+
 module TransLabel :
   sig
     type t = Condition.t * Action.t list * int * bool
-   (* Cond will be ([],[]) for initial transitions,
-      [int] is the priority level (used to resolve non-deterministic transitions)
-      [bool] is true for "implicit" transitions *)
+      (** [(cond,acts,p,i)] means that the corresponding carrying transition will be
+          taken whenever [cond] evaluates to [true], triggering actions [acts].
+          [p] gives the priority level (used to resolve non-deterministic transitions).
+          [i] indicates whether the corresponding transition is an implicit one. *)
     val compare : t -> t -> int
     val to_string : t -> string
     val rename : (string -> string) -> t -> t 
@@ -33,17 +49,18 @@ type itransition = TransLabel.t * State.t
 val string_of_transition: transition -> string
 val string_of_state: state -> string
   
-(** Generic model *)
+(** Abstract FSM model *)
+
 type model = {
   fm_name : string;                                      (** name *)
   fm_params : (string * Types.typ) list;                 (** generic parameters *)
   fm_ios : (string * (Types.dir * Types.typ)) list;      (** i/os *)
   fm_vars : (string * Types.typ) list;                   (** internal variables *)
   fm_repr : Repr.t;                                      (** underlying LTS *)
-  (* fm_resolve : (transition list -> transition) option;   (\** resolution fonction for non-deterministic transitions *\) *)
 }
 
-(** Model instances *)
+(** Model for FSM instances *)
+           
 type inst = {
   f_name : string;                                             (** name *)
   f_model : model;                                             (** bound model *)
@@ -53,14 +70,13 @@ type inst = {
   f_inouts : (string * (Types.typ * global)) list;             (** in/outs, with bounded global *)
   f_vars : (string * (Types.typ * Expr.value option)) list;    (** internal variable, with value ([None] if not initialized) *)
   f_repr : Repr.t;                                             (** underlying LTS *)
-  (* f_enums: (string * Types.typ);                               (\** Locally used enums, with their associated type *\) *)
   f_l2g : string -> string;                                    (** local to global name conversion function *)
-  (* f_resolve : (transition list -> transition) option;          (\** resolution fonction for non-deterministic transitions *\) *)
   f_state : string;                                            (** current state *)
   f_has_reacted: bool;                                         (** true when implied in the last reaction *)
 }
 
 (** Global IOs *)
+
 and global =
   GInp of string * Types.typ * stim_desc       (** Global input, with type and description of associated stimuli *)
 | GOutp of string * Types.typ                  (** Global output *)
@@ -81,12 +97,7 @@ val succs : inst -> state -> (state * TransLabel.t) list
 val input_events_of : inst -> string list
 val output_events_of : inst -> string list
 
-(* val erase_type : 'a * ('b * 'c) -> 'a * 'c
- * val global_id : global -> string *)
-
 (** {2 Static description} *)
-
-(* val mk_bindings : local_names:'a list -> global_names:'a list -> 'a -> 'a *)
 
 val build_model :
   name:string ->
@@ -118,21 +129,7 @@ exception Type_error of string * string * string * Types.typ * Types.typ (** FSM
 (** {2 Dynamic behavior} *)
 
 type response = string * Expr.value option
-(* val replace_assoc' :
- *   'a -> 'b -> ('a * ('c * 'b)) list -> ('a * ('c * 'b)) list
- * type fsm_env = (string * Expr.value option) list
- * val do_action :
- *   inst * (Ident.t * Expr.value option) list *
- *   (string * Expr.value option) list ->
- *   Action.t ->
- *   inst * (Ident.t * Expr.value option) list *
- *   (string * Expr.value option) list
- * val do_actions :
- *   (string * Expr.value option) list ->
- *   inst -> Action.t list -> inst * (Ident.t * Expr.value option) list
- * val mk_local_env :
- *   inst ->
- *   (string * Expr.value option) list -> (string * Expr.value option) list *)
+
 val react :
   Types.date ->
   (string * Expr.value option) list ->

@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* Types from type expressions *)
 
 open Types
@@ -15,7 +26,6 @@ exception Unbound_type_ctor of string
                              
 let rec type_of_type_expr defns params ~strict:strict te = match te with
   | Syntax.TEBool -> TyBool
-  (* | Syntax.TEEnum cs -> TyEnum cs *)
   | Syntax.TEInt None -> TyInt None
   | Syntax.TEInt (Some (lo,hi)) -> TyInt (Some (type_index_of_index_expr lo, type_index_of_index_expr hi))
   | Syntax.TEEvent -> TyEvent

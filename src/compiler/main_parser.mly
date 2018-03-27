@@ -72,10 +72,6 @@ let mk_type_index_expression p desc = { Syntax.ti_desc = desc; Syntax.ti_loc = m
 let mk_expression p desc = { Syntax.e_desc = desc; Syntax.e_loc = mk_location p }
 let mk_condition p desc = { Syntax.cond_desc = desc; Syntax.cond_loc = mk_location p }
 let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p }
-
-(* let negate_expr = function
- *     Expr.EConst c -> Expr.EConst (-c)
- *   | e -> Expr.EBinop ("-", Expr.EConst 0, e) *)
 %}
 
 %%

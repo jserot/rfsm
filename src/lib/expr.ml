@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 type t = 
     EInt of int
   | EBool of bool
@@ -108,14 +119,6 @@ let rec eval_rel env exp =
       | _ -> raise (Illegal_expr exp)
       end
   | _ -> raise (Illegal_expr exp)
-
-(* let subst_vars vars exp =
- *   let rec subst e = match e with
- *     EInt _ -> e
- *   | EEnum _ -> e
- *   | EVar v -> if List.mem_assoc v vars then of_value (List.assoc v vars) else e
- *   | EBinop (op, exp1, exp2) -> EBinop (op, subst exp1, subst exp2) in
- *   subst exp *)
 
 (* Printing *)
 

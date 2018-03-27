@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (** Interface to the simulator *)
 
 exception Error of string
@@ -20,28 +31,22 @@ type context = {  (** The simulator state *)
   c_fsms: Fsm.inst list * Fsm.inst list;                       (** FSMs, partitioned into active and inactive subsets *)
   }
 
-(* val update_ctx : context -> Ident.t * Expr.value option -> context *)
 exception OverReaction of Types.date
-(* val global_updates : (Ident.t * 'a) list -> (string * 'a) list *)
 
 val react : Types.date -> context -> stimulus list -> context * response list
   (** [react t ctx stimuli] computes a global reaction in [ctx] at time [t] given a set of stimuli [stimuli],
      producing an updated context [ctx'] and a set of responses [resps].
-     The (operational) semantics is that of StateCharts (in turn similar to that of the delta concept
-     used un DE formalisms. A reaction is viewed as a (finite) sequence of "micro-reactions".
-     Each micro-reaction can generate stimuli which can trigger another micro-reaction (the related
-     stimuli are here called "reentrant". However, a given FSM can only react once during a sequence of 
+     The (operational) semantics is that of StateCharts. A reaction is viewed as a (finite) sequence
+     of "micro-reactions". Each micro-reaction can generate stimuli which can trigger another micro-reaction
+     (the related stimuli are here called "reentrant". However, a given FSM can only react once during a sequence of 
      micro-reactions (this is implemented by partitionning FSMs into active/inactive subsets during a reaction.
      A reaction ends when all the micro-reactions have taken place, i.e. when the last one did not produce
      any further re-entrant stimulus. *)
 
-val run : Comp.t -> context * (Types.date * response list) list
+val run : Sysm.t -> context * (Types.date * response list) list
   (** [run m] runs a simulation of system [m], returning the final context and a list of dated responses *)
 
 (** {2 Printers} *)
 
-(* val string_of_comp : string * ('a * Expr.value option) -> string
- * val string_of_fsm : Fsm.inst -> string *)
 val dump_context : context -> unit
-(* val string_of_event : Ident.t * Expr.value option -> string *)
 val dump_reaction : int * (Ident.t * Expr.value option) list -> unit

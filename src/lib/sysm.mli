@@ -1,4 +1,15 @@
-(** System description as a composition of FSMs *)
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
+(** System description as a composition of FSM instances *)
 
 module DepG : Graph.Sig.IM with type V.label = string and type E.label = string
 
@@ -31,28 +42,11 @@ and dependencies = {
 
 (** {2 Builders} *)
 
-(* exception Unknown_global of string *)
-
-(* val build_stim : Fsm.stim_desc -> istim_desc
- * 
- * val extract_globals :
- *   (string * (Types.typ * mg_desc)) list *
- *   (string * (Types.typ * mg_desc)) list *
- *   (string * (Types.typ * mg_desc)) list ->
- *   Fsm.inst ->
- *   (string * (Types.typ * mg_desc)) list *
- *   (string * (Types.typ * mg_desc)) list *
- *   (string * (Types.typ * mg_desc)) list
- * val build_dependencies :
- *   Fsm.inst list -> (DepG.E.label * ('a * mg_desc)) list -> dependencies *)
-
-val build_composite : name:string -> fsm_insts:Fsm.inst list -> t
-  (** [build_composite name fsms] builds a system description from a list of FSM instances *)
+val build : name:string -> fsm_insts:Fsm.inst list -> t
+  (** [build name fsms] builds a system description from a list of FSM instances *)
 
 (** {2 Printers} *)
   
-(* val string_of_shared : string * (Types.typ * mg_desc) -> string *)
-
 val dot_output :
   string ->
   ?dot_options:Utils.Dot.graph_style list ->
@@ -62,8 +56,4 @@ val dot_output :
   t ->
   unit
 
-(* val dump_global : out_channel -> string * (Types.typ * mg_desc) -> unit
- * val dump_stimuli :
- *   out_channel -> int * (Ident.t * Expr.value option) list -> unit
- * val dump_dependencies : t -> unit *)
 val dump : out_channel -> t -> unit

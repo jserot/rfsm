@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 open Printf
 open Location
 
@@ -35,15 +46,14 @@ try
   print_banner ();
   if !Options.print_version then exit 0;
   let p = parse Main_lexer.main Main_parser.program !source_file in
-  (* let _ = Syntax.dump_program p in *)
   let name = Filename.chop_extension (Filename.basename !source_file) in
-  let m = Intern.build_composite name p in
-  if !Options.dump_model then Comp.dump stdout m;
+  let m = Intern.build_system name p in
+  if !Options.dump_model then Sysm.dump stdout m;
   Logfile.start ();
   begin match !Options.target with
   | Some Options.Dot ->
        check_dir !Options.target_dir;
-       Comp.dot_output
+       Sysm.dot_output
          ~fsm_options:(if !Options.dot_captions then [] else [Fsm.NoCaption])
          ~with_insts:!Options.dot_fsm_insts
          ~with_models:!Options.dot_fsm_models
@@ -51,8 +61,7 @@ try
          m;
   | Some Options.CTask ->
        check_dir !Options.target_dir;
-       (* List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Comp.m_fsm_models; *)
-       List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Comp.m_fsms
+       List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Sysm.m_fsms
   | Some Options.SystemC ->
        Systemc.check_allowed m;
        check_dir !Options.target_dir;

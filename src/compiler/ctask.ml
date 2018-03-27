@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* CTask backend *)
 
 open Utils
@@ -65,13 +76,6 @@ let string_of_action a = match a with
     | Action.Emit id -> "notify_ev(" ^ id ^ ")"
     | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
-(* let string_of_condition (e,cs) =   *)
-(*   let string_of_ev id = cfg.recvd_ev_name ^ "==" ^ Ident.to_string id in *)
-(*   let string_of_guard (e,op,e') = string_of_expr e ^ string_of_op op ^ string_of_expr e' in *)
-(*   match cs with *)
-(*     [] -> string_of_ev e *)
-(*   |  _ -> string_of_ev e ^ " && " ^ ListExt.to_string string_of_guard " && " cs *)
-  
 let dump_action oc tab a = fprintf oc "%s%s;\n" tab (string_of_action a)
 
 let dump_transition oc tab is_first src (q',((evs,guards),acts,_,_)) =

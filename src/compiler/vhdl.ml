@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* VHDL backend *)
 
 open Utils
@@ -60,10 +71,6 @@ let rec vhdl_type_of t = match t with
   | TyBool -> Boolean
   | TyEnum cs -> Error.not_implemented "VHDL translation of enumerated type"
   | TyInt None -> Integer
-(*       begin match cfg.vhdl_default_int_type with *)
-(*         "signed" -> Signed cfg.vhdl_default_int_size *)
-(*       | _ -> Unsigned cfg.vhdl_default_int_size *)
-(*       end *)
   | TyInt (Some (TiConst lo,TiConst hi)) ->
       if lo < 0 then Signed (Systemc.bit_size (max (-lo) hi)) else Unsigned (Systemc.bit_size hi)
   | TyInt _
@@ -81,16 +88,9 @@ let string_of_type t = string_of_vhdl_type (vhdl_type_of t)
 
 let global_types = ref ( [] : (string * vhdl_type) list )
 
-(* exception Type_of_value *)
-        
-(* let type_of_value v = match v with *)
-(*   Expr.Val_int _ -> "integer" *)
-(* | Expr.Val_enum _ -> raise Type_of_value *)
-
 let lookup_type id = 
   try Some (List.assoc id !global_types)
   with Not_found -> None
-(*   with Not_found -> raise (Error ("", "cant retrieve VHDL type for id " ^ id) *)
 
 let type_error where what item ty1 ty2 = 
   raise (Vhdl_error(
@@ -161,8 +161,6 @@ and string_of_op = function
   | "!=" -> " /= "
   | "mod" -> " mod "
   | op ->  op
-
-(* type vhdl_kind = Vhdl_signal | Vhdl_variable *)
 
 let string_of_action ?(lvars=[]) a = match a with
   | Action.Assign (id, expr) ->
@@ -328,7 +326,7 @@ let dump_vc_inp_process oc id vcs =
        fprintf oc "      wait;\n"
 
 let dump_input_process oc (id,(ty,desc)) =
-  let open Comp in
+  let open Sysm in
   fprintf oc "  inp_%s: process\n" id;
   begin match desc with
     | MInp ({sd_comprehension=Sporadic ts}, _) -> dump_sporadic_inp_process oc id ts
@@ -340,36 +338,11 @@ let dump_input_process oc (id,(ty,desc)) =
 
 (* Dumping the testbench *)
 
-(* let tb_name s = "t_" ^ s *)
 let tb_name s = s
 
-(* let dump_stimulus oc (id,v) =  *)
-(*   match v with *)
-(*   | Some v' -> fprintf oc "    %s <= %s;\n" (tb_name id) (string_of_value ~ty:(lookup_type id) v') *)
-(*   | None -> Error.fatal_error "Vhdl.dump_stimulus"  (\* should not happen after transformation of events into signals *\) *)
-
-(* let mk_events stimuli =  *)
-(*   (\* Transform events into signal value changes *\) *)
-(*   let compare_ev (t,_) (t',_) = Pervasives.compare t t' in *)
-(*   let expand_ev t (id,v) = match v with  *)
-(*     None -> [t, (id,Some (Expr.Val_int 1)); t+cfg.vhdl_ev_duration, (id,Some (Expr.Val_int 0))]  (\* event *\) *)
-(*   | Some _ -> [t, (id,v)] in *)
-(*   let rec expand_stims stims = *)
-(*     let rec h acc l = match l with *)
-(*       [] -> acc *)
-(*     | (t,evs)::rest -> h (acc @ List.flatten (List.map (expand_ev t) evs)) rest in  *)
-(*     h [] stims in *)
-(*   let merge_stims stims = *)
-(*     let rec h acc l = match l, acc with *)
-(*       [], _ -> acc *)
-(*     | (t,ev)::rest, ((t',evs)::acc') -> if t=t' then h ((t,ev::evs)::acc') rest else h ((t,[ev])::acc) rest *)
-(*     | (t,ev)::rest, [] -> h [t,[ev]] rest in *)
-(*     List.rev (h [] stims) in *)
-(*   expand_stims stimuli |> List.sort compare_ev |> merge_stims  (\* The heavy way.. *\) *)
-      
 let dump_testbench_impl fname m =
   let oc = open_out fname in
-  let open Comp in
+  let open Sysm in
   let modname n = String.capitalize_ascii n in
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;	   \n";
@@ -422,22 +395,6 @@ let dump_testbench_impl fname m =
   fprintf oc "    %s <= '1';\n" cfg.vhdl_reset_sig;
   fprintf oc "    wait for %d %s;\n" cfg.vhdl_reset_duration cfg.vhdl_time_unit;
   fprintf oc "    %s <= '0';\n" cfg.vhdl_reset_sig;
-  (* let rst = cfg.vhdl_reset_sig in *)
-  (* add_type (rst, Std_logic); *)
-  (* let reset_event acc (id,(ty,_)) = match ty with *)
-  (*     TyEvent -> (id, Some (Expr.Val_int 0)) :: acc *)
-  (*   | _ -> acc in *)
-  (* let init_stim = *)
-  (*   [0, (rst, Some (Expr.Val_int 1)) :: List.fold_left reset_event [] m.m_inputs; *)
-  (*    cfg.vhdl_reset_duration, [rst, Some (Expr.Val_int 0)]] in *)
-  (* let stimuli' = mk_events (Stimuli.merge_stimuli [init_stim;stimuli]) in *)
-  (* let _ = List.fold_left *)
-  (*   (fun t (t',sts) -> *)
-  (*     fprintf oc "    wait for %d %s;\n" (t'-t) cfg.vhdl_time_unit; *)
-  (*     List.iter (dump_stimulus oc) sts; *)
-  (*     t') *)
-  (*   0 *)
-  (*   stimuli' in *)
   fprintf oc "    wait for %d %s;\n" cfg.vhdl_stop_time cfg.vhdl_time_unit;
   fprintf oc "    wait;\n";
   fprintf oc "\n";
@@ -462,28 +419,12 @@ let dump_fsm ?(prefix="") ?(dir="./vhdl") m fsm =
   Logfile.write fname;
   close_out oc
 
-(* let dump_input ?(prefix="") ?(dir="./vhdl") m ((id,_) as inp) = *)
-(*   let prefix = match prefix with "" -> cfg.vhdl_inpmod_prefix ^ id | p -> p in *)
-(*   let fname = dir ^ "/" ^ prefix ^ ".vhd" in *)
-(*   let oc = open_out fname in *)
-(*   fprintf oc "library ieee;\n"; *)
-(*   fprintf oc "use ieee.std_logic_1164.all;\n"; *)
-(*   fprintf oc "use ieee.numeric_std.all;\n"; *)
-(*   fprintf oc "library %s;\n" cfg.vhdl_support_library; *)
-(*   fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package; *)
-(*   fprintf oc "\n"; *)
-(*   dump_inp_module_intf "entity" oc inp; *)
-(*   fprintf oc "\n"; *)
-(*   dump_inp_module_arch oc inp; *)
-  (* Logfile.write fname; *)
-(*   close_out oc *)
-
 let dump_testbench ?(name="") ?(dir="./vhdl") m =
   let prefix = match name with "" -> cfg.vhdl_tb_name | p -> p in
   dump_testbench_impl (dir ^ "/" ^ prefix ^ ".vhd") m
 
 let dump_model ?(dir="./vhdl") m =
-  List.iter (dump_fsm ~dir:dir m) m.Comp.m_fsms
+  List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms
 
 (* Dumping Makefile *)
 
@@ -491,7 +432,7 @@ let dump_makefile ?(dir="./vhdl") m =
   let fname = dir ^ "/" ^ "Makefile" in
   let oc = open_out fname in
   let modname suff f = f.f_name ^ suff in
-  let open Comp in
+  let open Sysm in
   fprintf oc "include %s/etc/Makefile.vhdl\n\n" cfg.vhdl_lib_dir;
   fprintf oc "%s: %s %s.vhd\n"
           cfg.vhdl_tb_name
@@ -508,7 +449,7 @@ let dump_makefile ?(dir="./vhdl") m =
 (* Check whether a model can be translated *)
 
 let check_allowed m =
-  let open Comp in 
+  let open Sysm in 
   let is_mono_sync f = match Fsm.input_events_of f with
     | [_] -> ()
     | _ -> Error.not_implemented "Vhdl: FSM with more than one input event" in

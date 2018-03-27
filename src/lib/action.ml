@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 type t =
     Assign of string * Expr.t
   | Emit of string
@@ -11,7 +22,7 @@ let vars_of a = match a with
 let to_string a = match a with
   | Assign (id, expr) -> id ^ ":=" ^ Expr.to_string expr
   | Emit id -> id
-  | StateMove (id, s,s') -> s ^ "->" ^ s' (* should not happen *)
+  | StateMove (id, s,s') -> s ^ "->" ^ s'
 
 let rename f a = match a with
   | Assign (v,e) -> Assign (f v, Expr.rename f e)

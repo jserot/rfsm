@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* Abstract syntax -> internal models *)
 
 open Syntax
@@ -54,9 +65,9 @@ let mk_type_defn (defns,ctors) { td_desc = d; td_loc = loc } =
     | TD_Alias (id, te) -> (id, Typing.type_of_type_expr defns [] ~strict:true te) :: defns, ctors
     | TD_Enum (id, cs) -> (id, TyEnum cs) :: defns, ctors @ cs
                       
-let build_composite name p = 
+let build_system name p = 
   let (tdefns,tctors) = List.fold_left mk_type_defn ([],[]) p.p_type_decls in
   let models = List.map (mk_fsm_model (tdefns,tctors)) p.p_fsm_models in
   let globals = List.map (mk_global tdefns) p.p_globals in
   let fsms = List.map (mk_fsm_inst tdefns models globals) p.p_fsm_insts in
-  Comp.build_composite name fsms
+  Sysm.build name fsms

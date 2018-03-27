@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* Target-independent C model *)
 
 type c_type_defn = 
@@ -41,14 +52,6 @@ let update_assoc k v l =
 let mk_state_case m q = 
   let module EventSet = Set.Make(String) in
   let ts = Fsm.succs m q in 
-  (* let evs = List.fold_left *)
-  (*   (fun acc (_,((evs,_),_,_)) ->  *)
-  (*     match evs with *)
-  (*       [] -> acc *)
-  (*     | [ev] -> EventSet.add ev acc *)
-  (*     | _ -> Error.not_implemented "Cmodel: transitions with multiple triggering events") *)
-  (*   EventSet.empty *)
-  (*   ts in *)
   let tss = List.fold_left
     (fun acc ((_,((evs,_),_,_,_)) as t) -> 
       match evs with
@@ -58,8 +61,6 @@ let mk_state_case m q =
     []
     ts in
   { st_src = q;
-    (* st_sensibility_list = EventSet.elements evs; *)
-    (* st_transitions = ts } *)
     st_sensibility_list = List.map fst tss;
     st_transitions = tss }
 
@@ -72,7 +73,7 @@ let mk_init m =
 
 let c_model_of_fsm m f = 
   let states = Fsm.states_of f in
-  let open Comp in
+  let open Sysm in
   let open Fsm in
   { c_name = f.Fsm.f_name;
     c_states = states;
@@ -84,5 +85,5 @@ let c_model_of_fsm m f =
     c_vars = f.f_vars;
     c_init = mk_init f;
     c_body = List.map (mk_state_case f) (List.rev states);
-    c_ddepth = Comp.DepG.Mark.get (m.m_deps.md_node f.f_name);
+    c_ddepth = Sysm.DepG.Mark.get (m.m_deps.md_node f.f_name);
     }

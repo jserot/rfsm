@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 open Utils
 open Printf
 open Types
@@ -71,10 +82,6 @@ let register_event =
          let acc' = (Ident.Global id, (Char.chr !signal_cnt, ty)) :: acc in
          signal_cnt := !signal_cnt + 1;
          acc'
-      (* |  Types.TyMemEvent -> (\* Buffered event *\) *)
-      (*     let acc' = (mk_evbuf_name id, (Char.chr (!signal_cnt+1), Types.TyBool)) :: (id, (Char.chr !signal_cnt, ty)) :: acc in *)
-      (*     signal_cnt := !signal_cnt + 2; *)
-      (*     acc' *)
       | _ ->
          acc
 
@@ -90,11 +97,6 @@ let dump_reaction oc signals (t,evs) =
       with Not_found -> raise (Error ("unknown signal: " ^ Ident.to_string name)) in
     match ty, value with
         TyEvent, _ -> fprintf oc "1%c\n" id          (* Instantaneous event *)
-      (* | TyMemEvent, Some (Expr.Val_int 1) -> *)
-      (*     fprintf oc "1%c\n" id; *)
-      (*     fprintf oc "b1 %c\n" (fst (List.assoc (mk_evbuf_name name) signals)) *)
-      (* | TyMemEvent, Some (Expr.Val_int 0) -> *)
-      (*     fprintf oc "b0 %c\n" (fst (List.assoc (mk_evbuf_name name) signals)) *)
       | TyEnum _, Some (Expr.Val_enum s) -> fprintf oc "s%s %c\n" s id
       | TyBool, Some (Expr.Val_bool b) -> fprintf oc "b%d %c\n" (if b then 1 else 0) id
       | TyInt r, Some (Expr.Val_int n) -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
@@ -107,9 +109,9 @@ let output m ctx fname reacts =
   let local_signals = register_fsms (fst ctx.c_fsms @ snd ctx.c_fsms) in
   let global_signals = 
      []
-     |> register_ios m.Comp.m_inputs ctx.c_inputs
-     |> register_ios m.Comp.m_outputs ctx.c_outputs
-     |> register_ios m.Comp.m_shared ctx.c_vars
+     |> register_ios m.Sysm.m_inputs ctx.c_inputs
+     |> register_ios m.Sysm.m_outputs ctx.c_outputs
+     |> register_ios m.Sysm.m_shared ctx.c_vars
      |> register_evs ctx.c_evs in
   fprintf oc "$date\n";
   fprintf oc "   %s\n" (Misc.time_of_day());

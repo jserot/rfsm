@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* The simulator *)
 
 open Utils
@@ -71,15 +82,6 @@ let string_of_event (id,v) = match v with
 let string_of_events evs = "[" ^ ListExt.to_string string_of_event "," evs ^ "]"
 
 let rec react t (ctx:context) (stimuli:(Ident.t * Expr.value option) list) =
-  (* Compute a global reaction in [ctx] at time [t] given a set of stimuli [stimuli],
-     producing an updated context [ctx'] and a set of responses [resps].
-     The (operational) semantics is that of StateCharts (in turn similar to that of the delta concept
-     used un DE formalisms. A reaction is viewed as a (finite) sequence of "micro-reactions".
-     Each micro-reaction can generate stimuli which can trigger another micro-reaction (the related
-     stimuli are here called "reentrant". However, a given FSM can only react once during a sequence of 
-     micro-reactions (this is implemented by partitionning FSMs into active/inactive subsets during a reaction.
-     A reaction ends when all the micro-reactions have taken place, i.e. when the last one did not produce
-     any further re-entrant stimulus. *)
   let open Fsm in
   let is_reentrant =     (* A reentrant stimulus is one which can trigger a micro-reaction *)
     function
@@ -127,7 +129,7 @@ let rec react t (ctx:context) (stimuli:(Ident.t * Expr.value option) list) =
 (* RUN *)
 
 let run m =
-  let open Comp in
+  let open Sysm in
   let extract_shared (vars,evs) (name,(ty,desc)) = match desc, ty with
     | MShared _, Types.TyEvent -> vars, (name,(ty,None))::evs  (* Initially not set *)
     | MShared _, _ -> (name, (ty,None))::vars, evs (* Uninitialized *)

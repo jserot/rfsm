@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 open Utils
    
 module TransLabel = struct
@@ -163,7 +174,7 @@ let sanity_check tenv f =
       (function s -> if not (List.mem_assoc s ss') then raise (Undef_symbol(f.f_name,kind,s)))
       ss in
   let check_type kind (id,ty) = 
-    match Types.vars_of ty with
+    match Types.ivars_of ty with
     | [] -> ()
     | vs -> raise (Uninstanciated_type_vars (f.f_name, kind, id, vs)) in
   let get l = List.map (function (id,(ty,_)) -> id, ty) l in
@@ -278,7 +289,7 @@ let build_instance ~name ~model ~params ~ios =
               acc
               cs in
           List.fold_left
-            (fun acc (_,ty) -> add acc (Types.tycons_of ty))
+            (fun acc (_,ty) -> add acc (Types.enums_of ty))
             []
             vars in
       { Types.builtin_tenv with

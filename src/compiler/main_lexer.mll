@@ -63,7 +63,6 @@ rule main = parse
   | ":" { COLON }
   | "=" { EQUAL }
   | ":=" { COLEQ }
-  (* | "\\" { BSLASH } *)
   | "|" { BAR }
   (* | "||" { BARBAR } *)
   | "!="    { NOTEQUAL }

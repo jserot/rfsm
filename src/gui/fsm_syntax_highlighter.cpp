@@ -1,3 +1,14 @@
+/**********************************************************************/
+/*                                                                    */
+/*              This file is part of the RFSM package                 */
+/*                                                                    */
+/*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  */
+/*                                                                    */
+/*  This source code is licensed under the license found in the       */
+/*  LICENSE file in the root directory of this source tree.           */
+/*                                                                    */
+/**********************************************************************/
+
 #include "fsm_syntax_highlighter.h"
 
 FsmSyntaxHighlighter::FsmSyntaxHighlighter(QTextDocument *parent)
@@ -7,6 +18,7 @@ FsmSyntaxHighlighter::FsmSyntaxHighlighter(QTextDocument *parent)
 
     rule.format.setForeground(Qt::blue);
     rule.format.setFontWeight(QFont::Bold);
+    rule.pattern = QRegExp("\\btype\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bfsm\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bmodel\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\binput\\b"); highlightingRules.append(rule);
@@ -17,6 +29,7 @@ FsmSyntaxHighlighter::FsmSyntaxHighlighter(QTextDocument *parent)
     //rule.pattern = QRegExp("#[a-z]+\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bin\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bout\\b"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\binout\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bstates\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bvars\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\btrans\\b"); highlightingRules.append(rule);

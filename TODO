@@ -1,9 +1,8 @@
 - update doc with priorities
-- Readme with brief desc in all examples dirs
-- headers in src files
 - man page for rfsmc ?
 - emacs mode for .fsm files
 - support for enum values in the SystemC and VHDL backends
+- About window in GUI
 - bound check for ranged integers
 - var and output attr on states (Moore-style)
 - clarify mechanism for delta-waits insertion in SystemC backend

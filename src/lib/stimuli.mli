@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (** Events and stimuli *)
 
 type event = Types.date * Expr.value option
@@ -19,8 +30,3 @@ val merge_stimuli : stimuli list list -> stimuli list
 val string_of_event : event -> string
 val string_of_events : event list -> string
 val string_of_stimuli : stimuli -> string 
-
-                                                           
-(* val string_of_event : int * Expr.value option -> string
- * val string_of_events : (int * Expr.value option) list -> string
- * val string_of_stimuli : int * (Ident.t * Expr.value option) list -> string *)
