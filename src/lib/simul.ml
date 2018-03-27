@@ -40,6 +40,16 @@ let update_ctx ctx = function
   | Ident.Local _, _ ->
      ctx
 
+let string_of_context c = 
+  let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_opt_value v in
+  let string_of_fsm f = f.Fsm.f_name ^ ".st=" ^ f.Fsm.f_state in
+  Printf.sprintf "{fsms=[%s / %s] inps=[%s] outps=[%s] shared=[%s]}"
+    (ListExt.to_string string_of_fsm "," (fst c.c_fsms))
+    (ListExt.to_string string_of_fsm "," (snd c.c_fsms))
+    (ListExt.to_string string_of_comp "," c.c_inputs)
+    (ListExt.to_string string_of_comp "," c.c_outputs)
+    (ListExt.to_string string_of_comp "," (c.c_vars @ c.c_evs))
+
 exception OverReaction of Types.date
    (* Raised when the number of micro-reactions at the given instant exceeds [cfg.max_micro_reactions] *)
 
@@ -126,9 +136,17 @@ let run m =
     match stims with
       [] -> ctx, List.rev resps (* End of simulation *)
     | (t,evs)::stims' ->
-        Trace.msg2 1 (if !Trace.level = 1 then "t=%d: evs=%s ==> " else "t=%d: evs=%s ...\n") t (string_of_events evs);
+        begin match !Trace.level with
+        | 0 -> ()
+        | 1 -> Trace.msg2 1 "t=%d: evs=%s ==> " t (string_of_events evs)
+        | n -> Trace.msg3 1 "t=%d: ctx=%s evs=%s ...\n" t (string_of_context ctx) (string_of_events evs)
+        end;
         let ctx', resps' = react t ctx evs in
-        Trace.msg1 1 (if !Trace.level = 1 then "%s\n" else "==> %s\n") (string_of_events resps');
+        begin match !Trace.level with
+        | 0 -> ()
+        | 1 -> Trace.msg1 1 "%s\n" (string_of_events resps')
+        | n -> Trace.msg1 1 "==> %s\n" (string_of_events resps')
+        end;
         step (ctx', (t, evs @ resps') :: resps) stims' in
           (* The events [evs] causing the reaction are included in the responses [resps] for tracing facilities .. *)
   let mk_ival (id,(ty,desc)) = id, (ty, None) in

@@ -8,7 +8,7 @@ let options_spec = [
 "-systemc", Arg.Unit (Options.set_systemc), "generate SystemC code";
 "-vhdl", Arg.Unit (Options.set_vhdl), "generate VHDL code";
 "-version", Arg.Unit (Options.set_print_version), "print version of the compiler and quit";
-"-dot_captions", Arg.Unit (Options.set_dot_captions), "Insert captions in .dot representation(s)";
+"-dot_no_captions", Arg.Unit (Options.set_dot_no_captions), "Remove captions in .dot representation(s)";
 "-dot_fsm_insts", Arg.Unit (Options.set_dot_fsm_insts), "generate .dot representation of all FSM instances";
 "-dot_fsm_models", Arg.Unit (Options.set_dot_fsm_models), "generate .dot representation of all FSM models";
 "-trace", Arg.Int (Options.set_trace), "set trace level for simulation (default: 0)";
