@@ -41,6 +41,7 @@ options.tex: options_spec.txt
 grammar.tex:
 	$(OBELISK) latex -i -prefix rfsm -o grammar.tex -package grammar-defns main_parser.mly
 # Warning: do not overwrite the files [grammar.tex] and [grammar-defns.sty] in [../../doc/um] !
+# They have been post-edited. Make a diff and incorporate changes manually rather 
 
 .PHONY: all clean byte native profile debug tags doc options.tex grammar.tex
 

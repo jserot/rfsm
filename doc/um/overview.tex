@@ -315,13 +315,13 @@ Listing~\ref{lst:rfsm-example2}. The modelized system is a calibrated pulse gene
 generates a pulse of duration $n \times T_H$ whenever input \texttt{E} is set when event $H$
 occurs. The generic model \verb|gensig| is here instanciated with \verb|N=4|.
 
-\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A multi-model RFSM
-  program,label={lst:rfsm-example2},float]
-
+\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=Another RFSM program,label={lst:rfsm-example2},float]
+type bit = int<0..1>
+  
 fsm model gensig<n:int> (
   in h: event,
-  in  e: bool,
-  out s: bool)
+  in  e: bit,
+  out s: bit)
   {
   states: E0, E1;
   vars: k: int<0..n>;
@@ -358,11 +358,43 @@ Appendix C3 gives the VHDL code generated from this example.
   \label{fig:rfsm-example2-vcd}
 \end{figure}
 
+\medskip
+Line 1, in Listing~\ref{lst:rfsm-example2} is a \emph{type declaration}. Type declarations can be
+used either to define \emph{type synonyms} or to introduce \emph{enumerated types}.
+The declaration in Listing~\ref{lst:rfsm-example2} defines type \verb|bit| as a synonym (alias) for
+type \verb|int<0..1>|. An example of type declaration introducing an enumerated type is given in the
+next section.
+
 \section{Third exemple}
 \label{sec:third-exemple}
 
-In this third example, we consider a multi-FSM model. The program is given in
-Listing~\ref{lst:rfsm-example3}. The system is a simple modulo 8 counter, here described as a
+The program in Listing~\ref{lst:rfsm-example3} illustrates the use of user-defined \emph{enumerated
+  type}. The model \verb|bswitch| trivially describes a \emph{binary switch} whose internal state changes
+whenever it receives an event \verb|press|. This internal state is reflected by the value of the
+output \verb|s|, whose type is the enumerated type \verb|switch_state| defined by the declaration at
+line 1.
+
+\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=An RFSM program using a
+  user-defined enumerated type,label={lst:rfsm-example3},float]
+type switch_state = { Off, On }
+  
+fsm model bswitch(
+  in press: event,
+  out s: switch_state)
+  {
+  states: S0, S1;
+  trans: 
+    S0 -- press | s:=On -> S1,
+    S1 -- press | s:=Off -> S0;
+  itrans: | s:=Off -> S0;
+  }
+\end{lstlisting}
+
+\section{Fourth exemple}
+\label{sec:fourth-exemple}
+
+In this fourth example, we consider a multi-FSM model. The program is given in
+Listing~\ref{lst:rfsm-example4}. The system is a simple modulo 8 counter, here described as a
 combination of three event-synchronized modulo 2 counters\footnote{This program is provided in the
   distribution, under directory \texttt{examples/multi/ctrmod8}.}.
 
@@ -371,11 +403,11 @@ Here a single FSM model (\texttt{cntmod2}) is instanciated thrice, as \texttt{C0
 \texttt{C2}. These instances are synchronized using two \textbf{shared events}, \texttt{R0} and \texttt{R1}. 
 
 \medskip
-The graphical representation of the program is given in Fig.~\ref{fig:rfsm-example3-top}. Simulation
-results are illustrated in Fig~\pageref{fig:rfsm-example3-vcd}. 
+The graphical representation of the program is given in Fig.~\ref{fig:rfsm-example4-top}. Simulation
+results are illustrated in Fig~\pageref{fig:rfsm-example4-vcd}. 
 
 \begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A multi-model RFSM
-  program,label={lst:rfsm-example3},float]
+  program,label={lst:rfsm-example4},float]
 fsm model cntmod2 (
   in h: event,
   out s: int<0..1>,
@@ -405,15 +437,15 @@ fsm C2 = cntmod2(R1,S2,R2)
 \begin{figure}[h]
    \includegraphics[height=9cm]{figs/ctrmod8-top}
    \centering
-  \caption{A graphical representation of program described in Listing~\ref{lst:rfsm-example3}}
-  \label{fig:rfsm-example3-top}
+  \caption{A graphical representation of program described in Listing~\ref{lst:rfsm-example4}}
+  \label{fig:rfsm-example4-top}
 \end{figure}
 
 \begin{figure}[h]
    \includegraphics[width=\textwidth]{figs/ctrmod8-chrono}
    \centering
-  \caption{Simulation results for the program in Listing~\ref{lst:rfsm-example3}}
-  \label{fig:rfsm-example3-vcd}
+  \caption{Simulation results for the program in Listing~\ref{lst:rfsm-example4}}
+  \label{fig:rfsm-example4-vcd}
 \end{figure}
 
 %%% Local Variables: 

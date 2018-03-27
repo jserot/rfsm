@@ -1,13 +1,25 @@
 \begin{rfsmgrammar}
+\rfsmgramfunc{\rfsmprogram{}}& \rfsmgramdef & \rfsmgramstar{\rfsmtypedecl*{}} \\
+                                              & & \rfsmgramplus{\rfsmfsmmodel*{}} \\
+                                              & & \rfsmgramplus{\rfsmglobal*{}} \\
+                                              & & \rfsmgramplus{\rfsmfsminst*{}}
+  \\& & \\
+
+\rfsmgramfunc{\rfsmtypedecl{}}& \rfsmgramdef & \rfsmTYPE*{} \rfsmLID*{}
+                                               \rfsmEQUAL*{} \rfsmtyp*{}\\
+  & \rfsmgrambar &\rfsmTYPE*{} \rfsmLID*{} \rfsmEQUAL*{}
+                  \rfsmLBRACE*{} \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmUID*{}} \rfsmRBRACE*{}
+  \\& & \\
+
 \rfsmgramfunc{\rfsmfsmmodel{}}& \rfsmgramdef & \rfsmFSM*{} \rfsmMODEL*{}
-                                               \rfsmID{}
+                                               \rfsmid*{}
                                                \rfsmgramopt{\rfsmparams*{}}
                                                \rfsmLPAREN*{}
                                                \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmio*{}}
                                                \rfsmRPAREN*{} \\
                                                & & \rfsmLBRACE*{} \\
                                                & & \rfsmSTATES*{} \rfsmCOLON*{} 
-                                               \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmID{}} 
+                                               \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmUID*{}} 
                                                \rfsmSEMICOLON*{} \\
                                                & & \rfsmgramopt{\rfsmvars*{}} \\
                                                & & \rfsmTRANS*{} \rfsmCOLON*{}
@@ -24,15 +36,16 @@
                                              \rfsmGT*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmparam{}}& \rfsmgramdef & \rfsmID{} \rfsmCOLON*{}
+\rfsmgramfunc{\rfsmparam{}}& \rfsmgramdef & \rfsmLID*{} \rfsmCOLON*{}
                                             \rfsmtyp*{}
   \\& & \\
 
 \rfsmgramfunc{\rfsmio{}}& \rfsmgramdef & \rfsmIN*{} \rfsmiodesc*{}\\
-  & \rfsmgrambar &\rfsmOUT*{} \rfsmiodesc*{}
+  & \rfsmgrambar &\rfsmOUT*{} \rfsmiodesc*{}\\
+  & \rfsmgrambar &\rfsmINOUT*{} \rfsmiodesc*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmiodesc{}}& \rfsmgramdef & \rfsmID{} \rfsmCOLON*{}
+\rfsmgramfunc{\rfsmiodesc{}}& \rfsmgramdef & \rfsmLID*{} \rfsmCOLON*{}
                                              \rfsmtyp*{}
   \\& & \\
 
@@ -41,23 +54,25 @@
                                            \rfsmSEMICOLON*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmvar{}}& \rfsmgramdef & \rfsmID{} \rfsmCOLON*{}
+\rfsmgramfunc{\rfsmvar{}}& \rfsmgramdef & \rfsmLID*{} \rfsmCOLON*{}
                                           \rfsmtyp*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmtransition{}}& \rfsmgramdef & \rfsmID{}
+\rfsmgramfunc{\rfsmtransition{}}& \rfsmgramdef & \rfsmgramopt{\rfsmTIMES*{}}
+                                                 \rfsmUID*{}
                                                  \rfsmARROWSTART*{}
                                                  \rfsmcondition*{}
                                                  \rfsmgramopt{\rfsmactions*{}}
-                                                 \rfsmARROWEND*{} \rfsmID{}
+                                                 \rfsmARROWEND*{} \rfsmUID*{}
   \\& & \\
 
 \rfsmgramfunc{\rfsmitransition{}}& \rfsmgramdef & \rfsmgramopt{\rfsmactions*{}}
-                                                  \rfsmARROWEND*{} \rfsmID{}
+                                                  \rfsmARROWEND*{}
+                                                  \rfsmUID*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmcondition{}}& \rfsmgramdef & \rfsmID{}\\
-  & \rfsmgrambar &\rfsmID{} \rfsmDOT*{}
+\rfsmgramfunc{\rfsmcondition{}}& \rfsmgramdef & \rfsmLID*{}\\
+  & \rfsmgrambar &\rfsmLID*{} \rfsmDOT*{}
                   \rfsmgramsepnelist{\rfsmDOT*{}}{\rfsmguard*{}}
   \\& & \\
 
@@ -68,15 +83,15 @@
                                               \rfsmgramsepnelist{\rfsmSEMICOLON*{}}{\rfsmaction*{}}
   \\& & \\
 
-\rfsmgramfunc{\rfsmaction{}}& \rfsmgramdef & \rfsmID{}\\
-  & \rfsmgrambar &\rfsmID{} \rfsmCOLEQ*{} \rfsmexpr*{}
+\rfsmgramfunc{\rfsmaction{}}& \rfsmgramdef & \rfsmLID*{}\\
+  & \rfsmgrambar &\rfsmLID*{} \rfsmCOLEQ*{} \rfsmexpr*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmglobal{}}& \rfsmgramdef & \rfsmINPUT*{} \rfsmID{}
+\rfsmgramfunc{\rfsmglobal{}}& \rfsmgramdef & \rfsmINPUT*{} \rfsmid*{}
                                              \rfsmCOLON*{} \rfsmtyp*{}
                                              \rfsmEQUAL*{} \rfsmstimuli*{}\\
-  & \rfsmgrambar &\rfsmOUTPUT*{} \rfsmID{} \rfsmCOLON*{} \rfsmtyp*{}\\
-  & \rfsmgrambar &\rfsmSHARED*{} \rfsmID{} \rfsmCOLON*{} \rfsmtyp*{}
+  & \rfsmgrambar &\rfsmOUTPUT*{} \rfsmid*{} \rfsmCOLON*{} \rfsmtyp*{}\\
+  & \rfsmgrambar &\rfsmSHARED*{} \rfsmid*{} \rfsmCOLON*{} \rfsmtyp*{}
   \\& & \\
 
 \rfsmgramfunc{\rfsmstimuli{}}& \rfsmgramdef & \rfsmPERIODIC*{} \rfsmLPAREN*{}
@@ -90,22 +105,23 @@
   \\& & \\
 
 \rfsmgramfunc{\rfsmvaluechange{}}& \rfsmgramdef & \rfsmINT*{} \rfsmCOLON*{}
-                                                  \rfsmINT*{}
+                                                  \rfsmconst*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmfsminst{}}& \rfsmgramdef & \rfsmFSM*{} \rfsmID{}
-                                              \rfsmEQUAL*{} \rfsmID{}
+\rfsmgramfunc{\rfsmfsminst{}}& \rfsmgramdef & \rfsmFSM*{} \rfsmid*{}
+                                              \rfsmEQUAL*{} \rfsmid*{}
                                               \rfsmgramopt{\rfsmLT*{}
                                               \rfsmgramsepnelist{\rfsmCOMMA*{}}{\rfsmINT*{}}
                                               \rfsmGT*{}}
                                               \rfsmLPAREN*{}
-                                              \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmID{}}
+                                              \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmid*{}}
                                               \rfsmRPAREN*{}
   \\& & \\
 
 \rfsmgramfunc{\rfsmtyp{}}& \rfsmgramdef & \rfsmTYEVENT*{}\\
   & \rfsmgrambar &\rfsmTYINT*{} \rfsmgramopt{\rfsmintrange*{}}\\
-  & \rfsmgrambar &\rfsmTYBOOL*{}
+  & \rfsmgrambar &\rfsmTYBOOL*{}\\
+  & \rfsmgrambar &\rfsmLID*{}
   \\& & \\
 
 \rfsmgramfunc{\rfsmintrange{}}& \rfsmgramdef & \rfsmLT*{}
@@ -115,8 +131,8 @@
                                                \rfsmGT*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmtypeindexexpr{}}& \rfsmgramdef & \rfsmINT*{}\\
-  & \rfsmgrambar &\rfsmID{}\\
+\rfsmgramfunc{\rfsmtypeindexexpr{}}& \rfsmgramdef & \rfsmint*{}\\
+  & \rfsmgrambar &\rfsmLID*{}\\
   & \rfsmgrambar &\rfsmLPAREN*{} \rfsmtypeindexexpr*{} \rfsmRPAREN*{}\\
   & \rfsmgrambar &\rfsmtypeindexexpr*{} \rfsmPLUS*{} \rfsmtypeindexexpr*{}\\
   & \rfsmgrambar &\rfsmtypeindexexpr*{} \rfsmMINUS*{} \rfsmtypeindexexpr*{}\\
@@ -134,14 +150,33 @@
   & \rfsmgrambar &\rfsmexpr*{} \rfsmLTE*{} \rfsmexpr*{}
   \\& & \\
 
-\rfsmgramfunc{\rfsmexpr{}}& \rfsmgramdef & \rfsmINT*{}\\
-  & \rfsmgrambar &\rfsmID{}\\
+\rfsmgramfunc{\rfsmexpr{}}& \rfsmgramdef & \rfsmint*{}\\
+  & \rfsmgrambar &\rfsmbool*{}\\
+  & \rfsmgrambar &\rfsmLID*{}\\
+  & \rfsmgrambar &\rfsmUID*{}\\
   & \rfsmgrambar &\rfsmLPAREN*{} \rfsmexpr*{} \rfsmRPAREN*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmPLUS*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmMINUS*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmTIMES*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmDIV*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmMOD*{} \rfsmexpr*{}
+  \\& & \\
+
+\rfsmgramfunc{\rfsmconst{}}& \rfsmgramdef & \rfsmint*{}\\
+  & \rfsmgrambar &\rfsmbool*{}\\
+  & \rfsmgrambar &\rfsmUID*{}
+  \\& & \\
+
+\rfsmgramfunc{\rfsmint{}}& \rfsmgramdef & \rfsmINT*{}\\
+  & \rfsmgrambar &\rfsmMINUS*{} \rfsmINT*{}
+  \\& & \\
+
+\rfsmgramfunc{\rfsmbool{}}& \rfsmgramdef & \rfsmTRUE*{}\\
+  & \rfsmgrambar &\rfsmFALSE*{}
+  \\& & \\
+
+\rfsmgramfunc{\rfsmid{}}& \rfsmgramdef & \rfsmLID*{}\\
+  & \rfsmgrambar &\rfsmUID*{}
   \\& & \\
 
 \end{rfsmgrammar}
