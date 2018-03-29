@@ -143,25 +143,29 @@ let vhdl_string_of_int ?(ty=None) n =
   | Some Std_logic -> Printf.sprintf "'%d'" n
   | _ -> string_of_int n (* will probably not compile but can't do better at this level.. *)
 
-let rec string_of_expr ?(ty=None) e = match e with
-    Expr.EInt c -> vhdl_string_of_int ~ty:ty  c
-  | Expr.EBool c -> string_of_bool c
-  | Expr.EEnum c -> c
-  | Expr.EVar n ->  n
-  | Expr.EBinop (op,e1,e2) -> 
-      let ty = type_of_expr e in
-      begin match op, ty with 
-        "*", Some (Signed _)
-      | "*", Some (Unsigned _) ->  "mul(" ^ string_of_expr ~ty:ty e1 ^ "," ^ string_of_expr ~ty:ty e2 ^ ")"
-      | _, _ -> string_of_expr ~ty:ty e1 ^ string_of_op op ^ string_of_expr ~ty:ty e2 (* TODO : add parens *)
-      end
-                                                                      
-and string_of_op = function
+let string_of_op = function
     "=" -> " = "
   | "!=" -> " /= "
   | "mod" -> " mod "
   | op ->  op
 
+let string_of_expr ?(ty=None) e =
+  let rec string_of level e =
+    let paren s = if level > 0 then "(" ^ s ^ ")" else s in
+    match e with
+      Expr.EInt c -> vhdl_string_of_int ~ty:ty  c
+    | Expr.EBool c -> string_of_bool c
+    | Expr.EEnum c -> c
+    | Expr.EVar n ->  n
+    | Expr.EBinop (op,e1,e2) -> 
+       let ty = type_of_expr e in
+       begin match op, ty with 
+         "*", Some (Signed _)
+       | "*", Some (Unsigned _) ->  "mul(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
+       | _, _ -> paren (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
+       end in
+  string_of 0 e
+                                                                      
 let string_of_action ?(lvars=[]) a = match a with
   | Action.Assign (id, expr) ->
      let asn = if List.mem_assoc id lvars && cfg.vhdl_use_variables then " := " else " <= " in
