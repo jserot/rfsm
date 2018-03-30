@@ -1,6 +1,4 @@
 - update doc with priorities
-- man page for rfsmc ?
-- emacs mode for .fsm files
 - support for enum values in the SystemC and VHDL backends
 - About window in GUI
 - bound check for ranged integers
@@ -11,3 +9,4 @@
 - SCXML backend (www.w3.org/TR/scxml, Yakindu, ...)
 - SMV backend (with state predicated for connection to model-checking tools)
 - communication via FIFOs (message queues) ?
+- man page for rfsmc ?

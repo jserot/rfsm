@@ -14,7 +14,7 @@ MAKE_WIN = C:/Qt/Qt5.8.0/Tools/mingw530_32/bin/mingw32-make
 
 .PHONY: compiler lib gui clean test doc
 
-all: 		lib compiler libs #gui doc
+all: 		lib compiler libs gui doc
 
 compiler:
 			(cd src/compiler; make)
@@ -152,8 +152,8 @@ macos-install:
 	cp  doc/rfsm.pdf $(MACOS_DIST)/UserManual.pdf
 	mkdir $(MACOS_DIST)/examples
 	mkdir $(MACOS_DIST)/examples/{single,multi}
-	cp -r examples/single/{chrono,gensig,doubleimp,mousectlr,mul8} $(MACOS_DIST)/examples/single
-	cp -r examples/multi/ctrmod8 $(MACOS_DIST)/examples/multi
+	cp -r examples/single $(MACOS_DIST)/examples
+	cp -r examples/multi $(MACOS_DIST)/examples
 	cp {CHANGELOG.txt,KNOWN-BUGS,LICENSE,README.txt,VERSION} $(MACOS_DIST)
 
 RFSM_VOLUME=Rfsm-$(VERSION)
@@ -223,8 +223,8 @@ win32-install:
 	cp  doc/rfsm.pdf $(WIN_INSTALL_DIR)/doc
 	mkdir $(WIN_INSTALL_DIR)/examples
 	mkdir $(WIN_INSTALL_DIR)/examples/{single,multi}
-	cp -r examples/single/{chrono,gensig,doubleimp,mousectlr,mul8} $(WIN_INSTALL_DIR)/examples/single
-	cp -r examples/multi/ctrmod8 $(WIN_INSTALL_DIR)/examples/multi
+	cp -r examples/single $(WIN_INSTALL_DIR)/examples
+	cp -r examples/multi $(WIN_INSTALL_DIR)/examples
 	@echo "Done"
 
 win32-installer:
