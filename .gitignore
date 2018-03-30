@@ -19,8 +19,8 @@ config-stamp
 .qmake.stash
 Info.plist
 TAGS
-doc/lib/
-etc/
+/doc/lib/
+/etc/
 examples/others/
 examples/tofix/
 examples/scxmlcc/

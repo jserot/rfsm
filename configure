@@ -12,6 +12,7 @@ install_bindir=''
 install_libdir=''
 install_docdir=''
 install_mandir=''
+install_emacsdir=''
 
 ocamlversion_min=4.06
 
@@ -30,6 +31,8 @@ while : ; do
         install_docdir=$2; shift;;
     -mandir|--mandir)
         install_mandir=$2; shift;;
+    -emacsdir|--emacsdir)
+        install_emacsdir=$2; shift;;
     -byte-only|--byte-only)
         native='no'; shift;;
     -dot|--dot)
@@ -49,6 +52,7 @@ Options: [defaults in brackets after descriptions]
   --libdir DIR            install libraries in in DIR [default: $install_libdir]
   --docdir DIR            install documentation in DIR [default: $install_docdir]
   --mandir DIR            install man documentation in DIR [default:$install_mandir]
+  --emacsdir DIR          install emacs mode in DIR [default:$install_emacsdir]
   --byte-only             do not build native code executable
   --dot NAME              command for runing dot program [default: $dotprogram]
   --dotviewer NAME        command for displaying .dot files [default: $dotviewer]
@@ -65,12 +69,14 @@ done
 case "$platform" in
   win32)
       if [ -z "$install_bindir" ]; then install_bindir='./build/bin'; fi;
-      if [ -z "$install_mandir" ]; then install_bindir='./build/man'; fi;
+      if [ -z "$install_mandir" ]; then install_mandir='./build/man'; fi;
+      if [ -z "$install_emacsdir" ]; then install_emacsdir='./build/share'; fi;
       if [ -z "$install_libdir" ]; then install_libdir='./build/lib'; fi;
       if [ -z "$install_docdir" ]; then install_docdir='./build/doc'; fi;;
   *) 
       if [ -z "$install_bindir" ]; then install_bindir='/usr/local/bin'; fi;
-      if [ -z "$install_mandir" ]; then install_bindir='/usr/local/man/man1'; fi;
+      if [ -z "$install_mandir" ]; then install_mandir='/usr/local/man/man1'; fi;
+      if [ -z "$install_emacsdir" ]; then install_emacsdir='/usr/local/sharse/emacs/site-lisp'; fi;
       if [ -z "$install_libdir" ]; then install_libdir=`opam config var lib`; fi;
       if [ -z "$install_docdir" ]; then install_docdir=`opam config var doc`; fi;;
 esac
@@ -97,6 +103,7 @@ echo "INSTALL_BINDIR=$install_bindir" >> config
 echo "INSTALL_LIBDIR=$install_libdir" >> config
 echo "INSTALL_DOCDIR=$install_docdir" >> config
 echo "INSTALL_MANDIR=$install_mandir" >> config
+echo "INSTALL_EMACSDIR=$install_emacsdir" >> config
 
 # Finish generated files
 
@@ -119,6 +126,7 @@ echo "        binaries................   $install_bindir"
 echo "        library.................   $install_libdir"
 echo "        documentation............. $install_docdir"
 echo "        man pages................. $install_mandir"
+echo "        emacs mode................ $install_emacsdir"
 if [ -n "$dotprogram" ]; then
 echo "Command for viewing .dot files: \"$dotprogram\""
 fi
