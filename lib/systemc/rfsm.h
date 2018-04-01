@@ -6,6 +6,4 @@
 
 void notify_ev(sc_out<bool> &s, const char *name);
 
-//void notify_ev(sc_signal<bool> &s);
-
 #endif

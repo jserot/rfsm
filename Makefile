@@ -67,6 +67,7 @@ clobber:
 			(cd doc/um; make clobber)
 			\rm -f doc/lib/*
 			\rm -f doc/*.*
+			\rm -f src/gui/rfsm.app/Contents/MacOS/rfsm
 			\rm -f *~
 
 install-lib: 
@@ -91,37 +92,25 @@ uninstall-doc:
 DISTDIR=/tmp/rfsm-$(VERSION)-source
 
 source-dist: 
-	@echo "** Cleaning"
-	make clobber
 	rm -rf $(DISTDIR)
 	@echo "** Creating $(DISTDIR)"
 	mkdir -p $(DISTDIR)
-	mkdir -p $(DISTDIR)/compiler
-	mkdir -p $(DISTDIR)/lib
-	mkdir -p $(DISTDIR)/lib/etc
-	mkdir -p $(DISTDIR)/lib/systemc
-	mkdir -p $(DISTDIR)/lib/vhdl
-	mkdir -p $(DISTDIR)/examples
-	mkdir -p $(DISTDIR)/man
 	mkdir -p $(DISTDIR)/doc
-#	@echo "** Building doc and man pages"
-#	(cd doc/um; $(MAKE) all)
-#	(cd doc/primer; $(MAKE) all)
-#	(cd man; $(MAKE) all)
+	@echo "** Building and copying doc"
+	make doc
+	cp -r doc/lib $(DISTDIR)/doc
+	cp  doc/um/rfsm.pdf $(DISTDIR)/doc/UserManual.pdf
+	@echo "** Cleaning"
+	make clobber
+	mkdir -p $(DISTDIR)/src
+	mkdir -p $(DISTDIR)/lib
+	mkdir -p $(DISTDIR)/examples
+	mkdir -p $(DISTDIR)/src
 	@echo "** Copying files"
-	cp lib/etc/* $(DISTDIR)/lib/etc
-	cp lib/systemc/{*.h,Makefile} $(DISTDIR)/lib/systemc
-	cp lib/vhdl/{*.vhd,Makefile} $(DISTDIR)/lib/vhdl
-	cp -r examples $(DISTDIR)/examples
-#	cp man/*.$(MANEXT) $(DISTDIR)/man
-#	cp man/Makefile.public $(DISTDIR)/man/Makefile
-#	cp doc/um/caph-lrm.pdf doc/primer/caph-primer.pdf $(DISTDIR)/doc
-#	cp doc/Makefile.public $(DISTDIR)/doc/Makefile
-#	cp configure CHANGES README KNOWN-BUGS LICENSE VERSION $(DISTDIR)
-	cp configure ReadMe VERSION $(DISTDIR)
-	cp -r compiler/{*.ml,*.mli,Makefile,*.mly,*.mll,_tags,TAGS} $(DISTDIR)/compiler
-	cp -r gui $(DISTDIR)/gui
-#	cp dist/source/{Makefile,INSTALL} $(DISTDIR)
+	cp -r lib/* $(DISTDIR)/lib
+	cp -r examples/{single,multi} $(DISTDIR)/examples
+	cp configure CHANGELOG.txt README.txt KNOWN-BUGS LICENSE VERSION Makefile $(DISTDIR)
+	cp -r src/* $(DISTDIR)/src
 	@echo "** Creating archive $(DISTDIR).tar.gz"
 	(cd /tmp; tar -zcvf rfsm-$(VERSION)-source.tar.gz rfsm-$(VERSION)-source)
 
@@ -216,7 +205,7 @@ win32-install:
 	cp ../caph/caphy-dlls/{Qt5Core,Qt5Gui,Qt5Widgets,libgcc_s_dw2-1,libstdc++-6,libwinpthread-1}.dll $(WIN_INSTALL_DIR)
 	mkdir $(WIN_INSTALL_DIR)/platforms
 	cp ../caph/caphy-dlls/qwindows.dll $(WIN_INSTALL_DIR)/platforms
-	cp {CHANGELOG.txt,KNOWN-BUGS,LICENSE,README.txt,VERSION} $(WIN_INSTALL_DIR)
+	cp {CHANGELOG.txt,KNOWN-BUGS,LICENSE,README.txt} $(WIN_INSTALL_DIR)
 	cp ./dist/windows/FIRST.TXT $(WIN_INSTALL_DIR)
 	cp ./dist/windows/icons/*.{bmp,ico} $(WIN_INSTALL_DIR)
 	mkdir $(WIN_INSTALL_DIR)/doc
