@@ -8,10 +8,11 @@ dotprogram='dot'
 dotviewer='graphviz'
 vcdviewer='gtkwave'
 txtviewer='nano'
+install_prefix=''
 install_bindir=''
 install_libdir=''
 install_docdir=''
-install_mandir=''
+#install_mandir=''
 install_emacsdir=''
 
 ocamlversion_min=4.06
@@ -23,14 +24,16 @@ while : ; do
     "") break;;
     -platform|--platform)
         platform=$2; shift;;
+    -prefix|--prefix)
+        install_prefix=$2; shift;;
     -bindir|--bindir)
-        install_libdir=$2; shift;;
+        install_binbdir=$2; shift;;
     -libdir|--libdir)
         install_libdir=$2; shift;;
     -docdir|--docdir)
         install_docdir=$2; shift;;
-    -mandir|--mandir)
-        install_mandir=$2; shift;;
+#    -mandir|--mandir)
+#        install_mandir=$2; shift;;
     -emacsdir|--emacsdir)
         install_emacsdir=$2; shift;;
     -byte-only|--byte-only)
@@ -48,10 +51,10 @@ while : ; do
 Usage: configure [options]
 Options: [defaults in brackets after descriptions]
   --platform NAME         target platform (unix, macos or win32) [default: unix]
+  --prefix DIR            install executables, libs and docs in DIR [default: $prefix]
   --bindir DIR            install  executables in DIR [default: $install_bindir]
   --libdir DIR            install libraries in in DIR [default: $install_libdir]
   --docdir DIR            install documentation in DIR [default: $install_docdir]
-  --mandir DIR            install man documentation in DIR [default:$install_mandir]
   --emacsdir DIR          install emacs mode in DIR [default:$install_emacsdir]
   --byte-only             do not build native code executable
   --dot NAME              command for runing dot program [default: $dotprogram]
@@ -66,21 +69,26 @@ EOF
   shift
 done
 
+if [ -n "$install_prefix" ]; then
+  install_bindir="$install_prefix/bin"
+  install_libdir="$install_prefix/lib"
+  install_docdir="$install_prefix/doc"
+  install_emacsdir="$install_prefix/share/emacs/site-lisp"
+fi
+
+
 case "$platform" in
   win32)
       if [ -z "$install_bindir" ]; then install_bindir='./build/bin'; fi;
-      if [ -z "$install_mandir" ]; then install_mandir='./build/man'; fi;
-      if [ -z "$install_emacsdir" ]; then install_emacsdir='./build/share'; fi;
       if [ -z "$install_libdir" ]; then install_libdir='./build/lib'; fi;
-      if [ -z "$install_docdir" ]; then install_docdir='./build/doc'; fi;;
+      if [ -z "$install_docdir" ]; then install_docdir='./build/doc'; fi;
+      if [ -z "$install_emacsdir" ]; then install_emacsdir='./build/share'; fi;;
   *) 
       if [ -z "$install_bindir" ]; then install_bindir='/usr/local/bin'; fi;
-      if [ -z "$install_mandir" ]; then install_mandir='/usr/local/man/man1'; fi;
-      if [ -z "$install_emacsdir" ]; then install_emacsdir='/usr/local/sharse/emacs/site-lisp'; fi;
       if [ -z "$install_libdir" ]; then install_libdir=`opam config var lib`; fi;
+      if [ -z "$install_emacsdir" ]; then install_emacsdir='/usr/local/share/emacs/site-lisp'; fi;
       if [ -z "$install_docdir" ]; then install_docdir=`opam config var doc`; fi;;
 esac
-
 
 # Generate the config file
 
@@ -102,7 +110,7 @@ echo "# INSTALL PATHS" >> config
 echo "INSTALL_BINDIR=$install_bindir" >> config
 echo "INSTALL_LIBDIR=$install_libdir" >> config
 echo "INSTALL_DOCDIR=$install_docdir" >> config
-echo "INSTALL_MANDIR=$install_mandir" >> config
+#echo "INSTALL_MANDIR=$install_mandir" >> config
 echo "INSTALL_EMACSDIR=$install_emacsdir" >> config
 
 # Finish generated files
@@ -125,7 +133,7 @@ echo "Directory where the distribution will be installed:"
 echo "        binaries................   $install_bindir"
 echo "        library.................   $install_libdir"
 echo "        documentation............. $install_docdir"
-echo "        man pages................. $install_mandir"
+#echo "        man pages................. $install_mandir"
 echo "        emacs mode................ $install_emacsdir"
 if [ -n "$dotprogram" ]; then
 echo "Command for viewing .dot files: \"$dotprogram\""

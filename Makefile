@@ -12,7 +12,7 @@ QMAKE_MACOS = /Developer/Qt5.2.1/5.2.1/clang_64/bin/qmake
 QMAKE_WIN = C:/Qt/Qt5.8.0/5.8/mingw53_32/bin/qmake.exe
 MAKE_WIN = C:/Qt/Qt5.8.0/Tools/mingw530_32/bin/mingw32-make
 
-.PHONY: compiler lib gui clean test doc
+.PHONY: compiler lib gui clean test doc install
 
 all: 		lib compiler libs gui doc
 
@@ -45,30 +45,42 @@ doc:
 	pandoc -o CHANGELOG.txt CHANGELOG.md
 	pandoc -o README.txt README.md
 
-test:
-	echo "Testing"
-
 clean:
-			(cd src/lib; make clean)
-			(cd src/compiler; make clean)
-			(cd src/gui; make clean)
-			(cd lib; make clean)
-			(cd examples; make clean)
-			(cd doc/um; make clean)
-			\rm -f doc/lib/*
-			\rm -f doc/*.*
+	(cd src/lib; make clean)
+	(cd src/compiler; make clean)
+	(cd src/gui; make clean)
+	(cd lib; make clean)
+	(cd examples; make clean)
+	(cd doc/um; make clean)
+	rm -f doc/lib/*
 
 clobber: 
-			(cd src/lib; make clobber)
-			(cd src/compiler; make clobber)
-			(cd src/gui; make clean)
-			(cd lib; make clobber)
-			(cd examples; make clobber)
-			(cd doc/um; make clobber)
-			\rm -f doc/lib/*
-			\rm -f doc/*.*
-			\rm -f src/gui/rfsm.app/Contents/MacOS/rfsm
-			\rm -f *~
+	(cd src/lib; make clobber)
+	(cd src/compiler; make clobber)
+	(cd src/gui; make clean)
+	(cd lib; make clobber)
+	(cd examples; make clobber)
+	(cd doc/um; make clobber)
+	rm -f doc/lib/*
+	\rm -f src/gui/rfsm.app/Contents/MacOS/rfsm
+	\rm -f *~
+
+install:
+	mkdir -p $(INSTALL_LIBDIR)
+	cp -r lib/ml $(INSTALL_LIBDIR)
+	cp -r lib/etc $(INSTALL_LIBDIR)
+	mkdir -p $(INSTALL_LIBDIR)/systemc
+	cp lib/systemc/*.{o,h} $(INSTALL_LIBDIR)/systemc
+	mkdir -p $(INSTALL_LIBDIR)/vhdl
+	cp lib/vhdl/*.vhd $(INSTALL_LIBDIR)/vhdl
+	mkdir -p $(INSTALL_BINDIR)
+	cp src/compiler/main.byte $(INSTALL_BINDIR)/rfsmc
+ifeq ($(BUILD_NATIVE),yes)
+	cp src/compiler/main.native $(INSTALL_BINDIR)/rfsmc.opt
+endif
+	mkdir -p $(INSTALL_DOCDIR)
+	cp -r doc/lib $(INSTALL_DOCDIR)
+	cp -r doc/um/rfsm.pdf $(INSTALL_DOCDIR)/UserManual.pdf
 
 install-lib: 
 	@echo "Installing $(PACKNAME) in $(INSTALL_LIBDIR)"
@@ -92,25 +104,16 @@ uninstall-doc:
 DISTDIR=/tmp/rfsm-$(VERSION)-source
 
 source-dist: 
-	rm -rf $(DISTDIR)
-	@echo "** Creating $(DISTDIR)"
-	mkdir -p $(DISTDIR)
-	mkdir -p $(DISTDIR)/doc
-	@echo "** Building and copying doc"
-	make doc
-	cp -r doc/lib $(DISTDIR)/doc
-	cp  doc/um/rfsm.pdf $(DISTDIR)/doc/UserManual.pdf
 	@echo "** Cleaning"
 	make clobber
-	mkdir -p $(DISTDIR)/src
-	mkdir -p $(DISTDIR)/lib
-	mkdir -p $(DISTDIR)/examples
-	mkdir -p $(DISTDIR)/src
+	@echo "** Creating $(DISTDIR)"
+	rm -rf $(DISTDIR)
+	mkdir -p $(DISTDIR)
 	@echo "** Copying files"
-	cp -r lib/* $(DISTDIR)/lib
-	cp -r examples/{single,multi} $(DISTDIR)/examples
-	cp configure CHANGELOG.txt README.txt KNOWN-BUGS LICENSE VERSION Makefile $(DISTDIR)
-	cp -r src/* $(DISTDIR)/src
+	cp -r {lib,src,doc} $(DISTDIR)
+	mkdir -p $(DISTDIR)/examples
+	cp -r examples/{single,multi,Makefile} $(DISTDIR)/examples
+	cp configure CHANGELOG.md README.md KNOWN-BUGS LICENSE VERSION INSTALL Makefile $(DISTDIR)
 	@echo "** Creating archive $(DISTDIR).tar.gz"
 	(cd /tmp; tar -zcvf rfsm-$(VERSION)-source.tar.gz rfsm-$(VERSION)-source)
 

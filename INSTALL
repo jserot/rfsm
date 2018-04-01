@@ -1,0 +1,5 @@
+To build from sources :
+
+1. ./configure [options]
+2. ./make
+3. ./make install
