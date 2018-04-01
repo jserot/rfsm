@@ -24,6 +24,9 @@ FsmSyntaxHighlighter::FsmSyntaxHighlighter(QTextDocument *parent)
     rule.pattern = QRegExp("\\binput\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\boutput\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bshared\\b"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\s--\\s"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\s->\\s"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\s|\\s"); highlightingRules.append(rule);
     rule.format.setForeground(Qt::darkGreen);
     rule.format.setFontWeight(QFont::Normal);
     //rule.pattern = QRegExp("#[a-z]+\\b"); highlightingRules.append(rule);

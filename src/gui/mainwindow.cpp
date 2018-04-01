@@ -412,6 +412,24 @@ foreach ( AppOption opt, opts) {
   }
 }
 
+QString getOptions(QString category, QStringList exclude=QStringList())
+{
+  QMap<QString,AppOption> opts = Options::getInstance()->values;
+  QMapIterator<QString, AppOption> i(opts);
+  QString res;
+  while ( i.hasNext() ) {
+      i.next();
+      AppOption opt = i.value();
+      if ( opt.category != category ) continue;
+      if ( exclude.contains(opt.name) ) continue;
+      if ( opt.checkbox != NULL && opt.checkbox->isChecked() )
+        res.append(" " + opt.name);
+      else if ( opt.val != NULL && opt.val->text() != "" )
+        res.append(" " + opt.name + " " + opt.val->text());
+    }
+  return res;
+}
+
 QString getOption(QString name)
 {
   QMap<QString,AppOption> opts = Options::getInstance()->values;
@@ -473,32 +491,36 @@ void MainWindow::compile(QString type, QString baseCmd, QString targetDir)
 void MainWindow::makeDot()
 {
   QString targetDir = "-target_dir ./dot";
-  QString opts = getOption("-dot_captions") == "on" ? " -dot_captions " : "";
+  QStringList exclude("-dot_options");
+  QString opts = getOptions("general") + getOptions("dot",exclude);
   compile("dot", " -dot " + targetDir + opts, "dot");
 }
 
 void MainWindow::makeSim()
 {
-  // QString targetDir = "-target_dir ./sim";
-  compile("simu", " -sim -vcd ./sim/run.vcd" /* + simOptions */, "sim");
+  QString opts = getOptions("general") + getOptions("sim");
+  compile("simu", " -sim -vcd ./sim/run.vcd" + opts, "sim");
 }
 
 void MainWindow::makeCTask()
 {
   QString targetDir = "-target_dir ./ctask";
-  compile("ctask", " -ctask " + targetDir /* + cTaskOptions */, "ctask");
+  QString opts = getOptions("general") + getOptions("ctask");
+  compile("ctask", " -ctask " + targetDir + opts, "ctask");
 }
 
 void MainWindow::makeSystemC()
 {
   QString targetDir = "-target_dir ./systemc";
-  compile("systemc", " -systemc " + targetDir /* + systemcOptions */, "systemc");
+  QString opts = getOptions("general") + getOptions("systemc");
+  compile("systemc", " -systemc " + targetDir + opts, "systemc");
 }
 
 void MainWindow::makeVHDL()
 {
   QString targetDir = "-target_dir ./vhdl";
-  compile("vhdl", " -vhdl " + targetDir /* + vhdlOptions */, "vhdl");
+  QString opts = getOptions("general") + getOptions("vhdl");
+  compile("vhdl", " -vhdl " + targetDir + opts, "vhdl");
 }
 
 void MainWindow::readProcStdout()

@@ -135,7 +135,7 @@ macos-dist:
 	@echo "** Building"
 	(cd src/compiler; make)
 	(cd src/gui; make)
-	(cd doc/um; make; cp rfsm.pdf ..)
+	make doc
 	make macos-install
 	make macos-installer
 
@@ -147,14 +147,14 @@ macos-install:
 	cp src/compiler/main.native $(MACOS_DIST)/Rfsm.app/Contents/MacOS/rfsmc
 	cp ./dist/macos/rfsm.ini $(MACOS_DIST)/Rfsm.app/Contents/MacOS
 	cp ./dist/macos/INSTALL $(MACOS_DIST)/INSTALL
-#	mkdir $(MACOS_DIST)/doc
+	mkdir $(MACOS_DIST)/doc
 #	cp -r doc/lib $(MACOS_DIST)/doc
-	cp  doc/rfsm.pdf $(MACOS_DIST)/UserManual.pdf
+	cp  doc/um/rfsm.pdf $(MACOS_DIST)/doc/UserManual.pdf
 	mkdir $(MACOS_DIST)/examples
 	mkdir $(MACOS_DIST)/examples/{single,multi}
 	cp -r examples/single $(MACOS_DIST)/examples
 	cp -r examples/multi $(MACOS_DIST)/examples
-	cp {CHANGELOG.txt,KNOWN-BUGS,LICENSE,README.txt,VERSION} $(MACOS_DIST)
+	cp {CHANGELOG.txt,KNOWN-BUGS,LICENSE,README.txt} $(MACOS_DIST)
 
 RFSM_VOLUME=Rfsm-$(VERSION)
 
@@ -166,8 +166,8 @@ macos-installer:
 	cp -r $(MACOS_DIST)/Rfsm.app /Volumes/$(RFSM_VOLUME)
 	ln -s /Applications /Volumes/$(RFSM_VOLUME)/Applications
 	cp -r $(MACOS_DIST)/examples /Volumes/$(RFSM_VOLUME)/Examples
-#	cp -r $(MACOS_DIST)/doc /Volumes/$(RFSM_VOLUME)/Documentation
-	cp $(MACOS_DIST)/{CHANGELOG.txt,KNOWN-BUGS,LICENSE,README.txt,VERSION,INSTALL,UserManual.pdf} /Volumes/$(RFSM_VOLUME)
+	cp -r $(MACOS_DIST)/doc /Volumes/$(RFSM_VOLUME)/Documentation
+	cp $(MACOS_DIST)/{CHANGELOG.txt,KNOWN-BUGS,LICENSE,README.txt,INSTALL} /Volumes/$(RFSM_VOLUME)
 	hdiutil detach /Volumes/$(RFSM_VOLUME)
 	hdiutil convert /tmp/Rfsm.dmg -format UDZO -o /tmp/Rfsm_ro.dmg
 	mv /tmp/Rfsm_ro.dmg /tmp/Rfsm.dmg
