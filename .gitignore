@@ -58,3 +58,6 @@ src/gui/Makefile
 src/lib/rfsm.docdir
 src/compiler/grammar-defns.sty
 src/compiler/grammar.tex
+src/compiler/options_spec.ml
+src/gui/options_spec.txt
+src/gui/rsfm.app/
