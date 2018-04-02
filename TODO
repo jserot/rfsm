@@ -1,5 +1,6 @@
 - update doc with priorities
 - update doc with synch vs. seq actions 
+- update doc with cond actions
 - support for enum values in the SystemC and VHDL backends
 - About window in GUI
 - bound check for ranged integers

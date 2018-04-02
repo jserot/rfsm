@@ -1,5 +1,5 @@
 GHDL=ghdl
-GHDLOPTS=
+GHDLOPTS=-fno-color-diagnostics
 
 all: lib
 

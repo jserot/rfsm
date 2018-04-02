@@ -297,7 +297,9 @@ expr:
       { Expr.EBinop ("/", e1, e2) }
   | e1 = expr MOD e2 = expr
       { Expr.EBinop ("mod", e1, e2) }
-  | e1 = rel_expr QMARK e2 = expr COLON e3 = expr 
+  | e = rel_expr
+      { match e with ( e1,op,e2) -> Expr.EBinop (op, e1, e2) }
+  | e1 = expr QMARK e2 = expr COLON e3 = expr 
       { Expr.ECond (e1, e2, e3) }
 
 const:

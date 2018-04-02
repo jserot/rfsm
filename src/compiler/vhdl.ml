@@ -126,8 +126,7 @@ let rec type_of_expr e = match e with
   | Expr.EBool c -> Some (vhdl_type_of TyBool)
   | Expr.EEnum c -> None
   | Expr.EVar n -> lookup_type n 
-  | Expr.EBinop (op,e1,e2)
-  | Expr.ECond ((_,op,_),e1,e2) ->   (* TO FIX *)
+  | Expr.EBinop (op,e1,e2) ->
       begin match type_of_expr e1, type_of_expr e2 with
         None, None -> None
       | Some t1, None -> Some t1
@@ -135,6 +134,15 @@ let rec type_of_expr e = match e with
       | Some t1, Some t2 -> 
           if t1 = t2 then Some t1
           else type_error "" "binary operation" op t1 t2
+      end
+  | Expr.ECond (e1,e2,e3) ->   (* TO FIX *)
+      begin match type_of_expr e1, type_of_expr e2, type_of_expr e3 with
+        _, None, None -> None
+      | _, Some t1, None -> Some t1
+      | _, None, Some t2 -> Some t2
+      | _, Some t1, Some t2 -> 
+          if t1 = t2 then Some t1
+          else type_error "" "ternary conditioal" "" t1 t2
       end
 
 let vhdl_string_of_int ?(ty=None) n =
@@ -165,8 +173,10 @@ let string_of_expr ?(ty=None) e =
        | "*", Some (Unsigned _) ->  "mul(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
        | _, _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
        end
-    | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of_test level e1) (string_of level e2) (string_of level e3)
-  and string_of_test level (e1,op,e2) = paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2) in
+    | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
+  (*   | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of_test level e1) (string_of level e2) (string_of level e3)
+   * and string_of_test level (e1,op,e2) = paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2) in *)
+  in
   string_of 0 e
 
                                                                       

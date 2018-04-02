@@ -362,7 +362,7 @@ let string_of_actions resps = ListExt.to_string (function (id,v) -> Ident.to_str
 
 let do_actions ~sem env f acts = 
   let f', resps', resps'', env' = List.fold_left (do_action ~sem) (f,[],[],env) acts in
-  Printf.printf "do_actions: resps'=[%s] resps''=[%s]\n" (string_of_actions resps') (string_of_actions resps'');
+  (* Printf.printf "do_actions: resps'=[%s] resps''=[%s]\n" (string_of_actions resps') (string_of_actions resps''); *)
   match sem with
   | Sequential ->
       f', resps'

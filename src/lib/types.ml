@@ -180,8 +180,10 @@ let rec type_expression tenv expr = match expr with
        *      TypeConflict (t,t')
        *    | TypeCircularity(t,t') -> raise (Typing_error (expr, t, t'))
        * end *)
-  | Expr.ECond ((e11,op,e12),e2,e3) ->
-      let ty_e1 = type_application expr tenv op [e11;e12] in
+  (* | Expr.ECond ((e11,op,e12),e2,e3) ->
+   *     let ty_e1 = type_application expr tenv op [e11;e12] in *)
+  | Expr.ECond (e1,e2,e3) ->
+      let ty_e1 = type_expression tenv e1 in
       let ty_e2 = type_expression tenv e2 in
       let ty_e3 = type_expression tenv e3 in
       unify ty_e1 TyBool;

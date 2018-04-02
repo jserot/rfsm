@@ -7,8 +7,10 @@ package core is
   function cond(e1: boolean; e2: signed; e3: signed) return signed;
   function cond(e1: boolean; e2: unsigned; e3: unsigned) return unsigned;
   function cond(e1: boolean; e2: std_logic_vector; e3: std_logic_vector) return std_logic_vector;
+  function cond(e1: boolean; e2: integer; e3: integer) return integer;
   function eq(e1: signed; e2: signed) return unsigned;
   function eq(e1: unsigned; e2: unsigned) return unsigned;
+  function eq(e1: integer; e2: integer) return unsigned;
   function mul(e1: signed; e2: signed) return signed;
   function mul(e1: unsigned; e2: unsigned) return unsigned;
   function to_std_logic_vector(e: unsigned; s: natural) return std_logic_vector;
@@ -61,6 +63,11 @@ package body core is
     if e1 then return e2; else return e3; end if;
   end;
 
+  function cond(e1: boolean; e2: integer; e3: integer) return integer is
+  begin
+    if e1 then return e2; else return e3; end if;
+  end;
+
   function eq(e1: signed; e2: signed) return unsigned is
   begin
      if ( e1 = e2 ) then
@@ -71,6 +78,15 @@ package body core is
   end;
 
   function eq(e1: unsigned; e2: unsigned) return unsigned is
+  begin
+     if ( e1 = e2 ) then
+       return "1";
+     else
+       return "0";
+     end if;
+  end;
+
+  function eq(e1: integer; e2: integer) return unsigned is
   begin
      if ( e1 = e2 ) then
        return "1";
