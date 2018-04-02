@@ -80,14 +80,17 @@ let string_of_op = function
   | op ->  op
 
 let string_of_expr m e =
+  let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    let paren s = if level > 0 then "(" ^ s ^ ")" else s in
     match e with
       Expr.EInt c -> string_of_int c
     | Expr.EBool c -> string_of_bool c
     | Expr.EEnum c -> c
     | Expr.EVar n -> if List.mem_assoc n (m.c_inps @ m.c_inouts) then n ^ ".read()" else n
-    | Expr.EBinop (op,e1,e2) -> paren (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2) in
+    | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
+    | Expr.ECond (e1,e2,e3) -> paren level (string_of_test (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
+  and string_of_test level (e1,op,e2) = 
+    paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2) in
   string_of 0 e
 
 let string_of_guard m (e1, op, e2) = 

@@ -61,6 +61,7 @@ rule main = parse
   | "--" { ARROW_START }
   | "->" { ARROW_END }
   | ":" { COLON }
+  | "?" { QMARK }
   | "=" { EQUAL }
   | ":=" { COLEQ }
   | "|" { BAR }

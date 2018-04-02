@@ -15,6 +15,9 @@ type t =
   | EEnum of string
   | EVar of string
   | EBinop of string * t * t
+  | ECond of test * t * t        (** e1 ? e2 : e3 *)
+
+and test = t * string * t     (** e1 relop e2 *)
 
 and value = 
   | Val_int of int
@@ -64,6 +67,8 @@ let rec vars_of expr =
   match expr with
     EVar v -> VarSet.singleton v
   | EBinop (_,e1,e2) -> VarSet.union (vars_of e1) (vars_of e2)
+  | ECond ((e11,op,e12),e2,e3) ->
+     List.fold_left (fun acc e -> VarSet.union acc (vars_of e)) VarSet.empty [e11;e12;e2;e3]
   | _ -> VarSet.empty
        
 (* Substitution *)
@@ -76,6 +81,7 @@ let rec subst vs expr = match expr with
        f, EInt c1, EInt c2 -> EInt (f c1 c2)   (* Immediate reduction *)
      | _, e1', e2' -> EBinop (op, e1', e2') 
      end
+  | ECond ((e11,op,e12),e2,e3) -> ECond ((subst vs e11,op,subst vs e12), subst vs e2, subst vs e3)
   | _ -> expr
                
 (* Renaming *)
@@ -84,6 +90,7 @@ let rec rename f expr = match expr with
   (* Replace each variable [v] in [e] by [f v] *)
   | EVar v -> EVar (f v)
   | EBinop (op,e1,e2) -> EBinop (op, rename f e1, rename f e2)
+  | ECond ((e11,op,e12),e2,e3) -> ECond ((rename f e11,op,rename f e12), rename f e2, rename f e3)
   | _ -> expr
        
 (* Evaluation *)
@@ -107,8 +114,20 @@ let rec eval env exp =
   | EEnum c -> Val_enum c
   | EVar id -> lookup env id 
   | EBinop (op, exp1, exp2) ->
-      match Builtins.lookup Builtins.binops op, eval env exp1, eval env exp2 with
+     begin match Builtins.lookup Builtins.binops op, eval env exp1, eval env exp2 with
         f, Val_int v1, Val_int v2 -> Val_int (f v1 v2)
+      | _, _, _ -> raise (Illegal_expr exp)
+     end
+  | ECond (e1, e2, e3) ->
+     begin match eval_test exp env e1 with
+       Val_bool true -> eval env e2
+     | Val_bool false -> eval env e3
+     | _ -> raise (Illegal_expr exp)
+     end
+
+and eval_test exp env (e1,op,e2) = 
+     match Builtins.lookup Builtins.relops op, eval env e1, eval env e2 with
+        f, Val_int v1, Val_int v2 -> Val_bool (f v1 v2)
       | _, _, _ -> raise (Illegal_expr exp)
 
 let rec eval_rel env exp = 
@@ -141,3 +160,6 @@ let rec to_string e = match e with
   | EEnum c -> c
   | EVar n -> n
   | EBinop (op,e1,e2) -> to_string e1 ^ string_of_op op ^ to_string e2 (* TODO : add parens *)
+  | ECond (e1,e2,e3) -> string_of_test e1 ^ "?" ^ to_string e2 ^ ":" ^ to_string e3 (* TODO : add parens *)
+
+and string_of_test (e1,op,e2) = to_string e1 ^ string_of_op op ^ to_string e2 (* TODO : add parens *)

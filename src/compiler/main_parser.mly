@@ -27,6 +27,7 @@
 %token COMMA
 %token DOT
 %token COLON
+%token QMARK
 %token COLEQ
 %token EQUAL
 %token NOTEQUAL
@@ -296,6 +297,8 @@ expr:
       { Expr.EBinop ("/", e1, e2) }
   | e1 = expr MOD e2 = expr
       { Expr.EBinop ("mod", e1, e2) }
+  | e1 = rel_expr QMARK e2 = expr COLON e3 = expr 
+      { Expr.ECond (e1, e2, e3) }
 
 const:
   | v = int { Expr.Val_int v }

@@ -13,10 +13,13 @@
 
 type t = 
     EInt of int
-  | EBool of bool
+  | EBool of bool         
   | EEnum of string
   | EVar of string
-  | EBinop of string * t * t
+  | EBinop of string * t * t  (** e1 op e2 *)
+  | ECond of test * t * t        (** e1 ? e2 : e3 *)
+
+and test = t * string * t     (** e1 relop e2 *)
 
 and value = 
   | Val_int of int

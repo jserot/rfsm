@@ -126,7 +126,8 @@ let rec type_of_expr e = match e with
   | Expr.EBool c -> Some (vhdl_type_of TyBool)
   | Expr.EEnum c -> None
   | Expr.EVar n -> lookup_type n 
-  | Expr.EBinop (op,e1,e2) -> 
+  | Expr.EBinop (op,e1,e2)
+  | Expr.ECond ((_,op,_),e1,e2) ->   (* TO FIX *)
       begin match type_of_expr e1, type_of_expr e2 with
         None, None -> None
       | Some t1, None -> Some t1
@@ -150,8 +151,8 @@ let string_of_op = function
   | op ->  op
 
 let string_of_expr ?(ty=None) e =
+  let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    let paren s = if level > 0 then "(" ^ s ^ ")" else s in
     match e with
       Expr.EInt c -> vhdl_string_of_int ~ty:ty  c
     | Expr.EBool c -> string_of_bool c
@@ -162,9 +163,12 @@ let string_of_expr ?(ty=None) e =
        begin match op, ty with 
          "*", Some (Signed _)
        | "*", Some (Unsigned _) ->  "mul(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
-       | _, _ -> paren (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
-       end in
+       | _, _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
+       end
+    | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of_test level e1) (string_of level e2) (string_of level e3)
+  and string_of_test level (e1,op,e2) = paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2) in
   string_of 0 e
+
                                                                       
 let string_of_action ?(lvars=[]) a = match a with
   | Action.Assign (id, expr) ->

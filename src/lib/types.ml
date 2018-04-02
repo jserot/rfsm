@@ -166,20 +166,40 @@ let rec type_expression tenv expr = match expr with
   | Expr.EBool b -> TyBool
   | Expr.EVar id -> lookup_type "variable" tenv.te_vars id
   | Expr.EEnum c ->  lookup_type "enum value" tenv.te_ctors c
-  | Expr.EBinop (op,e1,e2) ->
-      let ty_fn = type_instance (lookup_type_scheme tenv.te_prims op) in
-      let ty_arg = TyProduct (List.map (type_expression tenv) [e1;e2]) in
+  | Expr.EBinop (op,e1,e2) -> type_application expr tenv op [e1;e2] 
+      (* let ty_fn = type_instance (lookup_type_scheme tenv.te_prims op) in
+       * let ty_arg = TyProduct (List.map (type_expression tenv) [e1;e2]) in
+       * let ty_result = new_type_var () in
+       * begin
+       *   try 
+       *     (\* Printf.printf "** unifying %s and %s -> %s\n" (string_of_type ty_fn) (string_of_type ty_arg) (string_of_type ty_result); *\)
+       *     unify ty_fn (TyArrow (ty_arg,ty_result));
+       *     (\* Printf.printf "** done: -> %s\n" (string_of_type (real_type ty_result)); flush stdout; *\)
+       *     real_type ty_result
+       *   with
+       *      TypeConflict (t,t')
+       *    | TypeCircularity(t,t') -> raise (Typing_error (expr, t, t'))
+       * end *)
+  | Expr.ECond ((e11,op,e12),e2,e3) ->
+      let ty_e1 = type_application expr tenv op [e11;e12] in
+      let ty_e2 = type_expression tenv e2 in
+      let ty_e3 = type_expression tenv e3 in
+      unify ty_e1 TyBool;
+      unify ty_e2 ty_e3;
+      ty_e2
+
+and type_application expr tenv f args =
+      let ty_fn = type_instance (lookup_type_scheme tenv.te_prims f) in
+      let ty_arg = TyProduct (List.map (type_expression tenv) args) in
       let ty_result = new_type_var () in
-      begin
-        try 
+      try 
           (* Printf.printf "** unifying %s and %s -> %s\n" (string_of_type ty_fn) (string_of_type ty_arg) (string_of_type ty_result); *)
           unify ty_fn (TyArrow (ty_arg,ty_result));
           (* Printf.printf "** done: -> %s\n" (string_of_type (real_type ty_result)); flush stdout; *)
           real_type ty_result
-        with
+      with
            TypeConflict (t,t')
          | TypeCircularity(t,t') -> raise (Typing_error (expr, t, t'))
-      end
 
 and type_instance ty_sch =
   match ty_sch.ts_params with
