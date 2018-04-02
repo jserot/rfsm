@@ -16,11 +16,13 @@ open Utils
 exception Error of string
 
 type config = {
-  max_micro_reactions: int;
+  mutable max_micro_reactions: int;
+  mutable act_semantics: Fsm.act_semantics;
   }
 
 let cfg = {
   max_micro_reactions = 32;
+  act_semantics = Fsm.Sequential;
   }
 
 type stimulus = Ident.t * Expr.value option  (** name, value (None for pure events) *)
@@ -97,7 +99,10 @@ let rec react t (ctx:context) (stimuli:(Ident.t * Expr.value option) list) =
   let micro_react ctx stimuli =
     let ctx' = List.fold_left update_ctx ctx stimuli in 
     let genv = List.map erase_type (ctx'.c_inputs @ ctx'.c_vars @ ctx'.c_evs) in
-    let fsms', resps = List.split (List.map (Fsm.react t genv) (fst ctx'.c_fsms)) in (* Only active FSMs play here.. *)
+    let fsms', resps =
+      List.split (* Only active FSMs play here.. *)
+        (List.map (Fsm.react ~sem:cfg.act_semantics t genv)
+           (fst ctx'.c_fsms)) in
     (* TODO : check coherency for this set of resps (for ex that no global var is assigned diff value.. ) *)
     let resps' = List.concat resps in
     let ctx'' = List.fold_left update_ctx ctx' resps' in
@@ -162,7 +167,9 @@ let run m =
           c_evs = shared_evs;
           c_fsms = m.m_fsms, [] } in
       let init_env = List.map erase_type (init_ctx.c_inputs @ init_ctx.c_vars @ init_ctx.c_evs) in
-      let fsms', resps = List.split (List.map (Fsm.init_fsm init_env) (fst init_ctx.c_fsms)) in 
+      let fsms', resps =
+        List.split
+          (List.map (Fsm.init_fsm ~sem:cfg.act_semantics init_env) (fst init_ctx.c_fsms)) in 
       let resps' = List.concat resps in
       let ctx' = List.fold_left update_ctx init_ctx resps' in
       {ctx' with c_fsms=fsms',[]}, [0, resps' (*@ resps''*)] in

@@ -57,7 +57,6 @@ type model = {
   fm_ios : (string * (Types.dir * Types.typ)) list;          (** i/os *)
   fm_vars: (string * Types.typ) list;                        (** name, type *)
   fm_repr: Repr.t;                                           (** Static representation as a LTS *)
-  (* fm_resolve: (transition list -> transition) option; *)
   }
 
 type inst = { 
@@ -69,9 +68,7 @@ type inst = {
   f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
   f_vars: (string * (Types.typ * Expr.value option)) list;  (** name, (type, value) *)
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
-  (* f_enums: (string * Types.typ);                            (\** Locally used enums, with their associated type *\) *)
   f_l2g: string -> string;                                  (** local -> global name *)
-  (* f_resolve: (transition list -> transition) option; *)
   f_state: string;                                          (** current state *)
   f_has_reacted: bool;                                      (** true when implied in the last reaction *)
   }
@@ -307,7 +304,7 @@ exception NonDetTrans of inst * transition list * Types.date
 type response = string * Expr.value option   (* name, value (None for pure events) *)
 
 let rec replace_assoc' k v env =
-  (* This is a variation on [Ext.List.replace_assoc], where [v=(_,v')] and only [v'] is replaced *)
+  (* This is a variation on [ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *)
   let rec repl = function
     [] -> []
   | (k',(x,v'))::rest -> if k=k' then (k,(x,v)) :: repl rest else (k',(x,v')) :: repl rest in
@@ -317,33 +314,61 @@ let rec replace_assoc' k v env =
   
 type fsm_env = (string * Expr.value option) list
 
-let do_action (f,resps,env) act =
+type act_semantics = Sequential | Synchronous 
+
+let do_action ~sem (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
-     a list of responses [resps], and an updated (local) environment [env'].
-     Updates of local variables are performed immediately and reported in [resps] (for tracing) 
-     and reflected in the environment (so that actions sequences such as "c:=c+1;s=c" are interpreted correctly.
-     Updates in the environment are reported in [resps] but are not performed immediately, only at the end
-     of each simulation step *)
+     a list of responses [resps], and an updated (local) environment [env']. *)
   match act with
     Action.Assign (id, expr) ->
       let v = Expr.eval env expr in
       if List.mem_assoc id f.f_vars then (* Local variable *)
-        { f with f_vars = replace_assoc' id (Some v) f.f_vars },
-        resps @ [Ident.Local (f.f_name, id), Some v],
-        ListExt.replace_assoc id (Some v) env
-      else
-        f, resps @ [Ident.Global (f.f_l2g id), Some v], env
+        begin match sem with
+        | Sequential ->
+          (* In the sequential interpretation, updates of local variables are performed immediately
+             and reflected in the environment (so that actions sequences such as "c:=c+1;s=c" are interpreted correctly. *)
+           { f with f_vars = replace_assoc' id (Some v) f.f_vars },
+           resps @ [Ident.Local (f.f_name, id), Some v],
+           resps',
+           ListExt.replace_assoc id (Some v) env
+        | Synchronous ->
+          (* In the synchronous interpretation, updates of local variables are not performed immediately
+             nor reflected in the environment, but only reported in [resps] so that they can be performed at the end of the
+             reaction. *)
+           f,
+           resps,
+           resps' @ [Ident.Local (f.f_name, id), Some v],
+           env
+        end
+      else  (* Global IO or shared value. Updates are never performed immediately *)
+        f, resps @ [Ident.Global (f.f_l2g id), Some v], resps', env
   | Action.Emit id ->
-        f, resps @ [Ident.Global (f.f_l2g id), Expr.set_event], env
+        f, resps @ [Ident.Global (f.f_l2g id), Expr.set_event], resps', env
   | Action.StateMove (id,s,s') ->
      { f with f_state = s' },
      resps @ [Ident.Local (f.f_name, "state"), Some (Expr.Val_enum s')],
+     resps',
      env
 
-let do_actions env f acts = 
-  let f', resps', _ = List.fold_left do_action (f,[],env) acts in
-  f', resps'
+let perform_delayed_action (f,env) (id,v) = 
+  match id with 
+  | Ident.Local (_, id) -> 
+    { f with f_vars = replace_assoc' id v f.f_vars },
+    ListExt.replace_assoc id v env
+  | _ ->
+     raise (Internal_error "Fsm.perform_delayed_action") (* should not happen *)
+  
+let string_of_actions resps = ListExt.to_string (function (id,v) -> Ident.to_string id ^ ":=" ^ (Expr.string_of_opt_value v)) "," resps
 
+let do_actions ~sem env f acts = 
+  let f', resps', resps'', env' = List.fold_left (do_action ~sem) (f,[],[],env) acts in
+  (* Printf.printf "do_actions: resps'=[%s] resps''=[%s]\n" (string_of_actions resps') (string_of_actions resps''); *)
+  match sem with
+  | Sequential ->
+      f', resps'
+  | Synchronous ->
+      let f'', _ = List.fold_left perform_delayed_action (f',env') resps'' in
+      f'', resps' @ resps''
 
 let mk_local_env f genv = 
   let get_value id =
@@ -352,7 +377,7 @@ let mk_local_env f genv =
   List.map (function (id,ty) -> id, get_value id) (f.f_inps @ f.f_inouts)
   @ List.map erase_type f.f_vars
 
-let rec react t genv f =
+let rec react ~sem t genv f =
   (* Compute the reaction, at time [t] of FSM [f] in a global environment [genv].
      The global environment contains the values of global inputs and shared objects.
      Return an updated fsm and list of responses consisting of
@@ -361,7 +386,7 @@ let rec react t genv f =
   let env = mk_local_env f genv in
   let cross_transition (s,(cond,acts,_,_),s') =
     let acts' = if s <> s' then Action.StateMove(f.f_name,s,s')::acts else acts in
-    let f', resps' = do_actions env f acts'  in   (* .. perform associated actions .. *)
+    let f', resps' = do_actions ~sem env f acts'  in   (* .. perform associated actions .. *)
     { f' with f_has_reacted=true }, resps' in
   let ts = List.filter (fireable f env) (transitions_of f) in
   match ts with
@@ -386,17 +411,6 @@ let rec react t genv f =
           raise (NonDetTrans (f,ts,t))
      | _ -> raise (Internal_error "Fsm.react")
      end
-     (* begin match f.f_resolve with
-      *   None -> raise (NonDetTrans (f,ts,t))
-      * | Some select ->
-      *    let t1 = select ts in
-      *    Printf.printf "Non deterministic transitions found for FSM %s at t=%d: {%s}; chose %s\n"
-      *                  f.f_name
-      *                  t
-      *                  (ListExt.to_string string_of_transition "," ts)
-      *                  (string_of_transition t1);
-      *    cross_transition (select ts)
-      * end *)
 
 and fireable f env (s,(cond,acts,_,_),s') =
   f.f_state = s && check_cond f env cond 
@@ -409,10 +423,10 @@ and is_event_set evs e = match List.assoc e evs with
   | None -> false
   | exception Not_found -> false
 
-let init_fsm genv f = match Repr.itransitions f.f_repr with
+let init_fsm ~sem genv f = match Repr.itransitions f.f_repr with
   | [(([],[]),acts,_,_), s] ->
      let env = mk_local_env f genv in
-     do_actions env f (Action.StateMove (f.f_name,"",s) :: acts)
+     do_actions ~sem env f (Action.StateMove (f.f_name,"",s) :: acts)
   | [_] ->
      raise (IllegalTrans (f, "illegal initial transition"))
   | _ ->

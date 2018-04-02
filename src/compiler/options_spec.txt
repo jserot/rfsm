@@ -7,11 +7,12 @@ noide;general;-ctask;Arg.Unit;set_ctask;generate CTask code
 noide;general;-systemc;Arg.Unit;set_systemc;generate SystemC code
 noide;general;-vhdl;Arg.Unit;set_vhdl;generate VHDL code
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
-ide;dot;-dot_no_captions;Arg.Unit;set_dot_captions;Remove captions in .dot representation(s)
+ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
 ide;dot;-dot_fsm_insts;Arg.Unit;set_dot_fsm_insts;generate .dot representation of all FSM instances
 ide;dot;-dot_fsm_models;Arg.Unit;set_dot_fsm_models;generate .dot representation of all FSM models
 noide;sim;-trace;Arg.Int;set_trace;set trace level for simulation (default: 0)
 noide;sim;-vcd;Arg.String;set_vcd_file;set name of .vcd output file when running simulation (default: run.vcd)
+ide;sim;-synchronous_actions;Arg.Unit;set_synchronous_actions;do not interpret actions sequentially but synchronously 
 ide;systemc;-sc_time_unit;Arg.String;set_systemc_time_unit;set time unit for the SystemC test-bench (default: SC_NS)
 ide;systemc;-sc_trace;Arg.Unit;set_sc_trace;set trace mode for SystemC backend (default: false)
 ide;systemc;-stop_time;Arg.Int;set_stop_time;set stop time for the SystemC and VHDL test-bench (default: 100)

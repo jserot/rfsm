@@ -130,7 +130,10 @@ exception Type_error of string * string * string * Types.typ * Types.typ (** FSM
 
 type response = string * Expr.value option
 
+type act_semantics = Sequential | Synchronous 
+
 val react :
+  sem:act_semantics ->
   Types.date ->
   (string * Expr.value option) list ->
   inst -> inst * (Ident.t * Expr.value option) list
@@ -150,6 +153,7 @@ val is_event_set :
   (Condition.event * Expr.value option) list -> Condition.event -> bool
 
 val init_fsm :
+  sem:act_semantics ->
   (string * Expr.value option) list ->
   inst -> inst * (Ident.t * Expr.value option) list
 
