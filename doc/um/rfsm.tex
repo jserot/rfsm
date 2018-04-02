@@ -33,10 +33,6 @@
 \lstdefinelanguage{Rfsm}{keywords={type,fsm,model,in,out,vars,states,trans,itrans,periodic,sporadic,value_changes,event,bool,input,output,shared},morecomment=[l]{\#}}
 \lstdefinelanguage{ctask}{language=C,morekeywords={task,wait_ev,wait_evs,notify_ev,in,out,inout}}
 \lstdefinelanguage{systemc}{language=C++,morekeywords={SC_MODULE,SC_METHOD,SC_THREAD,sc_in,sc_out,sc_inout}}
-%\lstset{language=Rfsm}
-%\lstset{frame=single}
-
-%\renewcommand\lstlistingname{Example}
 
 %%% Better hyphenation:
 %\sloppy
@@ -67,7 +63,7 @@
 
 \title{RFSM User Manual - \version}
 
-\author{J. S\'erot}%\footnote{Universit\'e Blaise Pascal, Clermont-Ferrand, France; \texttt{Jocelyn.Serot@univ-bpclermont.fr}}}
+\author{J. S\'erot}
 
 \titlepic{\includegraphics[width=0.5\textwidth]{figs/rfsm-logo}}
 \date{}
@@ -78,13 +74,13 @@
 
 %\tableofcontents
 
-\input{introduction}  % Motivations, what RFSM is and is not, structure of the document
-\input{overview}      % Presentation of the language and products with a couple of examples
-\input{rfsmc} % using the CL compiler
-\input{gui} % using the GUI
-%%input{lib} % using the lib
-\input{bnf} % BNF grammar
-\input{options} % compiler options
+\input{introduction}
+\input{overview}   
+\input{rfsmc}
+\input{gui} 
+%%input{lib}
+\input{bnf}
+\input{options}
 \input{ex1-c}
 \input{ex1-systemc}
 \input{ex2-vhdl}

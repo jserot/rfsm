@@ -49,7 +49,7 @@ The user manual can be found [here][usermanual]
 
 The library API is documented [here][libapi].
 
-[libapi]: http://cloud.ip.uca.fr/~serot/rfsm/doc/api/index.html
+[libapi]: http://cloud.ip.uca.fr/~serot/rfsm/doc/lib/index.html
 
 INSTALLATION
 ------------

@@ -16,7 +16,7 @@ open Fsm
 open Simul
 
 let default_state_id = "state"
-let default_int_size = 8
+let default_int_size = 32
 
 let bits_for_range min max = Misc.log2 (max-min) +1 
 
