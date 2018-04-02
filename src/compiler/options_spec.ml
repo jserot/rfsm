@@ -13,6 +13,7 @@ let options_spec = [
 "-dot_fsm_models", Arg.Unit (Options.set_dot_fsm_models), "generate .dot representation of all FSM models";
 "-trace", Arg.Int (Options.set_trace), "set trace level for simulation (default: 0)";
 "-vcd", Arg.String (Options.set_vcd_file), "set name of .vcd output file when running simulation (default: run.vcd)";
+"-synchronous_actions", Arg.Unit (Options.set_synchronous_actions), "do not interpret actions sequentially but synchronously ";
 "-sc_time_unit", Arg.String (Options.set_systemc_time_unit), "set time unit for the SystemC test-bench (default: SC_NS)";
 "-sc_trace", Arg.Unit (Options.set_sc_trace), "set trace mode for SystemC backend (default: false)";
 "-stop_time", Arg.Int (Options.set_stop_time), "set stop time for the SystemC and VHDL test-bench (default: 100)";
