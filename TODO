@@ -1,3 +1,6 @@
+- MLPACK lascar (to avoid module name clash)
+- OPAM lascar 
+- OPAM RFSM
 - update doc with priorities
 - update doc with synch vs. seq actions 
 - update doc with cond actions

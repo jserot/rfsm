@@ -32,7 +32,7 @@ let bits_of_int s n =
 
 let vcd_size_of_range = function
     None -> default_int_size
-  | Some (TiConst min, TiConst max) -> bits_for_range min max
+  | Some (Types.Index.TiConst min, Types.Index.TiConst max) -> bits_for_range min max
   | Some _ -> Error.fatal_error "Vcd.vcd_size_of_range"
 
 let vcd_kind_of ty = match ty with

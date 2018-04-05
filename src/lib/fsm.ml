@@ -62,11 +62,11 @@ type model = {
 type inst = { 
   f_name: string;
   f_model: model;
-  f_params: (string * (Types.typ * Expr.value)) list;       (** name, type, actual value *)
+  f_params: (string * (Types.typ * Expr.e_val)) list;       (** name, type, actual value *)
   f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
   f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
   f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
-  f_vars: (string * (Types.typ * Expr.value option)) list;  (** name, (type, value) *)
+  f_vars: (string * (Types.typ * Expr.e_val option)) list;  (** name, (type, value) *)
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
   f_l2g: string -> string;                                  (** local -> global name *)
   f_state: string;                                          (** current state *)
@@ -81,7 +81,7 @@ and global =
 and stim_desc = 
   Periodic of int * int * int             (** Period, start time, end time *)
 | Sporadic of int list                    (** Dates *)
-| ValueChange of (int * Expr.value) list  (** (Date,value)s *)
+| ValueChange of (int * Expr.e_val) list  (** (Date,value)s *)
 
 (* Inspectors *)
 
@@ -192,10 +192,10 @@ let sanity_check tenv f =
   let type_check_guard ((e1,op,e2) as g) =
     try type_check
           ~strict:true f.f_name "guard" (Condition.string_of_guard g)
-          (Types.type_expression tenv (Expr.EBinop (op,e1,e2))) Types.TyBool
+          (Typing.type_expression tenv (Expr.EBinop (op,e1,e2))) Types.TyBool
     with
-      | Types.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "guard", Expr.to_string expr, ty, ty'))
-      | Types.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
+      | Typing.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "guard", Expr.to_string expr, ty, ty'))
+      | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
   let type_check_condition (_,gs) = List.iter type_check_guard gs in
   let type_check_action act = match act with 
     | Action.Assign (v, exp) -> 
@@ -204,10 +204,10 @@ let sanity_check tenv f =
          try type_check
                ~strict:false f.f_name "action"
                (* [strict=false] here to accept actions like [v:=1] where [v:int<lo..hi>] *)
-               (Action.to_string act) (Types.type_expression tenv exp) t
+               (Action.to_string act) (Typing.type_expression tenv exp) t
          with
-           | Types.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "action", Expr.to_string expr, ty, ty'))
-           | Types.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) 
+           | Typing.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "action", Expr.to_string expr, ty, ty'))
+           | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) 
        end
     | Action.Emit s ->
        let t = try List.assoc s tenv.te_vars with Not_found -> raise (Internal_error "Fsm.type_check_action") in
@@ -221,7 +221,7 @@ let sanity_check tenv f =
 let build_instance ~name ~model ~params ~ios =
     let bind_param vs (p,ty) =
       match ty, List.assoc p vs with 
-        Types.TyInt _, (Expr.Val_int c as v) -> p, (ty,v)
+        Types.TyInt _, Expr.Val_int v -> p, (ty,v)
       | _, _ -> raise (Invalid_parameter (name, p))
       | exception Not_found -> raise (Binding_mismatch (name, "parameters", p)) in
     let bound_params = List.map (bind_param params) model.fm_params in
@@ -256,12 +256,12 @@ let build_instance ~name ~model ~params ~ios =
       bound_ios
       |> List.filter (function (_,_,k,_,_) -> k=kind)
       |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
+    let ienv' = List.map (function id,v -> id, Expr.Val_int v) ienv in
     let r =
       { f_name = name;
         f_model = model;
-        f_repr = Repr.map_label (TransLabel.subst ienv) model.fm_repr;
-        (* f_enums = collect_ty_ctors (; *)
-        f_params = bound_params;
+        f_repr = Repr.map_label (TransLabel.subst ienv') model.fm_repr;
+        f_params = List.map (function id,(ty,v) -> id,(ty,Expr.Val_int v)) bound_params;
         f_inps = filter_ios Types.IO_In bound_ios;
         f_outps = filter_ios Types.IO_Out bound_ios;
         f_inouts = filter_ios Types.IO_Inout bound_ios;
@@ -270,7 +270,6 @@ let build_instance ~name ~model ~params ~ios =
           mk_bindings
             ~local_names:(List.map (function (lid,_,_,_,_) -> lid) bound_ios)
             ~global_names:(List.map (function (_,gid,_,_,_) -> gid) bound_ios);
-        (* f_resolve = None; (\* TO FIX *\) *)
         f_state = "";  (* current state is not defined until the initial transition has been carried out *)
         f_has_reacted = false;
       } in
@@ -289,9 +288,9 @@ let build_instance ~name ~model ~params ~ios =
             (fun acc (_,ty) -> add acc (Types.enums_of ty))
             []
             vars in
-      { Types.builtin_tenv with
-        Types.te_vars = vars;
-        Types.te_ctors = Types.builtin_tenv.te_ctors @ local_ctors } in
+      { Typing.builtin_tenv with
+        Typing.te_vars = vars;
+        Typing.te_ctors = Typing.builtin_tenv.te_ctors @ local_ctors } in
     sanity_check tenv r;
     r
 
@@ -301,7 +300,7 @@ exception IllegalTrans of inst * string
 exception Undeterminate of inst * string * Types.date
 exception NonDetTrans of inst * transition list * Types.date
 
-type response = string * Expr.value option   (* name, value (None for pure events) *)
+type response = string * Expr.e_val option   (* name, value (None for pure events) *)
 
 let rec replace_assoc' k v env =
   (* This is a variation on [ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *)
@@ -312,7 +311,7 @@ let rec replace_assoc' k v env =
 
 (* FSM environment *)
   
-type fsm_env = (string * Expr.value option) list
+type fsm_env = (string * Expr.e_val option) list
 
 type act_semantics = Sequential | Synchronous 
 
@@ -321,7 +320,7 @@ let do_action ~sem (f,resps,resps',env) act =
      a list of responses [resps], and an updated (local) environment [env']. *)
   match act with
     Action.Assign (id, expr) ->
-      let v = Expr.eval env expr in
+      let v = Eval.eval env expr in
       if List.mem_assoc id f.f_vars then (* Local variable *)
         begin match sem with
         | Sequential ->

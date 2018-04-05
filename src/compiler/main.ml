@@ -89,19 +89,21 @@ with
     flush stderr; exit 1
 | Main_lexer.Lexical_error(Main_lexer.Illegal_character, pos1, pos2) ->
     eprintf "%aIllegal character.\n" output_location (Loc(!input_name,pos1, pos2)); flush stderr; exit 1
-| Types.Illegal_type_index (v,e) -> 
-    eprintf "Illegal value for type index %s: %s\n" v (Expr.string_of_value e); flush stderr; exit 2
-| Types.Unbound_type_index v -> 
+| Types.Index.Illegal_type_index i -> 
+    eprintf "Illegal type index: %s\n" (Types.Index.to_string i); flush stderr; exit 2
+| Types.Index.Unbound_type_index v -> 
     eprintf "Unbound type index: %s\n" v; flush stderr; exit 2
-| Typing.Unbound_type_ctor c -> 
+| Types.Index.Illegal_op op -> 
+    eprintf "Illegal operation on type index: %s\n" op; flush stderr; exit 2
+| Intern.Unbound_type_ctor c -> 
     eprintf "Unbound type constructor: %s\n" c; flush stderr; exit 2
-| Expr.Builtins.Illegal_op op -> 
-    eprintf "Illegal operator in expression: %s\n" op; flush stderr; exit 3
-| Expr.Unknown_id id -> 
+| Builtns.Unbound_id id -> 
+    eprintf "Unknown builtin operator: %s\n" id; flush stderr; exit 3
+| Eval.Unknown_id id -> 
     eprintf "Unknown identifier: %s\n" id; flush stderr; exit 3
-| Expr.Unbound_id id -> 
+| Eval.Unbound_id id -> 
     eprintf "No value attached to identifier: %s\n" id; flush stderr; exit 3
-| Expr.Illegal_expr e -> 
+| Eval.Illegal_expr e -> 
     eprintf "Illegal expression: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Fsm.Undef_symbol (fsm, what, id) ->
     eprintf "Undefined %s in FSM %s:  %s\n" what fsm id; flush stderr; exit 4

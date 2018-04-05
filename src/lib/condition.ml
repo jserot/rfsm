@@ -31,14 +31,20 @@ let to_string' (evs,gs) = Utils.ListExt.to_string Utils.Misc.id "." evs ^ string
 
 let to_string c = to_string' c
 
-type env = (string * Expr.value option) list
+type env = (string * Expr.e_val option) list
 
-let eval_guard env (exp,op,exp') = (Expr.Builtins.lookup Expr.Builtins.relops op) (Expr.eval env exp) (Expr.eval env exp')
+exception Illegal_guard_expr of Expr.t
+                              
+let eval_guard env (exp,op,exp') =
+  let e = Expr.EBinop (op,exp,exp') in
+  match Eval.eval env e with
+    Val_bool b -> b
+  | _ -> raise (Illegal_guard_expr  e)
 
 let eval_guards env gs = List.for_all (eval_guard env) gs (* Conjonctive semantics *)
 
 let rename f (evs,gs) = (List.map f evs, List.map (function (e1,op,e2) -> Expr.rename f e1, op, Expr.rename f e2) gs)
 
 let subst env (evs,gs) =
-  let subst_guard (e,op,e') = Expr.subst env e, op, Expr.subst env e' in
+  let subst_guard (e,op,e') = Eval.subst env e, op, Eval.subst env e' in
   evs, List.map subst_guard gs

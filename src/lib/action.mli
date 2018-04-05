@@ -22,7 +22,7 @@ val vars_of : t -> Expr.VarSet.t * Expr.VarSet.t
 val rename : (string -> string) -> t -> t
   (** [rename f a] renames [f v] each variable [v] occurring in [a] *)
 
-val subst : Expr.env -> t -> t
+val subst : Eval.env -> t -> t
   (** [subst env a] replaces each variable [v] occuring in [a] by its value if found in [env],
    simplifying the resulting expression whenever possible. *)
 

@@ -54,7 +54,7 @@ html:
 
 deps.dot:
 	$(OCB) rfsm.docdir/rfsm.dot
-	sed -i '' '/rotate=/d'  rfsm.docdir/rfsm.dot
+	sed -i '' '/rotate=/d'  _build/rfsm.docdir/rfsm.dot
 #	open -a Graphviz rfsm.docdir/rfsm.dot
 #	ocamldoc -I ./_build $(OCDOC_INCLS) -short-functors -d ./doc -html -colorize-code $(DOCSRCS)
 

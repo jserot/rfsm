@@ -21,7 +21,9 @@ and guard = Expr.t * string * Expr.t  (** expr, rel_op, expr *)
 val vars_of : t -> Expr.VarSet.t
 val events_of : t -> Expr.VarSet.t
 
-type env = (string * Expr.value option) list
+type env = (string * Expr.e_val option) list
+
+exception Illegal_guard_expr of Expr.t
 
 val eval_guard : env -> guard -> bool
 
@@ -31,7 +33,7 @@ val eval_guards : env -> guard list -> bool
 val rename : (string -> string) -> t -> t
 (** [rename f c] renames [f v] each variable [v] occurring in [c] *)
 
-val subst : Expr.env -> t -> t
+val subst : Eval.env -> t -> t
 (** [subst env (evs,guards)] replaces each variable [v] occuring in [guards] by its value if found in [env],
    simplifying the resulting expression whenever possible. *)
 

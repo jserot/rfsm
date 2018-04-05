@@ -22,43 +22,41 @@ type t =
 
 (* and test = t * string * t     (\** e1 relop e2 *\) *)
 
-and value = 
+type e_val = 
   | Val_int of int
   | Val_bool of bool
   | Val_enum of string
 
-and env = (string * value) list
-
-module Builtins :
-  sig
-    val binops : (string * (int -> int -> int)) list
-    val relops : (string * ('a -> 'a -> bool)) list
-    exception Illegal_op of string
-    val lookup : (string * 'a) list -> string -> 'a
-  end
+(* module Builtins :
+ *   sig
+ *     val binops : (string * (int -> int -> int)) list
+ *     val relops : (string * ('a -> 'a -> bool)) list
+ *     exception Illegal_op of string
+ *     val lookup : (string * 'a) list -> string -> 'a
+ *   end *)
 
 module VarSet : Set.S with type elt = string
 
-val of_value : value -> t
+val of_value : e_val -> t
 val unset_event : 'a option
-val set_event : value option
+val set_event : e_val option
 
 val vars_of : t -> VarSet.t
-val subst : (string * value) list -> t -> t
+(* val subst : (string * e_val) list -> t -> t *)
 val rename : (string -> string) -> t -> t
 
-exception Unknown_id of string
-exception Unbound_id of string
-exception Illegal_expr of t
+(* exception Unknown_id of string
+ * exception Unbound_id of string
+ * exception Illegal_expr of t *)
 
-val lookup : (string * 'a option) list -> string -> 'a
-
-val eval : (string * value option) list -> t -> value
-
-val eval_rel : (string * value option) list -> t -> bool
+(* val lookup : (string * 'a option) list -> string -> 'a
+ * 
+ * val eval : (string * e_val option) list -> t -> e_val
+ * 
+ * val eval_rel : (string * e_val option) list -> t -> bool *)
 
 (** {2 Printers} *)
 
 val to_string : t -> string
-val string_of_value : value -> string
-val string_of_opt_value : value option -> string
+val string_of_value : e_val -> string
+val string_of_opt_value : e_val option -> string

@@ -13,11 +13,36 @@
 
 open Syntax
    
+(* Types from type expressions *)
+
+exception Unbound_expr_index of string * type_index_expr 
+
+let type_index_of_index_expr e =
+  let rec type_index_of = function 
+    TEConst c -> Types.Index.TiConst c
+  | TEVar v -> Types.Index.TiVar v
+  | TEBinop (op,e1,e2) -> Types.Index.TiBinop (op, type_index_of e1, type_index_of e2) in
+  type_index_of e.ti_desc
+    
+exception Unbound_type_ctor of string
+                             
+let rec type_of_type_expr defns params ~strict:strict te = match te with
+  | TEBool -> Types.TyBool
+  | TEInt None -> Types.TyInt None
+  | TEInt (Some (lo,hi)) -> Types.TyInt (Some (type_index_of_index_expr lo, type_index_of_index_expr hi))
+  | TEEvent -> Types.TyEvent
+  | TEName n ->
+     try List.assoc n defns
+     with Not_found -> raise (Unbound_type_ctor n)
+
+and type_of_type_expression defns params ~strict:strict te =
+  type_of_type_expr defns params ~strict:strict te.te_desc
+
 let mk_fsm_model (tdefns,tctors) { fsm_desc = f; fsm_loc = loc } = 
   let mk_typed what (id,te) =
     if List.mem id tctors
     then Error.warning (Printf.sprintf "declaration of %s %s in FSM model %s shadows enum value" what id f.fd_name);
-    id, Typing.type_of_type_expression tdefns [] ~strict:true te in 
+    id, type_of_type_expression tdefns [] ~strict:true te in 
   let mk_cond c = match c.cond_desc with
       [ev],guards -> ev, guards
     | _ -> Error.fatal_error "Intern.mk_fsm_model" in
@@ -54,7 +79,7 @@ let mk_stim_desc = function
   | ValueChange vcs -> Fsm.ValueChange vcs
                      
 let mk_global tdefns { g_desc = g; g_loc = loc } = 
-  let ty = Typing.type_of_type_expression tdefns [] ~strict:true g.gd_type in
+  let ty = type_of_type_expression tdefns [] ~strict:true g.gd_type in
   match g.gd_desc with
   | GInp stim -> g.gd_name, Fsm.GInp (g.gd_name, ty, mk_stim_desc stim.stim_desc)
   | GOutp -> g.gd_name, Fsm.GOutp (g.gd_name, ty)
@@ -62,7 +87,7 @@ let mk_global tdefns { g_desc = g; g_loc = loc } =
 
 let mk_type_defn (defns,ctors) { td_desc = d; td_loc = loc } =
     match d with
-    | TD_Alias (id, te) -> (id, Typing.type_of_type_expr defns [] ~strict:true te) :: defns, ctors
+    | TD_Alias (id, te) -> (id, type_of_type_expr defns [] ~strict:true te) :: defns, ctors
     | TD_Enum (id, cs) -> (id, TyEnum cs) :: defns, ctors @ cs
                       
 let build_system name p = 

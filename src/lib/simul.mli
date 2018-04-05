@@ -20,17 +20,17 @@ type config = {
 
 val cfg : config
 
-type stimulus = Ident.t * Expr.value option  (** name, value (None for pure events) *)
-type response = Ident.t * Expr.value option   (** name, value (None for pure events) *)
+type stimulus = Ident.t * Expr.e_val option  (** name, value (None for pure events) *)
+type response = Ident.t * Expr.e_val option   (** name, value (None for pure events) *)
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
 type context = {  (** The simulator state *)
   c_date: Types.date;
-  c_inputs: (string * (Types.typ * Expr.value option)) list;   (** Global inputs *)
-  c_outputs: (string * (Types.typ * Expr.value option)) list;  (** Globals outputs *)
-  c_vars: (string * (Types.typ * Expr.value option)) list;     (** Shared variables *)
-  c_evs: (string * (Types.typ * Expr.value option)) list;      (** Shared events *)
+  c_inputs: (string * (Types.typ * Expr.e_val option)) list;   (** Global inputs *)
+  c_outputs: (string * (Types.typ * Expr.e_val option)) list;  (** Globals outputs *)
+  c_vars: (string * (Types.typ * Expr.e_val option)) list;     (** Shared variables *)
+  c_evs: (string * (Types.typ * Expr.e_val option)) list;      (** Shared events *)
   c_fsms: Fsm.inst list * Fsm.inst list;                       (** FSMs, partitioned into active and inactive subsets *)
   }
 
@@ -52,4 +52,4 @@ val run : Sysm.t -> context * (Types.date * response list) list
 (** {2 Printers} *)
 
 val dump_context : context -> unit
-val dump_reaction : int * (Ident.t * Expr.value option) list -> unit
+val dump_reaction : int * (Ident.t * Expr.e_val option) list -> unit

@@ -33,7 +33,7 @@ module TransLabel :
     val to_string : t -> string
     val rename : (string -> string) -> t -> t 
       (** [rename f l] renames [f v] each variable [v] occurring in [l] *)
-    val subst : Expr.env -> t -> t 
+    val subst : Eval.env -> t -> t 
       (** [subst env l] replaces each variable [v] occuring in [l] by its value if found in [env],
           simplifying the resulting expression whenever possible. *)
   end
@@ -64,11 +64,11 @@ type model = {
 type inst = {
   f_name : string;                                             (** name *)
   f_model : model;                                             (** bound model *)
-  f_params : (string * (Types.typ * Expr.value)) list;         (** actual parameters *)
+  f_params : (string * (Types.typ * Expr.e_val)) list;         (** actual parameters *)
   f_inps : (string * (Types.typ * global)) list;               (** inputs, with bounded global *)
   f_outps : (string * (Types.typ * global)) list;              (** outputs, with bounded global *)
   f_inouts : (string * (Types.typ * global)) list;             (** in/outs, with bounded global *)
-  f_vars : (string * (Types.typ * Expr.value option)) list;    (** internal variable, with value ([None] if not initialized) *)
+  f_vars : (string * (Types.typ * Expr.e_val option)) list;    (** internal variable, with value ([None] if not initialized) *)
   f_repr : Repr.t;                                             (** underlying LTS *)
   f_l2g : string -> string;                                    (** local to global name conversion function *)
   f_state : string;                                            (** current state *)
@@ -85,7 +85,7 @@ and global =
 and stim_desc = 
   Periodic of int * int * int             (** Period, start time, end time *)
 | Sporadic of int list                    (** Dates *)
-| ValueChange of (int * Expr.value) list  (** (Date,value)s *)
+| ValueChange of (int * Expr.e_val) list  (** (Date,value)s *)
 
 (** {2 Accessors} *)
 
@@ -112,11 +112,11 @@ val build_model :
 val build_instance :
   name:string ->
   model:model ->
-  params:(string * Expr.value) list ->
+  params:(string * Expr.e_val) list ->
   ios:global list ->
   inst
 
-val sanity_check : Types.tenv -> inst -> unit
+val sanity_check : Typing.tenv -> inst -> unit
 
 exception Undef_symbol of string * string * string (** FSM, kind, name *)
 exception Internal_error of string (** where *)
@@ -128,15 +128,15 @@ exception Type_error of string * string * string * Types.typ * Types.typ (** FSM
 
 (** {2 Dynamic behavior} *)
 
-type response = string * Expr.value option
+type response = string * Expr.e_val option
 
 type act_semantics = Sequential | Synchronous 
 
 val react :
   sem:act_semantics ->
   Types.date ->
-  (string * Expr.value option) list ->
-  inst -> inst * (Ident.t * Expr.value option) list
+  (string * Expr.e_val option) list ->
+  inst -> inst * (Ident.t * Expr.e_val option) list
 
 exception IllegalTrans of inst * string
 exception Undeterminate of inst * string * Types.date
@@ -144,18 +144,18 @@ exception NonDetTrans of inst * transition list * Types.date
 
 val fireable :
   inst ->
-  (Condition.event * Expr.value option) list -> Repr.transition -> bool
+  (Condition.event * Expr.e_val option) list -> Repr.transition -> bool
 
 val check_cond :
-  inst -> (Condition.event * Expr.value option) list -> Condition.t -> bool
+  inst -> (Condition.event * Expr.e_val option) list -> Condition.t -> bool
 
 val is_event_set :
-  (Condition.event * Expr.value option) list -> Condition.event -> bool
+  (Condition.event * Expr.e_val option) list -> Condition.event -> bool
 
 val init_fsm :
   sem:act_semantics ->
-  (string * Expr.value option) list ->
-  inst -> inst * (Ident.t * Expr.value option) list
+  (string * Expr.e_val option) list ->
+  inst -> inst * (Ident.t * Expr.e_val option) list
 
 (** {2 Printers} *)
 

@@ -9,27 +9,16 @@
 (*                                                                    *)
 (**********************************************************************)
 
-type t =
-    Assign of string * Expr.t
-  | Emit of string
-  | StateMove of string * string * string
+(** Evaluating expressions *)
 
-let vars_of a = match a with
-  | Assign (v,e) -> Expr.vars_of e, Expr.VarSet.singleton v 
-  | Emit e -> Expr.VarSet.empty, Expr.VarSet.singleton e
-  | StateMove _ -> Expr.VarSet.empty, Expr.VarSet.empty
-                 
-let to_string a = match a with
-  | Assign (id, expr) -> id ^ ":=" ^ Expr.to_string expr
-  | Emit id -> id
-  | StateMove (id, s,s') -> s ^ "->" ^ s'
+exception Unknown_id of string
+exception Unbound_id of string
+exception Illegal_expr of Expr.t
 
-let rename f a = match a with
-  | Assign (v,e) -> Assign (f v, Expr.rename f e)
-  | Emit e -> Emit (f e)
-  | StateMove _ -> a
+type env = (string * Expr.e_val) list
 
-let subst env act = match act with
-  | Assign (i,e) -> Assign (i, Eval.subst env e)
-  | act -> act
-                
+val subst : (string * Expr.e_val) list -> Expr.t -> Expr.t
+
+val eval : (string * Expr.e_val option) list -> Expr.t -> Expr.e_val
+
+(* val eval_rel : (string * Expr.e_val option) list -> Expr.t -> bool *)

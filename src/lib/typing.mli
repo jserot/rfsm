@@ -9,27 +9,26 @@
 (*                                                                    *)
 (**********************************************************************)
 
-type t =
-    Assign of string * Expr.t
-  | Emit of string
-  | StateMove of string * string * string
+(** Typing *)
 
-let vars_of a = match a with
-  | Assign (v,e) -> Expr.vars_of e, Expr.VarSet.singleton v 
-  | Emit e -> Expr.VarSet.empty, Expr.VarSet.singleton e
-  | StateMove _ -> Expr.VarSet.empty, Expr.VarSet.empty
-                 
-let to_string a = match a with
-  | Assign (id, expr) -> id ^ ":=" ^ Expr.to_string expr
-  | Emit id -> id
-  | StateMove (id, s,s') -> s ^ "->" ^ s'
+type tenv =   (** Typing environment *)
+  { te_vars: (string * Types.typ) list;
+    te_ctors: (string * Types.typ) list;
+    te_prims: (string * Types.typ_scheme) list; }
 
-let rename f a = match a with
-  | Assign (v,e) -> Assign (f v, Expr.rename f e)
-  | Emit e -> Emit (f e)
-  | StateMove _ -> a
+val builtin_tenv: tenv
 
-let subst env act = match act with
-  | Assign (i,e) -> Assign (i, Eval.subst env e)
-  | act -> act
-                
+(** {2 Exceptions} *)
+
+exception Unbound_id of string * string 
+exception Typing_error of Expr.t * Types.typ * Types.typ 
+
+(** {2 Typing} *)
+  
+val type_expression : tenv -> Expr.t -> Types.typ
+  (** [type_expression env e] returns the type of expression [e] in environment [env], performing
+      all required type checks. *)
+
+(** {2 Printers} *)
+
+(* val dump_tenv : tenv -> unit *)

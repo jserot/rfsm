@@ -12,7 +12,63 @@
 type date = int
 
 type dir = IO_In | IO_Out | IO_Inout
-                          
+
+module VarSet = Set.Make(struct type t = string let compare = Pervasives.compare end)
+                 
+(* Type indexes *)
+
+module Index = struct 
+
+  type t =
+  | TiConst of int
+  | TiVar of string
+  | TiBinop of string * t * t
+
+  type env = (string * int) list
+
+  type op = int -> int -> int
+
+  let ops = [
+    "+", (+);
+    "-", (-);
+    "*", ( * ); 
+    "/", ( / );
+    "mod", ( mod ) 
+    ]
+  
+  exception Illegal_op of string
+  exception Illegal_type_index of t
+  exception Unbound_type_index of string
+
+  let lookup op = 
+    try List.assoc op ops
+    with Not_found -> raise (Illegal_op op)
+
+  let rec subst env i = match i with 
+        TiConst _ -> i
+      | TiVar v ->
+         begin
+           try TiConst (List.assoc v env)
+           with Not_found -> raise (Unbound_type_index v)
+         end
+      | TiBinop (op,e1,e2) ->
+         begin match subst env e1, subst env e2 with
+         | TiConst c1, TiConst c2 -> TiConst ((lookup op) c1 c2)
+         | i1, i2 -> TiBinop (op, i1, i2)
+         end 
+
+  let rec vars_of = function
+    | TiConst _ -> VarSet.empty
+    | TiVar v -> VarSet.singleton v
+    | TiBinop (_,e1,e2) -> VarSet.union (vars_of e1) (vars_of e2)
+
+  let rec to_string = function
+    TiConst c -> string_of_int c
+  | TiVar v -> v
+  | TiBinop (op,e1,e2) -> to_string e1 ^ op ^ to_string e2 (* TODO: add parens *)
+                
+end
+
 type typ = 
   | TyEvent
   | TyBool
@@ -30,16 +86,57 @@ and 'a value =
   | Unknown
   | Known of 'a
 
-and int_range = type_index * type_index (* min, max *)
-
-and type_index =
-  | TiConst of int
-  | TiVar of string
-  | TiBinop of string * type_index * type_index
+and int_range = Index.t * Index.t (* min, max *)
 
 type typ_scheme =
   { ts_params: tvar list;
     ts_body: typ }
+
+(* Type variables *)
+  
+let new_stamp =
+  let var_cnt = ref 0 in
+  function () -> incr var_cnt; "_" ^ string_of_int !var_cnt
+let mk_type_var () = { value = Unknown; stamp=new_stamp () }
+let new_type_var () = TyVar (mk_type_var ())
+
+let rec type_repr = function
+  | TyVar ({value = Known ty1} as var) ->
+      let ty = type_repr ty1 in
+      var.value <- Known ty;
+      ty
+  | ty -> ty
+
+and real_type ty = 
+  match type_repr ty with
+  | TyArrow (ty1,ty2) -> TyArrow (real_type ty1, real_type ty2)
+  | TyProduct ts  -> TyProduct (List.map real_type ts)        
+  | TyVar { value=Known ty'} -> ty'
+  | ty -> ty
+
+
+let copy_type tvbs ty =
+  let rec copy ty = 
+    match type_repr ty with
+    | TyVar var as ty ->
+        begin try
+          List.assq var tvbs
+        with Not_found ->
+            ty
+        end
+    | TyArrow (ty1, ty2) ->
+        TyArrow (copy ty1, copy ty2)
+    | TyProduct ts ->
+        TyProduct (List.map copy ts)
+    | ty -> ty in
+  copy ty
+
+let type_instance ty_sch =
+  match ty_sch.ts_params with
+  | [] -> ty_sch.ts_body
+  | params ->
+      let unknowns = List.map (fun var -> (var, new_type_var())) params in
+      copy_type unknowns ty_sch.ts_body
 
 (* Type unification - the classical algorithm *)
 
@@ -73,20 +170,6 @@ let rec unify ty1 ty2 =
   | _, _ ->
       raise (TypeConflict(val1, val2))
 
-and real_type ty = 
-  match type_repr ty with
-  | TyArrow (ty1,ty2) -> TyArrow (real_type ty1, real_type ty2)
-  | TyProduct ts  -> TyProduct (List.map real_type ts)        
-  | TyVar { value=Known ty'} -> ty'
-  | ty -> ty
-
-and type_repr = function
-  | TyVar ({value = Known ty1} as var) ->
-      let ty = type_repr ty1 in
-      var.value <- Known ty;
-      ty
-  | ty -> ty
-
 and occur_check var ty =
   let rec test t =
     match type_repr t with
@@ -96,135 +179,17 @@ and occur_check var ty =
     | _ -> ()
   in test ty
 
-(* Type index manipulation *)
-
-exception Illegal_type_index of string * Expr.value 
-exception Unbound_type_index of string
-
-type ienv = (string * Expr.value) list
-
-let subst_indexes ienv ty =
-  let rec subst i = match i with 
-    TiConst _ -> i
-  | TiVar v ->
-     begin
-       match List.assoc v ienv with
-       | Expr.Val_int c -> TiConst c
-       | e -> raise (Illegal_type_index (v,e))
-       | exception Not_found -> raise (Unbound_type_index v)
-     end
-  | TiBinop (op,e1,e2) ->
-     begin match subst e1, subst e2 with
-     | TiConst c1, TiConst c2 ->
-        let f = Expr.Builtins.lookup Expr.Builtins.binops op in
-        TiConst (f c1 c2)
-     | i1, i2 ->
-        TiBinop (op, i1, i2)
-     end in
-  match ty with
-  | TyInt (Some (hi, lo)) -> TyInt (Some (subst hi, subst lo))
-  | _ -> ty
-
-module VarSet = Set.Make(struct type t = string let compare = Pervasives.compare end)
-                 
-let rec ivars_of_index = function
-  | TiConst _ -> VarSet.empty
-  | TiVar v -> VarSet.singleton v
-  | TiBinop (_,e1,e2) -> VarSet.union (ivars_of_index e1) (ivars_of_index e2)
 
 let ivars_of = function
-  | TyInt (Some (lo,hi)) -> VarSet.elements (VarSet.union (ivars_of_index lo) (ivars_of_index hi))
+  | TyInt (Some (lo,hi)) -> VarSet.elements (VarSet.union (Index.vars_of lo) (Index.vars_of hi))
   | _ -> []
 
-(* Typing *)
-
-let new_stamp =
-  let var_cnt = ref 0 in
-  function () -> incr var_cnt; "_" ^ string_of_int !var_cnt
-let mk_type_var () = { value = Unknown; stamp=new_stamp () }
-let new_type_var () = TyVar (mk_type_var ())
-                             
-exception Unbound_id of string * string 
-exception Typing_mismatch of Expr.t * string 
-exception Typing_error of Expr.t * typ * typ 
-                        
-type tenv =
-  { te_vars: (string * typ) list;
-    te_ctors: (string * typ) list;
-    te_prims: (string * typ_scheme) list; }
-
-let lookup_type what env id =
-  try List.assoc id env
-  with Not_found -> raise (Unbound_id (what, id))
-
-let lookup_type_scheme env id =
-  try List.assoc id env
-  with Not_found -> raise (Unbound_id ("builtin operator", id))
-                  
-let rec type_expression tenv expr = match expr with
-    Expr.EInt c -> TyInt None
-  | Expr.EBool b -> TyBool
-  | Expr.EVar id -> lookup_type "variable" tenv.te_vars id
-  | Expr.EEnum c ->  lookup_type "enum value" tenv.te_ctors c
-  | Expr.EBinop (op,e1,e2) -> type_application expr tenv op [e1;e2] 
-      (* let ty_fn = type_instance (lookup_type_scheme tenv.te_prims op) in
-       * let ty_arg = TyProduct (List.map (type_expression tenv) [e1;e2]) in
-       * let ty_result = new_type_var () in
-       * begin
-       *   try 
-       *     (\* Printf.printf "** unifying %s and %s -> %s\n" (string_of_type ty_fn) (string_of_type ty_arg) (string_of_type ty_result); *\)
-       *     unify ty_fn (TyArrow (ty_arg,ty_result));
-       *     (\* Printf.printf "** done: -> %s\n" (string_of_type (real_type ty_result)); flush stdout; *\)
-       *     real_type ty_result
-       *   with
-       *      TypeConflict (t,t')
-       *    | TypeCircularity(t,t') -> raise (Typing_error (expr, t, t'))
-       * end *)
-  (* | Expr.ECond ((e11,op,e12),e2,e3) ->
-   *     let ty_e1 = type_application expr tenv op [e11;e12] in *)
-  | Expr.ECond (e1,e2,e3) ->
-      let ty_e1 = type_expression tenv e1 in
-      let ty_e2 = type_expression tenv e2 in
-      let ty_e3 = type_expression tenv e3 in
-      unify ty_e1 TyBool;
-      unify ty_e2 ty_e3;
-      ty_e2
-
-and type_application expr tenv f args =
-      let ty_fn = type_instance (lookup_type_scheme tenv.te_prims f) in
-      let ty_arg = TyProduct (List.map (type_expression tenv) args) in
-      let ty_result = new_type_var () in
-      try 
-          (* Printf.printf "** unifying %s and %s -> %s\n" (string_of_type ty_fn) (string_of_type ty_arg) (string_of_type ty_result); *)
-          unify ty_fn (TyArrow (ty_arg,ty_result));
-          (* Printf.printf "** done: -> %s\n" (string_of_type (real_type ty_result)); flush stdout; *)
-          real_type ty_result
-      with
-           TypeConflict (t,t')
-         | TypeCircularity(t,t') -> raise (Typing_error (expr, t, t'))
-
-and type_instance ty_sch =
-  match ty_sch.ts_params with
-  | [] -> ty_sch.ts_body
-  | params ->
-      let unknowns = List.map (fun var -> (var, new_type_var())) params in
-      copy_type unknowns ty_sch.ts_body
-
-and copy_type tvbs ty =
-  let rec copy ty = 
-    match type_repr ty with
-    | TyVar var as ty ->
-        begin try
-          List.assq var tvbs
-        with Not_found ->
-            ty
-        end
-    | TyArrow (ty1, ty2) ->
-        TyArrow (copy ty1, copy ty2)
-    | TyProduct ts ->
-        TyProduct (List.map copy ts)
-    | ty -> ty in
-  copy ty
+(* Index manipulation *)
+       
+let subst_indexes env ty =
+    match ty with
+    | TyInt (Some (hi, lo)) -> TyInt (Some (Index.subst env hi, Index.subst env lo))
+    | _ -> ty
 
 (* Checking *)
 
@@ -256,36 +221,6 @@ let type_of_value = function
   | Expr.Val_bool _ -> TyBool
   | Expr.Val_enum c -> TyEnum [c]  (* TO FIX *)
 
-(* Builtin typing environment *)
-
-let type_arithm2 () = 
-  { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt None; TyInt None], TyInt None) }
-
-let type_compar () = 
-  let tv = mk_type_var () in
-  { ts_params = [tv]; ts_body=TyArrow (TyProduct [TyVar tv; TyVar tv], TyBool) }
-
-let builtin_tenv = {
-  te_vars = [];
-  te_ctors = [
-   "True", TyBool;
-   "False", TyBool
-   ];
-  te_prims = [
-    "+", type_arithm2 ();
-    "-", type_arithm2 ();
-    "*", type_arithm2 ();
-    "/", type_arithm2 ();
-    "mod", type_arithm2 ();
-    "=", type_compar ();
-    "!=", type_compar ();
-    "<", type_compar ();
-    ">", type_compar ();
-    ">=", type_compar ();
-    "<=", type_compar ()
-    ]
-  }
-
 (* Accessors *)
                  
 let rec enums_of ty = match ty with
@@ -294,12 +229,7 @@ let rec enums_of ty = match ty with
 
 (* Printing *)
 
-let rec string_of_type_index = function
-    TiConst c -> string_of_int c
-  | TiVar v -> v
-  | TiBinop (op,e1,e2) -> string_of_type_index e1 ^ op ^ string_of_type_index e2
-                
-let string_of_range (lo,hi) = string_of_type_index lo ^ ".." ^ string_of_type_index hi
+let string_of_range (lo,hi) = Index.to_string lo ^ ".." ^ Index.to_string hi
 
 let rec string_of_type t = match t with 
   | TyEvent -> "event"
@@ -312,12 +242,3 @@ let rec string_of_type t = match t with
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 
 
 let string_of_type_scheme ts = "[]" ^ string_of_type ts.ts_body (* TOFIX *)
-                             
-
-let dump_tenv tenv =  (* For debug only *)
-  Printf.printf "te.vars = %s\n"
-    (Utils.ListExt.to_string (function (id,ty) -> id ^ ":" ^ string_of_type ty) ", " tenv.te_vars);
-  Printf.printf "te.ctors = %s\n"
-    (Utils.ListExt.to_string (function (id,ty) -> id ^ ":" ^ string_of_type ty) ", " tenv.te_ctors);
-  Printf.printf "te.prims = %s\n"
-    (Utils.ListExt.to_string (function (id,ts) -> id ^ ":" ^ string_of_type_scheme ts) ", " tenv.te_prims)

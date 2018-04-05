@@ -11,9 +11,9 @@
 
 open Utils
    
-type event = Types.date * Expr.value option  (* date, value (None for pure events) *)
+type event = Types.date * Expr.e_val option  (* date, value (None for pure events) *)
 
-type stimuli = Types.date * (Ident.t * Expr.value option) list  (* date, [name1,val1; ...; nameN,valN] *)
+type stimuli = Types.date * (Ident.t * Expr.e_val option) list  (* date, [name1,val1; ...; nameN,valN] *)
              
 (* Builders *)
 

@@ -15,6 +15,26 @@ type date = int
 
 type dir = IO_In | IO_Out | IO_Inout
 
+module VarSet : Set.S with type elt = string
+
+module Index : sig
+  type t =
+  | TiConst of int
+  | TiVar of string
+  | TiBinop of string * t * t
+  type env = (string * int) list
+  (* type op = int -> int -> int
+   * val ops: (string * op) list *)
+  exception Illegal_op of string
+  exception Illegal_type_index of t
+  exception Unbound_type_index of string
+  (* val lookup: string -> op *)
+  val subst: env -> t -> t 
+  val vars_of: t -> VarSet.t
+  val to_string: t -> string
+  val to_string: t -> string
+end
+
 type typ =
     TyEvent
   | TyBool
@@ -32,30 +52,21 @@ and 'a value =
   | Unknown
   | Known of 'a
 
-and int_range = type_index * type_index (* min, max *)
-
-and type_index =
-  | TiConst of int
-  | TiVar of string
-  | TiBinop of string * type_index * type_index
+and int_range = Index.t * Index.t (* min, max *)
 
 type typ_scheme =
   { ts_params: tvar list;
     ts_body: typ }
 
-type tenv =   (** Typing environment *)
-  { te_vars: (string * typ) list;
-    te_ctors: (string * typ) list;
-    te_prims: (string * typ_scheme) list; }
+val mk_type_var: unit -> tvar
+val new_type_var: unit -> typ
 
-type ienv = (string * Expr.value) list  (** Index environment *)
-
+val real_type: typ -> typ
+  
 (** {2 Exceptions} *)
 
-exception Illegal_type_index of string * Expr.value 
-exception Unbound_type_index of string
-exception Unbound_id of string * string 
-exception Typing_error of Expr.t * typ * typ 
+exception TypeConflict of typ * typ
+exception TypeCircularity of typ * typ
 
 (** {2 Accessors} *)
                         
@@ -70,7 +81,7 @@ val enums_of : typ -> (string * typ) list
          
 (** {2 Typing} *)
   
-val subst_indexes : ienv -> typ -> typ
+val subst_indexes : Index.env -> typ -> typ
   (** [subst_indexes env t] substitutes all index variables listed in [env] in type [t] *)
   
 val type_equal : strict:bool -> typ -> typ -> bool
@@ -81,22 +92,17 @@ val type_equal : strict:bool -> typ -> typ -> bool
       inclusion, so that, for instance, [type_equal ~strict:false {On,Off} {On} = true] (but not
       the other way). *)
 
-val type_of_value : Expr.value -> typ
+val type_of_value : Expr.e_val -> typ
   (** [type_of_value v] returns the "best known" type for value [v].
       For an integer, this will alaways be [TyInt None].
       For an enumerated value [c], this will be the "approximation" [TyEnum [c]]. *)
 
-val builtin_tenv : tenv
-  (** The builtin typing environment *)
-    
-val type_expression : tenv -> Expr.t -> typ
-  (** [type_expression env e] returns the type of expression [e] in environment [env], performing
-      all required type checks. *)
-
+val unify: typ -> typ -> unit
+  
+val type_instance: typ_scheme -> typ
+  
 (** {2 Printers} *)
 
-val string_of_range : type_index * type_index -> string
+val string_of_range : Index.t * Index.t -> string
 
 val string_of_type : typ -> string
-
-val dump_tenv : tenv -> unit
