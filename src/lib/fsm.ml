@@ -11,6 +11,18 @@
 
 open Utils
 open Lascar
+
+type act_semantics = Sequential | Synchronous 
+
+type fsm_config = {
+  mutable act_sem: act_semantics;
+  mutable act_sep: string;
+  }
+
+let cfg = {
+  act_sem = Sequential;
+  act_sep = " ";
+  }
    
 module TransLabel = struct
   type t = Condition.t * Action.t list * int * bool
@@ -20,8 +32,15 @@ module TransLabel = struct
   let compare = Pervasives.compare
   let to_string (cond,acts,_,_) =  (* This function is used for .dot representations *)
     let s1 = Condition.to_string cond in
-    let s2 = ListExt.to_string Action.to_string "; " acts in
-    let l = String.make (Misc.max (String.length s1) (String.length s2)) '_' in
+    let sep = match cfg.act_sem with
+      | Sequential -> ";" ^ cfg.act_sep 
+      | Synchronous -> "," ^ cfg.act_sep in
+    let length_of a = String.length (Action.to_string a) in
+    let s2 = ListExt.to_string Action.to_string sep acts in
+    let l2 = match cfg.act_sep, acts with
+      | "\\n", a::rest -> List.fold_left (fun acc a -> max acc (length_of a)) (length_of a) rest
+      | _, _ -> String.length s2 in
+    let l = String.make (Misc.max (String.length s1) l2) '_' in
     if s2 <> ""
     then Printf.sprintf "%s\\n%s\\n%s" s1 l s2 
     else Printf.sprintf "%s" s1
@@ -314,16 +333,14 @@ let rec replace_assoc' k v env =
   
 type fsm_env = (string * Expr.e_val option) list
 
-type act_semantics = Sequential | Synchronous 
-
-let do_action ~sem (f,resps,resps',env) act =
+let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
      a list of responses [resps], and an updated (local) environment [env']. *)
   match act with
     Action.Assign (id, expr) ->
       let v = Eval.eval env expr in
       if List.mem_assoc id f.f_vars then (* Local variable *)
-        begin match sem with
+        begin match cfg.act_sem with
         | Sequential ->
           (* In the sequential interpretation, updates of local variables are performed immediately
              and reflected in the environment (so that actions sequences such as "c:=c+1;s=c" are interpreted correctly. *)
@@ -360,10 +377,10 @@ let perform_delayed_action (f,env) (id,v) =
   
 let string_of_actions resps = ListExt.to_string (function (id,v) -> Ident.to_string id ^ ":=" ^ (Expr.string_of_opt_value v)) "," resps
 
-let do_actions ~sem env f acts = 
-  let f', resps', resps'', env' = List.fold_left (do_action ~sem) (f,[],[],env) acts in
+let do_actions env f acts = 
+  let f', resps', resps'', env' = List.fold_left do_action (f,[],[],env) acts in
   (* Printf.printf "do_actions: resps'=[%s] resps''=[%s]\n" (string_of_actions resps') (string_of_actions resps''); *)
-  match sem with
+  match cfg.act_sem with
   | Sequential ->
       f', resps'
   | Synchronous ->
@@ -377,7 +394,7 @@ let mk_local_env f genv =
   List.map (function (id,ty) -> id, get_value id) (f.f_inps @ f.f_inouts)
   @ List.map erase_type f.f_vars
 
-let rec react ~sem t genv f =
+let rec react t genv f =
   (* Compute the reaction, at time [t] of FSM [f] in a global environment [genv].
      The global environment contains the values of global inputs and shared objects.
      Return an updated fsm and list of responses consisting of
@@ -386,7 +403,7 @@ let rec react ~sem t genv f =
   let env = mk_local_env f genv in
   let cross_transition (s,(cond,acts,_,_),s') =
     let acts' = if s <> s' then Action.StateMove(f.f_name,s,s')::acts else acts in
-    let f', resps' = do_actions ~sem env f acts'  in   (* .. perform associated actions .. *)
+    let f', resps' = do_actions env f acts'  in   (* .. perform associated actions .. *)
     { f' with f_has_reacted=true }, resps' in
   let ts = List.filter (fireable f env) (transitions_of f) in
   match ts with
@@ -423,10 +440,10 @@ and is_event_set evs e = match List.assoc e evs with
   | None -> false
   | exception Not_found -> false
 
-let init_fsm ~sem genv f = match Repr.itransitions f.f_repr with
+let init_fsm genv f = match Repr.itransitions f.f_repr with
   | [(([],[]),acts,_,_), s] ->
      let env = mk_local_env f genv in
-     do_actions ~sem env f (Action.StateMove (f.f_name,"",s) :: acts)
+     do_actions env f (Action.StateMove (f.f_name,"",s) :: acts)
   | [_] ->
      raise (IllegalTrans (f, "illegal initial transition"))
   | _ ->

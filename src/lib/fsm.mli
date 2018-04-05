@@ -12,7 +12,18 @@
 (** Model for Reactive Finite State Machines *)
 
 open Lascar
+
+type act_semantics =  (** Interpretation of actions associated to transitions *)
+  | Sequential        (** sequential (ex: [x:=x+1;y:=x] with [x=1] gives [x=2,y=2] *)
+  | Synchronous       (** synchronous (ex: [x:=x+1:y=x] with [x=1] gives [x=2,y=1] *)
    
+type fsm_config = {
+  mutable act_sem: act_semantics;
+  mutable act_sep: string;
+  }
+
+val cfg: fsm_config
+
 (** States *)
 
 module State :
@@ -132,10 +143,7 @@ exception Type_error of string * string * string * Types.typ * Types.typ (** FSM
 
 type response = string * Expr.e_val option
 
-type act_semantics = Sequential | Synchronous 
-
 val react :
-  sem:act_semantics ->
   Types.date ->
   (string * Expr.e_val option) list ->
   inst -> inst * (Ident.t * Expr.e_val option) list
@@ -155,7 +163,6 @@ val is_event_set :
   (Condition.event * Expr.e_val option) list -> Condition.event -> bool
 
 val init_fsm :
-  sem:act_semantics ->
   (string * Expr.e_val option) list ->
   inst -> inst * (Ident.t * Expr.e_val option) list
 

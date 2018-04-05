@@ -46,7 +46,8 @@ let set_stop_time d =
   Systemc.cfg.Systemc.sc_stop_time <- d;
   Vhdl.cfg.Vhdl.vhdl_stop_time <- d
 
-let set_synchronous_actions () = Simul.cfg.Simul.act_semantics <- Fsm.Synchronous
+let set_synchronous_actions () = Fsm.cfg.Fsm.act_sem <- Fsm.Synchronous
+let set_sequential_actions () = Fsm.cfg.Fsm.act_sem <- Fsm.Sequential
 let set_trace level = Trace.level := level
 let set_sc_trace () = Systemc.cfg.Systemc.sc_trace <- true
 let set_vhdl_trace () = Vhdl.cfg.Vhdl.vhdl_trace <- true
@@ -54,3 +55,4 @@ let set_vhdl_trace () = Vhdl.cfg.Vhdl.vhdl_trace <- true
 let set_dot_no_captions () = dot_captions := false
 let set_dot_fsm_insts () = dot_fsm_insts := true
 let set_dot_fsm_models () = dot_fsm_models := true
+let set_dot_actions_nl () = Fsm.cfg.Fsm.act_sep <- "\\n"

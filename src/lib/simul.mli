@@ -15,7 +15,6 @@ exception Error of string
 
 type config = {
   mutable max_micro_reactions: int;
-  mutable act_semantics: Fsm.act_semantics;
   }
 
 val cfg : config
