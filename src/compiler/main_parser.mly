@@ -49,12 +49,10 @@
 
 (* Precedences and associativities for expressions *)
 
-%left prec_cond
-%left prec_rel
+%nonassoc QMARK COLON     (* Lowest precedence *)
+%left EQUAL NOTEQUAL GT LT GTE LTE
 %left PLUS MINUS       
-%left TIMES DIV MOD   
-%nonassoc UMINUS          (* Highest precedence *)
-(* TO FIX : the previous decl is flagged as useless by Menhir. Why ? *)
+%left TIMES DIV MOD    (* Highest precedence *)
 
 %type <Syntax.program> program
 
@@ -174,7 +172,7 @@ condition:
   | ev=LID DOT guards=separated_nonempty_list(DOT, guard) { ([ev], guards) }
 
 guard:
-  | e=rel_expr { e }
+  | e=guard_expr { e }
 
 actions:
   | BAR actions=separated_nonempty_list(SEMICOLON, action) { actions }
@@ -245,7 +243,7 @@ int_range:
            mk_type_index_expression ($symbolstartofs,$endofs) hi) }
 
 type_index_expr:
-  | c = int
+  | c = INT
       { Syntax.TEConst c }
   | i = LID
       { Syntax.TEVar i }
@@ -264,7 +262,7 @@ type_index_expr:
 
 (* GUARD EXPRESSIONS *)
 
-rel_expr:
+guard_expr:
   | e1 = expr EQUAL e2 = expr
       { (e1, "=", e2) }
   | e1 = expr NOTEQUAL e2 = expr
@@ -279,7 +277,7 @@ rel_expr:
       { (e1, "<=", e2) }
 
 expr:
-  | c = int
+  | c = INT
       { Expr.EInt c }
   | c = bool
       { Expr.EBool c }
@@ -299,19 +297,25 @@ expr:
       { Expr.EBinop ("/", e1, e2) }
   | e1 = expr MOD e2 = expr
       { Expr.EBinop ("mod", e1, e2) }
-  | e = rel_expr %prec prec_rel
-      { match e with (e1,op,e2) -> Expr.EBinop (op, e1, e2) }
-  | e1 = expr QMARK e2 = expr COLON e3 = expr %prec prec_cond
+  | e1 = expr EQUAL e2 = expr
+      { Expr.EBinop ("=", e1, e2) }
+  | e1 = expr NOTEQUAL e2 = expr
+      { Expr.EBinop ("!=", e1, e2) }
+  | e1 = expr GT e2 = expr
+      { Expr.EBinop (">", e1, e2) }
+  | e1 = expr LT e2 = expr
+      { Expr.EBinop ("<", e1, e2) }
+  | e1 = expr GTE e2 = expr
+      { Expr.EBinop (">=", e1, e2) }
+  | e1 = expr LTE e2 = expr
+      { Expr.EBinop ("<=", e1, e2) }
+  | e1 = expr QMARK e2 = expr COLON e3 = expr
       { Expr.ECond (e1, e2, e3) }
 
 const:
-  | v = int { Expr.Val_int v }
+  | v = INT { Expr.Val_int v }
   | v = bool { Expr.Val_bool v }
   | c = UID { Expr.Val_enum c }
-
-int:
-  | c = INT { c }
-  | MINUS c = INT %prec UMINUS { -c }
 
 bool:
   | TRUE { true }

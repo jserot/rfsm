@@ -97,7 +97,7 @@ with
     eprintf "Illegal operation on type index: %s\n" op; flush stderr; exit 2
 | Intern.Unbound_type_ctor c -> 
     eprintf "Unbound type constructor: %s\n" c; flush stderr; exit 2
-| Builtns.Unbound_id id -> 
+| Builtins.Unbound_id id -> 
     eprintf "Unknown builtin operator: %s\n" id; flush stderr; exit 3
 | Eval.Unknown_id id -> 
     eprintf "Unknown identifier: %s\n" id; flush stderr; exit 3

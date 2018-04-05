@@ -44,7 +44,7 @@ rule main = parse
       { UID (Lexing.lexeme !Location.input_lexbuf) }
   | "#"
       { comment !Location.input_lexbuf; main !Location.input_lexbuf }
-  | ['0'-'9']+
+  | '-'?['0'-'9']+
       { INT (int_of_string(Lexing.lexeme !Location.input_lexbuf)) }
 (*   | ['0'-'9']+ ('.' ['0'-'9']*\)? (['e' 'E'] ['+' '-']? ['0'-'9']+)? *)
 (*       { FLOAT (float_of_string(Lexing.lexeme !Location.input_lexbuf)) } *)
