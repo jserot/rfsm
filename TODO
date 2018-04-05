@@ -1,6 +1,7 @@
 - MLPACK lascar (to avoid module name clash)
 - OPAM lascar 
 - OPAM RFSM
+- support of [-sim_synchronous_actions] in SystemC
 - update doc with priorities
 - update doc with synch vs. seq actions 
 - update doc with cond actions

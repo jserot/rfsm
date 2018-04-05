@@ -1,6 +1,6 @@
 APP=ctrmod8
-DOT_OPTS=-dot_captions
-SIM_OPTS=-trace
+DOT_OPTS=
+SIM_OPTS=
 SYSTEMC_OPTS=-sc_time_unit "SC_NS"
 VHDL_OPTS=-vhdl_time_unit "ns"
 

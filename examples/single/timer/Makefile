@@ -1,7 +1,7 @@
 APP=main
 DOT_OPTS=
 SIM_OPTS=
-SYSTEMC_OPTS=-sc_time_unit "SC_NS"
+SYSTEMC_OPTS=-sc_time_unit "SC_NS" -sc_trace
 VHDL_OPTS=-vhdl_time_unit "ns"
 
 include ../../../lib/etc/Makefile.app
