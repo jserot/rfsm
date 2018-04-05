@@ -1,12 +1,12 @@
 - OPAM lascar 
 - OPAM RFSM
-- the flag [synch/sequ_actions] should apply to all (sim,ctask,sysc,vhdl)
 - for VHDL, [sequ_actions] should imply [use_vars]
 - update doc with priorities
 - update doc with synch vs. seq actions 
 - update doc with cond actions
 - support for enum values in the SystemC and VHDL backends
 - About window in GUI
+- support for synchronous actions in CTask and SystemC
 - bound check for ranged integers
 - var and output attr on states (Moore-style)
 - clarify mechanism for delta-waits insertion in SystemC backend

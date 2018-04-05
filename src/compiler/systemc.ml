@@ -463,7 +463,9 @@ let dump_testbench ?(name="") ?(dir="./systemc") m =
 (* Check whether a model can be translated *)
 
 let check_allowed m =
-  ()   (* To be refined ? *)
+  match Fsm.cfg.Fsm.act_sem with
+  | Fsm.Sequential -> ()
+  | Fsm.Synchronous -> Error.not_implemented "SystemC: synchronous actions"
 
 (* let dump_lib dir = *)
 (*   dump_lib_intf (dir ^ "/" ^ cfg.sc_lib_name ^ ".h"); *)

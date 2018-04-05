@@ -60,6 +60,7 @@ try
          !Options.target_dir
          m;
   | Some Options.CTask ->
+       Ctask.check_allowed m;
        check_dir !Options.target_dir;
        List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Sysm.m_fsms
   | Some Options.SystemC ->

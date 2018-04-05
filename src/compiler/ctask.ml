@@ -158,3 +158,10 @@ let dump_module_impl m fname fsm =
 let dump_fsm ?(prefix="") ?(dir="./ctask") m f =
   let prefix = match prefix with "" -> f.f_name | p -> p in
   dump_module_impl m (dir ^ "/" ^ prefix ^ ".c") f
+
+(* Check whether a model can be translated *)
+
+let check_allowed m =
+  match Fsm.cfg.Fsm.act_sem with
+  | Fsm.Sequential -> ()
+  | Fsm.Synchronous -> Error.not_implemented "CTask: synchronous actions"
