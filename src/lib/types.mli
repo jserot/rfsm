@@ -105,4 +105,6 @@ val type_instance: typ_scheme -> typ
 
 val string_of_range : Index.t * Index.t -> string
 
+val string_of_type_scheme : typ_scheme -> string
+
 val string_of_type : typ -> string

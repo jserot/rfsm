@@ -65,15 +65,15 @@ let builtin_tenv = {
    "True", TyBool;
    "False", TyBool
    ];
-  te_prims = List.map (function (id,(ty,_)) -> id, ty) Builtns.env
+  te_prims = List.map (function (id,(ty,_)) -> id, ty) Builtins.env
   }
 
 (* Printing *)
 
-(* let dump_tenv tenv =  (\* For debug only *\)
- *   Printf.printf "te.vars = %s\n"
- *     (Utils.ListExt.to_string (function (id,ty) -> id ^ ":" ^ string_of_type ty) ", " tenv.te_vars);
- *   Printf.printf "te.ctors = %s\n"
- *     (Utils.ListExt.to_string (function (id,ty) -> id ^ ":" ^ string_of_type ty) ", " tenv.te_ctors);
- *   Printf.printf "te.prims = %s\n"
- *     (Utils.ListExt.to_string (function (id,ts) -> id ^ ":" ^ string_of_type_scheme ts) ", " tenv.te_prims) *)
+let dump_tenv tenv =  (* For debug only *)
+  Printf.printf "te.vars = %s\n"
+    (Utils.ListExt.to_string (function (id,ty) -> id ^ ":" ^ string_of_type ty) ", " tenv.te_vars);
+  Printf.printf "te.ctors = %s\n"
+    (Utils.ListExt.to_string (function (id,ty) -> id ^ ":" ^ string_of_type ty) ", " tenv.te_ctors);
+  Printf.printf "te.prims = %s\n"
+    (Utils.ListExt.to_string (function (id,ts) -> id ^ ":" ^ string_of_type_scheme ts) ", " tenv.te_prims)

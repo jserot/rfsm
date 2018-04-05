@@ -10,6 +10,7 @@
 (**********************************************************************)
 
 open Utils
+open Lascar
    
 module TransLabel = struct
   type t = Condition.t * Action.t list * int * bool

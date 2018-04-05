@@ -21,7 +21,7 @@ let rec subst vs expr = match expr with
   (* Substitute each occurence of variables in [vs] by its value in [expr] *)
   | EVar v when List.mem_assoc v vs -> of_value (List.assoc v vs)
   | EBinop (op,e1,e2) ->
-     begin match Builtns.lookup_val op, subst vs e1, subst vs e2 with
+     begin match Builtins.lookup_val op, subst vs e1, subst vs e2 with
        f, EInt c1, EInt c2 ->   (* Immediate reduction *)
         begin match f [Val_int c1;Val_int c2] with
           Val_int v -> EInt v
@@ -48,7 +48,7 @@ let rec eval env exp =
   | EEnum c -> Val_enum c
   | EVar id -> lookup env id 
   | EBinop (op, exp1, exp2) ->
-     let f = Builtns.lookup_val op in
+     let f = Builtins.lookup_val op in
      f [eval env exp1; eval env exp2]
   | ECond (e1, e2, e3) ->
      (* begin match eval_test exp env e1 with *)
@@ -59,14 +59,14 @@ let rec eval env exp =
      end
 
 (* and eval_test exp env (e1,op,e2) = 
- *      match Builtns.lookup Builtns.relops op, eval env e1, eval env e2 with
+ *      match Builtins.lookup Builtins.relops op, eval env e1, eval env e2 with
  *         f, Val_int v1, Val_int v2 -> Val_bool (f v1 v2)
  *       | _, _, _ -> raise (Illegal_expr exp) *)
 
 (* let rec eval_rel env exp = 
  *   match exp with
  *   | EBinop (op, exp1, exp2) ->
- *       begin match Builtns.lookup Builtns.relops op, eval env exp1, eval env exp2 with
+ *       begin match Builtins.lookup Builtins.relops op, eval env exp1, eval env exp2 with
  *         f, Val_int v1, Val_int v2 -> f v1 v2
  *       | _ -> raise (Illegal_expr exp)
  *       end

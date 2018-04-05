@@ -49,6 +49,8 @@
 
 (* Precedences and associativities for expressions *)
 
+%left prec_cond
+%left prec_rel
 %left PLUS MINUS       
 %left TIMES DIV MOD   
 %nonassoc UMINUS          (* Highest precedence *)
@@ -297,9 +299,9 @@ expr:
       { Expr.EBinop ("/", e1, e2) }
   | e1 = expr MOD e2 = expr
       { Expr.EBinop ("mod", e1, e2) }
-  | e = rel_expr
-      { match e with ( e1,op,e2) -> Expr.EBinop (op, e1, e2) }
-  | e1 = expr QMARK e2 = expr COLON e3 = expr 
+  | e = rel_expr %prec prec_rel
+      { match e with (e1,op,e2) -> Expr.EBinop (op, e1, e2) }
+  | e1 = expr QMARK e2 = expr COLON e3 = expr %prec prec_cond
       { Expr.ECond (e1, e2, e3) }
 
 const:

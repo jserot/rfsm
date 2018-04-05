@@ -159,7 +159,7 @@ let string_of_shared (name, (ty, desc)) =
 
 let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(with_models=false) m =
   let rankdir = if List.mem Utils.Dot.RankdirLR dot_options then "LR" else "UD" in
-  let layout, mindist = if List.mem Ltsa.Circular dot_options then "circo", 1.5 else "dot", 1.0 in
+  let layout, mindist = if List.mem Lascar.Ltsa.Circular dot_options then "circo", 1.5 else "dot", 1.0 in
   let dump_header oc name =
      Printf.fprintf oc "digraph %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" name layout rankdir mindist in
   if with_insts then 

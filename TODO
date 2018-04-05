@@ -1,7 +1,9 @@
-- MLPACK lascar (to avoid module name clash)
 - OPAM lascar 
 - OPAM RFSM
-- support of [-sim_synchronous_actions] in SystemC
+- the flag [synch/sequ_actions] should apply to all (sim,ctask,sysc,vhdl)
+- for VHDL, [sequ_actions] should imply [use_vars]
+- use "," or ";" for printing actions depending on action sem
+- flag [-dot_actions_nl] for printing actions one per line
 - update doc with priorities
 - update doc with synch vs. seq actions 
 - update doc with cond actions

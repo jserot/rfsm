@@ -11,6 +11,8 @@
 
 (** Model for Reactive Finite State Machines *)
 
+open Lascar
+   
 (** States *)
 
 module State :
