@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Evaluating expressions *)
+(** Evaluating and manipulating expressions *)
 
 exception Unknown_id of string
 exception Unbound_id of string
@@ -20,5 +20,3 @@ type env = (string * Expr.e_val) list
 val subst : (string * Expr.e_val) list -> Expr.t -> Expr.t
 
 val eval : (string * Expr.e_val option) list -> Expr.t -> Expr.e_val
-
-(* val eval_rel : (string * Expr.e_val option) list -> Expr.t -> bool *)

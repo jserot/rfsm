@@ -23,12 +23,9 @@ module Index : sig
   | TiVar of string
   | TiBinop of string * t * t
   type env = (string * int) list
-  (* type op = int -> int -> int
-   * val ops: (string * op) list *)
   exception Illegal_op of string
   exception Illegal_type_index of t
   exception Unbound_type_index of string
-  (* val lookup: string -> op *)
   val subst: env -> t -> t 
   val vars_of: t -> VarSet.t
   val to_string: t -> string

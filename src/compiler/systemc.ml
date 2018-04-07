@@ -89,8 +89,6 @@ let string_of_expr m e =
     | Expr.EVar n -> if List.mem_assoc n (m.c_inps @ m.c_inouts) then n ^ ".read()" else n
     | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
     | Expr.ECond (e1,e2,e3) -> paren level (string_of (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
-  (* and string_of_test level (e1,op,e2) = 
-   *   paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2) in *)
   in
   string_of 0 e
 

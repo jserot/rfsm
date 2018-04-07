@@ -21,7 +21,6 @@ let anonymous fname = source_file := fname
 let print_banner () = 
   Printf.printf "-------------------------------------------------------------------------------------------------\n";
   Printf.printf "Reactive Finite State Machine compiler and simulator, version %s\n" Version.version;
-  Printf.printf "(C) 2018 J. Serot (jocelyn.serot@uca.fr)\n";
   Printf.printf "-------------------------------------------------------------------------------------------------\n";
   flush stdout
 

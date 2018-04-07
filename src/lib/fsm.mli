@@ -14,8 +14,8 @@
 open Lascar
 
 type act_semantics =  (** Interpretation of actions associated to transitions *)
-  | Sequential        (** sequential (ex: [x:=x+1;y:=x] with [x=1] gives [x=2,y=2] *)
-  | Synchronous       (** synchronous (ex: [x:=x+1:y=x] with [x=1] gives [x=2,y=1] *)
+  | Sequential        (** sequential (ex: [x:=x+1;y:=x] with [x=1] gives [x=2,y=2]) *)
+  | Synchronous       (** synchronous (ex: [x:=x+1:y=x] with [x=1] gives [x=2,y=1]) *)
    
 type fsm_config = {
   mutable act_sem: act_semantics;

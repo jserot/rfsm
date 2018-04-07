@@ -66,9 +66,6 @@ let rec string_of_expr e = match e with
   | Expr.EVar n -> n
   | Expr.EBinop (op,e1,e2) -> string_of_expr e1 ^ string_of_op op ^ string_of_expr e2 (* TODO : add parens *)
   | Expr.ECond (e1,e2,e3) -> string_of_expr e1 ^ " ? " ^ string_of_expr e2 ^ " : " ^ string_of_expr e3 (* TODO: add parens *)
-  (* | Expr.ECond (e1,e2,e3) -> string_of_test_expr e1 ^ " ? " ^ string_of_expr e2 ^ " : " ^ string_of_expr e3 (\* TODO: add parens *\) *)
-
-(* and string_of_test_expr (e1,op,e2) = string_of_expr e1 ^ string_of_op op ^ string_of_expr e2 (\* TODO : add parens *\) *)
 
 and string_of_op = function "=" -> "==" | op ->  op
 

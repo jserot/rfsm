@@ -135,7 +135,7 @@ let rec type_of_expr e = match e with
           if t1 = t2 then Some t1
           else type_error "" "binary operation" op t1 t2
       end
-  | Expr.ECond (e1,e2,e3) ->   (* TO FIX *)
+  | Expr.ECond (e1,e2,e3) ->   (* TO FIX ? *)
       begin match type_of_expr e1, type_of_expr e2, type_of_expr e3 with
         _, None, None -> None
       | _, Some t1, None -> Some t1
@@ -174,8 +174,6 @@ let string_of_expr ?(ty=None) e =
        | _, _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
        end
     | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
-  (*   | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of_test level e1) (string_of level e2) (string_of level e3)
-   * and string_of_test level (e1,op,e2) = paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2) in *)
   in
   string_of 0 e
 

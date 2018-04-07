@@ -74,12 +74,3 @@ let lookup id =
 
 let lookup_val id = snd (lookup id)
 let lookup_typ id = fst (lookup id)
-
-(* let tenv = {
- *   te_vars = [];
- *   te_ctors = [
- *    "True", TyBool;
- *    "False", TyBool
- *    ];
- *   te_prims = List.map (function (id,(ty,_)) -> id, ty) Builtins.env
- *   } *)
