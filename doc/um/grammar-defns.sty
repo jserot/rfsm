@@ -46,6 +46,7 @@
 \newcommand\rfsmINOUT{\Verb|\textbf{inout}|}
 \newcommand\rfsmINT{int}
 \newcommand\rfsmITRANS{\Verb|\textbf{itrans}|}
+\newcommand\rfsmQMARK{\Verb|\textbf{?}|}
 \newcommand\rfsmLBRACE{\Verb|\textbf{\{}|}
 \newcommand\rfsmLPAREN{\Verb|\textbf{(}|}
 \newcommand\rfsmLT{\Verb|\textbf{<}|}
@@ -74,7 +75,6 @@
 \newcommand\rfsmaction{action}
 \newcommand\rfsmactions{actions}
 \newcommand\rfsmbool{bool}
-\newcommand\rfsmbraced{braced}
 \newcommand\rfsmcondition{condition}
 \newcommand\rfsmconst{const}
 \newcommand\rfsmexpr{expr}
@@ -82,20 +82,22 @@
 \newcommand\rfsmfsmmodel{fsm\_model}
 \newcommand\rfsmglobal{global}
 \newcommand\rfsmguard{guard}
+\newcommand\rfsmguardexpr{guard\_expr}
 \newcommand\rfsmid{id}
-\newcommand\rfsmint{int}
 \newcommand\rfsmintrange{int\_range}
 \newcommand\rfsmio{io}
 \newcommand\rfsmiodesc{io\_desc}
 \newcommand\rfsmitransition{itransition}
+\newcommand\rfsmmylist{my\_list}
+\newcommand\rfsmmynonemptylist{my\_nonempty\_list}
+\newcommand\rfsmmyseparatedlist{my\_separated\_list}
+\newcommand\rfsmmyseparatednonemptylist{my\_separated\_nonempty\_list}
 \newcommand\rfsmoptinstparams{opt\_inst\_params}
 \newcommand\rfsmoptional{optional}
 \newcommand\rfsmparam{param}
 \newcommand\rfsmparams{params}
-\newcommand\rfsmparen{paren}
 \newcommand\rfsmprio{prio}
 \newcommand\rfsmprogram{program}
-\newcommand\rfsmrelexpr{rel\_expr}
 \newcommand\rfsmstimuli{stimuli}
 \newcommand\rfsmtransition{transition}
 \newcommand\rfsmtyp{typ}
@@ -137,6 +139,7 @@
 \WithSuffix\newcommand\rfsmOUTPUT*{\rfsmgramterm{\rfsmOUTPUT}}
 \WithSuffix\newcommand\rfsmPERIODIC*{\rfsmgramterm{\rfsmPERIODIC}}
 \WithSuffix\newcommand\rfsmPLUS*{\rfsmgramterm{\rfsmPLUS}}
+\WithSuffix\newcommand\rfsmQMARK*{\rfsmgramterm{\rfsmQMARK}}
 \WithSuffix\newcommand\rfsmRBRACE*{\rfsmgramterm{\rfsmRBRACE}}
 \WithSuffix\newcommand\rfsmRPAREN*{\rfsmgramterm{\rfsmRPAREN}}
 \WithSuffix\newcommand\rfsmSEMICOLON*{\rfsmgramterm{\rfsmSEMICOLON}}
@@ -163,8 +166,8 @@
 \WithSuffix\newcommand\rfsmfsmmodel*{\rfsmgramnonterm{\rfsmfsmmodel}}
 \WithSuffix\newcommand\rfsmglobal*{\rfsmgramnonterm{\rfsmglobal}}
 \WithSuffix\newcommand\rfsmguard*{\rfsmgramnonterm{\rfsmguard}}
+\WithSuffix\newcommand\rfsmguardexpr*{\rfsmgramnonterm{\rfsmguardexpr}}
 \WithSuffix\newcommand\rfsmid*{\rfsmgramnonterm{\rfsmid}}
-\WithSuffix\newcommand\rfsmint*{\rfsmgramnonterm{\rfsmint}}
 \WithSuffix\newcommand\rfsmintrange*{\rfsmgramnonterm{\rfsmintrange}}
 \WithSuffix\newcommand\rfsmio*{\rfsmgramnonterm{\rfsmio}}
 \WithSuffix\newcommand\rfsmiodesc*{\rfsmgramnonterm{\rfsmiodesc}}
@@ -174,7 +177,6 @@
 \WithSuffix\newcommand\rfsmparams*{\rfsmgramnonterm{\rfsmparams}}
 \WithSuffix\newcommand\rfsmprio*{\rfsmgramnonterm{\rfsmprio}}
 \WithSuffix\newcommand\rfsmprogram*{\rfsmgramnonterm{\rfsmprogram}}
-\WithSuffix\newcommand\rfsmrelexpr*{\rfsmgramnonterm{\rfsmrelexpr}}
 \WithSuffix\newcommand\rfsmstimuli*{\rfsmgramnonterm{\rfsmstimuli}}
 \WithSuffix\newcommand\rfsmtransition*{\rfsmgramnonterm{\rfsmtransition}}
 \WithSuffix\newcommand\rfsmtyp*{\rfsmgramnonterm{\rfsmtyp}}
@@ -183,16 +185,19 @@
 \WithSuffix\newcommand\rfsmvaluechange*{\rfsmgramnonterm{\rfsmvaluechange}}
 \WithSuffix\newcommand\rfsmvar*{\rfsmgramnonterm{\rfsmvar}}
 \WithSuffix\newcommand\rfsmvars*{\rfsmgramnonterm{\rfsmvars}}
-\WithSuffix\newcommand\rfsmbraced*{\rfsmgramfunc{\rfsmbraced}}
+\WithSuffix\newcommand\rfsmmylist*{\rfsmgramfunc{\rfsmmylist}}
+\WithSuffix\newcommand\rfsmmynonemptylist*{\rfsmgramfunc{\rfsmmynonemptylist}}
+\WithSuffix\newcommand\rfsmmyseparatedlist*{\rfsmgramfunc{\rfsmmyseparatedlist}}
+\WithSuffix\newcommand\rfsmmyseparatednonemptylist*{\rfsmgramfunc{\rfsmmyseparatednonemptylist}}
 \WithSuffix\newcommand\rfsmoptional*{\rfsmgramfunc{\rfsmoptional}}
-\WithSuffix\newcommand\rfsmparen*{\rfsmgramfunc{\rfsmparen}}
 
+\newcommand\rfsmbraced[1]{\rfsmLBRACE*{} #1 \rfsmRBRACE*{}}
+\newcommand\rfsmparen[1]{\rfsmLPAREN*{} #1 \rfsmRPAREN*{}}
 \newcommand\rfsmgramopt[1]{[#1]}
 \newcommand\rfsmgramplus[1]{#1\ensuremath{^+}}
 \newcommand\rfsmgramstar[1]{#1\ensuremath{^*}}
 \newcommand\rfsmgramseplist[2]{#2\ensuremath{_{\textnormal{#1}}^*}}
 \newcommand\rfsmgramsepnelist[2]{#2\ensuremath{_{\textnormal{#1}}^+}}
-%\newcommand\rfsmparen[1]{(#1)}
 \WithSuffix\newcommand\rfsmgramopt*[1]{\paren{\rfsmgramopt{#1}}}
 \WithSuffix\newcommand\rfsmgramplus*[1]{\paren{\rfsmgramplus{#1}}}
 \WithSuffix\newcommand\rfsmgramstar*[1]{\paren{\rfsmgramstar{#1}}}

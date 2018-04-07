@@ -87,11 +87,35 @@ let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p 
     /* Nothing */ { [] }
   | x=X { x }
 
+%public my_list(X):
+  /* nothing */
+    { [] }
+| x = X; xs = my_list(X)
+    { x :: xs }
+
+%public my_nonempty_list(X):
+  x = X
+    { [ x ] }
+| x = X; xs = my_nonempty_list(X)
+    { x :: xs }
+
+%public my_separated_nonempty_list(separator, X):
+  x = X
+    { [ x ] }
+| x = X; separator; xs = my_separated_nonempty_list(separator, X)
+    { x :: xs }
+
+%public my_separated_list(separator, X):
+  /* nothing */
+    { [] }
+| x = my_separated_nonempty_list(separator, X)
+    { x :: xs }
+
 program:
-  | tydecls=list(type_decl)
-    models=nonempty_list(fsm_model)
-    globals=nonempty_list(global)
-    fsms=nonempty_list(fsm_inst)
+  | tydecls=my_list(type_decl)
+    models=my_nonempty_list(fsm_model)
+    globals=my_nonempty_list(global)
+    fsms=my_nonempty_list(fsm_inst)
     EOF
     { { Syntax.p_type_decls = tydecls;
         Syntax.p_fsm_models = models;
@@ -104,7 +128,7 @@ program:
 type_decl:
   | TYPE id=LID EQUAL t=typ
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Alias (id,t)) }
-  | TYPE id=LID EQUAL cs=braced(separated_list(COMMA,UID))
+  | TYPE id=LID EQUAL cs=braced(my_separated_list(COMMA,UID))
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Enum (id,cs)) }
 
 (* FSM MODEL *)
@@ -113,11 +137,11 @@ fsm_model:
   | FSM MODEL
       name=id 
       params=optional(params)
-      LPAREN ios=separated_list(COMMA, io) RPAREN
+      LPAREN ios=my_separated_list(COMMA, io) RPAREN
       LBRACE
-      STATES COLON states=terminated(separated_list(COMMA, UID),SEMICOLON)
+      STATES COLON states=terminated(my_separated_list(COMMA, UID),SEMICOLON)
       vars = optional(vars)
-      TRANS COLON trans=terminated(separated_list(COMMA,transition),SEMICOLON)
+      TRANS COLON trans=terminated(my_separated_list(COMMA,transition),SEMICOLON)
       ITRANS COLON itrans=terminated(itransition,SEMICOLON)
       RBRACE {
         mk_fsm_decl
@@ -131,7 +155,7 @@ fsm_model:
             Syntax.fd_itrans=itrans } }
 
 params:
-  | LT params=separated_list(COMMA, param) GT { params }
+  | LT params=my_separated_list(COMMA, param) GT { params }
 
 param:
   | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
