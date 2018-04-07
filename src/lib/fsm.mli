@@ -49,6 +49,9 @@ module TransLabel :
     val subst : Eval.env -> t -> t 
       (** [subst env l] replaces each variable [v] occuring in [l] by its value if found in [env],
           simplifying the resulting expression whenever possible. *)
+    val is_rtl : t -> bool
+      (** [is_rtl t] returns [true] iff each variable written by transition [t] is written only once.
+          For rtl transitions, the sequantial and synchronous interpretations are equivalent. *)
   end
 
 (** The internal representation, as a Labeled Transition System *)
@@ -130,6 +133,9 @@ val build_instance :
   inst
 
 val sanity_check : Typing.tenv -> inst -> unit
+
+val is_rtl : inst -> bool
+  (** [is_rtl f] is [true] iff all [is_rtl a] for all actions [a] of [f] *)
 
 exception Undef_symbol of string * string * string (** FSM, kind, name *)
 exception Internal_error of string (** where *)

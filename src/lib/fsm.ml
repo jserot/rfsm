@@ -46,6 +46,15 @@ module TransLabel = struct
     else Printf.sprintf "%s" s1
   let rename f (cond,acts,prio,is_impl) = (Condition.rename f cond, List.map (Action.rename f) acts, prio, is_impl)
   let subst env (cond,acts,prio,is_impl) = (Condition.subst env cond, List.map (Action.subst env) acts, prio, is_impl)
+  let is_rtl (_,acts,_,_) = 
+      let rec scan acc acts = match acts with
+          [] -> true
+        | a::rest ->
+           let wrs = snd (Action.vars_of a) in          (* The set of variables written by [a] *)
+           if Expr.VarSet.is_empty (Expr.VarSet.inter acc wrs) 
+           then scan (Expr.VarSet.union acc wrs) rest  (* Ok. None has already be written .. *)
+           else false in
+      scan Expr.VarSet.empty acts
 end
 
 module State = struct
@@ -133,6 +142,10 @@ exception Type_mismatch of string * string * string * Types.typ * Types.typ (** 
 exception Type_error of string * string * string * Types.typ * Types.typ (** FSM, what, id, type, type *)
 
 exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
+
+let is_rtl f =
+   List.for_all (function (_,t,_) -> TransLabel.is_rtl t) (transitions_of f)
+&& List.for_all (function (t,_) -> TransLabel.is_rtl t) (itransitions_of f)
 
 (* Builders *)
 

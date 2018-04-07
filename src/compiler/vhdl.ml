@@ -476,5 +476,13 @@ let check_allowed m =
     | _ -> Error.not_implemented "Vhdl: FSM with output event(s)" in
   if List.length m.m_fsms > 1 then Error.not_implemented "Vhdl: multi-FSMs model";
   List.iter is_mono_sync m.m_fsms;
-  List.iter no_outp_event m.m_fsms
+  List.iter no_outp_event m.m_fsms;
+  if Fsm.cfg.Fsm.act_sem = Fsm.Sequential
+     && List.exists (function f -> not (Fsm.is_rtl f)) m.m_fsms
+     && not cfg.vhdl_use_variables
+  then
+    begin
+     Error.warning ("Vhdl: Some FSM(s) have non-RTL transitions. This may cause incorrect behavior when using the\n" ^
+     "            default sequential interpretation of actions. Consider using the [-vhdl_use_variables] option.")
+    end
    

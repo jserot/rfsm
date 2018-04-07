@@ -1,6 +1,6 @@
 - OPAM lascar 
 - OPAM RFSM
-- for VHDL, [sequ_actions] should imply [use_vars]
+- remove (C) notice in banner ?
 - update doc with priorities
 - update doc with synch vs. seq actions 
 - update doc with cond actions
