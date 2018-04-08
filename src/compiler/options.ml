@@ -37,7 +37,6 @@ let set_target_dir name = target_dir := name
 
 let set_systemc_time_unit u = Systemc.cfg.Systemc.sc_time_unit <- u
 
-let set_vhdl_use_variables () = Vhdl.cfg.Vhdl.vhdl_use_variables <- true
 let set_vhdl_time_unit u = Vhdl.cfg.Vhdl.vhdl_time_unit <- u
 let set_vhdl_ev_duration d = Vhdl.cfg.Vhdl.vhdl_ev_duration <- d
 let set_vhdl_rst_duration d = Vhdl.cfg.Vhdl.vhdl_reset_duration <- d

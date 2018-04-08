@@ -109,7 +109,7 @@ let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p 
   /* nothing */
     { [] }
 | x = my_separated_nonempty_list(separator, X)
-    { x :: xs }
+    { x }
 
 program:
   | tydecls=my_list(type_decl)

@@ -12,11 +12,11 @@ fsm model chrono (
   trans:
     Stopped -- startstop | ctr:=0; aff:=0 -> Running,
     Running -- h | ctr:=ctr+1; aff:=ctr -> Running,
-    Running -- startstop -> Stopped;
+    *Running -- startstop -> Stopped;
   itrans: -> Stopped;
   }
 
-input StartStop: event = sporadic(25,75)
+input StartStop: event = sporadic(25,70)
 input H:event = periodic(10,10,110)
 output Aff: int
 

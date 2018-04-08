@@ -35,7 +35,7 @@ type vhdl_config = {
   mutable vhdl_support_library: string;
   mutable vhdl_support_package: string;
   mutable vhdl_trace: bool;
-  mutable vhdl_use_variables: bool;
+  (* mutable vhdl_use_variables: bool; *)
   mutable vhdl_trace_state_var: string
   }
 
@@ -55,7 +55,7 @@ let cfg = {
   vhdl_support_library = "rfsm";
   vhdl_support_package = "core";
   vhdl_trace = false;
-  vhdl_use_variables = false;
+  (* vhdl_use_variables = false; *)
   vhdl_trace_state_var = "st";
   }
 
@@ -180,7 +180,7 @@ let string_of_expr ?(ty=None) e =
                                                                       
 let string_of_action ?(lvars=[]) a = match a with
   | Action.Assign (id, expr) ->
-     let asn = if List.mem_assoc id lvars && cfg.vhdl_use_variables then " := " else " <= " in
+     let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = lookup_type id in
      id ^ asn ^ string_of_expr ~ty:ty expr
     | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
@@ -237,13 +237,13 @@ let dump_module_arch oc m fsm =
   fprintf oc "architecture RTL of %s is\n" modname;
   fprintf oc "  type t_%s is ( %s );\n" cfg.vhdl_state_var (ListExt.to_string (function s -> s) ", " m.c_states);
   fprintf oc "  signal %s: t_state;\n" cfg.vhdl_state_var;
-  if not cfg.vhdl_use_variables then 
+  if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous then 
     List.iter
       (fun (id,(ty,iv)) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ty))
       m.c_vars;
   fprintf oc "begin\n";
   fprintf oc "  process(%s, %s)\n" cfg.vhdl_reset_sig clk_sig;
-  if cfg.vhdl_use_variables then 
+  if Fsm.cfg.Fsm.act_sem = Fsm.Sequential then 
     List.iter
       (fun (id,(ty,iv)) -> fprintf oc "  variable %s: %s;\n" id (string_of_type ty))
       m.c_vars;
@@ -475,12 +475,6 @@ let check_allowed m =
   if List.length m.m_fsms > 1 then Error.not_implemented "Vhdl: multi-FSMs model";
   List.iter is_mono_sync m.m_fsms;
   List.iter no_outp_event m.m_fsms;
-  if Fsm.cfg.Fsm.act_sem = Fsm.Sequential
-     && List.exists (function f -> not (Fsm.is_rtl f)) m.m_fsms
-     && not cfg.vhdl_use_variables
-  then
-    begin
-     Error.warning ("Vhdl: Some FSM(s) have non-RTL transitions. This may cause incorrect behavior when using the\n" ^
-     "            default sequential interpretation of actions. Consider using the [-vhdl_use_variables] option.")
-    end
+  if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous && List.exists (function f -> not (Fsm.is_rtl f)) m.m_fsms then
+     Error.warning "Vhdl: Some FSM(s) have non-RTL transitions. This may cause incorrect behavior when using the synchronous interpretation of actions."
    

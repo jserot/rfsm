@@ -9,3 +9,6 @@ Known bugs and limitations
 * Synchronous interpretation of actions is not (yet) supported by the CTask and SystemC backends
 
 * The implementation of cascaded event synchronisation in SystemC using delta-cycles is fragile
+
+* The mechanism of binary priority (high/low, "*"/nothing) used to resolve non-deterministic situations
+  could be refined 
