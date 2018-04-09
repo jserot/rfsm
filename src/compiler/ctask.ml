@@ -59,18 +59,22 @@ let string_of_ival = function
       "else if" <sync_conds_m> "{" <sync_acts_m> "}"
 *)
  
-let rec string_of_expr e = match e with
+let rec string_of_expr e =
+  let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
+  let rec string_of level e = match e with
     Expr.EInt c -> string_of_int c
   | Expr.EBool c -> string_of_bool c
   | Expr.EEnum c -> c
   | Expr.EVar n -> n
-  | Expr.EBinop (op,e1,e2) -> string_of_expr e1 ^ string_of_op op ^ string_of_expr e2 (* TODO : add parens *)
-  | Expr.ECond (e1,e2,e3) -> string_of_expr e1 ^ " ? " ^ string_of_expr e2 ^ " : " ^ string_of_expr e3 (* TODO: add parens *)
+  | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
+  | Expr.ECond (e1,e2,e3) ->
+     paren level (string_of (level+1) e1 ^ " ? " ^ string_of (level+1) e2 ^ " : " ^ string_of (level+1) e3) in
+  string_of 0 e
 
 and string_of_op = function "=" -> "==" | op ->  op
 
 let string_of_guard (e1, op, e2) = 
-  string_of_expr e1 ^ string_of_op op ^ string_of_expr e2 (* TODO : add parens *)
+  string_of_expr e1 ^ string_of_op op ^ string_of_expr e2
 
 let string_of_action a = match a with
     | Action.Assign (id, expr) -> id ^ "=" ^ string_of_expr expr
