@@ -16,12 +16,10 @@ ide;dot;-dot_fsm_models;Arg.Unit;set_dot_fsm_models;generate .dot representation
 ide;dot;-dot_actions_nl;Arg.Unit;set_dot_actions_nl;write actions with with a separating newline
 noide;sim;-trace;Arg.Int;set_trace;set trace level for simulation (default: 0)
 noide;sim;-vcd;Arg.String;set_vcd_file;set name of .vcd output file when running simulation (default: run.vcd)
-ide;general;-sequential_actions;Arg.Unit;set_sequential_actions;interpret actions sequentially (default)
 ide;general;-synchronous_actions;Arg.Unit;set_synchronous_actions;interpret actions synchronously
 ide;systemc;-sc_time_unit;Arg.String;set_systemc_time_unit;set time unit for the SystemC test-bench (default: SC_NS)
 ide;systemc;-sc_trace;Arg.Unit;set_sc_trace;set trace mode for SystemC backend (default: false)
 ide;systemc;-stop_time;Arg.Int;set_stop_time;set stop time for the SystemC and VHDL test-bench (default: 100)
-ide;vhdl;-vhdl_use_variables;Arg.Unit;set_vhdl_use_variables;implement variables as variables instead of signals
 ide;vhdl;-vhdl_trace;Arg.Unit;set_vhdl_trace;set trace mode for VHDL backend (default: false)
 ide;vhdl;-vhdl_time_unit;Arg.String;set_vhdl_time_unit;set time unit for the VHDL test-bench
 ide;vhdl;-vhdl_ev_duration;Arg.Int;set_vhdl_ev_duration;set duration of event signals (default: 1 ns)
