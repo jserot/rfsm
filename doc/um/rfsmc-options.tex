@@ -6,15 +6,18 @@
 -ctask & generate CTask code\\
 -systemc & generate SystemC code\\
 -vhdl & generate VHDL code\\
--trace & set trace mode for simulation, SystemC and VHDL backends\\
 -version & print version of the compiler and quit\\
--dot\_captions & Insert captions in .dot representation(s)\\
+-dot\_no\_captions & Remove captions in .dot representation(s)\\
 -dot\_fsm\_insts & generate .dot representation of all FSM instances\\
 -dot\_fsm\_models & generate .dot representation of all FSM models\\
+-dot\_actions\_nl & write actions with with a separating newline\\
+-trace & set trace level for simulation (default: 0)\\
 -vcd & set name of .vcd output file when running simulation (default: run.vcd)\\
+-synchronous\_actions & interpret actions synchronously\\
 -sc\_time\_unit & set time unit for the SystemC test-bench (default: SC\_NS)\\
+-sc\_trace & set trace mode for SystemC backend (default: false)\\
 -stop\_time & set stop time for the SystemC and VHDL test-bench (default: 100)\\
--vhdl\_use\_variables & implement variables as variables instead of signals\\
+-vhdl\_trace & set trace mode for VHDL backend (default: false)\\
 -vhdl\_time\_unit & set time unit for the VHDL test-bench\\
 -vhdl\_ev\_duration & set duration of event signals (default: 1 ns)\\
 -vhdl\_rst\_duration & set duration of reset signals (default: 1 ns)\\

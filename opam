@@ -18,7 +18,7 @@ install: [
   [make "install-doc"]
 ]
 remove: [
-  [make "uninstall"]
+  [make "uninstall-lib"]
   [make "uninstall-doc"]
 ]
 depends: [

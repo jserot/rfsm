@@ -26,11 +26,13 @@ ifeq ($(BUILD_NATIVE),yes)
 endif
 
 gui:
+ifeq ($(BUILD_GUI),yes)
 	cat src/gui/builtin_options.txt src/compiler/options_spec.txt > src/gui/options_spec.txt
 ifeq ($(PLATFORM), win32)
 	(cd src/gui; $(QMAKE_WIN) -spec win32-g++ rfsm.pro; $(MAKE_WIN))
 else
 	(cd src/gui; $(QMAKE_MACOS) -spec macx-clang CONFIG+=x86_64 rfsm.pro; make)
+endif
 endif
 
 libs:
@@ -78,9 +80,12 @@ install:
 ifeq ($(BUILD_NATIVE),yes)
 	cp src/compiler/main.native $(INSTALL_BINDIR)/rfsmc.opt
 endif
+ifeq ($(BUILD_GUI),yes)
+	cp src/gui/rfsm $(INSTALL_BINDIR)/rfsm
+endif
 	mkdir -p $(INSTALL_DOCDIR)
 	cp -r doc/lib $(INSTALL_DOCDIR)
-	cp -r doc/um/rfsm.pdf $(INSTALL_DOCDIR)/UserManual.pdf
+	cp -r doc/um/rfsm.pdf $(INSTALL_DOCDIR)/rfsm-manual.pdf
 
 install-lib: 
 	@echo "Installing $(PACKNAME) in $(INSTALL_LIBDIR)"
@@ -141,7 +146,7 @@ macos-install:
 	cp ./dist/macos/INSTALL $(MACOS_DIST)/INSTALL
 	mkdir $(MACOS_DIST)/doc
 #	cp -r doc/lib $(MACOS_DIST)/doc
-	cp  doc/um/rfsm.pdf $(MACOS_DIST)/doc/UserManual.pdf
+	cp  doc/um/rfsm.pdf $(MACOS_DIST)/doc/rfsm-manual.pdf
 	mkdir $(MACOS_DIST)/examples
 	mkdir $(MACOS_DIST)/examples/{single,multi}
 	cp -r examples/single $(MACOS_DIST)/examples

@@ -7,7 +7,7 @@ FSM-based systems.
 \section{Introductory example}
 \label{sec:first-example}
 
-Listing~\ref{lst:rfsm-mouse} is an example of a simple RFSM program\footnote{This program is
+Listing~\ref{lst:rfsm-gensig} is an example of a simple RFSM program\footnote{This program is
   provided in the distribution, under directory \texttt{examples/single/gensig}.}. This program is
 used to describe and simulate the model of a calibrated pulse generator. Given an input clock
 \verb|H|, with period $T_H$, it generates a pulse of duration $n \times T_H$ whenever input
@@ -48,7 +48,7 @@ a synonym of type \verb|int<0..1>|, \emph{i.e.} the type of integers with values
 model, named \verb|gensig|, has one parameter, \verb|n|, two inputs, \verb|h| and \verb|e|, of type
 \verb|event| and \verb|bit| respectively, and one output \verb|s| of type \verb|bit|. Its behavior
 is specified as a reactive FSM with two states, \verb|E0| and \verb|E1|, and one internal variable
-\verb|k|. The \emph{transitions} of this FSM are given after the \verb|trans:| keyword in the form :
+\verb|k|. The transitions of this FSM are given after the \verb|trans:| keyword in the form :
 \begin{center}
 \emph{source state} \verb|--| \emph{condition} \verb'|' \emph{actions} \verb|->| \emph{destination state}
 \end{center}
@@ -80,19 +80,18 @@ Note that, at this level, the value of the parameter \verb|n|, used in the type 
 \verb|k| (line 9) and in the transition conditions (lines 12 and 13) is left unspecified, making the
 \verb|gensig| model a \emph{generic} one.
 
-\medskip
-The third part of the program (lines 17--19) lists \textbf{global inputs and outputs}\footnote{And
-  also, in case of multi-FSM programs, \emph{shared} events and variables. See
-  Sec.~\ref{sec:globals}.}. 
-For global outputs the declaration simply gives a name and a type.
-For global inputs, the declaration also specifies the \textbf{stimuli} which are attached to the
-corresponding input for simulating the system. The program of Listing~\ref{lst:rfsm-gensig} uses two
-kinds of stimuli\footnote{See Sec.~\ref{sec:globals} for a complete description of stimuli.}. The
-stimuli attached to input \verb|H| are declared as \emph{periodic}, with a period of 10 time units,
-a start time of 0 and a end time of 80. This means than an event will be produced on
-this input at time 0, 10, 20, 30, 40, 50, 60, 70 and 80. The stimuli attached to input \verb|E| say
-that this input will respectively take value 0, 1 and 0 at time 0, 25 and 35 (thus producing a
-``pulse'' of duration 10 time units starting at time 25).
+\medskip The third part of the program (lines 17--19) lists \textbf{global inputs and
+  outputs}\footnote{In case of multi-FSM programs, this part will also contains the declaration of
+  \emph{shared} events and variables. See Sec.~\ref{sec:globals}.}.  For global outputs the
+declaration simply gives a name and a type.  For global inputs, the declaration also specifies the
+\textbf{stimuli} which are attached to the corresponding input for simulating the system. The
+program of Listing~\ref{lst:rfsm-gensig} uses two kinds of stimuli\footnote{See
+  Sec.~\ref{sec:globals} for a complete description of stimuli.}. The stimuli attached to input
+\verb|H| are declared as \emph{periodic}, with a period of 10 time units, a start time of 0 and a
+end time of 80. This means than an event will be produced on this input at time 0, 10, 20, 30, 40,
+50, 60, 70 and 80. The stimuli attached to input \verb|E| say that this input will respectively take
+value 0, 1 and 0 at time 0, 25 and 35 (thus producing a ``pulse'' of duration 10 time units starting
+at time 25).
 
 \medskip
 The last part of the program (line 21) consists in building the global model of the system by
@@ -153,9 +152,9 @@ Currently, three backends are provided :
 The target language for the C backend is a C-like language augmented with
 \begin{itemize}
 \item a \verb|task| keyword for naming generated behaviors,
-\item \verb|in| and \verb|out| keywords for identifying inputs and outputs,
+\item \verb|in|, \verb|out| and \verb|iinout| keywords for identifying inputs and outputs,
 \item a builtin \verb|event| type,
-\item primitives for handling events : \verb|wait_ev()|, \verb|verb|wait_evs()| and
+\item primitives for handling events : \verb|wait_ev()|, \verb|wait_evs()| and
   \verb|notify_ev()|. 
 \end{itemize}
 The idea is that the generated code can be turned into an application for a multi-tasking operating
@@ -175,9 +174,8 @@ Listing~\ref{lst:rfsm-gensig}.
 \label{sec:rfsm-language}
 
 This section is more thorough presentation of the RFSM language introduced in the previous
-section. This presentation is deliberately informal. A formal description of the language syntax can
-be found in Appendix~A.  Future versions of this document will also provide a description of the
-formal semantics of the underlying models.
+section. This presentation is deliberately informal. The complete language syntax can
+be found in Appendix~A.
 
 \subsection{Types}
 \label{sec:types}
@@ -209,19 +207,19 @@ An example of type abbreviation has been given in the program of Listing~\ref{ls
 \medskip
 \textbf{Enumerated types}  are introduced with the following declaration
 \begin{center}
-  \framebox{\lstinline[language=Rfsm]|type typename = { C1, ..., Cn }|}
+  \framebox{\lstinline[language=Rfsm]|type typename = \{ C1, ..., Cn \}|}
 \end{center}
 where \verb|C1|, \ldots, \verb|Cn| are the enumerated values, each being denoted by an identifier
 starting with an uppercase letter. For example : 
 \begin{center}
-  \example{\lstinline[language=Rfsm]|type color = { Red, Green, Orange }|}
+  \example{\lstinline[language=Rfsm]|type color = \{ Red, Green, Orange \}|}
 \end{center}
 
 
 \subsection{FSM models}
 \label{sec:fsm-models}
 
-An FSM model, introduced by the \verb|fsm model| keyword, describes the interface and behavior of a
+An FSM model, introduced by the \verb|fsm model| keywords, describes the interface and behavior of a
 \emph{reactive finite state machine}. A reactive finite state machine is a finite state machine
 whose transitions can only be caused by the occurrence of \emph{events}.
 
@@ -237,15 +235,15 @@ model). Inputs and outputs are listed between \verb|(...)|. Parameters, if prese
 \verb|<...>|. Examples :
 
 \begin{center}
-\example{\lstinline[language=Rfsm]|fsm model cntmod8(in h: event, out s: int<0..7>) { ... }|}
+\example{\lstinline[language=Rfsm]|fsm model cntmod8 (in h: event, out s: int<0..7>) \{ ... \}|}
 \end{center}
 
 \begin{center}
-\example{\lstinline[language=Rfsm]|fsm model gensig<n:int> (in h: event, in  e: bit, out s: bit) { ... }|}
+\example{\lstinline[language=Rfsm]|fsm model gensig<n:int> (in h: event, in  e: bit, out s: bit) \{ ... \}|}
 \end{center}
 
 \begin{center}
-\example{\lstinline[language=Rfsm]|fsm model update (in top: event, inout  lock: bool) { ... }|}
+\example{\lstinline[language=Rfsm]|fsm model update (in top: event, inout  lock: bool) \{ ... \}|}
 \end{center}
 
 \medskip
@@ -261,7 +259,7 @@ Each section starts with the corresponding keyword (\verb|states:|, \verb|vars:|
 \verb|itrans:| resp.) and ends with a semi-colon.
 
 \begin{center}
-\framebox{\lstinline[language=Rfsm]| fsm model ... ( ... ) { states: ...; vars: ...; trans: ...; itrans: ...; }|}
+\framebox{\lstinline[language=Rfsm]| fsm model ... ( ... ) \{ states: ...; vars: ...; trans: ...; itrans: ...; \}|}
 \end{center}
 
 \subsubsection*{States}
@@ -287,7 +285,7 @@ The \verb|vars:| section gives the set of internal variables, each with its type
 The type of a variable may depend on parameters listed in the model interface. Example
 
 \begin{center}
-\example{\lstinline[language=Rfsm]|fsm gensig<n: int> (...) { ... vars: k: int<0..n>; ... }|}
+\example{\lstinline[language=Rfsm]|fsm gensig<n: int> (...) \{ ... vars: k: int<0..n>; ... \}|}
 \end{center}
 
 The \verb|vars:| section may be omitted.
@@ -317,7 +315,7 @@ A \textbf{condition} must involve exactly one \emph{triggering event} and, possi
 conditions called \emph{guards}. The triggering event must be listed in the inputs. The guards may
 involve inputs and/or internal variables.
 
-\medskip The \texttt{actions} associated to a transition consists in modifications of the outputs
+\medskip The \textbf{actions} associated to a transition consists in modifications of the outputs
 and/or internal variables or emissions of events. Modifications of outputs and internal variables
 are denoted
 
@@ -339,7 +337,7 @@ operations is given in Table~\ref{tab:type-ops}.
 {\tt enumeration}     & {\tt = !=} \\  \hline
 \end{tabular}
 \caption{Operations on types}
-\label{tab:scalar-ops}
+\label{tab:type-ops}
 \end{center}
 \end{minipage}
 \end{table}
@@ -370,7 +368,7 @@ In the above example, the enclosing FSM switches from state \verb|Idle| to state
 
 In the above example, the enclosing FSM stays in state \verb|Wait| but increments the internal
 variable \verb|ctr| whenever an event \verb|Top| occurs and that, \emph{at this instant}, the
-value of variable \verb|ctr| is inferior to 8. 
+value of variable \verb|ctr| is smaller than 8. 
 
 \medskip
 Expressions may also involve the C-like ternary conditional operator \verb|?:|.
@@ -420,19 +418,20 @@ Interface to the external world are represented by \verb|input| and \verb|output
 \step For outputs the declaration simply gives a name and a type~:
 
 \begin{center}
-\framebox{\lstinline[language=Rfsm]'output name : type'}
+\framebox{\lstinline[language=Rfsm]'output name : typ'}
 \end{center}
 
 \step For inputs, the declaration also specifies the \textbf{stimuli} which are attached to the
 corresponding input for simulating the system.
 \begin{center}
-\framebox{\lstinline[language=Rfsm]'input name : type = stimuli'}
+\framebox{\lstinline[language=Rfsm]'input name : typ = stimuli'}
 \end{center}
 
 There are three types of stimuli~:
 periodic and
 sporadic stimuli for inputs of type \verb|event| and value changes for scalar inputs.
 
+\medskip
 Periodic stimuli are specified with a period, a starting time and an ending time.
 
 \begin{center}
@@ -480,16 +479,16 @@ The previous declaration declares \verb|E| as a global boolean input taking valu
 t=0, \texttt{true} at t=25 and \texttt{false} again at t=35.
 
 \subsubsection*{Shared objects}
-\label{sec:inputs-outputs}
+\label{sec:shared}
 
-Shared objects are used to represent inter-connections between FSM instances. This situation only
+Shared objects are used to represent interconnexions between FSM instances. This situation only
 occurs when the system model involves several FSM instances and when the input of a given instance
 is provided by the output of another one (see Section~\ref{sec:fsm-instances}).
 
 \step For shared objects the declaration simply gives a name and a type~:
 
 \begin{center}
-\framebox{\lstinline[language=Rfsm]'shared name : type'}
+\framebox{\lstinline[language=Rfsm]'shared name : typ'}
 \end{center}
 
 \subsection{Instances and system}
@@ -550,7 +549,7 @@ Here a single FSM model (\texttt{cntmod2}) is instanciated thrice, as \texttt{C0
 
 \medskip
 The graphical representation of the program is given in Fig.~\ref{fig:rfsm-cntmod8-top}. Simulation
-results are illustrated in Fig~\pageref{fig:rfsm-cntmod8-vcd}. 
+results are illustrated in Fig~\ref{fig:rfsm-cntmod8-vcd}. 
 
 \begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A multi-model RFSM
   program,label={lst:rfsm-cntmod8},float]
@@ -597,14 +596,14 @@ fsm C2 = cntmod2(R1,S2,R2)
 \subsection{Semantic issues}
 \label{sec:semantic-issues}
 
-This document deliberately focuses on syntax. Formalizing the semantics of programs made of
+This presentation of the language has deliberately focused on syntax. Formalizing the semantics of programs made of
 reactive finite state machines -- and in particular when several of these machines are interacting
 -- is actually far from trivial and will not be carried out here. 
 
 Instead, this section will describe some ``practical'' problems that may arise when simulating such
 systems and how the language currently addresses them, without delving too much into the underlying
 semantics issues\footnote{This is not that these issues do not deserve a formal treatment. Of
-  course, they do ! But we think we this document is not the right place to do it.}
+  course, they do ! But we think we this document is not the right place to do it.}.
 
 \subsubsection{Priorities}
 \label{sec:priorities}
@@ -640,18 +639,20 @@ fsm c1 = chrono(H,StartStop,Aff)
 \end{lstlisting}
 
 The problem is that if both events occur simultaneously  then
-both the transitions at line 10 and 11 are enabled. In fact, here's what we get when we try to
-simulate the above program :
+both the transitions at line 10 and 11 are enabled. In fact, here's the error message produced by
+the compiler when trying to simulate the above program :
 
+\small
 \begin{verbatim}
 Error when simulating FSM c1: non deterministic transitions found at t=70:
 	- Running--h|ctr:=ctr+1; aff:=ctr->Running[0]
 	- Running--startstop->Stopped[0]
 \end{verbatim}
+\normalsize
 
-Of course, this can avoided by modifying the stimuli attached to input \verb|StartStop| so that the
+Of course, this could be avoided by modifying the stimuli attached to input \verb|StartStop| so that the
 corresponding events are never emitted at time $t=n\times 10$. But this is, in a sence, cheating,
-since this event is supposed to modelize user interaction which occurs, by essence, at impredictible
+since this event is supposed to modelize user interaction which occur, by essence, at impredictible
 dates. 
 
 The above problem can be solved by assigning a \emph{priority} to transitions. In the current
@@ -662,9 +663,10 @@ than it is automatically selected\footnote{If none (resp. several) is (resp. are
   conflict remains, of course.}. 
 
 Syntaxically, tagging a transition is simply achieved by prefixing it with a ``\verb|*|''. In the
-case of the example above, this approach gives the following modified program, in which the
-\verb|startstop| event is given precedence against the \verb|h| event when the model is in state
-\verb|Running|~:
+case of the example above, the modified program is given in
+Listing~\ref{lst:rfsm-prio-solved}. Tagging the last transition is here equivalent to give to the
+\verb|startstop| precedence against the \verb|h| event when the model is in state
+\verb|Running|.
 
 \begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A rewriting of the model defined
   in Listing~\ref{lst:rfsm-prio-pb}, label={lst:rfsm-prio-solved},float]
@@ -706,7 +708,7 @@ interpretation, order of executions does \emph{not} matter. In the example above
 assign the value 2 to \verb|x| and 2 to \verb|y|.
 
 \medskip
-A sequential interpretation naturally fits software execution models, in which FSM variables are
+A sequential interpretation naturally fits a software execution model, in which FSM variables are
 implemented as program variables and actions as immediate modifications of these variables, whereas
 a synchronous interpretation reflects hardware execution models, in which FSM variables are
 typically implemented as registers which are updated in parallel at each clock cycle.

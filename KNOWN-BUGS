@@ -12,3 +12,5 @@ Known bugs and limitations
 
 * The mechanism of binary priority (high/low, "*"/nothing) used to resolve non-deterministic situations
   could be refined 
+
+* A portable way of building the GUI from the source distribution is still missing
