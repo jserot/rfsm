@@ -23,7 +23,7 @@ remove: [
 ]
 depends: [
   "camlp4"
-  "ocamlfind"
+  "ocamlfind" {build}
   "lascar"
 ]
 available: [ ocaml-version >= "4.06" ]
