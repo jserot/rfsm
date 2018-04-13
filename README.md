@@ -56,4 +56,9 @@ INSTALLATION
 
 Prebuilt Windows and MacOS versions can be downloaded from the [project webpage][web].
 
-Source code will be available via [github][] (`git clone https://github.com/jserot/rfsm`)
+Source code is available via [github][] (`git clone https://github.com/jserot/rfsm`).
+
+The library and the compiler are available as an [opam][] package.
+
+[github]: https://github.com/jserot/rfsm
+[opam]: https://opam.ocaml.org/packages/rfsm
