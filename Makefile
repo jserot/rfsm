@@ -3,26 +3,39 @@ include config
 
 PACKNAME=rfsm
 
-INSTALLED = src/lib/_build/*.{mli,cmi,cma} 
+LIB_INSTALLED = \
+  src/lib/_build/*.mli \
+  src/lib/_build/*.cmi \
+  src/lib/_build/*.cma 
+BIN_INSTALLED = src/compiler/rfsmc
 ifeq ($(BUILD_NATIVE),yes)
-	INSTALLED += src/lib/_build/*.{cmx,cmxa,a}
+	LIB_INSTALLED += \
+      src/lib/_build/*.cmx \
+      src/lib/_build/*.cmxa \
+      src/lib/_build/*.a
+    BIN_INSTALLED += src/compiler/rfsmc.opt
 endif
 
 QMAKE_MACOS = /Developer/Qt5.2.1/5.2.1/clang_64/bin/qmake 
 QMAKE_WIN = C:/Qt/Qt5.8.0/5.8/mingw53_32/bin/qmake.exe
 MAKE_WIN = C:/Qt/Qt5.8.0/Tools/mingw530_32/bin/mingw32-make
 
-.PHONY: compiler lib gui clean test doc install
+.PHONY: compiler lib gui clean test doc install dist
 
 all: 		lib compiler libs gui doc
-
-compiler:
-			(cd src/compiler; make)
 
 lib:
 			(cd src/lib; make byte)
 ifeq ($(BUILD_NATIVE),yes)
 			(cd src/lib; make native)
+endif
+
+compiler:
+			(cd src/compiler; make byte)
+			mv src/compiler/main.byte src/compiler/rfsmc
+ifeq ($(BUILD_NATIVE),yes)
+			(cd src/compiler; make native)
+			mv src/compiler/main.native src/compiler/rfsmc.opt
 endif
 
 gui:
@@ -76,9 +89,9 @@ install:
 	mkdir -p $(INSTALL_LIBDIR)/vhdl
 	cp lib/vhdl/*.vhd $(INSTALL_LIBDIR)/vhdl
 	mkdir -p $(INSTALL_BINDIR)
-	cp src/compiler/main.byte $(INSTALL_BINDIR)/rfsmc
+	cp src/compiler/rfsmc $(INSTALL_BINDIR)
 ifeq ($(BUILD_NATIVE),yes)
-	cp src/compiler/main.native $(INSTALL_BINDIR)/rfsmc.opt
+	cp src/compiler/rfsmc.opt $(INSTALL_BINDIR)
 endif
 ifeq ($(BUILD_GUI),yes)
 	cp src/gui/rfsm $(INSTALL_BINDIR)/rfsm
@@ -87,24 +100,28 @@ endif
 	cp -r doc/lib $(INSTALL_DOCDIR)
 	cp -r doc/um/rfsm.pdf $(INSTALL_DOCDIR)/rfsm-manual.pdf
 
-install-lib: 
+install-opam: 
 	@echo "Installing $(PACKNAME) in $(INSTALL_LIBDIR)"
 	rm -rf $(INSTALL_LIBDIR)/$(PACKNAME)
-	ocamlfind install -destdir $(INSTALL_LIBDIR) $(PACKNAME) META $(INSTALLED)
-
-install-doc:
+	ocamlfind install -destdir $(INSTALL_LIBDIR) $(PACKNAME) META $(LIB_INSTALLED)
+	@echo "Installing rfsmc in $(INSTALL_BINDIR)"
+	cp $(BIN_INSTALLED) $(INSTALL_BINDIR)
 	@echo "Installing $(PACKNAME) documentation in $(INSTALL_DOCDIR)"
 	rm -rf $(INSTALL_DOCDIR)/$(PACKNAME)
 	mkdir $(INSTALL_DOCDIR)/$(PACKNAME)
 	cp -r doc/lib/*.{html,css} $(INSTALL_DOCDIR)/$(PACKNAME)
+	@echo "Installing emacs mode in $(INSTALL_EMACSDIR)"
+	cp lib/etc/rfsm-mode.el $(INSTALL_EMACSDIR)
 
-uninstall-lib:
+uninstall-opam:
 	@echo "Removing $(PACKNAME) from $(INSTALL_LIBDIR)"
 	rm -rf $(INSTALL_LIBDIR)/$(PACKNAME)
-
-uninstall-doc:
+	@echo "Removing rfsmc from $(INSTALL_BINDIR)"
+	rm $(INSTALL_BINDIR)/rfsmc $(INSTALL_BINDIR)/rfsmc.opt
 	@echo "Removing $(PACKNAME) doc from $(INSTALL_DOCDIR)"
 	rm -rf $(INSTALL_DOCDIR)/$(PACKNAME)
+	@echo "Removing emacs mode from $(INSTALL_EMACSDIR)"
+	rm -f $(INSTALL_EMACSDIR)/rfsm-mode.el
 
 DISTDIR=/tmp/rfsm-$(VERSION)-source
 
@@ -227,4 +244,28 @@ win32-install:
 win32-installer:
 	@echo "** Building self-installer"
 	/C/Program\ Files/Inno\ Setup\ 5/iscc ./dist/windows/RfsmSetup.iss
+
+# Targets for building and deploying distribution
+
+TMPDIR=/tmp
+DISTNAME=rfsm
+DISTDIR=$(TMPDIR)/rfsm
+EXCLUDES=--exclude .git --exclude .gitignore --exclude .DS_Store
+TARBALL=$(DISTNAME).tar
+
+dist: 
+	@make -f Makefile clean
+	@rm -rf $(DISTDIR)
+	@mkdir $(DISTDIR)
+	@echo "** Copying files into $(DISTDIR)"
+	(rsync --quiet -avz $(EXCLUDES) . $(DISTDIR))
+	@ echo "** Creating tarball"
+	@(cd $(TMPDIR); tar cf $(TARBALL) $(DISTNAME); gzip -f $(TARBALL))
+	@ echo "** File $(TMPDIR)/$(TARBALL).gz is ready."
+	echo "archive: \"http://cloud.ip.univ-bpclermont.fr/~serot/rfsm/dist/rfsm.tar.gz\"" > url
+	echo "checksum: \""`md5 -q $(TMPDIR)/$(TARBALL).gz`"\"" >> url
+	@echo "Created file ./url"
+
+export:
+	ncftpput -u serot ftp.ip.uca.fr /home/www/rfsm/dist $(TMPDIR)/$(TARBALL).gz
 

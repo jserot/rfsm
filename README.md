@@ -43,7 +43,7 @@ The project web page (including links for downloading the tools) is
 
 The user manual can be found [here][usermanual]
 
-[usermanual][http://cloud.ip.uca.fr/~serot/rfsm/dist/rfsm.pdf]
+[usermanual]: http://cloud.ip.uca.fr/~serot/rfsm/dist/rfsm.pdf
 
 [web]: http://cloud.ip.uca.fr/~serot/rfsm
 

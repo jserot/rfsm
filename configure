@@ -88,9 +88,9 @@ case "$platform" in
       if [ -z "$install_docdir" ]; then install_docdir='./build/doc'; fi;
       if [ -z "$install_emacsdir" ]; then install_emacsdir='./build/share'; fi;;
   *) 
-      if [ -z "$install_bindir" ]; then install_bindir='/usr/local/bin'; fi;
+      if [ -z "$install_bindir" ]; then install_bindir=`opam config var bin`; fi;
       if [ -z "$install_libdir" ]; then install_libdir=`opam config var lib`; fi;
-      if [ -z "$install_emacsdir" ]; then install_emacsdir='/usr/local/share/emacs/site-lisp'; fi;
+      if [ -z "$install_emacsdir" ]; then install_emacsdir=`opam config var share`/emacs/site-lisp; fi;
       if [ -z "$install_docdir" ]; then install_docdir=`opam config var doc`; fi;;
 esac
 

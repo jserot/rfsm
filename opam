@@ -5,25 +5,23 @@ maintainer: "jocelyn.serot@uca.fr"
 authors: [
   "Jocelyn Sérot <jocelyn.serot@uca.fr>"
 ]
-homepage: "http://cloud.ip.univ-bpclermont.fr/~serot/rfsm/"
-dev-repo: "https://github.com/jserot/rfsm.git"
+homepage: "http://cloud.ip.uca.fr/~serot/rfsm/"
+dev-repo: "git://github.com/jserot/rfsm.git"
 bug-reports: "jocelyn.serot@uca.fr"
+license: "MIT"
 build: [
-  ["./configure"]
-  [make "lib"]
-  [make "doc"]
+  ["./configure --no-gui"]
+  [make]
 ]
 install: [
-  [make "install-lib"]
-  [make "install-doc"]
+  [make "install-opam"]
 ]
 remove: [
-  [make "uninstall-lib"]
-  [make "uninstall-doc"]
+  [make "uninstall-opam"]
 ]
 depends: [
   "camlp4"
   "ocamlfind" {build}
   "lascar"
 ]
-available: [ ocaml-version >= "4.06" ]
+available: [ ocaml-version >= "4.03" ]
