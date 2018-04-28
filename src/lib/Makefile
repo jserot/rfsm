@@ -21,13 +21,13 @@ byte:
 			$(OCB) rfsm.cma
 			\rm -f ../../lib/ml/*
 			cp _build/rfsm.cma ../../lib/ml
-			cp _build/*.{cmo,cmi} ../../lib/ml
+			cp _build/*.cmo _build/*.cmi ../../lib/ml
 			cp *.mli ../../lib/ml
 
 native:
 			$(OCB) rfsm.cmxa
-			cp _build/rfsm.{cmxa,a}  ../../lib/ml
-			cp _build/*.{cmo,cmi}  ../../lib/ml
+			cp _build/rfsm.cmxa _build/rfsm.a  ../../lib/ml
+			cp _build/*.cmx _build/*.cmi ../../lib/ml
 			cp *.mli ../../lib/ml
 
 top:

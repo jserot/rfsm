@@ -20,9 +20,11 @@ QMAKE_MACOS = /Developer/Qt5.2.1/5.2.1/clang_64/bin/qmake
 QMAKE_WIN = C:/Qt/Qt5.8.0/5.8/mingw53_32/bin/qmake.exe
 MAKE_WIN = C:/Qt/Qt5.8.0/Tools/mingw530_32/bin/mingw32-make
 
-.PHONY: compiler lib gui clean test doc install dist
+.PHONY: compiler lib gui clean test doc install dist opam opam-doc
 
 all: 		lib compiler libs gui doc
+
+opam: lib compiler opam-doc
 
 lib:
 			(cd src/lib; make byte)
@@ -59,6 +61,12 @@ doc:
 	(cd doc/um; make; cp rfsm.pdf ..)
 	pandoc -o CHANGELOG.txt CHANGELOG.md
 	pandoc -o README.txt README.md
+
+opam-doc: 
+	(cd src/lib; make doc)
+	rm -f doc/lib/*
+	cp src/lib/rfsm.docdir/* doc/lib
+	(cd doc/um; make; cp rfsm.pdf ..)
 
 clean:
 	(cd src/lib; make clean)
@@ -109,8 +117,9 @@ install-opam:
 	@echo "Installing $(PACKNAME) documentation in $(INSTALL_DOCDIR)"
 	rm -rf $(INSTALL_DOCDIR)/$(PACKNAME)
 	mkdir $(INSTALL_DOCDIR)/$(PACKNAME)
-	cp -r doc/lib/*.{html,css} $(INSTALL_DOCDIR)/$(PACKNAME)
+	cp doc/lib/*.html doc/lib/*.css $(INSTALL_DOCDIR)/$(PACKNAME)
 	@echo "Installing emacs mode in $(INSTALL_EMACSDIR)"
+	mkdir -p $(INSTALL_EMACSDIR)
 	cp lib/etc/rfsm-mode.el $(INSTALL_EMACSDIR)
 
 uninstall-opam:
