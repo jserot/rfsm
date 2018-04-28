@@ -117,7 +117,7 @@ uninstall-opam:
 	@echo "Removing $(PACKNAME) from $(INSTALL_LIBDIR)"
 	rm -rf $(INSTALL_LIBDIR)/$(PACKNAME)
 	@echo "Removing rfsmc from $(INSTALL_BINDIR)"
-	rm $(INSTALL_BINDIR)/rfsmc $(INSTALL_BINDIR)/rfsmc.opt
+	rm -f $(INSTALL_BINDIR)/rfsmc $(INSTALL_BINDIR)/rfsmc.opt
 	@echo "Removing $(PACKNAME) doc from $(INSTALL_DOCDIR)"
 	rm -rf $(INSTALL_DOCDIR)/$(PACKNAME)
 	@echo "Removing emacs mode from $(INSTALL_EMACSDIR)"
