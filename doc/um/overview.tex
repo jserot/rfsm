@@ -15,7 +15,7 @@ used to describe and simulate the model of a calibrated pulse generator. Given a
 
 \begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A simple RFSM
   program,label={lst:rfsm-gensig},float]
-type bit = int<0..1>
+type bit = int<0:1>
 
 fsm model gensig<n:int> (
   in h: event,
@@ -42,7 +42,7 @@ The program can be divided in four parts.
 
 \medskip
 The first part (line 1) introduces a \textbf{type declaration}. The type \verb|bit| is defined as
-a synonym of type \verb|int<0..1>|, \emph{i.e.} the type of integers with values between 0 and 1.
+a synonym of type \verb|int<0:1>|, \emph{i.e.} the type of integers with values between 0 and 1.
 
 \medskip The second part (lines 3--15) gives a \textbf{generic model} of the generator behavior. The
 model, named \verb|gensig|, has one parameter, \verb|n|, two inputs, \verb|h| and \verb|e|, of type
@@ -183,15 +183,22 @@ be found in Appendix~A.
 There are two categories of types~: builtin types and user defined types.
 
 \medskip
-\textbf{Builtin types} are : \texttt{bool}, \texttt{int} and \texttt{event}.
+\textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float} and \texttt{event}.
 
 \step Objects of type \texttt{bool} can have only two values : \texttt{true} and \texttt{false}.
 
 \step The type \texttt{int} can be refined using a \emph{range annotation}. The type
-\verb|int<lo..hi>| designates integer values ranging from \verb|lo| to \verb|hi|. The range limits
+\verb|int<lo:hi>| designates integer values ranging from \verb|lo| to \verb|hi|. The range limits
 \verb|lo| and \verb|hi| can be constants or expressions whose value can be computed as compile
 time (expressions involving parameter values, as exemplified line 9 in
 Listing~\ref{lst:rfsm-gensig}).  
+
+\step The operations on values of type \texttt{int} are : \verb|+|, \verb|-|, \verb|*|, \verb|/| and
+\verb|%| (modulo).
+
+\step The operations on values of type \texttt{float} are : \verb|+.|, \verb|-.|, \verb|*.|,
+\verb|/.| (the dot suffix is required to distinguish them from the corresponding operations on
+\texttt{int}s).
 
 \medskip
 \textbf{User defined types} are either \emph{type abbreviations} or \emph{enumerations}.
@@ -555,7 +562,7 @@ results are illustrated in Fig~\ref{fig:rfsm-cntmod8-vcd}.
   program,label={lst:rfsm-cntmod8},float]
 fsm model cntmod2 (
   in h: event,
-  out s: int<0..1>,
+  out s: int<0:1>,
   out r: event)
   {
   states: E0, E1;
@@ -566,9 +573,9 @@ fsm model cntmod2 (
   }
 
 input H: event = periodic(10,10,100)
-output S0: int<0..1>
-output S1: int<0..1>
-output S2: int<0..1>
+output S0: int<0:1>
+output S1: int<0:1>
+output S2: int<0:1>
 output R2: event
 
 shared R0: event

@@ -23,6 +23,7 @@ type type_expression = {
 and type_expr = 
   | TEBool
   | TEInt of int_range option
+  | TEFloat
   | TEEvent
   | TEName of string
 
@@ -159,6 +160,7 @@ let string_of_range (lo,hi) = string_of_type_index lo.ti_desc ^ ".." ^ string_of
 let string_of_type_expr t = match t with 
   | TEBool -> "bool"
   | TEInt None -> "int"
+  | TEFloat -> "float"
   | TEInt (Some (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
   | TEEvent -> "event"
   | TEName n -> n

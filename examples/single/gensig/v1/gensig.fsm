@@ -1,7 +1,7 @@
 # Generates an impulsion of duration 3.Th on output [s]
 # whenever [e=1] when [h] occurs
 
-type bit = int<0..1>
+type bit = int<0:1>
 
 fsm model gensig (
   in h: event, 

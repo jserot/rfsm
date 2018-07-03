@@ -74,6 +74,7 @@ type typ =
   | TyBool
   | TyEnum of string list
   | TyInt of int_range option
+  | TyFloat
   | TyVar of tvar           (* Only used internally for type checking *)
   | TyArrow of typ * typ    (* Only used internally for type checking *)
   | TyProduct of typ list   (* Only used internally for type checking *)
@@ -205,6 +206,7 @@ let rec type_equal ~strict t1 t2 =
   | TyInt (Some _), TyInt None
   | TyInt None, TyInt (Some _) -> if strict then false else true
   | TyInt None, TyInt None -> true
+  | TyFloat, TyFloat -> true
   | TyEnum cs1, TyEnum cs2 ->
      if strict then List.sort compare cs1 = List.sort compare cs2
      else List.for_all (function c -> List.mem c cs1) cs2
@@ -218,6 +220,7 @@ let rec type_equal ~strict t1 t2 =
 
 let type_of_value = function
   | Expr.Val_int _ -> TyInt None
+  | Expr.Val_float _ -> TyFloat
   | Expr.Val_bool _ -> TyBool
   | Expr.Val_enum c -> TyEnum [c]  (* TO FIX *)
 
@@ -229,7 +232,7 @@ let rec enums_of ty = match ty with
 
 (* Printing *)
 
-let string_of_range (lo,hi) = Index.to_string lo ^ ".." ^ Index.to_string hi
+let string_of_range (lo,hi) = Index.to_string lo ^ ":" ^ Index.to_string hi
 
 let rec string_of_type t = match t with 
   | TyEvent -> "event"
@@ -237,6 +240,7 @@ let rec string_of_type t = match t with
   | TyEnum cs -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
   | TyInt None -> "int"
   | TyInt (Some (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
+  | TyFloat -> "float"
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 

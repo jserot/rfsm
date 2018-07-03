@@ -1,13 +1,15 @@
 # A naive model of a multiplier implemented with successive additions
 # The generated VHDL code is a good starting point for hardware implementation
 
+type bit = int<0:1>
+  
 fsm model mult (
   in h: event,
-  in start: int<0..1>,
+  in start: bit,
   in n1: int,
   in n2: int,
   out r: int,
-  out rdy: int<0..1>)
+  out rdy: bit)
   {
   states: Repos, Calcul;
   vars:
@@ -22,10 +24,10 @@ fsm model mult (
   }
 
 input H: event = periodic (10,10,100)
-input Start: int<0..1> = value_changes(0:0, 15:1, 35:0)
+input Start: bit = value_changes(0:0, 15:1, 35:0)
 input N1: int = value_changes(20:6)
 input N2: int = value_changes(20:5)
 output R: int
-output Rdy: int<0..1>
+output Rdy: bit
 
 fsm m1 = mult(H,Start,N1,N2,R,Rdy)

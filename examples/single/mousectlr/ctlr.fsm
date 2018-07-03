@@ -10,7 +10,7 @@ fsm model ctlr<d:int> (
   out dclic: event)
   {
   states:  Idle, Wait;
-  vars:  ctr: int<0..d>;
+  vars:  ctr: int<0:d>;
   trans:
     Idle -- clic | ctr:=0 -> Wait,
     Wait -- clic | dclic -> Idle,

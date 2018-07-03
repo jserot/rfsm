@@ -64,11 +64,13 @@ type vhdl_type =
   | Unsigned of int
   | Signed of int
   | Integer
+  | Real
   | Boolean
 
 let rec vhdl_type_of t = match t with 
   | TyEvent -> Std_logic
   | TyBool -> Boolean
+  | TyFloat -> Real
   | TyEnum cs -> Error.not_implemented "VHDL translation of enumerated type"
   | TyInt None -> Integer
   | TyInt (Some (TiConst lo,TiConst hi)) ->
@@ -82,6 +84,7 @@ let rec string_of_vhdl_type t = match t with
   | Unsigned n -> Printf.sprintf "unsigned(%d downto 0)" (n-1)
   | Signed n -> Printf.sprintf "signed(%d downto 0)" (n-1)
   | Integer -> "integer"
+  | Real -> "real"
   | Boolean -> "boolean"
 
 let string_of_type t = string_of_vhdl_type (vhdl_type_of t)
@@ -107,13 +110,19 @@ let add_type (id,ty) =
 
 let reset_types () = global_types := []
 
+let vhdl_string_of_float x =
+  let s = string_of_float x in
+  if String.get s (String.length s - 1) = '.' then s ^ "0" else s
+  
 let string_of_value ?(ty=None) v = match v, ty with
   Expr.Val_int i, Some (Unsigned n) -> Printf.sprintf "to_unsigned(%d,%d)" i n
 | Expr.Val_int i, Some (Signed n) -> Printf.sprintf "to_signed(%d,%d)" i n
 | Expr.Val_int i, Some Std_logic -> Printf.sprintf "'%d'" i
 | Expr.Val_int i, Some Integer -> Printf.sprintf "%d" i
 | Expr.Val_int i, Some Boolean -> Error.fatal_error "Vhdl.string_of_value"
+| Expr.Val_int i, Some Real -> Printf.sprintf "%d.0" i
 | Expr.Val_int i, None -> Printf.sprintf "%d" i
+| Expr.Val_float f, _ -> vhdl_string_of_float f
 | Expr.Val_bool b, _ -> string_of_bool b
 | Expr.Val_enum s, _ -> Error.not_implemented "VHDL translation of enumerated value"
 
@@ -123,6 +132,7 @@ let string_of_ival ?(ty=None) = function
 
 let rec type_of_expr e = match e with
     Expr.EInt c -> None (* too late .. *)
+  | Expr.EFloat c -> Some (vhdl_type_of TyFloat)
   | Expr.EBool c -> Some (vhdl_type_of TyBool)
   | Expr.EEnum c -> None
   | Expr.EVar n -> lookup_type n 
@@ -156,6 +166,10 @@ let string_of_op = function
     "=" -> " = "
   | "!=" -> " /= "
   | "mod" -> " mod "
+  | "+." -> "+" 
+  | "-." -> "-" 
+  | "*." -> "*" 
+  | "/." -> "/" 
   | op ->  op
 
 let string_of_expr ?(ty=None) e =
@@ -163,6 +177,7 @@ let string_of_expr ?(ty=None) e =
   let rec string_of level e =
     match e with
       Expr.EInt c -> vhdl_string_of_int ~ty:ty  c
+    | Expr.EFloat c -> vhdl_string_of_float c
     | Expr.EBool c -> string_of_bool c
     | Expr.EEnum c -> c
     | Expr.EVar n ->  n

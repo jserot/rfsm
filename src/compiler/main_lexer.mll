@@ -27,6 +27,7 @@ let keyword_table = [
   "value_changes", VALUE_CHANGES;
   "event", TYEVENT;
   "int", TYINT;
+  "float", TYFLOAT;
   "bool", TYBOOL;
   "true", TRUE;
   "false", FALSE;
@@ -46,8 +47,8 @@ rule main = parse
       { comment !Location.input_lexbuf; main !Location.input_lexbuf }
   | '-'?['0'-'9']+
       { INT (int_of_string(Lexing.lexeme !Location.input_lexbuf)) }
-(*   | ['0'-'9']+ ('.' ['0'-'9']*\)? (['e' 'E'] ['+' '-']? ['0'-'9']+)? *)
-(*       { FLOAT (float_of_string(Lexing.lexeme !Location.input_lexbuf)) } *)
+  | ['0'-'9']+ ('.' ['0'-'9']*)? (['e' 'E'] ['+' '-']? ['0'-'9']+)?
+      { FLOAT (float_of_string(Lexing.lexeme !Location.input_lexbuf)) }
   | ";" { SEMICOLON }
   | "(" { LPAREN }
   | ")" { RPAREN }
@@ -56,7 +57,6 @@ rule main = parse
 (*   | "[" { LBRACKET } *)
 (*   | "]" { RBRACKET } *)
   | "," { COMMA }
-  | ".." { DOTDOT }
   | "." { DOT }
   | "--" { ARROW_START }
   | "->" { ARROW_END }
@@ -71,6 +71,10 @@ rule main = parse
   | '<'    { LT }
   | ">="    { GTE }
   | "<="    { LTE }
+| "+." { FPLUS }
+| "-." { FMINUS }
+| "*." { FTIMES }
+| "/." { FDIV }
 | '+' { PLUS }
 | '-' { MINUS }
 | '*' { TIMES }

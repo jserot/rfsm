@@ -43,6 +43,7 @@ let lookup env id =
 let rec eval env exp = 
   match exp with
     EInt v -> Val_int v
+  | EFloat v -> Val_float v
   | EBool v -> Val_bool v
   | EEnum c -> Val_enum c
   | EVar id -> lookup env id 

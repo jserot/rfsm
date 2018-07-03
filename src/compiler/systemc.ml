@@ -30,6 +30,7 @@ type sc_config = {
   mutable sc_stop_time: int;
   mutable sc_trace: bool;
   mutable sc_trace_state_var: string;
+  mutable sc_double_float: bool;
   }
 
 let cfg = {
@@ -44,6 +45,7 @@ let cfg = {
   sc_stop_time = 100;
   sc_trace = false;
   sc_trace_state_var = "st";
+  sc_double_float = false;
   }
 
 let rec bit_size n = if n=0 then 0 else 1 + bit_size (n/2)
@@ -56,10 +58,12 @@ let rec string_of_type t = match t with
      if lo < 0 then "sc_int<" ^ string_of_int (bit_size (max (-lo) hi)) ^ "> "
      else "sc_uint<" ^ string_of_int (bit_size hi) ^ "> "
   | TyInt _ -> "int"
+  | TyFloat -> if cfg.sc_double_float then "double" else "float"
   | _ -> raise (Error ("string_of_type", "unsupported type"))
 
 let string_of_value v = match v with
   Expr.Val_int i -> string_of_int i
+| Expr.Val_float i -> string_of_float i
 | Expr.Val_bool i -> string_of_bool i
 | Expr.Val_enum s -> s
 
@@ -67,6 +71,7 @@ exception Type_of_value
         
 let type_of_value v = match v with
   Expr.Val_int _ -> "int"
+| Expr.Val_float _ -> "float"
 | Expr.Val_bool _ -> "bool"
 | Expr.Val_enum _ -> raise Type_of_value
 
@@ -77,6 +82,10 @@ let string_of_ival = function
 let string_of_op = function
     "=" -> "=="
   | "mod" -> "%"
+  | "+." -> "+" 
+  | "-." -> "-" 
+  | "*." -> "*" 
+  | "/." -> "/" 
   | op ->  op
 
 let string_of_expr m e =
@@ -84,6 +93,7 @@ let string_of_expr m e =
   let rec string_of level e =
     match e with
       Expr.EInt c -> string_of_int c
+    | Expr.EFloat c -> string_of_float c
     | Expr.EBool c -> string_of_bool c
     | Expr.EEnum c -> c
     | Expr.EVar n -> if List.mem_assoc n (m.c_inps @ m.c_inouts) then n ^ ".read()" else n

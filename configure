@@ -122,7 +122,7 @@ echo "INSTALL_EMACSDIR=$install_emacsdir" >> config
 
 echo "# LOCAL PATHS" >> config
 pwd=`pwd`
-echo "RFSMC=$pwd/src/compiler/main.byte" >> config
+echo "RFSMC=$pwd/src/compiler/rfsmc" >> config
 echo "LIBDIR=$pwd/lib" >> config
 echo "DOT=$dotprogram" >> config
 echo "DOTVIEWER=$dotviewer" >> config

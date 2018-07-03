@@ -15,8 +15,10 @@
 %token TRANS
 %token ITRANS
 %token <int> INT
+%token <float> FLOAT
 %token TYBOOL
 %token TYINT
+%token TYFLOAT
 %token TYEVENT
 %token TRUE
 %token FALSE
@@ -40,7 +42,7 @@
 %token LTE
 %token GTE
 %token PLUS MINUS TIMES DIV MOD
-%token DOTDOT
+%token FPLUS FMINUS FTIMES FDIV
 %token ARROW_START
 %token ARROW_END
 %token BAR
@@ -49,10 +51,10 @@
 
 (* Precedences and associativities for expressions *)
 
-%nonassoc QMARK COLON     (* Lowest precedence *)
+%nonassoc QMARK COLON              (* Lowest precedence *)
 %left EQUAL NOTEQUAL GT LT GTE LTE
-%left PLUS MINUS       
-%left TIMES DIV MOD    (* Highest precedence *)
+%left PLUS MINUS FPLUS FMINUS
+%left TIMES DIV FTIMES FDIV MOD    (* Highest precedence *)
 
 %type <Syntax.program> program
 
@@ -258,11 +260,12 @@ opt_inst_params:
 typ:
   | TYEVENT { Syntax.TEEvent }
   | TYINT r=option(int_range) { Syntax.TEInt r }
+  | TYFLOAT { Syntax.TEFloat }
   | TYBOOL { Syntax.TEBool }
   | i=LID { Syntax.TEName i }
 
 int_range:
-    | LT lo=type_index_expr DOTDOT hi=type_index_expr GT
+    | LT lo=type_index_expr COLON hi=type_index_expr GT
         { (mk_type_index_expression ($symbolstartofs,$endofs) lo,
            mk_type_index_expression ($symbolstartofs,$endofs) hi) }
 
@@ -303,6 +306,8 @@ guard_expr:
 expr:
   | c = INT
       { Expr.EInt c }
+  | c = FLOAT
+      { Expr.EFloat c }
   | c = bool
       { Expr.EBool c }
   | v = LID
@@ -321,6 +326,14 @@ expr:
       { Expr.EBinop ("/", e1, e2) }
   | e1 = expr MOD e2 = expr
       { Expr.EBinop ("mod", e1, e2) }
+  | e1 = expr FPLUS e2 = expr
+      { Expr.EBinop ("+.", e1, e2) }
+  | e1 = expr FMINUS e2 = expr
+      { Expr.EBinop ("-.", e1, e2) }
+  | e1 = expr FTIMES e2 = expr
+      { Expr.EBinop ("*.", e1, e2) }
+  | e1 = expr FDIV e2 = expr
+      { Expr.EBinop ("/.", e1, e2) }
   | e1 = expr EQUAL e2 = expr
       { Expr.EBinop ("=", e1, e2) }
   | e1 = expr NOTEQUAL e2 = expr
@@ -338,6 +351,7 @@ expr:
 
 const:
   | v = INT { Expr.Val_int v }
+  | v = FLOAT { Expr.Val_float v }
   | v = bool { Expr.Val_bool v }
   | c = UID { Expr.Val_enum c }
 

@@ -36,6 +36,7 @@ let string_of_type t = match t with
 
 let string_of_value v = match v with
   Expr.Val_int i -> string_of_int i
+| Expr.Val_float b -> string_of_float b
 | Expr.Val_bool b -> string_of_bool b
 | Expr.Val_enum s -> s
 
@@ -63,6 +64,7 @@ let rec string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e = match e with
     Expr.EInt c -> string_of_int c
+  | Expr.EFloat c -> string_of_float c
   | Expr.EBool c -> string_of_bool c
   | Expr.EEnum c -> c
   | Expr.EVar n -> n

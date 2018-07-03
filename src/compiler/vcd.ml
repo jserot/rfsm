@@ -15,8 +15,15 @@ open Types
 open Fsm
 open Simul
 
-let default_state_id = "state"
-let default_int_size = 32
+type vcd_config = {
+    mutable default_int_size: int;
+    mutable float_precision: int;
+  }
+
+let cfg = {
+  default_int_size = 8;
+  float_precision = 8;
+  }
 
 let bits_for_range min max = Misc.log2 (max-min) +1 
 
@@ -31,13 +38,14 @@ let bits_of_int s n =
   Bytes.to_string b
 
 let vcd_size_of_range = function
-    None -> default_int_size
+    None -> cfg.default_int_size
   | Some (Types.Index.TiConst min, Types.Index.TiConst max) -> bits_for_range min max
   | Some _ -> Error.fatal_error "Vcd.vcd_size_of_range"
 
 let vcd_kind_of ty = match ty with
   TyEvent -> "event", 1
 | TyBool  -> "wire", 1
+| TyFloat -> "real", 1
 | TyEnum _ -> "real", 1
 | TyInt r -> "wire", vcd_size_of_range r
   | _ -> Error.fatal_error "Vcd.vcd_kind_of"
@@ -100,6 +108,7 @@ let dump_reaction oc signals (t,evs) =
       | TyEnum _, Some (Expr.Val_enum s) -> fprintf oc "s%s %c\n" s id
       | TyBool, Some (Expr.Val_bool b) -> fprintf oc "b%d %c\n" (if b then 1 else 0) id
       | TyInt r, Some (Expr.Val_int n) -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
+      | TyFloat, Some (Expr.Val_float n) -> fprintf oc "r%.*f %c\n" cfg.float_precision n id
       | _, _ -> fprintf oc "s%s %c" "Unknown" id (* should not happen *) in
   fprintf oc "#%d\n" t;
   List.iter dump_event evs

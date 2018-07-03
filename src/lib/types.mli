@@ -37,6 +37,7 @@ type typ =
   | TyBool
   | TyEnum of string list
   | TyInt of int_range option
+  | TyFloat
   | TyVar of tvar           (* Internal use only *)
   | TyArrow of typ * typ    (* Internal use only *)
   | TyProduct of typ list   (* Internal use only *)

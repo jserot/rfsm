@@ -2,7 +2,7 @@
 
 fsm model cntmod2 (
   in h: event,
-  out s: int<0..1>,
+  out s: int<0:1>,
   out r: event)
   {
   states: E0, E1;
@@ -13,9 +13,9 @@ fsm model cntmod2 (
   }
 
 input H: event = periodic(10,10,100)
-output S0: int<0..1>
-output S1: int<0..1>
-output S2: int<0..1>
+output S0: int<0:1>
+output S1: int<0:1>
+output S2: int<0:1>
 output R2: event
 
 shared R0: event

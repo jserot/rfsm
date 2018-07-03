@@ -19,6 +19,9 @@ let type_compar () =
   let tv = Types.mk_type_var () in
   { ts_params = [tv]; ts_body=TyArrow (TyProduct [TyVar tv; TyVar tv], TyBool) }
 
+let type_farithm2 () = 
+  { ts_params=[]; ts_body=TyArrow (TyProduct [TyFloat; TyFloat], TyFloat) }
+
 exception Internal_error of string
 
 let fatal_error msg = raise (Internal_error msg)
@@ -33,6 +36,11 @@ let encode_bool b =
 let rec decode_bool = function
   | Val_bool b -> b
   | _ -> fatal_error "Builtins.decode bool" (* should not happen *)
+let encode_float n =
+    Val_float n
+let rec decode_float = function
+  | Val_float n -> n
+  | _ -> fatal_error "Builtins.decode_float" (* should not happen *)
 
 let prim2 encode op decode =
   function
@@ -58,6 +66,10 @@ let env = [
     "*", (type_arithm2 (), prim2 encode_int  ( * ) decode_int);
     "/", (type_arithm2 (), prim2 encode_int  ( / ) decode_int);
     "mod", (type_arithm2 (), prim2 encode_int  ( mod ) decode_int);
+    "+.", (type_farithm2 (), prim2 encode_float  ( +. ) decode_float);
+    "-.", (type_farithm2 (), prim2 encode_float  ( -. ) decode_float);
+    "*.", (type_farithm2 (), prim2 encode_float  ( *. ) decode_float);
+    "/.", (type_farithm2 (), prim2 encode_float  ( /. ) decode_float);
     "=", (type_compar () , tprim2 ( = ));
     "!=", (type_compar (), tprim2 ( <> ));
     "<", (type_compar (), tprim2 ( < ));

@@ -30,8 +30,8 @@
 \newcommand\rfsmCOLON{\Verb|\textbf{:}|}
 \newcommand\rfsmCOMMA{\Verb|\textbf{,}|}
 \newcommand\rfsmDIV{\Verb|\textbf{/}|}
+\newcommand\rfsmFDIV{\Verb|\textbf{/.}|}
 \newcommand\rfsmDOT{\Verb|\textbf{.}|}
-\newcommand\rfsmDOTDOT{\Verb|\textbf{..}|}
 \newcommand\rfsmEOF{EOF}
 \newcommand\rfsmEQUAL{\Verb|\textbf{=}|}
 \newcommand\rfsmFSM{\Verb|\textbf{fsm}|}
@@ -45,6 +45,7 @@
 \newcommand\rfsmINPUT{\Verb|\textbf{input}|}
 \newcommand\rfsmINOUT{\Verb|\textbf{inout}|}
 \newcommand\rfsmINT{int}
+\newcommand\rfsmFLOAT{float}
 \newcommand\rfsmITRANS{\Verb|\textbf{itrans}|}
 \newcommand\rfsmQMARK{\Verb|\textbf{?}|}
 \newcommand\rfsmLBRACE{\Verb|\textbf{\{}|}
@@ -52,6 +53,7 @@
 \newcommand\rfsmLT{\Verb|\textbf{<}|}
 \newcommand\rfsmLTE{\Verb|\textbf{<=}|}
 \newcommand\rfsmMINUS{\Verb|\textbf{-}|}
+\newcommand\rfsmFMINUS{\Verb|\textbf{-.}|}
 \newcommand\rfsmMOD{\Verb|\textbf{\%}|}
 \newcommand\rfsmMODEL{\Verb|\textbf{model}|}
 \newcommand\rfsmNOTEQUAL{\Verb|\textbf{!=}|}
@@ -59,6 +61,7 @@
 \newcommand\rfsmOUTPUT{\Verb|\textbf{output}|}
 \newcommand\rfsmPERIODIC{\Verb|\textbf{periodic}|}
 \newcommand\rfsmPLUS{\Verb|\textbf{+}|}
+\newcommand\rfsmFPLUS{\Verb|\textbf{+.}|}
 \newcommand\rfsmRBRACE{\Verb|\textbf{\}}|}
 \newcommand\rfsmRPAREN{\Verb|\textbf{)}|}
 \newcommand\rfsmSEMICOLON{\Verb|\textbf{;}|}
@@ -66,10 +69,12 @@
 \newcommand\rfsmSPORADIC{\Verb|\textbf{sporadic}|}
 \newcommand\rfsmSTATES{\Verb|\textbf{states}|}
 \newcommand\rfsmTIMES{\Verb|\textbf{*}|}
+\newcommand\rfsmFTIMES{\Verb|\textbf{*.}|}
 \newcommand\rfsmTRANS{\Verb|\textbf{trans}|}
 \newcommand\rfsmTYBOOL{\Verb|\textbf{bool}|}
 \newcommand\rfsmTYEVENT{\Verb|\textbf{event}|}
 \newcommand\rfsmTYINT{\Verb|\textbf{int}|}
+\newcommand\rfsmTYFLOAT{\Verb|\textbf{float}|}
 \newcommand\rfsmVALUECHANGES{\Verb|\textbf{value\_changes}|}
 \newcommand\rfsmVARS{\Verb|\textbf{vars}|}
 \newcommand\rfsmaction{action}
@@ -113,8 +118,8 @@
 \WithSuffix\newcommand\rfsmCOLON*{\rfsmgramterm{\rfsmCOLON}}
 \WithSuffix\newcommand\rfsmCOMMA*{\rfsmgramterm{\rfsmCOMMA}}
 \WithSuffix\newcommand\rfsmDIV*{\rfsmgramterm{\rfsmDIV}}
+\WithSuffix\newcommand\rfsmFDIV*{\rfsmgramterm{\rfsmFDIV}}
 \WithSuffix\newcommand\rfsmDOT*{\rfsmgramterm{\rfsmDOT}}
-\WithSuffix\newcommand\rfsmDOTDOT*{\rfsmgramterm{\rfsmDOTDOT}}
 \WithSuffix\newcommand\rfsmEOF*{\rfsmgramterm{\rfsmEOF}}
 \WithSuffix\newcommand\rfsmEQUAL*{\rfsmgramterm{\rfsmEQUAL}}
 \WithSuffix\newcommand\rfsmFALSE*{\rfsmgramterm{\rfsmFALSE}}
@@ -125,6 +130,7 @@
 \WithSuffix\newcommand\rfsmINOUT*{\rfsmgramterm{\rfsmINOUT}}
 \WithSuffix\newcommand\rfsmINPUT*{\rfsmgramterm{\rfsmINPUT}}
 \WithSuffix\newcommand\rfsmINT*{\rfsmgramterm{\rfsmINT}}
+\WithSuffix\newcommand\rfsmFLOAT*{\rfsmgramterm{\rfsmFLOAT}}
 \WithSuffix\newcommand\rfsmITRANS*{\rfsmgramterm{\rfsmITRANS}}
 \WithSuffix\newcommand\rfsmLBRACE*{\rfsmgramterm{\rfsmLBRACE}}
 \WithSuffix\newcommand\rfsmLID*{\rfsmgramterm{\rfsmLID}}
@@ -132,6 +138,7 @@
 \WithSuffix\newcommand\rfsmLT*{\rfsmgramterm{\rfsmLT}}
 \WithSuffix\newcommand\rfsmLTE*{\rfsmgramterm{\rfsmLTE}}
 \WithSuffix\newcommand\rfsmMINUS*{\rfsmgramterm{\rfsmMINUS}}
+\WithSuffix\newcommand\rfsmFMINUS*{\rfsmgramterm{\rfsmFMINUS}}
 \WithSuffix\newcommand\rfsmMOD*{\rfsmgramterm{\rfsmMOD}}
 \WithSuffix\newcommand\rfsmMODEL*{\rfsmgramterm{\rfsmMODEL}}
 \WithSuffix\newcommand\rfsmNOTEQUAL*{\rfsmgramterm{\rfsmNOTEQUAL}}
@@ -139,6 +146,7 @@
 \WithSuffix\newcommand\rfsmOUTPUT*{\rfsmgramterm{\rfsmOUTPUT}}
 \WithSuffix\newcommand\rfsmPERIODIC*{\rfsmgramterm{\rfsmPERIODIC}}
 \WithSuffix\newcommand\rfsmPLUS*{\rfsmgramterm{\rfsmPLUS}}
+\WithSuffix\newcommand\rfsmFPLUS*{\rfsmgramterm{\rfsmFPLUS}}
 \WithSuffix\newcommand\rfsmQMARK*{\rfsmgramterm{\rfsmQMARK}}
 \WithSuffix\newcommand\rfsmRBRACE*{\rfsmgramterm{\rfsmRBRACE}}
 \WithSuffix\newcommand\rfsmRPAREN*{\rfsmgramterm{\rfsmRPAREN}}
@@ -147,11 +155,13 @@
 \WithSuffix\newcommand\rfsmSPORADIC*{\rfsmgramterm{\rfsmSPORADIC}}
 \WithSuffix\newcommand\rfsmSTATES*{\rfsmgramterm{\rfsmSTATES}}
 \WithSuffix\newcommand\rfsmTIMES*{\rfsmgramterm{\rfsmTIMES}}
+\WithSuffix\newcommand\rfsmFTIMES*{\rfsmgramterm{\rfsmFTIMES}}
 \WithSuffix\newcommand\rfsmTRANS*{\rfsmgramterm{\rfsmTRANS}}
 \WithSuffix\newcommand\rfsmTRUE*{\rfsmgramterm{\rfsmTRUE}}
 \WithSuffix\newcommand\rfsmTYBOOL*{\rfsmgramterm{\rfsmTYBOOL}}
 \WithSuffix\newcommand\rfsmTYEVENT*{\rfsmgramterm{\rfsmTYEVENT}}
 \WithSuffix\newcommand\rfsmTYINT*{\rfsmgramterm{\rfsmTYINT}}
+\WithSuffix\newcommand\rfsmTYFLOAT*{\rfsmgramterm{\rfsmTYFLOAT}}
 \WithSuffix\newcommand\rfsmTYPE*{\rfsmgramterm{\rfsmTYPE}}
 \WithSuffix\newcommand\rfsmUID*{\rfsmgramterm{\rfsmUID}}
 \WithSuffix\newcommand\rfsmVALUECHANGES*{\rfsmgramterm{\rfsmVALUECHANGES}}

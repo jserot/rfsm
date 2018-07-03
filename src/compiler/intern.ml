@@ -29,6 +29,7 @@ exception Unbound_type_ctor of string
 let rec type_of_type_expr defns params ~strict:strict te = match te with
   | TEBool -> Types.TyBool
   | TEInt None -> Types.TyInt None
+  | TEFloat -> Types.TyFloat
   | TEInt (Some (lo,hi)) -> Types.TyInt (Some (type_index_of_index_expr lo, type_index_of_index_expr hi))
   | TEEvent -> Types.TyEvent
   | TEName n ->

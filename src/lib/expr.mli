@@ -13,6 +13,7 @@
 
 type t = 
     EInt of int
+  | EFloat of float         
   | EBool of bool         
   | EEnum of string
   | EVar of string
@@ -21,6 +22,7 @@ type t =
 
 type e_val = 
   | Val_int of int
+  | Val_float of float
   | Val_bool of bool
   | Val_enum of string
 

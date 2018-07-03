@@ -2,7 +2,7 @@
 # Each impulsion of duration n.Th on input [e] generates
 # an impulsion of duration 2n.Th on output [s]
 
-type bit = int<0..1>
+type bit = int<0:1>
 
 fsm model doubleimp (
   in h: event,

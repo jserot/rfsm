@@ -1,9 +1,9 @@
-- float type [branch float]
+- pure functions in actions (ex: S1 -- cond | x:=f(z) -> S2)
 - array type [branch float]
 - Unknown value for variables
 - defactorisation wrt. variable(s)
-- pure functions in actions (ex: S1 -- cond | x:=f(z) -> S2)
 - support for enum values in the SystemC and VHDL backends
+- udpate figures on web site and doc with new syntax for integer range (':' instead of '..')
 - About window in GUI
 - support for synchronous actions in CTask and SystemC
 - bound check for ranged integers

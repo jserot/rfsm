@@ -36,6 +36,7 @@ let rec type_expression tenv expr =
       raise (Typing_error (expr, t1, t2)) in   
   match expr with
     Expr.EInt c -> TyInt None
+  | Expr.EFloat b -> TyFloat
   | Expr.EBool b -> TyBool
   | Expr.EVar id -> lookup_type "variable" tenv.te_vars id
   | Expr.EEnum c ->  lookup_type "enum value" tenv.te_ctors c

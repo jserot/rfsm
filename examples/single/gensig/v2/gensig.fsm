@@ -4,7 +4,7 @@
 # whenever [e=1] when [h] occurs
 # Here the model is instanciated with n=4 as [g4]
 
-type bit = int<0..1>
+type bit = int<0:1>
 
 fsm model gensig<n:int> (
   in h: event,
@@ -12,7 +12,7 @@ fsm model gensig<n:int> (
   out s: bit)
   {
   states: E0, E1;
-  vars: k: int<0..n>;
+  vars: k: int<0:n>;
   trans: 
     E0 -- h.e=1 | k:=1; s:=1 -> E1,
     E1 -- h.k<n | k:=k+1 -> E1,
