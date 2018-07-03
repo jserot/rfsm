@@ -1,11 +1,12 @@
-- OPAM lascar 
-- OPAM RFSM
+- float type [branch float]
+- array type [branch float]
+- Unknown value for variables
+- defactorisation wrt. variable(s)
+- pure functions in actions (ex: S1 -- cond | x:=f(z) -> S2)
 - support for enum values in the SystemC and VHDL backends
 - About window in GUI
 - support for synchronous actions in CTask and SystemC
 - bound check for ranged integers
-- float type [branch float]
-- array type [branch float]
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - var and output attr on states (Moore-style)
 - clarify mechanism for delta-waits insertion in SystemC backend

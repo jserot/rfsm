@@ -56,6 +56,8 @@ src/gui/ui_*.h
 src/gui/rfsm.app/
 src/gui/Makefile
 src/lib/rfsm.docdir
+src/compiler/rfsmc
+src/compiler/rfsmc.opt
 src/compiler/grammar-defns.sty
 src/compiler/grammar.tex
 src/compiler/options_spec.ml
