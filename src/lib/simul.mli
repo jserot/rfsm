@@ -28,6 +28,7 @@ type context = {  (** The simulator state *)
   c_date: Types.date;
   c_inputs: (string * (Types.typ * Expr.e_val option)) list;   (** Global inputs *)
   c_outputs: (string * (Types.typ * Expr.e_val option)) list;  (** Globals outputs *)
+  c_fns: (string * (Types.typ * Expr.e_val option)) list;      (* Global functions *)
   c_vars: (string * (Types.typ * Expr.e_val option)) list;     (** Shared variables *)
   c_evs: (string * (Types.typ * Expr.e_val option)) list;      (** Shared events *)
   c_fsms: Fsm.inst list * Fsm.inst list;                       (** FSMs, partitioned into active and inactive subsets *)

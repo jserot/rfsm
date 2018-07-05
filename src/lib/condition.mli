@@ -16,7 +16,7 @@ type t = event list * guard list
 
 and event = string  (** event name *)
 
-and guard = Expr.t * string * Expr.t  (** expr, rel_op, expr *)
+and guard = Expr.t
 
 val vars_of : t -> Expr.VarSet.t
 val events_of : t -> Expr.VarSet.t
@@ -39,5 +39,5 @@ val subst : Eval.env -> t -> t
 
 (** {2 Printers} *)
 
-val string_of_guard : Expr.t * string * Expr.t -> string
+val string_of_guard : guard -> string
 val to_string : t -> string

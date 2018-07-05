@@ -4,10 +4,10 @@
 (setq rfsm-font-lock-keywords
       (let* (
             ;; define several category of keywords
-            (x-keywords '("type" "fsm" "model" "in" "out" "inout" "states" "vars" "trans" "itrans" "input" "output" "shared"))
-            (x-types '("int" "bool" "event"))
+            (x-keywords '("type" "function" "fsm" "model" "in" "out" "inout" "states" "vars" "trans" "itrans" "input" "output" "shared"))
+            (x-types '("int" "bool" "float" "event"))
             (x-constants '("true" "false"))
-            (x-functions '("periodic" "sporadic" "value_changes" ))
+            (x-functions '("periodic" "sporadic" "value_changes" "return" ))
 
             ;; generate regex string for each category of keywords
             (x-keywords-regexp (regexp-opt x-keywords 'words))

@@ -25,6 +25,7 @@ type t = {
   m_fsms: Fsm.inst list;
   m_inputs: (string * global) list; 
   m_outputs: (string * global) list; 
+  m_fns: (string * global) list; 
   m_shared: (string * global) list; 
   m_stimuli: Stimuli.stimuli list;
   m_deps: dependencies;
@@ -35,6 +36,7 @@ and global = Types.typ * mg_desc
 and mg_desc =
   | MInp of istim_desc * string list     (** stimuli desc, reader(s) *)
   | MOutp of string list                 (** writer(s) *)
+  | MFun of string list * Expr.t        (** args, body *)
   | MShared of string list * string list (** writer(s), reader(s) *)
 
 and istim_desc = {
@@ -135,17 +137,17 @@ let build_dependencies fsms shared =
   { md_graph = g;
     md_node = function n -> try List.assoc n !nodes with Not_found -> failwith "Model.md_node " }
 
-let build ~name ~fsm_insts =
+let build ~name ~gfns ~fsm_insts =
   let inputs, outputs, shared = List.fold_left extract_globals ([],[],[]) fsm_insts in
   let mk_stimuli = function
       name, (ty, MInp ({sd_extension=evs}, _)) -> List.map (Stimuli.mk_stimuli name) evs
     | _ -> failwith "Model.mk_stimuli" (* should not happen *) in
   let stimuli = List.map mk_stimuli inputs in
   { m_name = name;
-    (* m_fsm_models = fsm_models; *)
     m_fsms = fsm_insts;
     m_inputs = inputs;
     m_outputs = outputs;
+    m_fns = gfns;
     m_shared = shared;
     m_stimuli = Stimuli.merge_stimuli stimuli;
     m_deps = build_dependencies fsm_insts shared;
@@ -153,8 +155,12 @@ let build ~name ~fsm_insts =
 
 (* DOT output *)
 
-let string_of_shared (name, (ty, desc)) =
-  let pfx = match desc with MInp _ -> "input" | MOutp _ -> "output" | MShared _ -> "shared" in
+let string_of_global (name, (ty, desc)) =
+  let pfx = match desc with
+    | MInp _ -> "input"
+    | MOutp _ -> "output"
+    | MFun _ -> "function"
+    | MShared _ -> "shared" in
   pfx ^ " " ^ name ^ ":" ^ Types.string_of_type ty
 
 let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(with_models=false) m =
@@ -177,9 +183,10 @@ let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(wit
     (Fsm.dot_output_oc oc ~dot_options:(Utils.Dot.SubGraph::dot_options) ~options:(GlobalNames::fsm_options))
     m.m_fsms;
   let caption = StringExt.concat_sep "\\r" 
-            [ListExt.to_string string_of_shared "\\r" m.m_inputs;
-             ListExt.to_string string_of_shared "\\r" m.m_outputs;
-             ListExt.to_string string_of_shared "\\r" m.m_shared] in
+            [ListExt.to_string string_of_global "\\r" m.m_inputs;
+             ListExt.to_string string_of_global "\\r" m.m_outputs;
+             ListExt.to_string string_of_global "\\r" m.m_fns;
+             ListExt.to_string string_of_global "\\r" m.m_shared] in
   Printf.fprintf oc "%s_globals [label=\"%s\", shape=rect, style=rounded]\n" m.m_name caption;
   Printf.fprintf oc "}\n";
   Logfile.write fname;
@@ -199,6 +206,10 @@ let dump_global oc (name,(ty,g_desc)) = match g_desc with
        name
        (Types.string_of_type ty)
        (ListExt.to_string Misc.id "," wrs)
+  | MFun (args,body) ->
+     Printf.fprintf oc "FUNCTION %s : %s\n"
+       name
+       (Types.string_of_type ty)
   | MShared (wrs,rrs) ->
      Printf.fprintf oc "SHARED %s : %s [<- %s] [-> %s])\n"
        name
@@ -232,6 +243,7 @@ let dump oc m =
   List.iter (Fsm.dump_inst oc) m.m_fsms;
   List.iter (dump_global oc) m.m_inputs;
   List.iter (dump_global oc) m.m_outputs;
+  List.iter (dump_global oc) m.m_fns;
   List.iter (dump_global oc) m.m_shared;
   List.iter (dump_stimuli oc) m.m_stimuli;
   dump_dependencies m

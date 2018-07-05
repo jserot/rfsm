@@ -600,6 +600,66 @@ fsm C2 = cntmod2(R1,S2,R2)
   \label{fig:rfsm-cntmod8-vcd}
 \end{figure}
 
+\subsection{Functions}
+\label{sec:functions}
+
+Conditions and actions associated to FSM transitions can use globally defined functions. These
+functions must be defined before the FSM models (\emph{i.e.} as an optional second section of the
+program). An example is given in listing~\ref{lst:rfsm-heron}\footnote{This example can be found in
+  directory \texttt{examples/heron/v2} in the distribution.}. The FSM described here computes an
+approximation of its input \verb|u| using Heron's classical algorithm. Successive approximations are
+computed in state \verb|Iter| and the end of computation is detected when the square of the current
+approximation \verb|x| differs from the argument (\verb|a|) from less than a given threshold
+\verb|eps|. For this, the model uses the global function \verb|f_abs| defined at the beginning of
+the program. This function computes the absolute value of its argument and is used twice in the
+definition of the FSM model \verb|heron|, for defining the condition associated to the two
+transitions going out of state \verb|Iter|.
+
+\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=An RFSM program using a global
+  function definition,label={lst:rfsm-heron},float]
+type bit = int<0:1>
+
+function f_abs(x: float) : float { return x < 0.0 ? -.x : x }
+
+fsm model Heron <eps: float> (
+  in h: event, 
+  in start: bit,
+  in u: float,
+  out rdy: bit,
+  out niter: int,
+  out r: float)
+ {
+  states: Idle, Iter;
+  vars: a: float, x:float, n:int;
+  trans:
+    Idle -- h.start=1 | a:=u; x:=u; rdy:=0; n:=0 -> Iter,
+    Iter -- h.f_abs(x*.x-.a)>=eps | x:=(x+.a/.x)/.2.0; n:=n+1 -> Iter,
+    Iter -- h.f_abs(x*.x-.a)<eps | r:=x; niter:=n; rdy:=1 -> Idle;
+  itrans: | rdy:=1 -> Idle;
+  }
+\end{lstlisting}
+
+\medskip
+\step The general form for a function definition is 
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]| function name (<arg\_1>:<type\_1>, ..., <arg\_n>:<type\_n>)\ :\ <type\_r> \{ return <expr> \}|}
+\end{center}
+
+\noindent
+where
+\begin{itemize}
+\item \lstinline[language=Rfsm]|<arg_i>| (resp. \lstinline[language=Rfsm]|<type_i>|) is the name
+  (resp. type) of the i$^{th}$ argument,
+\item \lstinline[language=Rfsm]|<type_r>| is the type of value returned by the function,
+\item \lstinline[language=Rfsm]|<expr>| is the expression defining the function value.
+\end{itemize}
+
+\medskip
+\step Functions can only return one result and cannot use local variables. There are therefore more
+like so-called \emph{macros} in the C language than full-fledged functions and are typically used to
+improve readability of the programs.
+
 \subsection{Semantic issues}
 \label{sec:semantic-issues}
 

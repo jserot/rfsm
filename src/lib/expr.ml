@@ -9,6 +9,8 @@
 (*                                                                    *)
 (**********************************************************************)
 
+open Utils
+
 type t = 
     EInt of int
   | EFloat of float         
@@ -17,18 +19,21 @@ type t =
   | EVar of string
   | EBinop of string * t * t
   | ECond of t * t * t        (** e1 ? e2 : e3 *)
+  | EFapp of string * t list  (** f(arg1,...,argn) *)
 
-type e_val = 
+and e_val = 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool
   | Val_enum of string
+  | Val_fn of string list * t   (** args, body *)
 
 let of_value = function
     Val_int v -> EInt v
   | Val_float f -> EFloat f
   | Val_bool b -> EBool b
   | Val_enum c -> EEnum c
+  | Val_fn _ -> failwith "Expr.of_value"
 
 let unset_event = None
 let set_event = Some (Val_int 1)
@@ -60,6 +65,7 @@ let string_of_value v = match v with
 | Val_float b -> string_of_float b
 | Val_bool b -> string_of_bool b
 | Val_enum s -> s
+| Val_fn _ -> "<fun>"
 
 let string_of_opt_value = function
     None -> "?"
@@ -77,3 +83,4 @@ let rec to_string e = match e with
   | EVar n -> n
   | EBinop (op,e1,e2) -> to_string e1 ^ string_of_op op ^ to_string e2 (* TODO : add parens *)
   | ECond (e1,e2,e3) -> to_string e1 ^ "?" ^ to_string e2 ^ ":" ^ to_string e3 (* TODO : add parens *)
+  | EFapp (f,args) -> f ^ "(" ^ ListExt.to_string to_string "," args ^ ")"

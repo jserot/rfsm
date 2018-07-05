@@ -223,6 +223,7 @@ let type_of_value = function
   | Expr.Val_float _ -> TyFloat
   | Expr.Val_bool _ -> TyBool
   | Expr.Val_enum c -> TyEnum [c]  (* TO FIX *)
+  | Expr.Val_fn (args,body) -> TyArrow (TyProduct (List.map (function arg -> TyBool) args),TyBool) (* TO FIX ! *)
 
 (* Accessors *)
                  

@@ -56,6 +56,20 @@ type type_declaration = {
 and type_decl =
   TD_Enum of string * string list  (* Name, constructors *)
 | TD_Alias of string * type_expr   (* Name, abbreviated type expr *)
+
+(* Function declarations *)
+
+type fn_declaration = {
+  fd_desc: fn_decl;
+  fd_loc: Location.location;
+  }
+
+and fn_decl = {
+  ff_name: string;
+  ff_args: (string * type_expression) list;
+  ff_res: type_expression;
+  ff_body: expression;
+  }
             
 (* FSM declarations *)
 
@@ -132,12 +146,13 @@ and fsm_inst_desc = {
                   
 type program = {
   p_type_decls: type_declaration list;
+  p_fn_decls: fn_declaration list;
   p_fsm_models: fsm_model list;
   p_globals: global_decl list;
   p_fsm_insts: fsm_inst list
   }
 
-let empty={ p_type_decls=[]; p_fsm_models=[]; p_globals=[]; p_fsm_insts=[] }
+let empty={ p_type_decls=[]; p_fn_decls=[]; p_fsm_models=[]; p_globals=[]; p_fsm_insts=[] }
 
 (* Printing *)
 
@@ -177,6 +192,17 @@ let dump_type_decl oc { td_desc=d } = match d with
   | TD_Enum (name, cs) ->
      Printf.printf "TYPE %s = { %s }\n" name (ListExt.to_string (function c -> c) "," cs)
 
+let string_of_fn_arg (id,ty) = id ^ ":" ^ string_of_type_expression ty
+
+let string_of_expression e = Expr.to_string e.e_desc
+                           
+let dump_fn_decl oc { fd_desc=d } =
+  Printf.printf "FUNCTION %s (%s) : %s { return %s }\n"
+    d.ff_name
+    (ListExt.to_string string_of_fn_arg "," d.ff_args)
+    (string_of_type_expression d.ff_res)
+    (string_of_expression d.ff_body)
+
 let dump_fsm_model oc { fsm_desc=m } =
   let of_list f xs = ListExt.to_string f ", " xs in
   let string_of_comp_t (id,ty) = id ^ ": " ^ string_of_type_expression ty in
@@ -212,6 +238,7 @@ let dump_fsm_inst oc {fi_desc=f} =
   
 let dump_program p =   (* for debug only *)
   List.iter (dump_type_decl stdout) p.p_type_decls;
+  List.iter (dump_fn_decl stdout) p.p_fn_decls;
   List.iter (dump_fsm_model stdout) p.p_fsm_models;
   List.iter (dump_global stdout) p.p_globals;
   List.iter (dump_fsm_inst stdout) p.p_fsm_insts

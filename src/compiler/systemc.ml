@@ -23,6 +23,7 @@ type sc_config = {
   mutable sc_lib_dir: string;
   mutable sc_inpmod_prefix: string;
   mutable sc_tb_name: string;
+  mutable sc_globals_name: string;
   mutable sc_state_var: string;
   mutable sc_proc_name: string;
   mutable sc_inp_proc_name: string;
@@ -38,6 +39,7 @@ let cfg = {
   sc_lib_dir = ".";
   sc_inpmod_prefix = "inp_";
   sc_tb_name = "tb";
+  sc_globals_name = "global_fns";
   sc_state_var = "state";
   sc_proc_name = "react";
   sc_inp_proc_name = "gen";
@@ -46,6 +48,14 @@ let cfg = {
   sc_trace = false;
   sc_trace_state_var = "st";
   sc_double_float = false;
+  }
+
+type profil = {
+    mutable has_globals: bool;
+  }
+
+let profil = {
+  has_globals = false;
   }
 
 let rec bit_size n = if n=0 then 0 else 1 + bit_size (n/2)
@@ -66,6 +76,7 @@ let string_of_value v = match v with
 | Expr.Val_float i -> string_of_float i
 | Expr.Val_bool i -> string_of_bool i
 | Expr.Val_enum s -> s
+| Expr.Val_fn _ -> "<fun>"
 
 exception Type_of_value
         
@@ -74,6 +85,7 @@ let type_of_value v = match v with
 | Expr.Val_float _ -> "float"
 | Expr.Val_bool _ -> "bool"
 | Expr.Val_enum _ -> raise Type_of_value
+| Expr.Val_fn _ -> raise Type_of_value
 
 let string_of_ival = function
     None -> ""
@@ -99,11 +111,12 @@ let string_of_expr m e =
     | Expr.EVar n -> if List.mem_assoc n (m.c_inps @ m.c_inouts) then n ^ ".read()" else n
     | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
     | Expr.ECond (e1,e2,e3) -> paren level (string_of (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
+    | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
+    | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
   in
   string_of 0 e
 
-let string_of_guard m (e1, op, e2) = 
-  string_of_expr m e1 ^ string_of_op op ^ string_of_expr m e2 (* TODO : add parens *)
+let string_of_guard m e = string_of_expr m e
 
 let string_of_action m a = match a with
   | Action.Assign (id, expr) ->
@@ -176,6 +189,7 @@ let dump_module_impl g fname m =
   let modname = String.capitalize_ascii m.c_name in
   fprintf oc "#include \"%s.h\"\n" m.c_name;
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
+  if profil.has_globals then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
   fprintf oc "void %s::%s()\n" modname cfg.sc_proc_name;
   fprintf oc "{\n";
@@ -312,6 +326,49 @@ let dump_inp_module_intf fname (id,(ty,desc)) =
   Logfile.write fname;
   close_out oc
 
+(* Dumping global functions *)
+
+let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+    fprintf oc "%s %s (%s);\n"
+      (string_of_type tr)
+      id 
+      (ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
+| _ -> ()
+
+let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+    fprintf oc "%s %s (%s) { return %s; }\n"
+      (string_of_type tr)
+      id 
+      (ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
+      (string_of_expr Cmodel.empty body)
+| _ -> ()
+
+let dump_global_fns_intf dir prefix fs =
+  let fname = dir ^ "/" ^ prefix ^ ".h" in
+  profil.has_globals <- true;
+  let oc = open_out fname in
+  Printf.fprintf oc "#ifndef _%s_h\n" cfg.sc_globals_name;
+  Printf.fprintf oc "#define _%s_h\n\n" cfg.sc_globals_name;
+  List.iter (dump_global_fn_intf oc) fs;
+  Printf.fprintf oc "\n#endif\n";
+  Logfile.write fname;
+  close_out oc
+
+let dump_global_fns_impl dir prefix fs =
+  let fname = dir ^ "/" ^ prefix ^ ".cpp" in
+  let oc = open_out fname in
+  Printf.fprintf oc "#include \"%s.h\"\n\n" prefix;
+  List.iter (dump_global_fn_impl oc) fs;
+  Logfile.write fname;
+  close_out oc
+
+let dump_globals ?(name="") ?(dir="./systemc") m =
+  let prefix = match name with "" -> cfg.sc_globals_name | p -> p in
+  dump_global_fns_intf dir prefix m.Sysm.m_fns;
+  dump_global_fns_impl dir prefix m.Sysm.m_fns
+
 (* Dumping the testbench *)
 
 let dump_stimulus oc (id,v) = match v with 
@@ -394,9 +451,10 @@ let dump_makefile ?(dir="./systemc") m =
   let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
   let open Sysm in
   fprintf oc "include %s/etc/Makefile.systemc\n\n" cfg.sc_lib_dir;
+  let globals suffix = if profil.has_globals then cfg.sc_globals_name ^ suffix else "" in
   (* fprintf oc "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
   List.iter
-    (function f -> fprintf oc "%s.o: %s.h %s.cpp\n" f.Fsm.f_name f.Fsm.f_name f.Fsm.f_name)
+    (function f -> fprintf oc "%s.o: %s.h %s.cpp %s\n" f.Fsm.f_name f.Fsm.f_name f.Fsm.f_name (globals ".h"))
     m.m_fsms;
   List.iter
     (function inp -> let name = imodname "" inp in fprintf oc "%s.o: %s.h %s.cpp\n" name name name)
@@ -406,12 +464,13 @@ let dump_makefile ?(dir="./systemc") m =
           (ListExt.to_string (modname ".h")  " " m.m_fsms)
           (ListExt.to_string (imodname ".h")  " " m.m_inputs)
           cfg.sc_tb_name;
-  let objs = sprintf "%s.o %s %s %s.o"
+  let objs = sprintf "%s.o %s %s %s %s.o"
             (cfg.sc_lib_name |> Filename.concat "systemc" |> Filename.concat cfg.sc_lib_dir)
+            (globals ".o")
             (ListExt.to_string (modname ".o")  " " m.m_fsms)
             (ListExt.to_string (imodname ".o")  " " m.m_inputs)
             cfg.sc_tb_name in
-  fprintf oc "%s: %s\n" cfg.sc_tb_name objs;
+  fprintf oc "%s: %s\n" cfg.sc_tb_name  objs;
   fprintf oc "\t$(LD) $(LDFLAGS) -o %s %s -lsystemc  2>&1 | c++filt\n" cfg.sc_tb_name objs;
   Logfile.write fname;
   close_out oc

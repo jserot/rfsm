@@ -111,7 +111,7 @@
 \rfsmgramfunc{\rfsmfsminst{}}& \rfsmgramdef & \rfsmFSM*{} \rfsmid*{}
                                               \rfsmEQUAL*{} \rfsmid*{}
                                               \rfsmgramopt{\rfsmLT*{}
-                                              \rfsmgramsepnelist{\rfsmCOMMA*{}}{\rfsmINT*{}}
+                                              \rfsmgramsepnelist{\rfsmCOMMA*{}}{\rfsmconst*{}}
                                               \rfsmGT*{}}
                                               \rfsmparen{\rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmid*{}}}
   \\& & \\
@@ -160,9 +160,9 @@
   & \rfsmgrambar &\rfsmexpr*{} \rfsmDIV*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmMOD*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmFPLUS*{} \rfsmexpr*{}\\
-  & \rfsmgrambar &\rfsmexpr*{} \rfsmMFINUS*{} \rfsmexpr*{}\\
-  & \rfsmgrambar &\rfsmexpr*{} \rfsmTFIMES*{} \rfsmexpr*{}\\
-  & \rfsmgrambar &\rfsmexpr*{} \rfsmDFIV*{} \rfsmexpr*{}\\
+  & \rfsmgrambar &\rfsmexpr*{} \rfsmFMINUS*{} \rfsmexpr*{}\\
+  & \rfsmgrambar &\rfsmexpr*{} \rfsmFTIMES*{} \rfsmexpr*{}\\
+  & \rfsmgrambar &\rfsmexpr*{} \rfsmFDIV*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmEQUAL*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmNOTEQUAL*{} \rfsmexpr*{}\\
   & \rfsmgrambar &\rfsmexpr*{} \rfsmGT*{} \rfsmexpr*{}\\
@@ -174,7 +174,7 @@
   \\& & \\
 
 \rfsmgramfunc{\rfsmconst{}}& \rfsmgramdef & \rfsmINT*{}\\
-  & \rfsmgrambar &\rfsmfloat*{}\\
+  & \rfsmgrambar &\rfsmFLOAT*{}\\
   & \rfsmgrambar &\rfsmbool*{}\\
   & \rfsmgrambar &\rfsmUID*{}
   \\& & \\

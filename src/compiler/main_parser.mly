@@ -1,4 +1,6 @@
 %token TYPE
+%token FUNCTION
+%token RETURN
 %token FSM
 %token MODEL
 %token IN
@@ -54,7 +56,8 @@
 %nonassoc QMARK COLON              (* Lowest precedence *)
 %left EQUAL NOTEQUAL GT LT GTE LTE
 %left PLUS MINUS FPLUS FMINUS
-%left TIMES DIV FTIMES FDIV MOD    (* Highest precedence *)
+%left TIMES DIV FTIMES FDIV MOD   
+%nonassoc prec_unary_minus         (* Highest precedence *)
 
 %type <Syntax.program> program
 
@@ -66,6 +69,7 @@ open Location
 let mk_location (p1,p2) = Loc (!input_name, p1, p2)
 
 let mk_type_decl p desc = { Syntax.td_desc = desc; Syntax.td_loc = mk_location p }
+let mk_fn_decl p desc = { Syntax.fd_desc = desc; Syntax.fd_loc = mk_location p }
 let mk_global_decl p desc = { Syntax.g_desc = desc; Syntax.g_loc = mk_location p }
 let mk_fsm_decl p desc = { Syntax.fsm_desc = desc; Syntax.fsm_loc = mk_location p }
 let mk_stim_decl p desc = { Syntax.stim_desc = desc; Syntax.stim_loc = mk_location p }
@@ -75,6 +79,12 @@ let mk_type_index_expression p desc = { Syntax.ti_desc = desc; Syntax.ti_loc = m
 let mk_expression p desc = { Syntax.e_desc = desc; Syntax.e_loc = mk_location p }
 let mk_condition p desc = { Syntax.cond_desc = desc; Syntax.cond_loc = mk_location p }
 let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p }
+
+let mkuminus name exp =
+  match name, exp with
+  | "-", Expr.EInt n -> Expr.EInt (-n)
+  | ("-."|"-"), Expr.EFloat n -> Expr.EFloat (-.n)
+  | _ -> Expr.EFapp ("~"^name, [exp])
 %}
 
 %%
@@ -115,11 +125,13 @@ let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p 
 
 program:
   | tydecls=my_list(type_decl)
+    fndecls=my_list(fn_decl)
     models=my_nonempty_list(fsm_model)
     globals=my_nonempty_list(global)
     fsms=my_nonempty_list(fsm_inst)
     EOF
     { { Syntax.p_type_decls = tydecls;
+        Syntax.p_fn_decls = fndecls;
         Syntax.p_fsm_models = models;
         Syntax.p_globals = globals;
         Syntax.p_fsm_insts = fsms; }
@@ -132,6 +144,29 @@ type_decl:
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Alias (id,t)) }
   | TYPE id=LID EQUAL cs=braced(my_separated_list(COMMA,UID))
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Enum (id,cs)) }
+
+(* FUNCTION DECLARATION *)
+
+fn_decl:
+  | FUNCTION
+     name=LID
+     LPAREN args=my_separated_list(COMMA, farg) RPAREN
+     COLON res=fres
+     LBRACE RETURN body=fbody RBRACE
+     { mk_fn_decl
+         ($symbolstartofs,$endofs)
+         { Syntax.ff_name=name;
+           Syntax.ff_args=args;
+           Syntax.ff_res=res;
+           Syntax.ff_body=body; } }
+farg:
+  | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+
+fres:
+  | ty=typ { mk_type_expression ($symbolstartofs,$endofs) ty }
+
+fbody:
+  | e=expr { mk_expression ($symbolstartofs,$endofs) e }
 
 (* FSM MODEL *)
 
@@ -195,10 +230,7 @@ itransition:
 
 condition:
   | ev=LID { ([ev],[]) }
-  | ev=LID DOT guards=separated_nonempty_list(DOT, guard) { ([ev], guards) }
-
-guard:
-  | e=guard_expr { e }
+  | ev=LID DOT guards=separated_nonempty_list(DOT, expr) { ([ev], guards) }
 
 actions:
   | BAR actions=separated_nonempty_list(SEMICOLON, action) { actions }
@@ -253,8 +285,13 @@ fsm_inst:
 
 opt_inst_params:
     /* Nothing */ { [] }
-  |  LT params=separated_nonempty_list(COMMA, INT) GT { List.map (function v -> Expr.Val_int v) params }
-  
+  |  LT params=separated_nonempty_list(COMMA, inst_param_value) GT { params }
+
+inst_param_value:  
+  | v=INT { Expr.Val_int v }
+  | v=FLOAT { Expr.Val_float v }
+  | v=bool { Expr.Val_bool v }
+
 (* CORE TYPE EXPRESSIONs *)
 
 typ:
@@ -287,34 +324,10 @@ type_index_expr:
   | e1 = type_index_expr MOD e2 = type_index_expr
       { Syntax.TEBinop ("mod", e1, e2) }
 
-(* GUARD EXPRESSIONS *)
-
-guard_expr:
-  | e1 = expr EQUAL e2 = expr
-      { (e1, "=", e2) }
-  | e1 = expr NOTEQUAL e2 = expr
-      { (e1, "!=", e2) }
-  | e1 = expr GT e2 = expr
-      { (e1, ">", e2) }
-  | e1 = expr LT e2 = expr
-      { (e1, "<", e2) }
-  | e1 = expr GTE e2 = expr
-      { (e1, ">=", e2) }
-  | e1 = expr LTE e2 = expr
-      { (e1, "<=", e2) }
+(* EXPRESSIONS *)
 
 expr:
-  | c = INT
-      { Expr.EInt c }
-  | c = FLOAT
-      { Expr.EFloat c }
-  | c = bool
-      { Expr.EBool c }
-  | v = LID
-      { Expr.EVar v }
-  | c = UID
-      { Expr.EEnum c }
-  | LPAREN e = expr RPAREN
+  | e = simple_expr
       { e }
   | e1 = expr PLUS e2 = expr
       { Expr.EBinop ("+", e1, e2) }
@@ -346,12 +359,40 @@ expr:
       { Expr.EBinop (">=", e1, e2) }
   | e1 = expr LTE e2 = expr
       { Expr.EBinop ("<=", e1, e2) }
+  | s=subtractive e=expr %prec prec_unary_minus
+      { mkuminus s e }
+  | f = LID LPAREN args=my_separated_list(COMMA,expr) RPAREN
+      { Expr.EFapp (f,args) }
   | e1 = expr QMARK e2 = expr COLON e3 = expr
       { Expr.ECond (e1, e2, e3) }
 
+simple_expr:
+  | v = LID
+      { Expr.EVar v }
+  | e = constant
+      { e }
+  | c = UID
+      { Expr.EEnum c }
+  | LPAREN e = expr RPAREN
+      { e }
+
+constant:
+  | c = INT
+      { Expr.EInt c }
+  | c = FLOAT
+      { Expr.EFloat c }
+  | c = bool
+      { Expr.EBool c }
+
+subtractive:
+  | MINUS                                       { "-" }
+  | FMINUS                                      { "-." }
+;
 const:
   | v = INT { Expr.Val_int v }
   | v = FLOAT { Expr.Val_float v }
+  | MINUS v = INT { Expr.Val_int (-v) }
+  | MINUS v = FLOAT { Expr.Val_float (-.v) }
   | v = bool { Expr.Val_bool v }
   | c = UID { Expr.Val_enum c }
 

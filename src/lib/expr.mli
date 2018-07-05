@@ -19,12 +19,14 @@ type t =
   | EVar of string
   | EBinop of string * t * t  (** e1 op e2 *)
   | ECond of t * t * t        (** e1 ? e2 : e3 *)
+  | EFapp of string * t list  (** f(arg1,...,argn) *)
 
-type e_val = 
+and e_val = 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool
   | Val_enum of string
+  | Val_fn of string list * t   (** args, body *)
 
 module VarSet : Set.S with type elt = string
 

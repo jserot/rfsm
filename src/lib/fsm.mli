@@ -126,6 +126,7 @@ val build_model :
   model
 
 val build_instance :
+  tenv:Typing.tenv ->
   name:string ->
   model:model ->
   params:(string * Expr.e_val) list ->
@@ -142,8 +143,6 @@ exception Internal_error of string (** where *)
 exception Invalid_state of string * string (** FSM, id *)
 exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
 exception Invalid_parameter of string * string (** FSM, name *)
-exception Type_mismatch of string * string * string * Types.typ * Types.typ (** FSM, kind, id, type, type *)
-exception Type_error of string * string * string * Types.typ * Types.typ (** FSM, what, id, type, type *)
 
 (** {2 Dynamic behavior} *)
 

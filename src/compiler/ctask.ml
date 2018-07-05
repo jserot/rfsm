@@ -32,6 +32,7 @@ let string_of_type t = match t with
   | TyBool -> "bool"
   | TyEnum cs -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
   | TyInt _ -> "int"
+  | TyFloat -> "float"
   | _ -> Error.fatal_error "Ctask.string_of_type"
 
 let string_of_value v = match v with
@@ -39,6 +40,7 @@ let string_of_value v = match v with
 | Expr.Val_float b -> string_of_float b
 | Expr.Val_bool b -> string_of_bool b
 | Expr.Val_enum s -> s
+| Expr.Val_fn _ -> "<fun>"
 
 let string_of_ival = function
     None -> ""
@@ -70,13 +72,20 @@ let rec string_of_expr e =
   | Expr.EVar n -> n
   | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
   | Expr.ECond (e1,e2,e3) ->
-     paren level (string_of (level+1) e1 ^ " ? " ^ string_of (level+1) e2 ^ " : " ^ string_of (level+1) e3) in
+     paren level (string_of (level+1) e1 ^ " ? " ^ string_of (level+1) e2 ^ " : " ^ string_of (level+1) e3)
+  | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")" in
   string_of 0 e
 
-and string_of_op = function "=" -> "==" | op ->  op
+and string_of_op = function
+    "=" -> "=="
+  | "mod" -> "%"
+  | "+." -> "+" 
+  | "-." -> "-" 
+  | "*." -> "*" 
+  | "/." -> "/" 
+  | op ->  op
 
-let string_of_guard (e1, op, e2) = 
-  string_of_expr e1 ^ string_of_op op ^ string_of_expr e2
+let string_of_guard exp = string_of_expr exp
 
 let string_of_action a = match a with
     | Action.Assign (id, expr) -> id ^ "=" ^ string_of_expr expr
@@ -161,6 +170,23 @@ let dump_module_impl m fname fsm =
 let dump_fsm ?(prefix="") ?(dir="./ctask") m f =
   let prefix = match prefix with "" -> f.f_name | p -> p in
   dump_module_impl m (dir ^ "/" ^ prefix ^ ".c") f
+
+let dump_fn oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+    fprintf oc "%s %s (%s) { return %s; }\n"
+      (string_of_type tr)
+      id 
+      (ListExt.to_string (function (a,t) -> a ^ ":" ^ string_of_type t) ";" (List.combine args ts)) 
+      (string_of_expr body)
+| _ -> ()
+
+let dump_fns ?(prefix="") ?(dir="./ctask") m =
+  let prefix = match prefix with "" -> "global_fns" | p -> p in
+  let fname = dir ^ "/" ^ prefix ^ ".c" in
+  let oc = open_out fname in
+  List.iter (dump_fn oc) m.Sysm.m_fns;
+  Logfile.write fname;
+  close_out oc
 
 (* Check whether a model can be translated *)
 

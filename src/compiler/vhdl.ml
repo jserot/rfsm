@@ -24,6 +24,7 @@ type vhdl_config = {
   mutable vhdl_lib_dir: string;
   mutable vhdl_inpmod_prefix: string;
   mutable vhdl_tb_name: string;
+  mutable vhdl_globals_name: string;
   mutable vhdl_state_var: string;
   mutable vhdl_stop_time: int;
   mutable vhdl_time_unit: string;
@@ -44,6 +45,7 @@ let cfg = {
   vhdl_lib_dir = ".";
   vhdl_inpmod_prefix = "inp_";
   vhdl_tb_name = "tb";
+  vhdl_globals_name = "globals";
   vhdl_state_var = "state";
   vhdl_stop_time = 100;
   vhdl_reset_sig = "rst";
@@ -57,6 +59,14 @@ let cfg = {
   vhdl_trace = false;
   (* vhdl_use_variables = false; *)
   vhdl_trace_state_var = "st";
+  }
+
+type profil = {
+    mutable has_globals: bool;
+  }
+
+let profil = {
+  has_globals = false;
   }
 
 type vhdl_type = 
@@ -79,15 +89,16 @@ let rec vhdl_type_of t = match t with
   | _ ->
      Error.fatal_error "Vhdl.vhdl_type_of"
 
-let rec string_of_vhdl_type t = match t with 
+let string_of_vhdl_type ?(type_marks=true) t = match t with 
   | Std_logic -> "std_logic"
-  | Unsigned n -> Printf.sprintf "unsigned(%d downto 0)" (n-1)
-  | Signed n -> Printf.sprintf "signed(%d downto 0)" (n-1)
+  | Unsigned n -> if type_marks then  Printf.sprintf "unsigned(%d downto 0)" (n-1) else "unsigned"
+  | Signed n -> if type_marks then Printf.sprintf "signed(%d downto 0)" (n-1) else "signed"
   | Integer -> "integer"
   | Real -> "real"
   | Boolean -> "boolean"
 
-let string_of_type t = string_of_vhdl_type (vhdl_type_of t)
+let string_of_type ?(type_marks=true) t =
+  string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
 
 let global_types = ref ( [] : (string * vhdl_type) list )
 
@@ -111,8 +122,9 @@ let add_type (id,ty) =
 let reset_types () = global_types := []
 
 let vhdl_string_of_float x =
-  let s = string_of_float x in
-  if String.get s (String.length s - 1) = '.' then s ^ "0" else s
+  Printf.sprintf "%#E" x
+  (* let s = string_of_float x in
+   * if String.get s (String.length s - 1) = '.' then s ^ "0" else s *)
   
 let string_of_value ?(ty=None) v = match v, ty with
   Expr.Val_int i, Some (Unsigned n) -> Printf.sprintf "to_unsigned(%d,%d)" i n
@@ -125,6 +137,7 @@ let string_of_value ?(ty=None) v = match v, ty with
 | Expr.Val_float f, _ -> vhdl_string_of_float f
 | Expr.Val_bool b, _ -> string_of_bool b
 | Expr.Val_enum s, _ -> Error.not_implemented "VHDL translation of enumerated value"
+| Expr.Val_fn _, _ -> Error.not_implemented "VHDL translation of function value"
 
 let string_of_ival ?(ty=None) = function
     None -> ""
@@ -154,6 +167,7 @@ let rec type_of_expr e = match e with
           if t1 = t2 then Some t1
           else type_error "" "ternary conditioal" "" t1 t2
       end
+  | Expr.EFapp (f,es) -> None (* TO FIX ? *)
 
 let vhdl_string_of_int ?(ty=None) n =
   match ty with
@@ -189,6 +203,8 @@ let string_of_expr ?(ty=None) e =
        | _, _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
        end
     | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
+    | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
+    | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
   in
   string_of 0 e
 
@@ -202,9 +218,7 @@ let string_of_action ?(lvars=[]) a = match a with
     | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
 let string_of_condition (e,cs) =  
-  let string_of_guard (e,op,e') =
-      let ty = type_of_expr (Expr.EBinop (op,e,e')) in 
-      string_of_expr ~ty:ty e ^ string_of_op op ^ string_of_expr ~ty:ty e' in
+  let string_of_guard gexp  = string_of_expr ~ty:(type_of_expr gexp) gexp in
   match cs with
     [] -> failwith "Vhdl.string.of_condition"
   | _ -> ListExt.to_string string_of_guard " and " cs
@@ -260,7 +274,7 @@ let dump_module_arch oc m fsm =
   fprintf oc "  process(%s, %s)\n" cfg.vhdl_reset_sig clk_sig;
   if Fsm.cfg.Fsm.act_sem = Fsm.Sequential then 
     List.iter
-      (fun (id,(ty,iv)) -> fprintf oc "  variable %s: %s;\n" id (string_of_type ty))
+      (fun (id,(ty,iv)) -> fprintf oc "    variable %s: %s;\n" id (string_of_type ty))
       m.c_vars;
   fprintf oc "  begin\n";
   fprintf oc "    if ( %s='1' ) then\n" cfg.vhdl_reset_sig;
@@ -443,6 +457,7 @@ let dump_fsm ?(prefix="") ?(dir="./vhdl") m fsm =
   fprintf oc "use ieee.numeric_std.all;\n";
   fprintf oc "library %s;\n" cfg.vhdl_support_library;
   fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package;
+  if profil.has_globals then fprintf oc "use work.%s.all;\n" cfg.vhdl_globals_name;
   fprintf oc "\n";
   dump_module_intf "entity" oc m fsm;
   fprintf oc "\n";
@@ -457,6 +472,55 @@ let dump_testbench ?(name="") ?(dir="./vhdl") m =
 let dump_model ?(dir="./vhdl") m =
   List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms
 
+(* Dumping global functions *)
+
+let rec dump_globals ?(name="") ?(dir="./systemc") m =
+  let prefix = match name with "" -> cfg.vhdl_globals_name | p -> p in
+  let fname = dir ^ "/" ^ prefix ^ ".vhd" in
+  let oc = open_out fname in
+  profil.has_globals <- true;
+  fprintf oc "library ieee;\n";
+  fprintf oc "use ieee.std_logic_1164.all;\n";
+  fprintf oc "use ieee.numeric_std.all;\n";
+  fprintf oc "library %s;\n" cfg.vhdl_support_library;
+  fprintf oc "use %s.%s.all;\n\n" cfg.vhdl_support_library cfg.vhdl_support_package;
+  dump_globals_intf oc prefix m.Sysm.m_fns;
+  fprintf oc "\n";
+  dump_globals_impl oc prefix m.Sysm.m_fns;
+  Logfile.write fname;
+  close_out oc
+
+and dump_globals_intf oc package_name fns =
+  fprintf oc "package %s is\n" package_name;
+  List.iter (dump_global_fn_sig oc) fns;
+  fprintf oc "end %s;\n" package_name
+
+and dump_global_fn_sig oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+    fprintf oc "  function %s(%s) return %s;\n"
+      id
+      (ListExt.to_string string_of_fn_arg "; "  (List.combine args ts))
+      (string_of_type ~type_marks:false tr) 
+| _ -> ()
+
+and string_of_fn_arg (id,ty) = id ^ ":" ^ (string_of_type ty)
+
+and dump_globals_impl oc package_name fns =
+  fprintf oc "package body %s is\n" package_name;
+  List.iter (dump_global_fn_impl oc) fns;
+  fprintf oc "end %s;\n" package_name
+
+and dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+    fprintf oc "function %s(%s) return %s is\n"
+      id
+      (ListExt.to_string string_of_fn_arg "; "  (List.combine args ts))
+      (string_of_type ~type_marks:false tr) ;
+    fprintf oc "  begin\n";
+    fprintf oc "    return %s;\n" (string_of_expr body);
+    fprintf oc "  end %s;\n" id
+| _ -> ()
+
 (* Dumping Makefile *)
 
 let dump_makefile ?(dir="./vhdl") m =
@@ -465,10 +529,13 @@ let dump_makefile ?(dir="./vhdl") m =
   let modname suff f = f.f_name ^ suff in
   let open Sysm in
   fprintf oc "include %s/etc/Makefile.vhdl\n\n" cfg.vhdl_lib_dir;
-  fprintf oc "%s: %s %s.vhd\n"
+  fprintf oc "%s: %s %s %s.vhd\n"
           cfg.vhdl_tb_name
+          (if profil.has_globals then cfg.vhdl_globals_name ^ ".vhd" else "")
           (ListExt.to_string (modname ".vhd") " " m.m_fsms)
           cfg.vhdl_tb_name;
+  if profil.has_globals then 
+    fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_globals_name;
   List.iter
     (function f -> fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s\n" (modname ".vhd" f))
     m.m_fsms;

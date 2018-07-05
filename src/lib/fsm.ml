@@ -138,8 +138,6 @@ exception Internal_error of string (** where *)
 exception Invalid_state of string * string (** FSM, id *)
 exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
 exception Invalid_parameter of string * string (** FSM, name *)
-exception Type_mismatch of string * string * string * Types.typ * Types.typ (** FSM, kind, id, type, type *)
-exception Type_error of string * string * string * Types.typ * Types.typ (** FSM, what, id, type, type *)
 
 exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
 
@@ -174,14 +172,14 @@ let build_model ~name ~states ~params ~ios ~vars ~trans ~itrans =
       } in
   r
 
-let type_check ~strict fsm what where ty ty'  =
+let type_check ~strict what where ty ty'  =
   if not (Types.type_equal ~strict ty ty') 
-  then raise (Type_mismatch (fsm, what, where, ty, ty'))
+  then raise (Typing.Type_error (what, where, ty, ty'))
 
 let type_check_stim fsm id ty st = match st with
   | ValueChange vcs ->
      List.iter
-       (type_check ~strict:false fsm "stimuli" id ty) 
+       (type_check ~strict:false "stimuli" ("input \"" ^ id ^ "\"") ty) 
        (List.map (function (_,v) -> Types.type_of_value v) vcs)
   | _ ->
      ()
@@ -222,63 +220,79 @@ let sanity_check tenv f =
   List.iter (check_type "inout") (List.map (function (id, (ty,_)) -> id,ty) f.f_inouts);
   List.iter (check_type "variable") (List.map (function (id, (ty,_)) -> id,ty) f.f_vars);
   (* Type checking *)
-  let type_check_guard ((e1,op,e2) as g) =
+  let type_check_guard gexp =
     try type_check
-          ~strict:true f.f_name "guard" (Condition.string_of_guard g)
-          (Typing.type_expression tenv (Expr.EBinop (op,e1,e2))) Types.TyBool
+          ~strict:true ("guard \"" ^ (Condition.string_of_guard gexp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
+          (Typing.type_expression tenv gexp) Types.TyBool
     with
-      | Typing.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "guard", Expr.to_string expr, ty, ty'))
-      | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
+    | Typing.Typing_error (expr, ty, ty') ->
+       raise (Typing.Type_error ("guard expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
+    | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
   let type_check_condition (_,gs) = List.iter type_check_guard gs in
   let type_check_action act = match act with 
     | Action.Assign (v, exp) -> 
        let t = try List.assoc v tenv.te_vars with Not_found -> raise (Internal_error "Fsm.type_check_action") in
+       let t' =
+         try Typing.type_expression tenv exp
+         with Typing.Typing_error (expr, ty, ty') ->
+               raise (Typing.Type_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty')) in
        begin
          try type_check
-               ~strict:false f.f_name "action"
+               ~strict:false
+               ("action \"" ^ Action.to_string act ^ "\"")
+               ("FSM \"" ^ f.f_name ^ "\"")
                (* [strict=false] here to accept actions like [v:=1] where [v:int<lo..hi>] *)
-               (Action.to_string act) (Typing.type_expression tenv exp) t
+               t' t
          with
-           | Typing.Typing_error (expr, ty, ty') -> raise (Type_error (f.f_name, "action", Expr.to_string expr, ty, ty'))
-           | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) 
+         | Typing.Typing_error (expr, ty, ty') ->
+            raise (Typing.Type_error ("action \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
+         | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) 
        end
     | Action.Emit s ->
        let t = try List.assoc s tenv.te_vars with Not_found -> raise (Internal_error "Fsm.type_check_action") in
-       type_check ~strict:true f.f_name "action" (Action.to_string act) t TyEvent
+       type_check ~strict:true ("action \"" ^ Action.to_string act ^ "\"") ("FSM \"" ^ f.f_name ^ "\"") t TyEvent
     | _ -> () in
   let type_check_transition (_,(cond,acts,_,_),_) =
     type_check_condition cond;
     List.iter type_check_action acts in
   List.iter type_check_transition (Repr.transitions f.f_repr)
 
-let build_instance ~name ~model ~params ~ios =
+let build_instance ~tenv ~name ~model ~params ~ios =
     let bind_param vs (p,ty) =
       match ty, List.assoc p vs with 
-        Types.TyInt _, Expr.Val_int v -> p, (ty,v)
+        Types.TyInt _, (Expr.Val_int _ as v) -> p, (ty,v)
+      | Types.TyFloat, (Expr.Val_float _ as v) -> p, (ty,v)
+      | Types.TyBool, (Expr.Val_bool _ as v) -> p, (ty,v)
       | _, _ -> raise (Invalid_parameter (name, p))
       | exception Not_found -> raise (Binding_mismatch (name, "parameters", p)) in
     let bound_params = List.map (bind_param params) model.fm_params in
-    let ienv = List.map (function id,(ty,v) -> id, v) bound_params in
+    let ienv =
+      List.fold_left
+        (fun acc (id,(ty,v)) -> match v with
+         | Expr.Val_int x -> (id,x) :: acc
+         | _ -> acc)
+      []
+      bound_params in
     let bind_io (lid,(dir,lty)) gl =
       let ty' = Types.subst_indexes ienv lty in
       match dir, gl with 
       | Types.IO_In, GInp (gid,ty,st) ->
          type_check_stim name gid ty st;
-         type_check ~strict:true name "input" gid ty ty';
+         type_check ~strict:true ("input " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_In,ty,gl)
       | Types.IO_In, GShared (gid,ty) ->
-         type_check ~strict:true name "input" gid ty ty';
+         type_check ~strict:true ("input " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_In,ty,gl)
       | Types.IO_In, _ ->
          raise (Binding_mismatch (name, "input", lid))
       | Types.IO_Out, GOutp (gid,ty)
         | Types.IO_Out, GShared (gid,ty) ->
-         type_check ~strict:true name "output" gid ty ty';
+         type_check ~strict:true ("output " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_Out,ty,gl)
       | Types.IO_Out, _ ->
          raise (Binding_mismatch (name, "output", lid))
       | Types.IO_Inout, GShared (gid,ty) ->
-         type_check ~strict:true name "inout" gid ty ty';
+         type_check ~strict:true ("inout " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_Inout,ty,gl)
       | Types.IO_Inout, _ ->
          raise (Binding_mismatch (name, "inout", lid)) in
@@ -289,12 +303,12 @@ let build_instance ~name ~model ~params ~ios =
       bound_ios
       |> List.filter (function (_,_,k,_,_) -> k=kind)
       |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
-    let ienv' = List.map (function id,v -> id, Expr.Val_int v) ienv in
+    let senv = List.map (function id,(ty,v) -> id, v) bound_params in
     let r =
       { f_name = name;
         f_model = model;
-        f_repr = Repr.map_label (TransLabel.subst ienv') model.fm_repr;
-        f_params = List.map (function id,(ty,v) -> id,(ty,Expr.Val_int v)) bound_params;
+        f_repr = Repr.map_label (TransLabel.subst senv) model.fm_repr;
+        f_params = bound_params;
         f_inps = filter_ios Types.IO_In bound_ios;
         f_outps = filter_ios Types.IO_Out bound_ios;
         f_inouts = filter_ios Types.IO_Inout bound_ios;
@@ -306,7 +320,7 @@ let build_instance ~name ~model ~params ~ios =
         f_state = "";  (* current state is not defined until the initial transition has been carried out *)
         f_has_reacted = false;
       } in
-    let tenv =
+    let tenv' =
       let vars = 
             List.map (function (id, (ty,_)) -> id, ty) r.f_params
           @ List.map (function (id, _, _, ty, _) -> id, ty) bound_ios
@@ -321,10 +335,11 @@ let build_instance ~name ~model ~params ~ios =
             (fun acc (_,ty) -> add acc (Types.enums_of ty))
             []
             vars in
-      { Typing.builtin_tenv with
-        Typing.te_vars = vars;
-        Typing.te_ctors = Typing.builtin_tenv.te_ctors @ local_ctors } in
-    sanity_check tenv r;
+      let open Typing in
+      { tenv with
+        te_vars = tenv.te_vars @ vars;
+        te_ctors = tenv.te_ctors @ local_ctors } in
+    sanity_check tenv' r;
     r
 
 (* Dynamic behavior (reactive semantics) *)
@@ -404,12 +419,16 @@ let mk_local_env f genv =
   let get_value id =
       try List.assoc (f.f_l2g id) genv
       with Not_found -> raise (Internal_error "Fsm.mk_local_env") in (* should not happen *)
+  let extract_global_fns acc (id, v) = match v with
+      Some (Expr.Val_fn _) -> (id,v) :: acc
+    | _ -> acc in
   List.map (function (id,ty) -> id, get_value id) (f.f_inps @ f.f_inouts)
   @ List.map erase_type f.f_vars
+  @ List.fold_left extract_global_fns [] genv 
 
 let rec react t genv f =
   (* Compute the reaction, at time [t] of FSM [f] in a global environment [genv].
-     The global environment contains the values of global inputs and shared objects.
+     The global environment contains the values of global inputs, shared objects and global functions.
      Return an updated fsm and list of responses consisting of
      - updates to global outputs or shared objects
      - updates to local variables (including state move) *)

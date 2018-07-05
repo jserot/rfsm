@@ -32,7 +32,8 @@ type reaction = Types.date * string * Stimuli.stimuli list * response list * str
 type context = {  (* The simulator state *)
   c_date: Types.date;
   c_inputs: (string * (Types.typ * Expr.e_val option)) list;   (* Global inputs *)
-  c_outputs: (string * (Types.typ * Expr.e_val option)) list;  (* Globals outputs *)
+  c_outputs: (string * (Types.typ * Expr.e_val option)) list;  (* Global outputs *)
+  c_fns: (string * (Types.typ * Expr.e_val option)) list;      (* Global functions *)
   c_vars: (string * (Types.typ * Expr.e_val option)) list;     (* Shared variables *)
   c_evs: (string * (Types.typ * Expr.e_val option)) list;      (* Shared events *)
   c_fsms: Fsm.inst list * Fsm.inst list;                       (* FSMs, partitioned into active and inactive subsets *)
@@ -95,7 +96,7 @@ let rec react t (ctx:context) (stimuli:(Ident.t * Expr.e_val option) list) =
   let still_active f = not f.Fsm.f_has_reacted in
   let micro_react ctx stimuli =
     let ctx' = List.fold_left update_ctx ctx stimuli in 
-    let genv = List.map erase_type (ctx'.c_inputs @ ctx'.c_vars @ ctx'.c_evs) in
+    let genv = List.map erase_type (ctx'.c_inputs @ ctx'.c_fns @ ctx'.c_vars @ ctx'.c_evs) in
     let fsms', resps =
       List.split (List.map (Fsm.react t genv) (fst ctx'.c_fsms)) in (* Only active FSMs play here.. *)
     (* TODO : check coherency for this set of resps (for ex that no global var is assigned diff value.. ) *)
@@ -152,16 +153,20 @@ let run m =
         step (ctx', (t, evs @ resps') :: resps) stims' in
           (* The events [evs] causing the reaction are included in the responses [resps] for tracing facilities .. *)
   let mk_ival (id,(ty,desc)) = id, (ty, None) in
+  let mk_gfun (id,(ty,desc)) = match desc with
+      MFun (args,body) -> id, (ty, Some (Expr.Val_fn (args, body)))
+    | _ -> failwith "Simul.run: cannot build global function description" in
   let ctx0, resps0 =
       let shared_vars, shared_evs = List.fold_left extract_shared ([],[]) m.m_shared in
       let init_ctx = {
           c_date = 0;
           c_inputs = List.map mk_ival m.m_inputs; 
           c_outputs = List.map mk_ival m.m_outputs; 
+          c_fns = List.map mk_gfun m.m_fns; 
           c_vars = shared_vars;
           c_evs = shared_evs;
           c_fsms = m.m_fsms, [] } in
-      let init_env = List.map erase_type (init_ctx.c_inputs @ init_ctx.c_vars @ init_ctx.c_evs) in
+      let init_env = List.map erase_type (init_ctx.c_inputs @ init_ctx.c_fns @ init_ctx.c_vars @ init_ctx.c_evs) in
       let fsms', resps =
         List.split (List.map (Fsm.init_fsm init_env) (fst init_ctx.c_fsms)) in 
       let resps' = List.concat resps in
@@ -184,12 +189,13 @@ let string_of_fsm f = (* short version for context printing *)
   | vs -> f.f_name ^ "={st=" ^ f.f_state ^ ";vars=" ^ ListExt.to_string string_of_var "," f.f_vars ^ "}"
 
 let dump_context c = 
-  Printf.printf "t=%4d: active_fsms=[%s] inactive_fsms=[%s] inps=[%s] outps=[%s] shared_vars=[%s] shared_evs=[%s]\n" 
+  Printf.printf "t=%4d: active_fsms=[%s] inactive_fsms=[%s] inps=[%s] outps=[%s] fns=[%s] shared_vars=[%s] shared_evs=[%s]\n" 
     c.c_date
     (ListExt.to_string string_of_fsm " " (fst c.c_fsms))
     (ListExt.to_string string_of_fsm " " (snd c.c_fsms))
     (ListExt.to_string string_of_comp " " c.c_inputs)
     (ListExt.to_string string_of_comp " " c.c_outputs)
+    (ListExt.to_string string_of_comp " " c.c_fns)
     (ListExt.to_string string_of_comp " " c.c_vars)
     (ListExt.to_string string_of_comp " " c.c_evs)
     

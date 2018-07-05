@@ -21,6 +21,7 @@ let anonymous fname = source_file := fname
 let print_banner () = 
   Printf.printf "-------------------------------------------------------------------------------------------------\n";
   Printf.printf "Reactive Finite State Machine compiler and simulator, version %s\n" Version.version;
+  Printf.printf "http://cloud.ip.uca.fr/~serot/rfsm - http://github.com/jserot/rfsm\n"; 
   Printf.printf "-------------------------------------------------------------------------------------------------\n";
   flush stdout
 
@@ -61,16 +62,19 @@ try
   | Some Options.CTask ->
        Ctask.check_allowed m;
        check_dir !Options.target_dir;
+       if m.Sysm.m_fns <> [] then Ctask.dump_fns ~dir:!Options.target_dir m;
        List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Sysm.m_fsms
   | Some Options.SystemC ->
        Systemc.check_allowed m;
        check_dir !Options.target_dir;
+       if m.Sysm.m_fns <> [] then Systemc.dump_globals ~dir:!Options.target_dir m;
        Systemc.dump_model ~dir:!Options.target_dir m;
        Systemc.dump_testbench ~dir:!Options.target_dir m;
        Systemc.dump_makefile ~dir:!Options.target_dir m
   | Some Options.Vhdl ->
        Vhdl.check_allowed m;
        check_dir !Options.target_dir;
+       if m.Sysm.m_fns <> [] then Vhdl.dump_globals ~dir:!Options.target_dir m;
        Vhdl.dump_model ~dir:!Options.target_dir m;
        Vhdl.dump_testbench ~dir:!Options.target_dir m;
        Vhdl.dump_makefile ~dir:!Options.target_dir m
@@ -115,13 +119,9 @@ with
     eprintf "Error when binding %s for FSM %s:  %s\n" what fsm id; flush stderr; exit 4
 | Fsm.Invalid_parameter (fsm, id) ->
     eprintf "Invalid parameter for FSM %s:  %s\n" fsm id; flush stderr; exit 4
-| Fsm.Type_mismatch (fsm, what, where, ty, ty') ->
-   eprintf "Error when typing %s %s in FSM %s: types %s and %s are not compatible\n"
-     what where fsm (Types.string_of_type ty) (Types.string_of_type ty');
-   flush stderr; exit 4
-| Fsm.Type_error (fsm, what, item, ty, ty') ->
-   eprintf "Error when typing %s \"%s\" for FSM %s: types %s and %s are not compatible\n"
-     what item fsm (Types.string_of_type ty) (Types.string_of_type ty');
+| Typing.Type_error (what, where, ty, ty') ->
+   eprintf "Error when typing %s in %s: types %s and %s are not compatible\n"
+     what where (Types.string_of_type ty) (Types.string_of_type ty');
    flush stderr; exit 4
 | Fsm.NonDetTrans (m,ts,t) ->
     eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Fsm.f_name t;

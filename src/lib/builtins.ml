@@ -15,12 +15,18 @@ open Expr
 let type_arithm2 () = 
   { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt None; TyInt None], TyInt None) }
 
+let type_arithm1 () = 
+  { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt None], TyInt None) }
+
 let type_compar () = 
   let tv = Types.mk_type_var () in
   { ts_params = [tv]; ts_body=TyArrow (TyProduct [TyVar tv; TyVar tv], TyBool) }
 
 let type_farithm2 () = 
   { ts_params=[]; ts_body=TyArrow (TyProduct [TyFloat; TyFloat], TyFloat) }
+
+let type_farithm1 () = 
+  { ts_params=[]; ts_body=TyArrow (TyProduct [TyFloat], TyFloat) }
 
 exception Internal_error of string
 
@@ -48,6 +54,12 @@ let prim2 encode op decode =
        encode (op (decode v1) (decode v2))
    | _ -> fatal_error "Builtins.prim2"
 
+let prim1 encode op decode =
+  function
+   | [v] ->
+       encode (op (decode v))
+   | _ -> fatal_error "Builtins.prim1"
+
 let tprim2 op =
   let decode v = v  in
   function
@@ -65,11 +77,13 @@ let env = [
     "-", (type_arithm2 (), prim2 encode_int  ( - ) decode_int);
     "*", (type_arithm2 (), prim2 encode_int  ( * ) decode_int);
     "/", (type_arithm2 (), prim2 encode_int  ( / ) decode_int);
+    "~-", (type_arithm1 (), prim1 encode_int  ( ~- ) decode_int);
     "mod", (type_arithm2 (), prim2 encode_int  ( mod ) decode_int);
     "+.", (type_farithm2 (), prim2 encode_float  ( +. ) decode_float);
     "-.", (type_farithm2 (), prim2 encode_float  ( -. ) decode_float);
     "*.", (type_farithm2 (), prim2 encode_float  ( *. ) decode_float);
     "/.", (type_farithm2 (), prim2 encode_float  ( /. ) decode_float);
+    "~-.", (type_farithm1 (), prim1 encode_float  ( ~-. ) decode_float);
     "=", (type_compar () , tprim2 ( = ));
     "!=", (type_compar (), tprim2 ( <> ));
     "<", (type_compar (), tprim2 ( < ));

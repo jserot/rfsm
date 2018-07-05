@@ -14,6 +14,7 @@
 type tenv =   (** Typing environment *)
   { te_vars: (string * Types.typ) list;
     te_ctors: (string * Types.typ) list;
+    te_defns: (string * Types.typ) list;
     te_prims: (string * Types.typ_scheme) list; }
 
 val builtin_tenv: tenv
@@ -22,6 +23,7 @@ val builtin_tenv: tenv
 
 exception Unbound_id of string * string 
 exception Typing_error of Expr.t * Types.typ * Types.typ 
+exception Type_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
 
 (** {2 Typing} *)
   

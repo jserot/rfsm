@@ -10,6 +10,8 @@ exception Lexical_error of lexical_error * int * int
 
 let keyword_table = [
   "type", TYPE;
+  "function", FUNCTION;
+  "return", RETURN;
   "fsm", FSM;
   "model", MODEL;
   "states", STATES;
@@ -45,7 +47,7 @@ rule main = parse
       { UID (Lexing.lexeme !Location.input_lexbuf) }
   | "#"
       { comment !Location.input_lexbuf; main !Location.input_lexbuf }
-  | '-'?['0'-'9']+
+  | ['0'-'9']+
       { INT (int_of_string(Lexing.lexeme !Location.input_lexbuf)) }
   | ['0'-'9']+ ('.' ['0'-'9']*)? (['e' 'E'] ['+' '-']? ['0'-'9']+)?
       { FLOAT (float_of_string(Lexing.lexeme !Location.input_lexbuf)) }

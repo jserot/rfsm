@@ -87,3 +87,17 @@ let c_model_of_fsm m f =
     c_body = List.map (mk_state_case f) (List.rev states);
     c_ddepth = Sysm.DepG.Mark.get (m.m_deps.md_node f.f_name);
     }
+
+let empty = 
+  { c_name = "";
+    c_states = [];
+    c_types = [];
+    c_consts = [];
+    c_inps = [];
+    c_outps = [];
+    c_inouts = [];
+    c_vars = [];
+    c_init = "",[];
+    c_body = [];
+    c_ddepth = 0; 
+    }
