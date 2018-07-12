@@ -230,7 +230,7 @@ let sanity_check tenv f =
     | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
   let type_check_condition (_,gs) = List.iter type_check_guard gs in
   let type_check_action act = match act with 
-    | Action.Assign (v, exp) -> 
+    | Action.Assign (Action.Var0 v, exp) -> 
        let t = try List.assoc v tenv.te_vars with Not_found -> raise (Internal_error "Fsm.type_check_action") in
        let t' =
          try Typing.type_expression tenv exp
@@ -263,6 +263,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         Types.TyInt _, (Expr.Val_int _ as v) -> p, (ty,v)
       | Types.TyFloat, (Expr.Val_float _ as v) -> p, (ty,v)
       | Types.TyBool, (Expr.Val_bool _ as v) -> p, (ty,v)
+      | Types.TyArray _, (Expr.Val_array _ as v) -> p, (ty,v)
       | _, _ -> raise (Invalid_parameter (name, p))
       | exception Not_found -> raise (Binding_mismatch (name, "parameters", p)) in
     let bound_params = List.map (bind_param params) model.fm_params in
@@ -304,6 +305,9 @@ let build_instance ~tenv ~name ~model ~params ~ios =
       |> List.filter (function (_,_,k,_,_) -> k=kind)
       |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
     let senv = List.map (function id,(ty,v) -> id, v) bound_params in
+    let mk_ival ty = match ty with
+        Types.TyArray(sz, _) -> Some (Expr.Val_array (Array.make sz Expr.Val_unknown))
+      | _ -> None in
     let r =
       { f_name = name;
         f_model = model;
@@ -312,7 +316,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         f_inps = filter_ios Types.IO_In bound_ios;
         f_outps = filter_ios Types.IO_Out bound_ios;
         f_inouts = filter_ios Types.IO_Inout bound_ios;
-        f_vars = List.map (function (id,ty) -> (id, (Types.subst_indexes ienv ty, None))) model.fm_vars;
+        f_vars = List.map (function (id,ty) -> (id, (Types.subst_indexes ienv ty, mk_ival ty))) model.fm_vars;
         f_l2g =
           mk_bindings
             ~local_names:(List.map (function (lid,_,_,_,_) -> lid) bound_ios)
@@ -348,7 +352,7 @@ exception IllegalTrans of inst * string
 exception Undeterminate of inst * string * Types.date
 exception NonDetTrans of inst * transition list * Types.date
 
-type response = string * Expr.e_val option   (* name, value (None for pure events) *)
+type response = Action.lhs * Expr.e_val option   (* dest, value (None for pure events) *)
 
 let rec replace_assoc' k v env =
   (* This is a variation on [ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *)
@@ -365,28 +369,38 @@ let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
      a list of responses [resps], and an updated (local) environment [env']. *)
   match act with
-    Action.Assign (id, expr) ->
+    Action.Assign (lhs, expr) ->
       let v = Eval.eval env expr in
+      let id, v' = 
+        begin match lhs with
+        | Var0 id -> id, v
+        | Var1 (id,idx) ->
+           begin
+             match List.assoc id env, Eval.eval env idx with
+             | Some (Val_array vs), Val_int i -> id, Val_array (Expr.array_update id vs i v)
+             | _, _ -> failwith "Fsm.do_action"
+           end
+        end  in
       if List.mem_assoc id f.f_vars then (* Local variable *)
         begin match cfg.act_sem with
         | Sequential ->
           (* In the sequential interpretation, updates of local variables are performed immediately
              and reflected in the environment (so that actions sequences such as "c:=c+1;s=c" are interpreted correctly. *)
-           { f with f_vars = replace_assoc' id (Some v) f.f_vars },
-           resps @ [Ident.Local (f.f_name, id), Some v],
+           { f with f_vars = replace_assoc' id (Some v') f.f_vars },
+           resps @ [Ident.Local (f.f_name, id), Some v'],
            resps',
-           ListExt.replace_assoc id (Some v) env
+           ListExt.replace_assoc id (Some v') env
         | Synchronous ->
           (* In the synchronous interpretation, updates of local variables are not performed immediately
              nor reflected in the environment, but only reported in [resps] so that they can be performed at the end of the
              reaction. *)
            f,
            resps,
-           resps' @ [Ident.Local (f.f_name, id), Some v],
+           resps' @ [Ident.Local (f.f_name, id), Some v'],
            env
         end
       else  (* Global IO or shared value. Updates are never performed immediately *)
-        f, resps @ [Ident.Global (f.f_l2g id), Some v], resps', env
+        f, resps @ [Ident.Global (f.f_l2g id), Some v'], resps', env
   | Action.Emit id ->
         f, resps @ [Ident.Global (f.f_l2g id), Expr.set_event], resps', env
   | Action.StateMove (id,s,s') ->

@@ -56,6 +56,13 @@ let rec type_expression tenv expr =
       unify ty_e1 TyBool;
       unify ty_e2 ty_e3;
       ty_e2
+  | Expr.EArr (a,idx) ->
+     let ty_arr = lookup_type "array" tenv.te_vars a in
+     let ty_idx = type_expression tenv idx in
+     unify ty_idx (TyInt None);
+     let ty_res = new_type_var () in
+     unify ty_arr (TyArray(size_of ty_arr, ty_res));
+     ty_res
 
 and type_application expr tenv ty_fn args =
       let ty_arg = TyProduct (List.map (type_expression tenv) args) in

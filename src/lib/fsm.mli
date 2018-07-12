@@ -146,7 +146,7 @@ exception Invalid_parameter of string * string (** FSM, name *)
 
 (** {2 Dynamic behavior} *)
 
-type response = string * Expr.e_val option
+type response = Action.lhs * Expr.e_val option
 
 val react :
   Types.date ->

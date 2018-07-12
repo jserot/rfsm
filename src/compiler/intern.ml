@@ -33,8 +33,11 @@ let rec type_of_type_expr tenv te = match te with
   | TEInt (Some (lo,hi)) -> Types.TyInt (Some (type_index_of_index_expr lo, type_index_of_index_expr hi))
   | TEEvent -> Types.TyEvent
   | TEName n ->
-     try List.assoc n tenv.Typing.te_defns
-     with Not_found -> raise (Unbound_type_ctor n)
+     begin
+       try List.assoc n tenv.Typing.te_defns
+       with Not_found -> raise (Unbound_type_ctor n)
+     end
+  | TEArray (sz, te') -> TyArray (sz, type_of_type_expr tenv te')
 
 and type_of_type_expression tenv te = type_of_type_expr tenv te.te_desc
 

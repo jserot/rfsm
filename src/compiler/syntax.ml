@@ -26,6 +26,7 @@ and type_expr =
   | TEFloat
   | TEEvent
   | TEName of string
+  | TEArray of int * type_expr
 
 and int_range = type_index_expression * type_index_expression (* min, max *)
 
@@ -172,13 +173,14 @@ let rec string_of_type_index = function
             
 let string_of_range (lo,hi) = string_of_type_index lo.ti_desc ^ ".." ^ string_of_type_index hi.ti_desc
 
-let string_of_type_expr t = match t with 
+let rec string_of_type_expr t = match t with 
   | TEBool -> "bool"
   | TEInt None -> "int"
   | TEFloat -> "float"
   | TEInt (Some (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
   | TEEvent -> "event"
   | TEName n -> n
+  | TEArray (sz,t') -> string_of_type_expr t' ^ "array[" ^ string_of_int sz ^ "]"
           
 let string_of_type_expression t = string_of_type_expr t.te_desc
 

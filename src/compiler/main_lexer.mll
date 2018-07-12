@@ -31,6 +31,7 @@ let keyword_table = [
   "int", TYINT;
   "float", TYFLOAT;
   "bool", TYBOOL;
+  "array", TYARRAY;
   "true", TRUE;
   "false", FALSE;
 ]
@@ -56,8 +57,8 @@ rule main = parse
   | ")" { RPAREN }
   | "{" { LBRACE }
   | "}" { RBRACE }
-(*   | "[" { LBRACKET } *)
-(*   | "]" { RBRACKET } *)
+  | "[" { LBRACKET }
+  | "]" { RBRACKET }
   | "," { COMMA }
   | "." { DOT }
   | "--" { ARROW_START }

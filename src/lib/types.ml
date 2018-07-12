@@ -70,11 +70,13 @@ module Index = struct
 end
 
 type typ = 
+  | TyUnknown
   | TyEvent
   | TyBool
   | TyEnum of string list
   | TyInt of int_range option
   | TyFloat
+  | TyArray of int * typ    (* size, subtype *)
   | TyVar of tvar           (* Only used internally for type checking *)
   | TyArrow of typ * typ    (* Only used internally for type checking *)
   | TyProduct of typ list   (* Only used internally for type checking *)
@@ -112,6 +114,7 @@ and real_type ty =
   match type_repr ty with
   | TyArrow (ty1,ty2) -> TyArrow (real_type ty1, real_type ty2)
   | TyProduct ts  -> TyProduct (List.map real_type ts)        
+  | TyArray (sz, ty') -> TyArray (sz, real_type ty')
   | TyVar { value=Known ty'} -> ty'
   | ty -> ty
 
@@ -129,6 +132,8 @@ let copy_type tvbs ty =
         TyArrow (copy ty1, copy ty2)
     | TyProduct ts ->
         TyProduct (List.map copy ts)
+    | TyArray (sz, ty') ->
+         TyArray (sz, copy ty')
     | ty -> ty in
   copy ty
 
@@ -162,6 +167,8 @@ let rec unify ty1 ty2 =
       unify ty2 ty2'
   | TyProduct ts1, TyProduct ts2 when List.length ts1 = List.length ts2 ->
       List.iter2 unify ts1 ts2
+  | TyArray (sz1, ty1), TyArray (sz2, ty2) when sz1 = sz2 ->
+     unify ty1 ty2
   | TyInt (Some (lo1,hi1)), TyInt (Some (lo2,hi2)) ->
      if lo1 <> lo2 || hi1 <> hi2 then raise (TypeConflict(val1, val2))
   | TyInt _, TyInt _ -> ()
@@ -216,14 +223,23 @@ let rec type_equal ~strict t1 t2 =
       type_equal ~strict ty1 ty2 && type_equal ~strict ty1' ty2'
   | TyProduct ts, TyProduct ts' when List.length ts = List.length ts'->
       List.for_all2 (type_equal ~strict) ts ts'
+  | TyArray (sz1, ty1), TyArray (sz2, ty2) -> 
+     sz1 = sz2 && type_equal ~strict ty1 ty2
   | _, _ -> false
 
-let type_of_value = function
+let rec type_of_value = function
+  | Expr.Val_unknown -> TyUnknown
   | Expr.Val_int _ -> TyInt None
   | Expr.Val_float _ -> TyFloat
   | Expr.Val_bool _ -> TyBool
   | Expr.Val_enum c -> TyEnum [c]  (* TO FIX *)
   | Expr.Val_fn (args,body) -> TyArrow (TyProduct (List.map (function arg -> TyBool) args),TyBool) (* TO FIX ! *)
+  | Expr.Val_array vs ->
+     begin
+       match Array.length vs with
+       | 0 -> failwith "Types.type_of_value"
+       | n -> TyArray(n, type_of_value vs.(0))
+     end
 
 (* Accessors *)
                  
@@ -231,11 +247,17 @@ let rec enums_of ty = match ty with
   | TyEnum cs -> List.map (function c -> c, ty) cs
   | _ -> []
 
+let size_of ty = match ty with
+  | TyArray (sz, _) -> sz
+  | TyProduct ts -> List.length ts
+  | _ -> 0
+       
 (* Printing *)
 
 let string_of_range (lo,hi) = Index.to_string lo ^ ":" ^ Index.to_string hi
 
 let rec string_of_type t = match t with 
+  | TyUnknown -> "<unknown>"
   | TyEvent -> "event"
   | TyBool -> "bool"
   | TyEnum cs -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
@@ -245,5 +267,6 @@ let rec string_of_type t = match t with
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 
+  | TyArray (sz,ty') -> string_of_type ty' ^ " array[" ^ string_of_int sz ^ "]"
 
 let string_of_type_scheme ts = "[]" ^ string_of_type ts.ts_body (* TOFIX *)

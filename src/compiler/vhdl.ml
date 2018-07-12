@@ -138,6 +138,7 @@ let string_of_value ?(ty=None) v = match v, ty with
 | Expr.Val_bool b, _ -> string_of_bool b
 | Expr.Val_enum s, _ -> Error.not_implemented "VHDL translation of enumerated value"
 | Expr.Val_fn _, _ -> Error.not_implemented "VHDL translation of function value"
+| Expr.Val_array _, _ -> Error.not_implemented "VHDL translation of array value"
 
 let string_of_ival ?(ty=None) = function
     None -> ""
@@ -168,6 +169,7 @@ let rec type_of_expr e = match e with
           else type_error "" "ternary conditioal" "" t1 t2
       end
   | Expr.EFapp (f,es) -> None (* TO FIX ? *)
+  | Expr.EArr (a,idx) -> None (* TO FIX ? *)
 
 let vhdl_string_of_int ?(ty=None) n =
   match ty with
@@ -205,12 +207,13 @@ let string_of_expr ?(ty=None) e =
     | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
     | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
+    | Expr.EArr (a,idx) -> a ^ "(" ^ string_of level idx ^ ")"
   in
   string_of 0 e
 
                                                                       
 let string_of_action ?(lvars=[]) a = match a with
-  | Action.Assign (id, expr) ->
+  | Action.Assign (Action.Var0 id, expr) ->
      let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = lookup_type id in
      id ^ asn ^ string_of_expr ~ty:ty expr
