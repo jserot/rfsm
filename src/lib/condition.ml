@@ -31,7 +31,7 @@ let to_string' (evs,gs) = Utils.ListExt.to_string Utils.Misc.id "." evs ^ string
 
 let to_string c = to_string' c
 
-type env = (string * Expr.e_val option) list
+type env = (string * Expr.e_val) list
 
 exception Illegal_guard_expr of Expr.t
                               

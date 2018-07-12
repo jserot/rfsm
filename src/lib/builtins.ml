@@ -32,38 +32,53 @@ exception Internal_error of string
 
 let fatal_error msg = raise (Internal_error msg)
                 
+exception Unknown_value
+        
 let encode_int n =
     Val_int n
 let rec decode_int = function
   | Val_int n -> n
+  | Val_unknown -> raise Unknown_value
   | _ -> fatal_error "Builtins.decode_int" (* should not happen *)
 let encode_bool b =
     Val_bool b
 let rec decode_bool = function
   | Val_bool b -> b
+  | Val_unknown -> raise Unknown_value
   | _ -> fatal_error "Builtins.decode bool" (* should not happen *)
 let encode_float n =
     Val_float n
 let rec decode_float = function
   | Val_float n -> n
+  | Val_unknown -> raise Unknown_value
   | _ -> fatal_error "Builtins.decode_float" (* should not happen *)
 
 let prim2 encode op decode =
   function
    | [v1;v2] ->
-       encode (op (decode v1) (decode v2))
+      begin
+        try encode (op (decode v1) (decode v2))
+        with Unknown_value -> Val_unknown
+      end
    | _ -> fatal_error "Builtins.prim2"
 
 let prim1 encode op decode =
   function
    | [v] ->
-       encode (op (decode v))
+      begin
+        try encode (op (decode v))
+        with Unknown_value -> Val_unknown
+      end
    | _ -> fatal_error "Builtins.prim1"
 
 let tprim2 op =
   let decode v = v  in
   function
-   | [v1;v2] -> encode_bool (op (decode v1) (decode v2))
+  | [v1;v2] ->
+      begin
+        try encode_bool (op (decode v1) (decode v2))
+        with Unknown_value -> Val_unknown
+      end
    | _ -> fatal_error "Builtins.tprim2"
 
 type prim = Expr.e_val list -> Expr.e_val

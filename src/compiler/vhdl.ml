@@ -138,6 +138,8 @@ let string_of_value ?(ty=None) v = match v, ty with
 | Expr.Val_bool b, _ -> string_of_bool b
 | Expr.Val_enum s, _ -> Error.not_implemented "VHDL translation of enumerated value"
 | Expr.Val_fn _, _ -> Error.not_implemented "VHDL translation of function value"
+| Expr.Val_unknown, _ -> "<unknown>"
+| Expr.Val_none, _ -> "<none>"
 
 let string_of_ival ?(ty=None) = function
     None -> ""

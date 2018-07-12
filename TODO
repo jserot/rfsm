@@ -1,6 +1,5 @@
 - udpate figures on web site and doc with new syntax for integer range (':' instead of '..')
-- array type [branch float]
-- Unknown value for variables
+- array type [branch arrays]
 - defactorisation wrt. variable(s)
 - support for enum values in the SystemC and VHDL backends
 - About window in GUI

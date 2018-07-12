@@ -27,6 +27,8 @@ and e_val =
   | Val_bool of bool
   | Val_enum of string
   | Val_fn of string list * t   (** args, body *)
+  | Val_unknown
+  | Val_none                    (** used for pure events *)
 
 let of_value = function
     Val_int v -> EInt v
@@ -34,9 +36,11 @@ let of_value = function
   | Val_bool b -> EBool b
   | Val_enum c -> EEnum c
   | Val_fn _ -> failwith "Expr.of_value"
+  | Val_unknown -> failwith "Expr.of_value"
+  | Val_none -> failwith "Expr.of_value"
 
-let unset_event = None
-let set_event = Some (Val_int 1)
+let unset_event = Val_bool false
+let set_event = Val_bool true
 
 module VarSet = Set.Make(struct type t = string let compare = Pervasives.compare end)
                  
@@ -66,6 +70,8 @@ let string_of_value v = match v with
 | Val_bool b -> string_of_bool b
 | Val_enum s -> s
 | Val_fn _ -> "<fun>"
+| Val_unknown -> "<unknown>"
+| Val_none -> "<none>"
 
 let string_of_opt_value = function
     None -> "?"

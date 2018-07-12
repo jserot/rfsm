@@ -11,24 +11,24 @@
 
 open Utils
    
-type event = Types.date * Expr.e_val option  (* date, value (None for pure events) *)
+type event = Types.date * Expr.e_val (* date, value ([Val_none] for pure events) *)
 
-type stimuli = Types.date * (Ident.t * Expr.e_val option) list  (* date, [name1,val1; ...; nameN,valN] *)
+type stimuli = Types.date * (Ident.t * Expr.e_val) list  (* date, [name1,val1; ...; nameN,valN] *)
              
 (* Builders *)
 
-let mk_spor_event ts = List.map (function t -> t, None) ts
+let mk_spor_event ts = List.map (function t -> t, Expr.Val_none) ts
 
 let mk_per_event per t1 t2 =
   let rec h t =
     if t <= t2
-    then (t, None) :: h (t+per)
+    then (t, Expr.Val_none) :: h (t+per)
     else [] in
   h t1
 
-let mk_val_changes chgs = List.map (function (t,v) -> t, Some v) chgs
+let mk_val_changes chgs = List.map (function (t,v) -> t, v) chgs
 
-let mk_stimuli id (t,v) = t, [Ident.Global id,v]
+let mk_stimuli id (t,v) = t, [Ident.Global id, v]
                                 
 let merge_stimuli (lss: stimuli list list) =
   let merge (l1: stimuli list) (l2: stimuli list) = 
@@ -48,13 +48,13 @@ let merge_stimuli (lss: stimuli list list) =
 (* Printing *)
 
 let string_of_event (t,v) = match v with
-  None -> string_of_int t
-| Some v -> string_of_int t ^ ":" ^ Expr.string_of_value v
+  Expr.Val_none -> string_of_int t
+| _ -> string_of_int t ^ ":" ^ Expr.string_of_value v
 
 let string_of_events evs = ListExt.to_string string_of_event "," evs
                          
 let string_of_stimuli (t,evs) =
   let string_of_ev (id,v) = match v with
-    | None -> Ident.to_string id
-    | Some v' -> Ident.to_string id ^ "=" ^ Expr.string_of_value v' in
+    | Expr.Val_none -> Ident.to_string id
+    | _ -> Ident.to_string id ^ "=" ^ Expr.string_of_value v in
   "t=" ^ string_of_int t ^ ": " ^ ListExt.to_string string_of_ev " " evs

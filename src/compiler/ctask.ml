@@ -41,10 +41,8 @@ let string_of_value v = match v with
 | Expr.Val_bool b -> string_of_bool b
 | Expr.Val_enum s -> s
 | Expr.Val_fn _ -> "<fun>"
-
-let string_of_ival = function
-    None -> ""
-  | Some v -> " = " ^ string_of_value v
+| Expr.Val_unknown -> "<unknown>"
+| Expr.Val_none -> "<none>"
 
 (*
 <case> ::= [ <async_transitions> ] [ sync_transitions ] "break"
@@ -137,10 +135,14 @@ let dump_state_case oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss
 let dump_state oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   dump_transitions oc q false evs tss
 
+
 let dump_module_impl m fname fsm =
   let m = Cmodel.c_model_of_fsm m fsm in
   let oc = open_out fname in
   let modname = String.capitalize_ascii fsm.f_name in
+  let string_of_ival = function
+    Expr.Val_none -> ""
+  | v -> " = " ^ string_of_value v in
   fprintf oc "task %s(\n" modname;
   List.iter (fun (id,ty) -> fprintf oc "  in %s %s;\n" (string_of_type ty) id) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc " out %s %s;\n" (string_of_type ty) id) m.c_outps;

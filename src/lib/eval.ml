@@ -14,7 +14,6 @@ type env = (string * Expr.e_val) list
 open Expr
 
 exception Unknown_id of string
-exception Unbound_id of string
 exception Illegal_expr of Expr.t
    
 let rec subst vs expr = match expr with
@@ -41,12 +40,8 @@ let rec subst vs expr = match expr with
   | _ -> expr
                
 let lookup env id = 
-  try
-    match List.assoc id env with
-      Some v -> v
-    | None -> raise (Unbound_id id)
-  with 
-    Not_found -> raise (Unknown_id id)
+  try List.assoc id env 
+  with Not_found -> raise (Unknown_id id)
 
 exception Illegal_application
         
@@ -71,7 +66,7 @@ let rec eval env exp =
   | EFapp (f, exps) ->
      begin match lookup env f with
      | Val_fn (args, body) -> 
-        let env' = List.map2 (fun arg exp -> arg, Some (eval env exp)) args exps in
+        let env' = List.map2 (fun arg exp -> arg, eval env exp) args exps in
         eval (env'@env) body
      | _ -> raise Illegal_application
      end in

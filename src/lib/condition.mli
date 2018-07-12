@@ -21,7 +21,7 @@ and guard = Expr.t
 val vars_of : t -> Expr.VarSet.t
 val events_of : t -> Expr.VarSet.t
 
-type env = (string * Expr.e_val option) list
+type env = (string * Expr.e_val) list
 
 exception Illegal_guard_expr of Expr.t
 

@@ -95,7 +95,7 @@ type inst = {
   f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
   f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
   f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
-  f_vars: (string * (Types.typ * Expr.e_val option)) list;  (** name, (type, value) *)
+  f_vars: (string * (Types.typ * Expr.e_val)) list;         (** name, (type, value) *)
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
   f_l2g: string -> string;                                  (** local -> global name *)
   f_state: string;                                          (** current state *)
@@ -312,7 +312,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         f_inps = filter_ios Types.IO_In bound_ios;
         f_outps = filter_ios Types.IO_Out bound_ios;
         f_inouts = filter_ios Types.IO_Inout bound_ios;
-        f_vars = List.map (function (id,ty) -> (id, (Types.subst_indexes ienv ty, None))) model.fm_vars;
+        f_vars = List.map (function (id,ty) -> (id, (Types.subst_indexes ienv ty, Expr.Val_unknown))) model.fm_vars;
         f_l2g =
           mk_bindings
             ~local_names:(List.map (function (lid,_,_,_,_) -> lid) bound_ios)
@@ -348,7 +348,10 @@ exception IllegalTrans of inst * string
 exception Undeterminate of inst * string * Types.date
 exception NonDetTrans of inst * transition list * Types.date
 
-type response = string * Expr.e_val option   (* name, value (None for pure events) *)
+type lenv = (string * Expr.e_val) list
+type genv = (Ident.t * Expr.e_val) list
+
+type response = Ident.t * Expr.e_val (** name, value  *)
 
 let rec replace_assoc' k v env =
   (* This is a variation on [ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *)
@@ -359,7 +362,7 @@ let rec replace_assoc' k v env =
 
 (* FSM environment *)
   
-type fsm_env = (string * Expr.e_val option) list
+type fsm_env = (string * Expr.e_val) list
 
 let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
@@ -372,26 +375,26 @@ let do_action (f,resps,resps',env) act =
         | Sequential ->
           (* In the sequential interpretation, updates of local variables are performed immediately
              and reflected in the environment (so that actions sequences such as "c:=c+1;s=c" are interpreted correctly. *)
-           { f with f_vars = replace_assoc' id (Some v) f.f_vars },
-           resps @ [Ident.Local (f.f_name, id), Some v],
+           { f with f_vars = replace_assoc' id v f.f_vars },
+           resps @ [Ident.Local (f.f_name, id), v],
            resps',
-           ListExt.replace_assoc id (Some v) env
+           ListExt.replace_assoc id v env
         | Synchronous ->
           (* In the synchronous interpretation, updates of local variables are not performed immediately
              nor reflected in the environment, but only reported in [resps] so that they can be performed at the end of the
              reaction. *)
            f,
            resps,
-           resps' @ [Ident.Local (f.f_name, id), Some v],
+           resps' @ [Ident.Local (f.f_name, id), v],
            env
         end
       else  (* Global IO or shared value. Updates are never performed immediately *)
-        f, resps @ [Ident.Global (f.f_l2g id), Some v], resps', env
+        f, resps @ [Ident.Global (f.f_l2g id), v], resps', env
   | Action.Emit id ->
         f, resps @ [Ident.Global (f.f_l2g id), Expr.set_event], resps', env
   | Action.StateMove (id,s,s') ->
      { f with f_state = s' },
-     resps @ [Ident.Local (f.f_name, "state"), Some (Expr.Val_enum s')],
+     resps @ [Ident.Local (f.f_name, "state"), Expr.Val_enum s'],
      resps',
      env
 
@@ -420,7 +423,7 @@ let mk_local_env f genv =
       try List.assoc (f.f_l2g id) genv
       with Not_found -> raise (Internal_error "Fsm.mk_local_env") in (* should not happen *)
   let extract_global_fns acc (id, v) = match v with
-      Some (Expr.Val_fn _) -> (id,v) :: acc
+      Expr.Val_fn _ -> (id,v) :: acc
     | _ -> acc in
   List.map (function (id,ty) -> id, get_value id) (f.f_inps @ f.f_inouts)
   @ List.map erase_type f.f_vars
@@ -432,12 +435,12 @@ let rec react t genv f =
      Return an updated fsm and list of responses consisting of
      - updates to global outputs or shared objects
      - updates to local variables (including state move) *)
-  let env = mk_local_env f genv in
+  let lenv = mk_local_env f genv in
   let cross_transition (s,(cond,acts,_,_),s') =
     let acts' = if s <> s' then Action.StateMove(f.f_name,s,s')::acts else acts in
-    let f', resps' = do_actions env f acts'  in   (* .. perform associated actions .. *)
+    let f', resps' = do_actions lenv f acts'  in   (* .. perform associated actions .. *)
     { f' with f_has_reacted=true }, resps' in
-  let ts = List.filter (fireable f env) (transitions_of f) in
+  let ts = List.filter (fireable f lenv) (transitions_of f) in
   match ts with
     [] ->                                                                 (* No transition found *)
     ({f with f_has_reacted=false}, [])
@@ -467,9 +470,9 @@ and fireable f env (s,(cond,acts,_,_),s') =
 and check_cond f env (evs,guards) =
   List.for_all (is_event_set env) evs && Condition.eval_guards env guards
 
-and is_event_set evs e = match List.assoc e evs with
-    Some _ -> true
-  | None -> false
+and is_event_set env e = match List.assoc e env with
+    Val_bool true -> true
+  | _ -> false
   | exception Not_found -> false
 
 let init_fsm genv f = match Repr.itransitions f.f_repr with

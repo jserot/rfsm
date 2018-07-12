@@ -5,6 +5,7 @@
     * Changed syntax for integer range (int<lo:hi> instead of int<lo..hi>)
     * Support for global functions (see examples/single/heron/v2)
     * Bug fix for negative constants in parser
+    * The simulator does not stop when encountering an initialized value but propagates it
 
 # 1.0 (Feb 25, 2018)
     * First public version

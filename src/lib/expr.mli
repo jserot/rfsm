@@ -27,12 +27,15 @@ and e_val =
   | Val_bool of bool
   | Val_enum of string
   | Val_fn of string list * t   (** args, body *)
+  | Val_unknown                 
+  | Val_none                    (** used for pure events *)
 
 module VarSet : Set.S with type elt = string
 
 val of_value : e_val -> t
-val unset_event : 'a option
-val set_event : e_val option
+
+val unset_event : e_val
+val set_event : e_val
 
 val vars_of : t -> VarSet.t
 val rename : (string -> string) -> t -> t

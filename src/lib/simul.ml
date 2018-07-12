@@ -23,20 +23,20 @@ let cfg = {
   max_micro_reactions = 32;
   }
 
-type stimulus = Ident.t * Expr.e_val option  (** name, value (None for pure events) *)
+type stimulus = Ident.t * Expr.e_val
 
-type response = Ident.t * Expr.e_val option   (* name, value (None for pure events) *)
+type response = Ident.t * Expr.e_val 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
 type context = {  (* The simulator state *)
   c_date: Types.date;
-  c_inputs: (string * (Types.typ * Expr.e_val option)) list;   (* Global inputs *)
-  c_outputs: (string * (Types.typ * Expr.e_val option)) list;  (* Global outputs *)
-  c_fns: (string * (Types.typ * Expr.e_val option)) list;      (* Global functions *)
-  c_vars: (string * (Types.typ * Expr.e_val option)) list;     (* Shared variables *)
-  c_evs: (string * (Types.typ * Expr.e_val option)) list;      (* Shared events *)
-  c_fsms: Fsm.inst list * Fsm.inst list;                       (* FSMs, partitioned into active and inactive subsets *)
+  c_inputs: (string * (Types.typ * Expr.e_val)) list;   (* Global inputs *)
+  c_outputs: (string * (Types.typ * Expr.e_val)) list;  (* Global outputs *)
+  c_fns: (string * (Types.typ * Expr.e_val)) list;      (* Global functions *)
+  c_vars: (string * (Types.typ * Expr.e_val)) list;     (* Shared variables *)
+  c_evs: (string * (Types.typ * Expr.e_val)) list;      (* Shared events *)
+  c_fsms: Fsm.inst list * Fsm.inst list;                (* FSMs, partitioned into active and inactive subsets *)
   }
 
 let update_ctx ctx = function
@@ -53,7 +53,7 @@ let update_ctx ctx = function
      ctx
 
 let string_of_context c = 
-  let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_opt_value v in
+  let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_value v in
   let string_of_fsm f = f.Fsm.f_name ^ ".st=" ^ f.Fsm.f_state in
   Printf.sprintf "{fsms=[%s / %s] inps=[%s] outps=[%s] shared=[%s]}"
     (ListExt.to_string string_of_fsm "," (fst c.c_fsms))
@@ -76,20 +76,18 @@ let global_updates resps =
 
 let erase_type (id,(ty,v)) = id, v
 
-let string_of_event (id,v) = match v with
-  None -> Ident.to_string id
-| Some v -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
+let string_of_event (id,v) = Ident.to_string id ^ ":=" ^ Expr.string_of_value v
 
 let string_of_events evs = "[" ^ ListExt.to_string string_of_event "," evs ^ "]"
 
-let rec react t (ctx:context) (stimuli:(Ident.t * Expr.e_val option) list) =
+let rec react t (ctx:context) (stimuli:(Ident.t * Expr.e_val) list) =
   let is_reentrant =     (* A reentrant stimulus is one which can trigger a micro-reaction *)
     function
     | Ident.Global n, v -> 
        begin
          match List.mem_assoc n ctx.c_evs, List.mem_assoc n ctx.c_vars, v with
-         true, _, Some _ -> true   (* shared event, currently set *)
-       | false, true, _ -> true    (* shared variable, regardless of its value *)
+         true, _, Expr.Val_bool true -> true   (* shared event, currently set *)
+       | false, true, _ -> true                (* shared variable, regardless of its value *)
        | _, _, _ -> false
        end
     | Ident.Local _, _ -> false in
@@ -121,7 +119,7 @@ let rec react t (ctx:context) (stimuli:(Ident.t * Expr.e_val option) list) =
          let ctx'' =
            { ctx' with c_inputs = List.map erase_inst_event ctx'.c_inputs;  (* Erase all events *)
                        c_evs = List.map erase_inst_event ctx'.c_evs;
-                       c_fsms = fst ctx'.c_fsms @ snd ctx'.c_fsms, []; (* All FSMs return to potetntially active status *) } in
+                       c_fsms = fst ctx'.c_fsms @ snd ctx'.c_fsms, []; (* All FSMs return to potentially active status *) } in
          ctx'', resps @ resps'
       | evs' ->                      (* Play it again time, Sam .. *)
          iter (n+1) ctx' (resps @ resps') evs' in
@@ -132,8 +130,8 @@ let rec react t (ctx:context) (stimuli:(Ident.t * Expr.e_val option) list) =
 let run m =
   let open Sysm in
   let extract_shared (vars,evs) (name,(ty,desc)) = match desc, ty with
-    | MShared _, Types.TyEvent -> vars, (name,(ty,None))::evs  (* Initially not set *)
-    | MShared _, _ -> (name, (ty,None))::vars, evs (* Uninitialized *)
+    | MShared _, Types.TyEvent -> vars, (name,(ty,Expr.unset_event))::evs  (* Initially not set *)
+    | MShared _, _ -> (name, (ty,Expr.Val_unknown))::vars, evs (* Uninitialized *)
     | _, _ -> vars, evs in
   let rec step (ctx,resps) stims =
     match stims with
@@ -152,9 +150,9 @@ let run m =
         end;
         step (ctx', (t, evs @ resps') :: resps) stims' in
           (* The events [evs] causing the reaction are included in the responses [resps] for tracing facilities .. *)
-  let mk_ival (id,(ty,desc)) = id, (ty, None) in
+  let mk_ival (id,(ty,desc)) = id, (ty, Expr.Val_unknown) in
   let mk_gfun (id,(ty,desc)) = match desc with
-      MFun (args,body) -> id, (ty, Some (Expr.Val_fn (args, body)))
+      MFun (args,body) -> id, (ty, Expr.Val_fn (args, body))
     | _ -> failwith "Simul.run: cannot build global function description" in
   let ctx0, resps0 =
       let shared_vars, shared_evs = List.fold_left extract_shared ([],[]) m.m_shared in
@@ -178,10 +176,10 @@ let run m =
 
 (* Printing *)
 
-let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_opt_value v
+let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_value v
 
 let string_of_fsm f = (* short version for context printing *)
-  let string_of_val = function None -> "?" | Some v -> Expr.string_of_value v in
+  let string_of_val = function Expr.Val_none -> "<none>" | Expr.Val_unknown -> "<unknown>" | v -> Expr.string_of_value v in
   let string_of_var (id,(ty,v)) = id  ^ "=" ^ string_of_val v in
   let open Fsm in
   match f.f_vars with

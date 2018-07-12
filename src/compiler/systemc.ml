@@ -77,6 +77,8 @@ let string_of_value v = match v with
 | Expr.Val_bool i -> string_of_bool i
 | Expr.Val_enum s -> s
 | Expr.Val_fn _ -> "<fun>"
+| Expr.Val_unknown -> "<unknown>"
+| Expr.Val_none -> "<none>"
 
 exception Type_of_value
         
@@ -86,10 +88,8 @@ let type_of_value v = match v with
 | Expr.Val_bool _ -> "bool"
 | Expr.Val_enum _ -> raise Type_of_value
 | Expr.Val_fn _ -> raise Type_of_value
-
-let string_of_ival = function
-    None -> ""
-  | Some v -> " = " ^ string_of_value v
+| Expr.Val_unknown -> raise Type_of_value
+| Expr.Val_none -> "event"
 
 let string_of_op = function
     "=" -> "=="
@@ -213,6 +213,9 @@ let dump_module_impl g fname m =
 let dump_module_intf fname m = 
   let oc = open_out fname in
   let modname = String.capitalize_ascii m.c_name in
+  let string_of_ival = function
+    Expr.Val_unknown -> ""
+  | v -> " = " ^ string_of_value v in
   fprintf oc "#include \"systemc.h\"\n";
   fprintf oc "\n";
   fprintf oc "SC_MODULE(%s)\n" modname;

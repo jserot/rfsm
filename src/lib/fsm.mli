@@ -84,7 +84,7 @@ type inst = {
   f_inps : (string * (Types.typ * global)) list;               (** inputs, with bounded global *)
   f_outps : (string * (Types.typ * global)) list;              (** outputs, with bounded global *)
   f_inouts : (string * (Types.typ * global)) list;             (** in/outs, with bounded global *)
-  f_vars : (string * (Types.typ * Expr.e_val option)) list;    (** internal variable, with value ([None] if not initialized) *)
+  f_vars : (string * (Types.typ * Expr.e_val)) list;           (** internal variable, with value ([Val_unknown] if not initialized) *)
   f_repr : Repr.t;                                             (** underlying LTS *)
   f_l2g : string -> string;                                    (** local to global name conversion function *)
   f_state : string;                                            (** current state *)
@@ -146,30 +146,28 @@ exception Invalid_parameter of string * string (** FSM, name *)
 
 (** {2 Dynamic behavior} *)
 
-type response = string * Expr.e_val option
+type lenv = (string * Expr.e_val) list
+type genv = (Ident.t * Expr.e_val) list
+
+type response = Ident.t * Expr.e_val (** name, value  *)
 
 val react :
   Types.date ->
-  (string * Expr.e_val option) list ->
-  inst -> inst * (Ident.t * Expr.e_val option) list
+  lenv ->
+  inst ->
+  inst * response list
 
 exception IllegalTrans of inst * string
 exception Undeterminate of inst * string * Types.date
 exception NonDetTrans of inst * transition list * Types.date
 
-val fireable :
-  inst ->
-  (Condition.event * Expr.e_val option) list -> Repr.transition -> bool
+val fireable : inst -> lenv -> Repr.transition -> bool
 
-val check_cond :
-  inst -> (Condition.event * Expr.e_val option) list -> Condition.t -> bool
+val check_cond : inst -> lenv -> Condition.t -> bool
 
-val is_event_set :
-  (Condition.event * Expr.e_val option) list -> Condition.event -> bool
+val is_event_set : lenv -> Condition.event -> bool
 
-val init_fsm :
-  (string * Expr.e_val option) list ->
-  inst -> inst * (Ident.t * Expr.e_val option) list
+val init_fsm : lenv -> inst -> inst * response list
 
 (** {2 Printers} *)
 

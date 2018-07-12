@@ -105,8 +105,6 @@ with
     eprintf "Unknown builtin operator: %s\n" id; flush stderr; exit 3
 | Eval.Unknown_id id -> 
     eprintf "Unknown identifier: %s\n" id; flush stderr; exit 3
-| Eval.Unbound_id id -> 
-    eprintf "No value attached to identifier: %s\n" id; flush stderr; exit 3
 | Eval.Illegal_expr e -> 
     eprintf "Illegal expression: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Fsm.Undef_symbol (fsm, what, id) ->

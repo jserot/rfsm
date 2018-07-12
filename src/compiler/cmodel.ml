@@ -22,7 +22,7 @@ type c_model = {
   c_inps: (string * Types.typ) list;
   c_outps: (string * Types.typ) list;
   c_inouts: (string * Types.typ) list;
-  c_vars: (string * (Types.typ * Expr.e_val option)) list;  
+  c_vars: (string * (Types.typ * Expr.e_val)) list;  
   c_init: Fsm.state * Action.t list;
   c_body: c_state_case list;
      (* c_body = [case_1;...;case_n]

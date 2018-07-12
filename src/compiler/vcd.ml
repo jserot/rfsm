@@ -105,10 +105,10 @@ let dump_reaction oc signals (t,evs) =
       with Not_found -> raise (Error ("unknown signal: " ^ Ident.to_string name)) in
     match ty, value with
         TyEvent, _ -> fprintf oc "1%c\n" id          (* Instantaneous event *)
-      | TyEnum _, Some (Expr.Val_enum s) -> fprintf oc "s%s %c\n" s id
-      | TyBool, Some (Expr.Val_bool b) -> fprintf oc "b%d %c\n" (if b then 1 else 0) id
-      | TyInt r, Some (Expr.Val_int n) -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
-      | TyFloat, Some (Expr.Val_float n) -> fprintf oc "r%.*f %c\n" cfg.float_precision n id
+      | TyEnum _, Expr.Val_enum s -> fprintf oc "s%s %c\n" s id
+      | TyBool, Expr.Val_bool b -> fprintf oc "b%d %c\n" (if b then 1 else 0) id
+      | TyInt r, Expr.Val_int n -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
+      | TyFloat, Expr.Val_float n -> fprintf oc "r%.*f %c\n" cfg.float_precision n id
       | _, _ -> fprintf oc "s%s %c" "Unknown" id (* should not happen *) in
   fprintf oc "#%d\n" t;
   List.iter dump_event evs
