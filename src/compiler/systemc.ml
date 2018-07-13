@@ -79,6 +79,7 @@ let string_of_value v = match v with
 | Expr.Val_fn _ -> "<fun>"
 | Expr.Val_unknown -> "<unknown>"
 | Expr.Val_none -> "<none>"
+| Expr.Val_array _ -> "<array>"
 
 exception Type_of_value
         
@@ -86,10 +87,11 @@ let type_of_value v = match v with
   Expr.Val_int _ -> "int"
 | Expr.Val_float _ -> "float"
 | Expr.Val_bool _ -> "bool"
-| Expr.Val_enum _ -> raise Type_of_value
+| Expr.Val_enum _ -> raise Type_of_value (* TO FIX ? *)
 | Expr.Val_fn _ -> raise Type_of_value
 | Expr.Val_unknown -> raise Type_of_value
 | Expr.Val_none -> "event"
+| Expr.Val_array _ -> raise Type_of_value (* TO FIX ? *)
 
 let string_of_op = function
     "=" -> "=="
@@ -113,17 +115,18 @@ let string_of_expr m e =
     | Expr.ECond (e1,e2,e3) -> paren level (string_of (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
     | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
+    | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
   in
   string_of 0 e
 
 let string_of_guard m e = string_of_expr m e
 
 let string_of_action m a = match a with
-  | Action.Assign (id, expr) ->
+  | Action.Assign (Action.Var0 id, expr) ->
        if List.mem_assoc id m.c_outps then id ^ ".write(" ^ string_of_expr m expr ^ ")"
        else id ^ "=" ^ string_of_expr m expr
-    | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
-    | Action.StateMove (id,s,s') -> "" (* should not happen *)
+  | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
+  | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
 let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
 

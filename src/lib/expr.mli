@@ -20,8 +20,10 @@ type t =
   | EBinop of string * t * t  (** e1 op e2 *)
   | ECond of t * t * t        (** e1 ? e2 : e3 *)
   | EFapp of string * t list  (** f(arg1,...,argn) *)
+  | EArr of string * t        (** t[i] *)
 
 and e_val = 
+  | Val_unknown 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool
@@ -29,9 +31,14 @@ and e_val =
   | Val_fn of string list * t   (** args, body *)
   | Val_unknown                 
   | Val_none                    (** used for pure events *)
+  | Val_array of e_val array
 
 module VarSet : Set.S with type elt = string
 
+exception Out_of_bound of string * int  (** array name, index value *)
+                        
+val array_update : string -> e_val array -> int -> e_val -> e_val array
+  
 val of_value : e_val -> t
 
 val unset_event : e_val

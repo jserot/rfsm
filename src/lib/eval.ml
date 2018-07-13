@@ -15,7 +15,28 @@ open Expr
 
 exception Unknown_id of string
 exception Illegal_expr of Expr.t
-   
+exception Illegal_array_acces of string * int (* array name, index value *)
+
+let lookup env id = 
+  try
+    match List.assoc id env with
+      Some v -> v
+    | None -> raise (Unbound_id id)
+  with 
+    Not_found -> raise (Unknown_id id)
+
+exception Illegal_application of Expr.t
+exception Illegal_array_access of Expr.t
+exception Invalid_array_access of string * int (* array name, index value *)
+
+let lookup env id = 
+  try List.assoc id env 
+  with Not_found -> raise (Unknown_id id)
+
+exception Illegal_application
+        
+let string_of_env env = Utils.ListExt.to_string (function (id,v) -> id ^ "=" ^ Expr.string_of_opt_value v) "," env
+                      
 let rec subst vs expr = match expr with
   (* Substitute each occurence of variables in [vs] by its value in [expr] *)
   | EVar v when List.mem_assoc v vs -> of_value (List.assoc v vs)
@@ -37,17 +58,15 @@ let rec subst vs expr = match expr with
      end
   | ECond (e1,e2,e3) -> ECond (subst vs e1, subst vs e2, subst vs e3)
   | EFapp (f, es) -> EFapp (f, List.map (subst vs) es)
+  | EArr (a,idx) when List.mem_assoc a vs -> 
+     begin
+       match List.assoc a vs, eval [] idx with
+       | Val_array vs, Val_int i when i >= 0 && i < Array.length vs -> of_value (vs.(i))
+       | _, _ -> expr
+     end
   | _ -> expr
                
-let lookup env id = 
-  try List.assoc id env 
-  with Not_found -> raise (Unknown_id id)
-
-exception Illegal_application
-        
-let string_of_env env = Utils.ListExt.to_string (function (id,v) -> id ^ "=" ^ Expr.string_of_opt_value v) "," env
-                      
-let rec eval env exp = 
+and eval env exp = 
   let r = match exp with
     EInt v -> Val_int v
   | EFloat v -> Val_float v
@@ -68,8 +87,17 @@ let rec eval env exp =
      | Val_fn (args, body) -> 
         let env' = List.map2 (fun arg exp -> arg, eval env exp) args exps in
         eval (env'@env) body
-     | _ -> raise Illegal_application
-     end in
+     | _ -> raise (Illegal_application exp)
+     end
+  | EArr (a,idx) ->
+     begin
+       match lookup env a, eval env idx with
+       | Val_array vs, Val_int i -> 
+          if i >= 0 && i < Array.length vs then vs.(i)
+          else raise (Invalid_array_access (a,i))
+       | _ -> raise (Illegal_array_access exp)
+     end
+  in
   (* Printf.printf "Eval.eval [%s] (%s) -> %s\n" (string_of_env env) (Expr.to_string exp) (string_of_value r); *)
   r
        

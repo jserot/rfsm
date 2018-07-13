@@ -12,10 +12,16 @@
 (** Actions associated to transitions *)
 
 type t = 
-  | Assign of string * Expr.t                 (** variable, value *)
+    Assign of lhs * Expr.t
   | Emit of string                            (** event *)
   | StateMove of string * string * string     (** fsm name, old state, new state *)
 
+and lhs =
+  | Var0 of string             (** scalar *)
+  | Var1 of string * Expr.t    (** 1D array location *)
+
+val lhs_name : lhs -> string
+  
 val vars_of : t -> Expr.VarSet.t * Expr.VarSet.t
   (** [vars_of a] returns the name of the variables read (resp. written) by action  [a] *)
 

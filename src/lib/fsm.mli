@@ -148,8 +148,7 @@ exception Invalid_parameter of string * string (** FSM, name *)
 
 type lenv = (string * Expr.e_val) list
 type genv = (Ident.t * Expr.e_val) list
-
-type response = Ident.t * Expr.e_val (** name, value  *)
+type response = Action.lhs * Expr.e_val
 
 val react :
   Types.date ->

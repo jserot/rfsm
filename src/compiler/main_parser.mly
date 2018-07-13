@@ -22,6 +22,7 @@
 %token TYINT
 %token TYFLOAT
 %token TYEVENT
+%token TYARRAY
 %token TRUE
 %token FALSE
 %token <string> LID
@@ -39,6 +40,8 @@
 %token RBRACE
 %token LPAREN
 %token RPAREN
+%token LBRACKET
+%token RBRACKET
 %token LT
 %token GT
 %token LTE
@@ -237,7 +240,11 @@ actions:
 
 action:
   | i=LID               { mk_action ($symbolstartofs,$endofs) (Action.Emit i) }
-  | i=LID COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign (i,e)) }
+  | l=lhs COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign (l,e)) }
+
+lhs:
+  | v=LID { Action.Var0 v }
+  | a=LID LBRACKET i=expr RBRACKET { Action.Var1 (a,i) }
 
 (* GLOBALS *)
 
@@ -291,7 +298,11 @@ inst_param_value:
   | v=INT { Expr.Val_int v }
   | v=FLOAT { Expr.Val_float v }
   | v=bool { Expr.Val_bool v }
+  | v=array_val { Expr.Val_array v }
 
+array_val:
+  | LBRACKET vs = separated_nonempty_list(COMMA,inst_param_value) RBRACKET { Array.of_list vs }
+                   
 (* CORE TYPE EXPRESSIONs *)
 
 typ:
@@ -300,6 +311,7 @@ typ:
   | TYFLOAT { Syntax.TEFloat }
   | TYBOOL { Syntax.TEBool }
   | i=LID { Syntax.TEName i }
+  | t=typ TYARRAY LBRACKET s=INT RBRACKET { Syntax.TEArray (s,t) }
 
 int_range:
     | LT lo=type_index_expr COLON hi=type_index_expr GT
@@ -363,6 +375,8 @@ expr:
       { mkuminus s e }
   | f = LID LPAREN args=my_separated_list(COMMA,expr) RPAREN
       { Expr.EFapp (f,args) }
+  | a = LID LBRACKET i=expr RBRACKET 
+      { Expr.EArr (a,i) }
   | e1 = expr QMARK e2 = expr COLON e3 = expr
       { Expr.ECond (e1, e2, e3) }
 
@@ -387,7 +401,7 @@ constant:
 subtractive:
   | MINUS                                       { "-" }
   | FMINUS                                      { "-." }
-;
+
 const:
   | v = INT { Expr.Val_int v }
   | v = FLOAT { Expr.Val_float v }

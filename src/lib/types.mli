@@ -33,11 +33,13 @@ module Index : sig
 end
 
 type typ =
-    TyEvent
+  | TyUnknown
+  | TyEvent
   | TyBool
   | TyEnum of string list
   | TyInt of int_range option
   | TyFloat
+  | TyArray of int * typ    (* size, subtype *)
   | TyVar of tvar           (* Internal use only *)
   | TyArrow of typ * typ    (* Internal use only *)
   | TyProduct of typ list   (* Internal use only *)
@@ -76,6 +78,9 @@ val ivars_of : typ -> string list
 
 val enums_of : typ -> (string * typ) list
   (** [tycons_of t] returns the list of enum constructors occuring in type [t], with the associated type *)
+         
+val size_of : typ -> int
+  (** [size_of t] returns the "size" of type *)
          
 (** {2 Typing} *)
   

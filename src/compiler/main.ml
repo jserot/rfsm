@@ -107,6 +107,12 @@ with
     eprintf "Unknown identifier: %s\n" id; flush stderr; exit 3
 | Eval.Illegal_expr e -> 
     eprintf "Illegal expression: %s\n" (Expr.to_string e); flush stderr; exit 3
+| Eval.Illegal_application e -> 
+    eprintf "Illegal application: %s\n" (Expr.to_string e); flush stderr; exit 3
+| Eval.Illegal_array_access e -> 
+    eprintf "Illegal array access: %s\n" (Expr.to_string e); flush stderr; exit 3
+| Eval.Invalid_array_access (a,i) -> 
+    eprintf "Array access out of bound: %s[%d]\n" a i; flush stderr; exit 3
 | Fsm.Undef_symbol (fsm, what, id) ->
     eprintf "Undefined %s in FSM %s:  %s\n" what fsm id; flush stderr; exit 4
 | Fsm.Invalid_state (fsm, id) ->

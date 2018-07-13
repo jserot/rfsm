@@ -43,6 +43,7 @@ let string_of_value v = match v with
 | Expr.Val_fn _ -> "<fun>"
 | Expr.Val_unknown -> "<unknown>"
 | Expr.Val_none -> "<none>"
+| Expr.Val_array _ -> "<array>"
 
 (*
 <case> ::= [ <async_transitions> ] [ sync_transitions ] "break"
@@ -71,7 +72,8 @@ let rec string_of_expr e =
   | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
   | Expr.ECond (e1,e2,e3) ->
      paren level (string_of (level+1) e1 ^ " ? " ^ string_of (level+1) e2 ^ " : " ^ string_of (level+1) e3)
-  | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")" in
+  | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
+  | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]" in
   string_of 0 e
 
 and string_of_op = function
@@ -86,7 +88,7 @@ and string_of_op = function
 let string_of_guard exp = string_of_expr exp
 
 let string_of_action a = match a with
-    | Action.Assign (id, expr) -> id ^ "=" ^ string_of_expr expr
+    | Action.Assign (Action.Var0 id, expr) -> id ^ "=" ^ string_of_expr expr
     | Action.Emit id -> "notify_ev(" ^ id ^ ")"
     | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
