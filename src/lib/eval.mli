@@ -14,7 +14,8 @@
 exception Unknown_id of string
 exception Illegal_expr of Expr.t
 exception Illegal_application of Expr.t
-exception Illegal_array_acces of string * int (* array name, index value *)
+exception Illegal_array_access of Expr.t
+exception Invalid_array_access of string * int (* array name, index value *)
 
 type env = (string * Expr.e_val) list
 

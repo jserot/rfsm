@@ -23,7 +23,6 @@ type t =
   | EArr of string * t        (** t[i] *)
 
 and e_val = 
-  | Val_unknown 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool

@@ -71,7 +71,13 @@ let rec string_of_type t = match t with
   | TyFloat -> if cfg.sc_double_float then "double" else "float"
   | _ -> raise (Error ("string_of_type", "unsupported type"))
 
-let string_of_value v = match v with
+let string_of_typed_item ?(scope="") (id,ty) =
+  let id' = if scope = "" then id else scope ^ "::" ^ id in
+  match ty with 
+  | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id' ^ "[" ^ string_of_int sz ^ "]"
+  | _ -> string_of_type ty ^ " " ^ id'
+
+let rec string_of_value v = match v with
   Expr.Val_int i -> string_of_int i
 | Expr.Val_float i -> string_of_float i
 | Expr.Val_bool i -> string_of_bool i
@@ -79,11 +85,11 @@ let string_of_value v = match v with
 | Expr.Val_fn _ -> "<fun>"
 | Expr.Val_unknown -> "<unknown>"
 | Expr.Val_none -> "<none>"
-| Expr.Val_array _ -> "<array>"
+| Expr.Val_array vs -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
 
 exception Type_of_value
         
-let type_of_value v = match v with
+let rec type_of_value v = match v with
   Expr.Val_int _ -> "int"
 | Expr.Val_float _ -> "float"
 | Expr.Val_bool _ -> "bool"
@@ -91,7 +97,13 @@ let type_of_value v = match v with
 | Expr.Val_fn _ -> raise Type_of_value
 | Expr.Val_unknown -> raise Type_of_value
 | Expr.Val_none -> "event"
-| Expr.Val_array _ -> raise Type_of_value (* TO FIX ? *)
+| Expr.Val_array vs ->
+   begin
+     match Array.length vs with
+     | 0 -> raise Type_of_value
+     | n -> type_of_value (Array.get vs 0) ^ " array[" ^ string_of_int n ^ "]" 
+   end
+
 
 let string_of_op = function
     "=" -> "=="
@@ -123,8 +135,13 @@ let string_of_guard m e = string_of_expr m e
 
 let string_of_action m a = match a with
   | Action.Assign (Action.Var0 id, expr) ->
-       if List.mem_assoc id m.c_outps then id ^ ".write(" ^ string_of_expr m expr ^ ")"
-       else id ^ "=" ^ string_of_expr m expr
+     if List.mem_assoc id m.c_outps
+     then id ^ ".write(" ^ string_of_expr m expr ^ ")"
+     else id ^ "=" ^ string_of_expr m expr
+  | Action.Assign (Action.Var1 (id,idx), expr) ->
+     if List.mem_assoc id m.c_outps
+     then failwith "Systemc.string_of_action: assignation of a non-scalar output"
+     else id ^ "[" ^ string_of_expr m idx ^ "]" ^ "=" ^ string_of_expr m expr
   | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
@@ -194,6 +211,12 @@ let dump_module_impl g fname m =
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
   if profil.has_globals then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
+  (* List.iter (fun (id,(ty,v)) -> fprintf oc "  static const %s = %s;\n" (string_of_typed_item (id,ty)) (string_of_value v)) m.c_consts; *)
+  List.iter
+    (fun (id,(ty,v)) ->
+      fprintf oc "const %s = %s;\n" (string_of_typed_item ~scope:modname (id,ty)) (string_of_value v))
+    m.c_consts;
+  fprintf oc "\n";
   fprintf oc "void %s::%s()\n" modname cfg.sc_proc_name;
   fprintf oc "{\n";
   fprintf oc "  %s = %s;\n" cfg.sc_state_var (fst m.c_init);
@@ -217,8 +240,9 @@ let dump_module_intf fname m =
   let oc = open_out fname in
   let modname = String.capitalize_ascii m.c_name in
   let string_of_ival = function
-    Expr.Val_unknown -> ""
-  | v -> " = " ^ string_of_value v in
+    | Expr.Val_unknown -> ""
+    | Expr.Val_array vs when List.for_all (function Expr.Val_unknown -> true | _ -> false) (Array.to_list vs) -> ""
+    | v -> " = " ^ string_of_value v in
   fprintf oc "#include \"systemc.h\"\n";
   fprintf oc "\n";
   fprintf oc "SC_MODULE(%s)\n" modname;
@@ -232,10 +256,10 @@ let dump_module_intf fname m =
   List.iter (fun (id,ty) -> fprintf oc "  sc_inout<%s> %s;\n" (string_of_type ty) id) m.c_inouts;
   if cfg.sc_trace then fprintf oc "  sc_out<int> %s;\n" cfg.sc_trace_state_var;
   fprintf oc "  // Constants\n";
-  List.iter (fun (id,(ty,v)) -> fprintf oc "  static const %s %s = %s;\n" (string_of_type ty) id (string_of_value v)) m.c_consts;
+  List.iter (fun (id,(ty,v)) -> fprintf oc "  static const %s;\n" (string_of_typed_item (id,ty))) m.c_consts;
   fprintf oc "  // Local variables\n";
   fprintf oc "  t_%s %s;\n" cfg.sc_state_var cfg.sc_state_var;
-  List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s %s%s;\n" (string_of_type ty) id (string_of_ival iv)) m.c_vars;
+  List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s%s;\n" (string_of_typed_item (id,ty)) (string_of_ival iv)) m.c_vars;
   fprintf oc "\n";
   fprintf oc "  void %s();\n" cfg.sc_proc_name;
   fprintf oc "\n";

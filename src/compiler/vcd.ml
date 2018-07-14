@@ -27,7 +27,7 @@ let cfg = {
 
 let bits_for_range min max = Misc.log2 (max-min) +1 
 
-let bits_of_int s n = 
+let bits_of_uint s n = 
   let b = Bytes.make s '0' in
   let rec h n i =
     if i >= 0 then begin
@@ -36,6 +36,16 @@ let bits_of_int s n =
       end in
   h n (s-1);
   Bytes.to_string b
+
+
+let cpl2 n x =
+  let rec pow2 k = if k = 0 then 1 else 2 * pow2 (k-1) in (* Not tail recursive, but who cares, here ... *)
+  pow2 n - x
+
+let bits_of_int s v = 
+  if v < 0 
+  then bits_of_uint s (cpl2 s (-v))
+  else bits_of_uint s v
 
 let vcd_size_of_range = function
     None -> cfg.default_int_size
@@ -65,10 +75,25 @@ let register_signal =
       incr signal_cnt;
       acc'
 
+let array_cell_id id i =
+  match id with
+  | Ident.Local (f, id') -> Ident.Local (f, id' ^ "." ^ string_of_int i)
+  | _ -> failwith "Vcd.array_cell_id"
+
+let register_fsm_var acc ((id,ty) as s) =
+   match ty with
+  | TyArray (sz,ty') ->
+     List.fold_left
+       (fun acc n -> register_signal acc (n,ty'))
+       acc 
+       (ListExt.range (array_cell_id id) 0 (sz-1))
+  | _ ->
+     register_signal acc s
+ 
 let register_fsm acc f =
   let sigs = (Ident.Local (f.f_name, "state"), TyEnum (states_of f))
              :: List.map (function (id,(ty,_)) -> Ident.Local (f.f_name,id),ty) f.f_vars in
-  List.fold_left register_signal acc sigs
+  List.fold_left register_fsm_var acc sigs
 
 let register_fsms fsms = List.fold_left register_fsm [] fsms
 
@@ -76,7 +101,9 @@ let register_io gls acc (id,_) =
   let ty =
     try fst (List.assoc id gls)
     with Not_found -> Error.fatal_error "Vcd.register_io" (* should not happen *) in
-  register_signal acc (Ident.Global id,ty)
+  match ty with
+  | TyArray (sz,ty') -> failwith "Vcd.register_io: array type"
+  | _ -> register_signal acc (Ident.Global id, ty)
   
 let mk_evbuf_name id = id ^ ".val"
 
@@ -99,7 +126,10 @@ let register_evs evs l = List.fold_left register_event l evs
 exception Error of string
 
 let dump_reaction oc signals (t,evs) =
-  let dump_event (name,value) =
+  let dump_event (lhs,value) =
+    let name = match lhs with
+      | Var0 id -> id
+      | Var1 (id,k) -> array_cell_id id k in
     let (id,ty) =
       try List.assoc name signals
       with Not_found -> raise (Error ("unknown signal: " ^ Ident.to_string name)) in
@@ -113,6 +143,17 @@ let dump_reaction oc signals (t,evs) =
   fprintf oc "#%d\n" t;
   List.iter dump_event evs
 
+let dump_signal oc (name,(id,ty)) =
+  match ty with
+  | TyArray (sz, ty') ->
+     let kind, size =  vcd_kind_of ty'  in
+     for i=0 to sz-1 do
+       fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string (array_cell_id name i))
+     done
+  | _ ->
+     let kind, size =  vcd_kind_of ty in
+     fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string name)
+  
 let output m ctx fname reacts =
   let oc = open_out fname in
   let local_signals = register_fsms (fst ctx.c_fsms @ snd ctx.c_fsms) in
@@ -133,16 +174,11 @@ let output m ctx fname reacts =
   fprintf oc "$end\n";
   fprintf oc "$timescale 1ns $end\n";
   fprintf oc "$scope module top $end\n";
+  List.iter (dump_signal oc) global_signals;
   List.iter
     (function (name,(id,ty)) ->
-      let kind, size = vcd_kind_of ty in
-      fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string name))
-    global_signals;
-  List.iter
-    (function (name,(id,ty)) ->
-      let kind, size = vcd_kind_of ty in
       fprintf oc "$scope module %s $end\n" (Ident.local_of name);
-      fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string name);
+      dump_signal oc (name,(id,ty));
       fprintf oc "$upscope $end\n")
     local_signals;
   fprintf oc "$upscope $end\n";

@@ -23,9 +23,9 @@ let cfg = {
   max_micro_reactions = 32;
   }
 
-type stimulus = Ident.t * Expr.e_val
+type stimulus = Fsm.lhs * Expr.e_val
 
-type response = Ident.t * Expr.e_val 
+type response = Fsm.lhs * Expr.e_val 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
@@ -40,7 +40,7 @@ type context = {  (* The simulator state *)
   }
 
 let update_ctx ctx = function
-  | Ident.Global id', v' ->
+  | Fsm.Var0 (Ident.Global id'), v' ->
      let update_io ((id,(ty,v)) as x) =
        if id=id' then (id,(ty,if Types.is_event_type ty then Expr.set_event else v')) else x in
      let update_var ((id,(ty,v)) as x) = if id=id' then (id,(ty,v')) else x in
@@ -49,8 +49,10 @@ let update_ctx ctx = function
        c_inputs = List.map update_io ctx.c_inputs;
        c_vars = List.map update_var ctx.c_vars;
        c_evs = List.map update_ev ctx.c_evs; }
-  | Ident.Local _, _ ->
+  | Fsm.Var0 (Ident.Local _), _ ->
      ctx
+  | Fsm.Var1 (_,_), _ ->
+     ctx  (* All context values are supposed to be _scalar_ *)
 
 let string_of_context c = 
   let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_value v in
@@ -76,21 +78,24 @@ let global_updates resps =
 
 let erase_type (id,(ty,v)) = id, v
 
-let string_of_event (id,v) = Ident.to_string id ^ ":=" ^ Expr.string_of_value v
+let string_of_event (lhs,v) = match lhs with
+  | Fsm.Var0 id -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
+  | Fsm.Var1 (id,k) -> Ident.to_string id ^ "[" ^ string_of_int k ^ "]" ^ ":=" ^ Expr.string_of_value v
 
 let string_of_events evs = "[" ^ ListExt.to_string string_of_event "," evs ^ "]"
 
-let rec react t (ctx:context) (stimuli:(Ident.t * Expr.e_val) list) =
+let rec react t ctx stimuli =
   let is_reentrant =     (* A reentrant stimulus is one which can trigger a micro-reaction *)
     function
-    | Ident.Global n, v -> 
+    | Fsm.Var0 (Ident.Global n), v -> 
        begin
          match List.mem_assoc n ctx.c_evs, List.mem_assoc n ctx.c_vars, v with
          true, _, Expr.Val_bool true -> true   (* shared event, currently set *)
        | false, true, _ -> true                (* shared variable, regardless of its value *)
        | _, _, _ -> false
        end
-    | Ident.Local _, _ -> false in
+    | Fsm.Var0 (Ident.Local _), _ -> false
+    | Fsm.Var1 _, _ -> false in
   let still_active f = not f.Fsm.f_has_reacted in
   let micro_react ctx stimuli =
     let ctx' = List.fold_left update_ctx ctx stimuli in 
@@ -170,7 +175,8 @@ let run m =
       let resps' = List.concat resps in
       let ctx' = List.fold_left update_ctx init_ctx resps' in
       {ctx' with c_fsms=fsms',[]}, [0, resps' (*@ resps''*)] in
-  let ctx, resps = step (ctx0,resps0) m.m_stimuli in
+  let mk_stimuli (t,evs) =  t, List.map (function (id,v) -> Fsm.Var0 id, v) evs in
+  let ctx, resps = step (ctx0,resps0) (List.map mk_stimuli m.m_stimuli) in
   (* TODO: post-processing ? *)
   ctx, resps
 

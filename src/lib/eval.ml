@@ -15,16 +15,6 @@ open Expr
 
 exception Unknown_id of string
 exception Illegal_expr of Expr.t
-exception Illegal_array_acces of string * int (* array name, index value *)
-
-let lookup env id = 
-  try
-    match List.assoc id env with
-      Some v -> v
-    | None -> raise (Unbound_id id)
-  with 
-    Not_found -> raise (Unknown_id id)
-
 exception Illegal_application of Expr.t
 exception Illegal_array_access of Expr.t
 exception Invalid_array_access of string * int (* array name, index value *)
@@ -33,8 +23,6 @@ let lookup env id =
   try List.assoc id env 
   with Not_found -> raise (Unknown_id id)
 
-exception Illegal_application
-        
 let string_of_env env = Utils.ListExt.to_string (function (id,v) -> id ^ "=" ^ Expr.string_of_opt_value v) "," env
                       
 let rec subst vs expr = match expr with

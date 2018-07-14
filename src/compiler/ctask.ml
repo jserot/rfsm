@@ -35,7 +35,11 @@ let string_of_type t = match t with
   | TyFloat -> "float"
   | _ -> Error.fatal_error "Ctask.string_of_type"
 
-let string_of_value v = match v with
+let string_of_typed_item (id,ty) = match ty with 
+  | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id ^ "[" ^ string_of_int sz ^ "]"
+  | _ -> string_of_type ty ^ " " ^ id
+
+let rec string_of_value v = match v with
   Expr.Val_int i -> string_of_int i
 | Expr.Val_float b -> string_of_float b
 | Expr.Val_bool b -> string_of_bool b
@@ -43,7 +47,7 @@ let string_of_value v = match v with
 | Expr.Val_fn _ -> "<fun>"
 | Expr.Val_unknown -> "<unknown>"
 | Expr.Val_none -> "<none>"
-| Expr.Val_array _ -> "<array>"
+| Expr.Val_array vs -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
 
 (*
 <case> ::= [ <async_transitions> ] [ sync_transitions ] "break"
@@ -87,8 +91,12 @@ and string_of_op = function
 
 let string_of_guard exp = string_of_expr exp
 
+let string_of_lhs = function
+  | Action.Var0 id -> id
+  | Action.Var1 (id,idx) -> id ^ "[" ^ string_of_expr idx ^ "]"
+                          
 let string_of_action a = match a with
-    | Action.Assign (Action.Var0 id, expr) -> id ^ "=" ^ string_of_expr expr
+    | Action.Assign (lhs, expr) -> string_of_lhs lhs ^ "=" ^ string_of_expr expr
     | Action.Emit id -> "notify_ev(" ^ id ^ ")"
     | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
@@ -137,21 +145,21 @@ let dump_state_case oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss
 let dump_state oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   dump_transitions oc q false evs tss
 
-
 let dump_module_impl m fname fsm =
   let m = Cmodel.c_model_of_fsm m fsm in
   let oc = open_out fname in
   let modname = String.capitalize_ascii fsm.f_name in
   let string_of_ival = function
-    Expr.Val_none -> ""
-  | v -> " = " ^ string_of_value v in
+    | Expr.Val_none -> ""
+    | Expr.Val_array vs when List.for_all (function Expr.Val_unknown -> true | _ -> false) (Array.to_list vs) -> ""
+    | v -> " = " ^ string_of_value v in
   fprintf oc "task %s(\n" modname;
-  List.iter (fun (id,ty) -> fprintf oc "  in %s %s;\n" (string_of_type ty) id) m.c_inps;
-  List.iter (fun (id,ty) -> fprintf oc " out %s %s;\n" (string_of_type ty) id) m.c_outps;
-  List.iter (fun (id,ty) -> fprintf oc " inout %s %s;\n" (string_of_type ty) id) m.c_inouts;
+  List.iter (fun (id,ty) -> fprintf oc "  in %s;\n" (string_of_typed_item (id,ty))) m.c_inps;
+  List.iter (fun (id,ty) -> fprintf oc " out %s;\n" (string_of_typed_item (id,ty))) m.c_outps;
+  List.iter (fun (id,ty) -> fprintf oc " inout %s;\n" (string_of_typed_item (id,ty))) m.c_inouts;
   fprintf oc "  )\n";
   fprintf oc "{\n";
-  List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s %s%s;\n" (string_of_type ty) id (string_of_ival iv)) m.c_vars;
+  List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s%s;\n" (string_of_typed_item (id,ty)) (string_of_ival iv)) m.c_vars;
   if List.length m.c_states > 1 then 
     fprintf oc "  %s %s = %s;\n" (string_of_type (Types.TyEnum m.c_states)) cfg.state_var_name (fst m.c_init);
   if List.exists (function c -> List.length c.st_sensibility_list > 1) m.c_body then

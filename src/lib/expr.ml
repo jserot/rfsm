@@ -23,7 +23,6 @@ type t =
   | EArr of string * t        (** t[i] *)
 
 and e_val = 
-  | Val_unknown 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool
@@ -49,7 +48,6 @@ let array_update id a i v =
   if i >= 0 && i < Array.length a
   then let a' = Array.copy a in Array.set a' i v; a'
   else raise (Out_of_bound (id,i))
->>>>>>> arrays
 
 let unset_event = Val_bool false
 let set_event = Val_bool true
@@ -85,13 +83,9 @@ let rec string_of_value v = match v with
 | Val_bool b -> string_of_bool b
 | Val_enum s -> s
 | Val_fn _ -> "<fun>"
-<<<<<<< HEAD
 | Val_unknown -> "<unknown>"
 | Val_none -> "<none>"
-=======
 | Val_array vs -> "[" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "]"
-| Val_unknown -> "<unknown>"
->>>>>>> arrays
 
 let string_of_opt_value = function
     None -> "?"

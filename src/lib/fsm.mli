@@ -148,7 +148,12 @@ exception Invalid_parameter of string * string (** FSM, name *)
 
 type lenv = (string * Expr.e_val) list
 type genv = (Ident.t * Expr.e_val) list
-type response = Action.lhs * Expr.e_val
+
+type response = lhs * Expr.e_val
+
+and lhs =
+  | Var0 of Ident.t         (* Scalar *)
+  | Var1 of Ident.t * int   (* 1D array location *)
 
 val react :
   Types.date ->

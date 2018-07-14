@@ -306,8 +306,8 @@ let build_instance ~tenv ~name ~model ~params ~ios =
       |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
     let senv = List.map (function id,(ty,v) -> id, v) bound_params in
     let mk_ival ty = match ty with
-        Types.TyArray(sz, _) -> Some (Expr.Val_array (Array.make sz Expr.Val_unknown))
-      | _ -> None in
+        Types.TyArray(sz, _) -> Expr.Val_array (Array.make sz Expr.Val_unknown)
+      | _ -> Expr.Val_unknown in
     let r =
       { f_name = name;
         f_model = model;
@@ -355,7 +355,12 @@ exception NonDetTrans of inst * transition list * Types.date
 type lenv = (string * Expr.e_val) list
 type genv = (Ident.t * Expr.e_val) list
 
-type response = Action.lhs * Expr.e_val (** name, value  *)
+(* type response = Ident.t * Expr.e_val *)
+type response = lhs * Expr.e_val
+
+and lhs =
+  | Var0 of Ident.t         (* Scalar *)
+  | Var1 of Ident.t * int   (* 1D array location *)
 
 let rec replace_assoc' k v env =
   (* This is a variation on [ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *)
@@ -371,54 +376,87 @@ type fsm_env = (string * Expr.e_val) list
 let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
      a list of responses [resps], and an updated (local) environment [env']. *)
+  let array_upd id idx v = 
+    match List.assoc id env, Eval.eval env idx with
+    | Val_array vs, Val_int i -> Expr.Val_array (Expr.array_update id vs i v), i
+    | _, _ -> failwith "Fsm.do_action.array_upd" in
   match act with
     Action.Assign (lhs, expr) ->
+      let id = Action.lhs_name lhs in
       let v = Eval.eval env expr in
-      let id, v' = 
-        begin match lhs with
-        | Var0 id -> id, v
-        | Var1 (id,idx) ->
-           begin
-             match List.assoc id env, Eval.eval env idx with
-             | Some (Val_array vs), Val_int i -> id, Val_array (Expr.array_update id vs i v)
-             | _, _ -> failwith "Fsm.do_action"
-           end
-        end  in
       if List.mem_assoc id f.f_vars then (* Local variable *)
         begin match cfg.act_sem with
         | Sequential ->
           (* In the sequential interpretation, updates of local variables are performed immediately
              and reflected in the environment (so that actions sequences such as "c:=c+1;s=c" are interpreted correctly. *)
-           { f with f_vars = replace_assoc' id v f.f_vars },
-           resps @ [Ident.Local (f.f_name, id), v],
-           resps',
-           ListExt.replace_assoc id v env
+           begin match lhs with
+           | Action.Var0 id ->
+              let v' = Eval.eval env expr in
+              { f with f_vars = replace_assoc' id v' f.f_vars },
+              resps @ [Var0 (Ident.Local (f.f_name, id)), v'],
+              resps',
+              ListExt.replace_assoc id v' env
+           | Action.Var1 (id, idx) ->
+              let v', i = array_upd id idx v in
+              { f with f_vars = replace_assoc' id v' f.f_vars },
+              resps @ [Var1 (Ident.Local (f.f_name, id), i), v],
+              resps',
+              ListExt.replace_assoc id v' env
+           end
         | Synchronous ->
           (* In the synchronous interpretation, updates of local variables are not performed immediately
              nor reflected in the environment, but only reported in [resps] so that they can be performed at the end of the
              reaction. *)
-           f,
-           resps,
-           resps' @ [Ident.Local (f.f_name, id), v],
-           env
+           begin match lhs with
+           | Action.Var0 id ->
+              let v' = Eval.eval env expr in
+              f,
+              resps,
+              resps' @ [Var0 (Ident.Local (f.f_name, id)), v'],
+              env
+           | Action.Var1 (id, idx) ->
+              let v', i = array_upd id idx v in
+              f,
+              resps,
+              resps' @ [Var1 (Ident.Local (f.f_name, id), i), v],
+              env
+           end
         end
       else  (* Global IO or shared value. Updates are never performed immediately *)
-        f, resps @ [Ident.Global (f.f_l2g id), v], resps', env
+        begin match lhs with
+        | Action.Var0 id ->
+           let v' = Eval.eval env expr in
+           f,
+           resps @ [Var0 (Ident.Global (f.f_l2g id)), v'],
+           resps',
+           env
+        | Action.Var1 (id, idx) ->
+           failwith "Fsm.do_action: not implemented: global IO or shared value with array type"
+        end
   | Action.Emit id ->
-        f, resps @ [Ident.Global (f.f_l2g id), Expr.set_event], resps', env
+     f,
+     resps @ [Var0 (Ident.Global (f.f_l2g id)), Expr.set_event],
+     resps',
+     env
   | Action.StateMove (id,s,s') ->
      { f with f_state = s' },
-     resps @ [Ident.Local (f.f_name, "state"), Expr.Val_enum s'],
+     resps @ [Var0 (Ident.Local (f.f_name, "state")), Expr.Val_enum s'],
      resps',
      env
 
-let perform_delayed_action (f,env) (id,v) = 
-  match id with 
-  | Ident.Local (_, id) -> 
-    { f with f_vars = replace_assoc' id v f.f_vars },
-    ListExt.replace_assoc id v env
-  | _ ->
-     raise (Internal_error "Fsm.perform_delayed_action") (* should not happen *)
+let perform_delayed_action (f,env) (lhs,v) = 
+  let id, v' = match lhs with 
+    | Var0 (Ident.Local (_, id)) -> id, v
+    | Var1 (Ident.Local (_, id), i) ->
+       id,
+       begin match List.assoc id env with
+       | Expr.Val_array vs -> Expr.Val_array (Expr.array_update id vs i v)
+       | _ -> raise (Internal_error "Fsm.perform_delayed_action") (* should not happen *)
+       end
+    | _ ->
+       raise (Internal_error "Fsm.perform_delayed_action") (* should not happen *) in
+  { f with f_vars = replace_assoc' id v' f.f_vars },
+  ListExt.replace_assoc id v' env
   
 let string_of_actions resps = ListExt.to_string (function (id,v) -> Ident.to_string id ^ ":=" ^ (Expr.string_of_opt_value v)) "," resps
 

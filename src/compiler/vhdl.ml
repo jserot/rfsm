@@ -76,6 +76,7 @@ type vhdl_type =
   | Integer
   | Real
   | Boolean
+  | Array of int * vhdl_type
 
 let rec vhdl_type_of t = match t with 
   | TyEvent -> Std_logic
@@ -85,26 +86,38 @@ let rec vhdl_type_of t = match t with
   | TyInt None -> Integer
   | TyInt (Some (TiConst lo,TiConst hi)) ->
       if lo < 0 then Signed (Systemc.bit_size (max (-lo) hi)) else Unsigned (Systemc.bit_size hi)
+  | TyArray (sz,t') -> Array (sz, vhdl_type_of t')
   | TyInt _
   | _ ->
      Error.fatal_error "Vhdl.vhdl_type_of"
 
-let string_of_vhdl_type ?(type_marks=true) t = match t with 
+let rec string_of_vhdl_type ?(type_marks=true) t = match t with 
   | Std_logic -> "std_logic"
   | Unsigned n -> if type_marks then  Printf.sprintf "unsigned(%d downto 0)" (n-1) else "unsigned"
   | Signed n -> if type_marks then Printf.sprintf "signed(%d downto 0)" (n-1) else "signed"
   | Integer -> "integer"
   | Real -> "real"
   | Boolean -> "boolean"
+  | Array (n,t') -> string_of_vhdl_array_type n t'
+
+and string_of_vhdl_array_type n t = "array_" ^ string_of_int n ^ "_" ^ string_of_vhdl_type t
 
 let string_of_type ?(type_marks=true) t =
   string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
 
+let array_subtype = function
+  | Array (_,t) -> t
+  | _ -> failwith "Vhdl.array_subtype"
+       
 let global_types = ref ( [] : (string * vhdl_type) list )
 
 let lookup_type id = 
   try Some (List.assoc id !global_types)
   with Not_found -> None
+
+let get_type where id = match lookup_type id with
+  | Some t -> t
+  | None -> failwith where
 
 let type_error where what item ty1 ty2 = 
   raise (Vhdl_error(
@@ -134,6 +147,7 @@ let string_of_value ?(ty=None) v = match v, ty with
 | Expr.Val_int i, Some Boolean -> Error.fatal_error "Vhdl.string_of_value"
 | Expr.Val_int i, Some Real -> Printf.sprintf "%d.0" i
 | Expr.Val_int i, None -> Printf.sprintf "%d" i
+| Expr.Val_int i, _ -> failwith "Vhdl.string_of_value"
 | Expr.Val_float f, _ -> vhdl_string_of_float f
 | Expr.Val_bool b, _ -> string_of_bool b
 | Expr.Val_enum s, _ -> Error.not_implemented "VHDL translation of enumerated value"
@@ -219,8 +233,14 @@ let string_of_action ?(lvars=[]) a = match a with
      let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = lookup_type id in
      id ^ asn ^ string_of_expr ~ty:ty expr
-    | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
-    | Action.StateMove (id,s,s') -> "" (* should not happen *)
+  | Action.Assign (Action.Var1 (id,idx), expr) ->
+     let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
+     let ty_res = get_type "Vhdl.string_of_action" id in
+     if List.mem_assoc id lvars
+     then id ^ "(" ^ string_of_expr ~ty:(Some Integer) idx ^ ")" ^ asn ^ string_of_expr ~ty:(Some ty_res) expr
+     else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
+  | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
+  | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
 let string_of_condition (e,cs) =  
   let string_of_guard gexp  = string_of_expr ~ty:(type_of_expr gexp) gexp in
@@ -271,6 +291,20 @@ let dump_module_arch oc m fsm =
   fprintf oc "architecture RTL of %s is\n" modname;
   fprintf oc "  type t_%s is ( %s );\n" cfg.vhdl_state_var (ListExt.to_string (function s -> s) ", " m.c_states);
   fprintf oc "  signal %s: t_state;\n" cfg.vhdl_state_var;
+  let array_types =
+    List.fold_left
+      (fun acc (_,(ty,_)) ->
+        match ty with
+        | TyArray _ when not (List.mem ty acc) -> ty::acc
+        | _ -> acc)
+      []
+      m.c_vars in
+  List.iter 
+    (function
+     | TyArray(sz,ty') as ty ->
+        fprintf oc "  type %s is array (0 to %d) of %s;\n" (string_of_type ty) (sz-1) (string_of_type ty')
+     | _ -> ())
+      array_types;
   if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous then 
     List.iter
       (fun (id,(ty,iv)) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ty))

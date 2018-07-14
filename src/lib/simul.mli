@@ -19,8 +19,8 @@ type config = {
 
 val cfg : config
 
-type stimulus = Ident.t * Expr.e_val (** name, value (Val_none for pure events) *)
-type response = Ident.t * Expr.e_val (** name, value (Val_none for pure events) *)
+type stimulus = Fsm.lhs * Expr.e_val
+type response = Fsm.lhs * Expr.e_val 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
@@ -52,4 +52,4 @@ val run : Sysm.t -> context * (Types.date * response list) list
 (** {2 Printers} *)
 
 val dump_context : context -> unit
-val dump_reaction : int * (Ident.t * Expr.e_val) list -> unit
+val dump_reaction : int * (Fsm.lhs * Expr.e_val) list -> unit

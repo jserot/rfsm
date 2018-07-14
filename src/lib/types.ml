@@ -228,7 +228,6 @@ let rec type_equal ~strict t1 t2 =
   | _, _ -> false
 
 let rec type_of_value = function
-  | Expr.Val_unknown -> TyUnknown
   | Expr.Val_int _ -> TyInt None
   | Expr.Val_float _ -> TyFloat
   | Expr.Val_bool _ -> TyBool
