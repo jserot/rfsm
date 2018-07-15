@@ -1,15 +1,13 @@
 # Iterative computing of $\sqrt(a)$ using Heron's algorithm
 # v2: stop when $|x^2-a|<=\epsilon$
 
-type bit = int<0:1>
-
 function f_abs(x: float) : float { return x < 0.0 ? -.x : x }
 
 fsm model Heron <eps: float> (
   in h: event, 
-  in start: bit,
+  in start: bool,
   in u: float,
-  out rdy: bit,
+  out rdy: bool,
   out niter: int,
   out r: float)
  {
@@ -24,8 +22,8 @@ fsm model Heron <eps: float> (
 
 input H : event = periodic (10,10,200)
 input U : float = value_changes (5:2.0)
-input Start : bit = value_changes (0:0, 25:1, 35:0)
-output Rdy : bit
+input Start : bool = value_changes (0:0, 25:1, 35:0)
+output Rdy : bool
 output R : float
 output niter : int
 

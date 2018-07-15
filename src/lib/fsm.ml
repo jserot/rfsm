@@ -154,22 +154,23 @@ let mk_bindings ~local_names:ls ~global_names:gs =
   (function id -> try List.assoc id l2g with Not_found -> id)
 
 let build_model ~name ~states ~params ~ios ~vars ~trans ~itrans = 
+  let mk_trans (s,(ev,gds),acts,s',p) = s, (([ev],gds),acts,p,false), s' in
   let r = {
-        fm_name = name;
-        fm_params = params;
-        fm_ios = List.map (function (dir,id,ty) -> (id, (dir,ty))) ios;
-        fm_vars = vars;
-        fm_repr =
-          begin
-            try Repr.create
-                   ~states:states
-                   ~trans:(List.map (function (s,(ev,gds),acts,s',p) -> s, (([ev],gds),acts,p,false), s') trans)
-                   ~itrans:(let q0,iacts = itrans in [(([],[]),iacts,0,false),q0])
-            with
-              Repr.Invalid_state s -> raise (Invalid_state (name, s))
-          end;
-        (* fm_resolve = None; (\* TO FIX *\) *)
-      } in
+      fm_name = name;
+      fm_params = params;
+      fm_ios = List.map (function (dir,id,ty) -> (id, (dir,ty))) ios;
+      fm_vars = vars;
+      fm_repr =
+        begin
+          try Repr.create
+                ~states:states
+                ~trans:(List.map mk_trans trans)
+                ~itrans:(let q0,iacts = itrans in [(([],[]),iacts,0,false),q0])
+          with
+            Repr.Invalid_state s -> raise (Invalid_state (name, s))
+        end;
+      (* fm_resolve = None; (\* TO FIX *\) *)
+    } in
   r
 
 let type_check ~strict what where ty ty'  =
@@ -180,7 +181,7 @@ let type_check_stim fsm id ty st = match st with
   | ValueChange vcs ->
      List.iter
        (type_check ~strict:false "stimuli" ("input \"" ^ id ^ "\"") ty) 
-       (List.map (function (_,v) -> Types.type_of_value v) vcs)
+       (List.map (function (_,v) -> Expr.type_of_value v) vcs)
   | _ ->
      ()
 
@@ -241,7 +242,7 @@ let sanity_check tenv f =
                ~strict:false
                ("action \"" ^ Action.to_string act ^ "\"")
                ("FSM \"" ^ f.f_name ^ "\"")
-               (* [strict=false] here to accept actions like [v:=1] where [v:int<lo..hi>] *)
+               (* [strict=false] here to accept actions like [v:=1] where [v:int<lo..hi>] or [v:bool] *)
                t' t
          with
          | Typing.Typing_error (expr, ty, ty') ->
@@ -255,7 +256,10 @@ let sanity_check tenv f =
   let type_check_transition (_,(cond,acts,_,_),_) =
     type_check_condition cond;
     List.iter type_check_action acts in
-  List.iter type_check_transition (Repr.transitions f.f_repr)
+  let type_check_itransition ((_,acts,_,_),_) =
+    List.iter type_check_action acts in
+  List.iter type_check_transition (Repr.transitions f.f_repr);
+  List.iter type_check_itransition (Repr.itransitions f.f_repr)
 
 let build_instance ~tenv ~name ~model ~params ~ios =
     let bind_param vs (p,ty) =

@@ -22,3 +22,4 @@ ide;vhdl;-vhdl_trace;Arg.Unit;set_vhdl_trace;set trace mode for VHDL backend (de
 ide;vhdl;-vhdl_time_unit;Arg.String;set_vhdl_time_unit;set time unit for the VHDL test-bench
 ide;vhdl;-vhdl_ev_duration;Arg.Int;set_vhdl_ev_duration;set duration of event signals (default: 1 ns)
 ide;vhdl;-vhdl_rst_duration;Arg.Int;set_vhdl_ev_duration;set duration of reset signals (default: 1 ns)
+ide;vhdl;-vhdl_numeric_std;Arg.Unit;set_vhdl_use_numeric_std;translate integers as numeric_std [un]signed (default: false)

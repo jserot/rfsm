@@ -227,21 +227,6 @@ let rec type_equal ~strict t1 t2 =
      sz1 = sz2 && type_equal ~strict ty1 ty2
   | _, _ -> false
 
-let rec type_of_value = function
-  | Expr.Val_int _ -> TyInt None
-  | Expr.Val_float _ -> TyFloat
-  | Expr.Val_bool _ -> TyBool
-  | Expr.Val_enum c -> TyEnum [c]  (* TO FIX *)
-  | Expr.Val_fn (args,body) -> TyArrow (TyProduct (List.map (function arg -> TyBool) args),TyBool) (* TO FIX ! *)
-  | Expr.Val_unknown -> new_type_var ()
-  | Expr.Val_none -> TyEvent
-  | Expr.Val_array vs ->
-     begin
-       match Array.length vs with
-       | 0 -> failwith "Types.type_of_value"
-       | n -> TyArray(n, type_of_value vs.(0))
-     end
-
 (* Accessors *)
                  
 let rec enums_of ty = match ty with
@@ -252,6 +237,10 @@ let size_of ty = match ty with
   | TyArray (sz, _) -> sz
   | TyProduct ts -> List.length ts
   | _ -> 0
+
+let subtype_of = function
+  | TyArray (_,t) -> t
+  | _ -> failwith "Types.array_subtype"
        
 (* Printing *)
 

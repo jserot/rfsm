@@ -1,13 +1,11 @@
 # Iterative computing of \sqrt{a} using Heron's algorithm
 # v1: fixed number of iterations
 
-type bit = int<0:1>
-
 fsm model Heron <niter: int> (
   in h: event, 
-  in start: bit,
+  in start: bool,
   in u: float,
-  out rdy: bit,
+  out rdy: bool,
   out r: float)
  {
   states: Idle, Iter;
@@ -21,8 +19,8 @@ fsm model Heron <niter: int> (
 
 input H : event = periodic (10,10,200)
 input U : float = value_changes (5:2.0)
-input Start : bit = value_changes (0:0, 25:1, 35:0)
-output Rdy : bit
+input Start : bool = value_changes (0:0, 25:1, 35:0)
+output Rdy : bool
 output R : float
 
 fsm heron = Heron<8> (H,Start,U,Rdy,R)

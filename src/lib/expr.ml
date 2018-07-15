@@ -11,7 +11,12 @@
 
 open Utils
 
-type t = 
+type t = {
+    e_desc: e_desc;
+    mutable e_typ: Types.typ;
+  }
+
+and e_desc = 
     EInt of int
   | EFloat of float         
   | EBool of bool
@@ -31,6 +36,21 @@ and e_val =
   | Val_unknown
   | Val_none                    (** used for pure events *)
   | Val_array of e_val array
+
+let rec type_of_value = function
+  | Val_int _ -> Types.TyInt None
+  | Val_float _ -> Types.TyFloat
+  | Val_bool _ -> Types.TyBool
+  | Val_enum c -> Types.TyEnum [c]  (* TO FIX *)
+  | Val_fn (args,body) -> Types.TyArrow (Types.TyProduct (List.map (function arg -> Types.TyBool) args),Types.TyBool) (* TO FIX ! *)
+  | Val_unknown -> Types.new_type_var ()
+  | Val_none -> Types.TyEvent
+  | Val_array vs ->
+     begin
+       match Array.length vs with
+       | 0 -> failwith "Types.type_of_value"
+       | n -> Types.TyArray(n, type_of_value vs.(0))
+     end
 
 let of_value = function
     Val_int v -> EInt v
@@ -55,7 +75,7 @@ let set_event = Val_bool true
 module VarSet = Set.Make(struct type t = string let compare = Pervasives.compare end)
                  
 let rec vars_of expr =
-  match expr with
+  match expr.e_desc with
     EVar v -> VarSet.singleton v
   | EBinop (_,e1,e2) -> VarSet.union (vars_of e1) (vars_of e2)
   | ECond (e1,e2,e3) -> List.fold_left (fun acc e -> VarSet.union acc (vars_of e)) VarSet.empty [e1;e2;e3]
@@ -65,14 +85,13 @@ let rec vars_of expr =
        
 (* Renaming *)
 
-let rec rename f expr = match expr with
+let rec rename f expr = match expr.e_desc with
   (* Replace each variable [v] in [e] by [f v] *)
-  | EVar v -> EVar (f v)
-  | EBinop (op,e1,e2) -> EBinop (op, rename f e1, rename f e2)
-  (* | ECond ((e11,op,e12),e2,e3) -> ECond ((rename f e11,op,rename f e12), rename f e2, rename f e3) *)
-  | ECond (e1,e2,e3) -> ECond (rename f e1, rename f e2, rename f e3)
-  | EFapp (fn, es) -> EFapp (fn, List.map (rename f) es)
-  | EArr (a, e') -> EArr (a, rename f e')
+  | EVar v -> { expr with e_desc=EVar (f v) }
+  | EBinop (op,e1,e2) -> { expr with e_desc=EBinop (op, rename f e1, rename f e2) }
+  | ECond (e1,e2,e3) -> { expr with e_desc=ECond (rename f e1, rename f e2, rename f e3) }
+  | EFapp (fn, es) -> { expr with e_desc=EFapp (fn, List.map (rename f) es) }
+  | EArr (a, e') -> { expr with e_desc=EArr (a, rename f e') }
   | _ -> expr
        
 (* Printing *)
@@ -95,7 +114,7 @@ let string_of_op = function
     "mod" -> " mod "
   | op -> op
 
-let rec to_string e = match e with
+let rec to_string e = match e.e_desc with
     EInt c -> string_of_int c
   | EFloat b -> string_of_float b
   | EBool b -> string_of_bool b

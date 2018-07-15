@@ -79,15 +79,17 @@ let mk_stim_decl p desc = { Syntax.stim_desc = desc; Syntax.stim_loc = mk_locati
 let mk_fsm_inst p desc = { Syntax.fi_desc = desc; Syntax.fi_loc = mk_location p }
 let mk_type_expression p desc = { Syntax.te_desc = desc; Syntax.te_loc = mk_location p }
 let mk_type_index_expression p desc = { Syntax.ti_desc = desc; Syntax.ti_loc = mk_location p }
+let mk_expr desc = { Expr.e_desc = desc; Expr.e_typ = TyUnknown }
 let mk_expression p desc = { Syntax.e_desc = desc; Syntax.e_loc = mk_location p }
 let mk_condition p desc = { Syntax.cond_desc = desc; Syntax.cond_loc = mk_location p }
 let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p }
 
 let mkuminus name exp =
-  match name, exp with
-  | "-", Expr.EInt n -> Expr.EInt (-n)
-  | ("-."|"-"), Expr.EFloat n -> Expr.EFloat (-.n)
-  | _ -> Expr.EFapp ("~"^name, [exp])
+  let open Expr in
+  match name, exp.e_desc with
+  | "-", EInt n -> { exp with e_desc = EInt (-n) }
+  | ("-."|"-"), EFloat n -> { exp with e_desc = EFloat (-.n) }
+  | _ -> { exp with e_desc = EFapp ("~"^name, [exp]) }
 %}
 
 %%
@@ -244,7 +246,7 @@ action:
 
 lhs:
   | v=LID { Action.Var0 v }
-  | a=LID LBRACKET i=expr RBRACKET { Action.Var1 (a,i) }
+  | a=LID LBRACKET i=expr RBRACKET { Action.Var1 (a, i) }
 
 (* GLOBALS *)
 
@@ -342,51 +344,51 @@ expr:
   | e = simple_expr
       { e }
   | e1 = expr PLUS e2 = expr
-      { Expr.EBinop ("+", e1, e2) }
+      { mk_expr (EBinop ("+", e1, e2)) }
   | e1 = expr MINUS e2 = expr
-      { Expr.EBinop ("-", e1, e2) }
+      { mk_expr (EBinop ("-", e1, e2)) }
   | e1 = expr TIMES e2 = expr
-      { Expr.EBinop ("*", e1, e2) }
+      { mk_expr (EBinop ("*", e1, e2)) }
   | e1 = expr DIV e2 = expr
-      { Expr.EBinop ("/", e1, e2) }
+      { mk_expr (EBinop ("/", e1, e2)) }
   | e1 = expr MOD e2 = expr
-      { Expr.EBinop ("mod", e1, e2) }
+      { mk_expr (EBinop ("mod", e1, e2)) }
   | e1 = expr FPLUS e2 = expr
-      { Expr.EBinop ("+.", e1, e2) }
+      { mk_expr (EBinop ("+.", e1, e2)) }
   | e1 = expr FMINUS e2 = expr
-      { Expr.EBinop ("-.", e1, e2) }
+      { mk_expr (EBinop ("-.", e1, e2)) }
   | e1 = expr FTIMES e2 = expr
-      { Expr.EBinop ("*.", e1, e2) }
+      { mk_expr (EBinop ("*.", e1, e2)) }
   | e1 = expr FDIV e2 = expr
-      { Expr.EBinop ("/.", e1, e2) }
+      { mk_expr (EBinop ("/.", e1, e2)) }
   | e1 = expr EQUAL e2 = expr
-      { Expr.EBinop ("=", e1, e2) }
+      { mk_expr (EBinop ("=", e1, e2)) }
   | e1 = expr NOTEQUAL e2 = expr
-      { Expr.EBinop ("!=", e1, e2) }
+      { mk_expr (EBinop ("!=", e1, e2)) }
   | e1 = expr GT e2 = expr
-      { Expr.EBinop (">", e1, e2) }
+      { mk_expr (EBinop (">", e1, e2)) }
   | e1 = expr LT e2 = expr
-      { Expr.EBinop ("<", e1, e2) }
+      { mk_expr (EBinop ("<", e1, e2)) }
   | e1 = expr GTE e2 = expr
-      { Expr.EBinop (">=", e1, e2) }
+      { mk_expr (EBinop (">=", e1, e2)) }
   | e1 = expr LTE e2 = expr
-      { Expr.EBinop ("<=", e1, e2) }
+      { mk_expr (EBinop ("<=", e1, e2)) }
   | s=subtractive e=expr %prec prec_unary_minus
       { mkuminus s e }
   | f = LID LPAREN args=my_separated_list(COMMA,expr) RPAREN
-      { Expr.EFapp (f,args) }
+      { mk_expr (EFapp (f,args)) }
   | a = LID LBRACKET i=expr RBRACKET 
-      { Expr.EArr (a,i) }
+      { mk_expr (EArr (a,i)) }
   | e1 = expr QMARK e2 = expr COLON e3 = expr
-      { Expr.ECond (e1, e2, e3) }
+      { mk_expr (ECond (e1, e2, e3)) }
 
 simple_expr:
   | v = LID
-      { Expr.EVar v }
+      { mk_expr (Expr.EVar v) }
   | e = constant
-      { e }
+      { mk_expr e }
   | c = UID
-      { Expr.EEnum c }
+      { mk_expr (Expr.EEnum c) }
   | LPAREN e = expr RPAREN
       { e }
 

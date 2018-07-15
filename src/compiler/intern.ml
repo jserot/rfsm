@@ -41,16 +41,52 @@ let rec type_of_type_expr tenv te = match te with
 
 and type_of_type_expression tenv te = type_of_type_expr tenv te.te_desc
 
+
+let mk_bool_expr e = match e.Expr.e_desc with
+    | Expr.EInt 0 -> { e with Expr.e_desc = EBool false }
+    | Expr.EInt 1 -> { e with Expr.e_desc = EBool true }
+    | _ -> e 
+
 let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } = 
   let mk_typed what (id,te) =
     if List.mem_assoc id tenv.Typing.te_ctors
     then Error.warning (Printf.sprintf "declaration of %s %s in FSM model %s shadows enum value" what id f.fd_name);
     id, type_of_type_expression tenv te in 
+  let local_types =
+      List.map (function (dir,(id,te)) -> (id, type_of_type_expression tenv te)) f.fd_ios
+    @ List.map (function (id,te) -> id, type_of_type_expression tenv te) f.fd_vars in
+  let type_of id = try List.assoc id local_types with Not_found -> failwith "Intern.mk_fsm_model" in
+  let pp_action a = match a with
+    (* Replace all assignations [v:=0/1], where [v:bool] by [v:=false/true] *)
+    | Action.Assign (Var0 v, e) ->
+       begin
+         match type_of v with
+         | Types.TyBool -> Action.Assign (Var0 v, mk_bool_expr e)
+         | _ -> a
+       end
+    | Action.Assign (Var1 (v,i), e) ->
+       begin
+         match type_of v with
+         | Types.TyArray (_, Types.TyBool) -> Action.Assign (Var1 (v,i), mk_bool_expr e)
+         | _ -> a
+       end
+    | _ -> a in
+  let pp_expr e =
+    let open Expr in
+    match e.e_desc with
+    (* Replace all bool expr [e op 0/1], where [e:bool] and [op] is [=] or [!=] by [e op false/true] *)
+    | EBinop (op, ({ e_desc = EVar v } as e'), e'') when List.mem op ["="; "!="] ->  
+       begin
+         match type_of v with
+         | TyBool -> { e with e_desc = EBinop (op, e', mk_bool_expr e'') }
+         | _ -> e
+       end
+    | _ -> e in
   let mk_cond c = match c.cond_desc with
-      [ev],guards -> ev, guards
+      [ev],guards -> ev, List.map pp_expr guards
     | _ -> Error.fatal_error "Intern.mk_fsm_model" in
   let mk_prio p = if p then 1 else 0 in
-  let mk_act a = a.act_desc in
+  let mk_act a = pp_action a.act_desc in
   Fsm.build_model
     ~name:f.fd_name
     ~states:f.fd_states
@@ -77,15 +113,24 @@ let mk_fsm_inst tenv models globals { fi_desc=f; fi_loc=loc } =
       ~params:params
       ~ios:(List.map mk_global f.fi_args)
 
-let mk_stim_desc = function
+let mk_bool_val v = match v with
+    | Expr.Val_int 0 -> Expr.Val_bool false
+    | Expr.Val_int 1 -> Expr.Val_bool true
+    | _ -> v
+
+let pp_value_change ty (t,v) = match ty with
+  | Types.TyBool -> t, mk_bool_val v
+  | _ -> t, v
+
+let mk_stim_desc ty = function
   | Periodic (p,t1,t2) -> Fsm.Periodic (p,t1,t2)
   | Sporadic ts -> Fsm.Sporadic ts
-  | ValueChange vcs -> Fsm.ValueChange vcs
+  | ValueChange vcs -> Fsm.ValueChange (List.map (pp_value_change ty) vcs)
                      
 let mk_global tenv { g_desc = g; g_loc = loc } = 
   let ty = type_of_type_expression tenv g.gd_type in
   match g.gd_desc with
-  | GInp stim -> g.gd_name, Fsm.GInp (g.gd_name, ty, mk_stim_desc stim.stim_desc)
+  | GInp stim -> g.gd_name, Fsm.GInp (g.gd_name, ty, mk_stim_desc ty stim.stim_desc)
   | GOutp -> g.gd_name, Fsm.GOutp (g.gd_name, ty)
   | GShared -> g.gd_name, Fsm.GShared (g.gd_name, ty)
 

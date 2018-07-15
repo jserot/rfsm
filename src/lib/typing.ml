@@ -36,7 +36,7 @@ let rec type_expression tenv expr =
     | Types.TypeConflict _
     | Types.TypeCircularity _ ->
       raise (Typing_error (expr, t1, t2)) in   
-  match expr with
+  let type_expr expr = match expr.Expr.e_desc with
     Expr.EInt c -> TyInt None
   | Expr.EFloat b -> TyFloat
   | Expr.EBool b -> TyBool
@@ -62,7 +62,10 @@ let rec type_expression tenv expr =
      unify ty_idx (TyInt None);
      let ty_res = new_type_var () in
      unify ty_arr (TyArray(size_of ty_arr, ty_res));
-     ty_res
+     ty_res in
+  let ty = type_expr expr in
+  expr.e_typ <- ty;
+  ty
 
 and type_application expr tenv ty_fn args =
       let ty_arg = TyProduct (List.map (type_expression tenv) args) in

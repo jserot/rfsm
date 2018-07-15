@@ -239,7 +239,6 @@ let dump_dependencies m =
   close_out oc
   
 let dump oc m =
-  (* List.iter (Fsm.dump_model stdout) m.m_fsm_models; *)
   List.iter (Fsm.dump_inst oc) m.m_fsms;
   List.iter (dump_global oc) m.m_inputs;
   List.iter (dump_global oc) m.m_outputs;

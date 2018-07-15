@@ -25,37 +25,39 @@ let lookup env id =
 
 let string_of_env env = Utils.ListExt.to_string (function (id,v) -> id ^ "=" ^ Expr.string_of_opt_value v) "," env
                       
-let rec subst vs expr = match expr with
-  (* Substitute each occurence of variables in [vs] by its value in [expr] *)
-  | EVar v when List.mem_assoc v vs -> of_value (List.assoc v vs)
+let rec subst vs expr = match expr.e_desc with
+  (* Substitute, in [expr], each occurence of a variable listed in [vs] by its value *)
+  | EVar v when List.mem_assoc v vs -> { expr with e_desc = Expr.of_value (List.assoc v vs) }
   | EBinop (op,e1,e2) ->
      begin match Builtins.lookup_val op, subst vs e1, subst vs e2 with
-       f, EInt c1, EInt c2 ->   (* Immediate reduction *)
+       f, {e_desc=EInt c1}, { e_desc=EInt c2} ->   (* Immediate reduction *)
         begin match f [Val_int c1;Val_int c2] with
-          Val_int v -> EInt v
-        | Val_bool v -> EBool v
+          Val_int v -> { expr with e_desc = EInt v }
+        | Val_bool v -> { expr with e_desc = EBool v }
         | _ -> raise (Illegal_expr expr)
         end
-     | f, EFloat c1, EFloat c2 ->   (* Immediate reduction *)
+     | f, {e_desc=EFloat c1}, {e_desc=EFloat c2} ->   (* Immediate reduction *)
         begin match f [Val_float c1;Val_float c2] with
-          Val_float v -> EFloat v
-        | Val_bool v -> EBool v
+          Val_float v -> { expr with e_desc = EFloat v }
+        | Val_bool v -> { expr with e_desc = EBool v }
         | _ -> raise (Illegal_expr expr)
         end
-     | _, e1', e2' -> EBinop (op, e1', e2') 
+     | _, e1', e2' -> { expr with e_desc = EBinop (op, e1', e2')  }
      end
-  | ECond (e1,e2,e3) -> ECond (subst vs e1, subst vs e2, subst vs e3)
-  | EFapp (f, es) -> EFapp (f, List.map (subst vs) es)
+  | ECond (e1,e2,e3) -> { expr with e_desc = ECond (subst vs e1, subst vs e2, subst vs e3) }
+  | EFapp (f, es) -> { expr with e_desc = EFapp (f, List.map (subst vs) es) }
   | EArr (a,idx) when List.mem_assoc a vs -> 
      begin
        match List.assoc a vs, eval [] idx with
-       | Val_array vs, Val_int i when i >= 0 && i < Array.length vs -> of_value (vs.(i))
-       | _, _ -> expr
+       | Val_array vs, Val_int i when i >= 0 && i < Array.length vs ->
+          { expr with e_desc = Expr.of_value (vs.(i)) }
+       | _, _ ->
+          expr
      end
   | _ -> expr
                
 and eval env exp = 
-  let r = match exp with
+  let r = match exp.e_desc with
     EInt v -> Val_int v
   | EFloat v -> Val_float v
   | EBool v -> Val_bool v

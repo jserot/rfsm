@@ -82,6 +82,9 @@ val enums_of : typ -> (string * typ) list
 val size_of : typ -> int
   (** [size_of t] returns the "size" of type *)
          
+val subtype_of: typ -> typ
+  (** [subtype (TyArray (sz,ty')] returns the [ty'], ... *)
+
 (** {2 Typing} *)
   
 val subst_indexes : Index.env -> typ -> typ
@@ -94,11 +97,6 @@ val type_equal : strict:bool -> typ -> typ -> bool
       If [b=false], all [TyInt _] are equivalents and equivalence of enumerated types means
       inclusion, so that, for instance, [type_equal ~strict:false {On,Off} {On} = true] (but not
       the other way). *)
-
-val type_of_value : Expr.e_val -> typ
-  (** [type_of_value v] returns the "best known" type for value [v].
-      For an integer, this will alaways be [TyInt None].
-      For an enumerated value [c], this will be the "approximation" [TyEnum [c]]. *)
 
 val unify: typ -> typ -> unit
   

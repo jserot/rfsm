@@ -137,7 +137,9 @@ let dump_reaction oc signals (t,evs) =
         TyEvent, _ -> fprintf oc "1%c\n" id          (* Instantaneous event *)
       | TyEnum _, Expr.Val_enum s -> fprintf oc "s%s %c\n" s id
       | TyBool, Expr.Val_bool b -> fprintf oc "b%d %c\n" (if b then 1 else 0) id
+      | TyBool, Expr.Val_int n -> fprintf oc "b%d %c\n" (if n > 0 then 1 else 0) id
       | TyInt r, Expr.Val_int n -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
+      | TyInt r, Expr.Val_bool b -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) (if b then 1 else 0)) id
       | TyFloat, Expr.Val_float n -> fprintf oc "r%.*f %c\n" cfg.float_precision n id
       | _, _ -> fprintf oc "s%s %c" "Unknown" id (* should not happen *) in
   fprintf oc "#%d\n" t;

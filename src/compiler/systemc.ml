@@ -117,7 +117,7 @@ let string_of_op = function
 let string_of_expr m e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    match e with
+    match e.Expr.e_desc with
       Expr.EInt c -> string_of_int c
     | Expr.EFloat c -> string_of_float c
     | Expr.EBool c -> string_of_bool c

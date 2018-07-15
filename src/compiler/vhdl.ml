@@ -31,12 +31,12 @@ type vhdl_config = {
   mutable vhdl_reset_sig: string;
   mutable vhdl_reset_duration: int;
   mutable vhdl_ev_duration: int;
-  mutable vhdl_default_int_type: string;
-  mutable vhdl_default_int_size: int;
+  (* mutable vhdl_default_int_type: string;
+   * mutable vhdl_default_int_size: int; *)
+  mutable vhdl_use_numeric_std: bool;
   mutable vhdl_support_library: string;
   mutable vhdl_support_package: string;
   mutable vhdl_trace: bool;
-  (* mutable vhdl_use_variables: bool; *)
   mutable vhdl_trace_state_var: string
   }
 
@@ -52,12 +52,12 @@ let cfg = {
   vhdl_time_unit = "ns";
   vhdl_reset_duration = 1;
   vhdl_ev_duration = 1;
-  vhdl_default_int_type = "unsigned";
-  vhdl_default_int_size = 8;
+  (* vhdl_default_int_type = "unsigned";
+   * vhdl_default_int_size = 8; *)
+  vhdl_use_numeric_std = false;
   vhdl_support_library = "rfsm";
   vhdl_support_package = "core";
   vhdl_trace = false;
-  (* vhdl_use_variables = false; *)
   vhdl_trace_state_var = "st";
   }
 
@@ -73,23 +73,27 @@ type vhdl_type =
     Std_logic 
   | Unsigned of int
   | Signed of int
-  | Integer
+  | Integer of int_range option
   | Real
   | Boolean
   | Array of int * vhdl_type
+  | Unknown
+
+and int_range = int * int
 
 let rec vhdl_type_of t = match t with 
   | TyEvent -> Std_logic
   | TyBool -> Boolean
   | TyFloat -> Real
   | TyEnum cs -> Error.not_implemented "VHDL translation of enumerated type"
-  | TyInt None -> Integer
   | TyInt (Some (TiConst lo,TiConst hi)) ->
-      if lo < 0 then Signed (Systemc.bit_size (max (-lo) hi)) else Unsigned (Systemc.bit_size hi)
+      if cfg.vhdl_use_numeric_std then
+        if lo < 0 then Signed (Systemc.bit_size (max (-lo) hi)) else Unsigned (Systemc.bit_size hi)
+      else
+        Integer (Some (lo,hi))
+  | TyInt _ -> Integer None
   | TyArray (sz,t') -> Array (sz, vhdl_type_of t')
-  | TyInt _
-  | _ ->
-     Error.fatal_error "Vhdl.vhdl_type_of"
+  | _ -> Unknown
 
 type type_mark = TM_Full | TM_Abbr | TM_None
                                    
@@ -101,31 +105,29 @@ let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with
   | Signed n, TM_Full -> Printf.sprintf "signed(%d downto 0)" (n-1)
   | Signed n, TM_Abbr -> Printf.sprintf "signed%d" n
   | Signed n, TM_None -> "signed"
-  | Integer, _ -> "integer"
+  | Integer (Some (lo,hi)), TM_Full -> Printf.sprintf "integer range %d to %d" lo hi
+  | Integer _, _ -> "integer"
   | Real, _ -> "real"
   | Boolean, _ -> "boolean"
   | Array (n,t'), _ -> string_of_vhdl_array_type n t'
+  | Unknown, _ -> failwith "Vhdl.string_of_vhdl_type"
 
 and string_of_vhdl_array_type n t = "array_" ^ string_of_int n ^ "_" ^ string_of_vhdl_type ~type_marks:TM_Abbr t
 
 let string_of_type ?(type_marks=TM_Full) t =
   string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
 
-let array_subtype = function
-  | Array (_,t) -> t
-  | _ -> failwith "Vhdl.array_subtype"
-       
-let global_types = ref ( [] : (string * vhdl_type) list )
+let global_types = ref ( [] : (string * Types.typ) list )
 
 let lookup_type id = 
-  try Some (List.assoc id !global_types)
-  with Not_found -> None
+  try List.assoc id !global_types
+  with Not_found -> failwith ("Vhdl.lookup_type(" ^ id ^ ")")
 
 let type_error where what item ty1 ty2 = 
   raise (Vhdl_error(
      where,
      Printf.sprintf "incompatible types for %s \"%s\": %s and %s"
-       what item (string_of_vhdl_type ty1) (string_of_vhdl_type ty2)))
+       what item (string_of_type ty1) (string_of_type ty2)))
 
 let add_type (id,ty) =
   try
@@ -145,8 +147,8 @@ let string_of_value ?(ty=None) v = match v, ty with
   Expr.Val_int i, Some (Unsigned n) -> Printf.sprintf "to_unsigned(%d,%d)" i n
 | Expr.Val_int i, Some (Signed n) -> Printf.sprintf "to_signed(%d,%d)" i n
 | Expr.Val_int i, Some Std_logic -> Printf.sprintf "'%d'" i
-| Expr.Val_int i, Some Integer -> Printf.sprintf "%d" i
-| Expr.Val_int i, Some Boolean -> Error.fatal_error "Vhdl.string_of_value"
+| Expr.Val_int i, Some (Integer _) -> Printf.sprintf "%d" i
+| Expr.Val_int i, Some Boolean -> if i > 0 then "true" else "false"
 | Expr.Val_int i, Some Real -> Printf.sprintf "%d.0" i
 | Expr.Val_int i, None -> Printf.sprintf "%d" i
 | Expr.Val_int i, _ -> failwith "Vhdl.string_of_value"
@@ -162,39 +164,33 @@ let string_of_ival ?(ty=None) = function
     None -> ""
   | Some v -> " = " ^ string_of_value ~ty:ty v
 
-let rec type_of_expr e = match e with
-    Expr.EInt c -> Some Integer
-  | Expr.EFloat c -> Some (vhdl_type_of TyFloat)
-  | Expr.EBool c -> Some (vhdl_type_of TyBool)
-  | Expr.EEnum c -> None
-  | Expr.EVar n -> lookup_type n 
-  | Expr.EBinop (op,e1,e2) ->
-      begin match type_of_expr e1, type_of_expr e2 with
-        None, None -> None
-      | Some t1, None -> Some t1
-      | None, Some t2 -> Some t2
-      | Some t1, Some t2 -> 
-          if t1 = t2 then Some t1
-          else type_error "" "binary operation" op t1 t2
-      end
-  | Expr.ECond (e1,e2,e3) ->   (* TO FIX ? *)
-      begin match type_of_expr e1, type_of_expr e2, type_of_expr e3 with
-        _, None, None -> None
-      | _, Some t1, None -> Some t1
-      | _, None, Some t2 -> Some t2
-      | _, Some t1, Some t2 -> 
-          if t1 = t2 then Some t1
-          else type_error "" "ternary conditioal" "" t1 t2
-      end
-  | Expr.EFapp (f,es) -> None (* TO FIX ? *)
-  | Expr.EArr (a,idx) -> None (* TO FIX ? *)
-
-let vhdl_string_of_int ?(ty=None) n =
-  match ty with
-    Some (Unsigned s) -> Printf.sprintf "to_unsigned(%d,%d)" n s
-  | Some (Signed s) -> Printf.sprintf "to_signed(%d,%d)" n s
-  | Some Std_logic -> Printf.sprintf "'%d'" n
-  | _ -> string_of_int n (* will probably not compile but can't do better at this level.. *)
+let rec type_of_expr e = vhdl_type_of e.Expr.e_typ
+  (* match e with
+   *   Expr.EInt c -> Some Integer
+   * | Expr.EFloat c -> Some (vhdl_type_of TyFloat)
+   * | Expr.EBool c -> Some (vhdl_type_of TyBool)
+   * | Expr.EEnum c -> None
+   * | Expr.EVar n -> lookup_type n 
+   * | Expr.EBinop (op,e1,e2) ->
+   *     begin match type_of_expr e1, type_of_expr e2 with
+   *       None, None -> None
+   *     | Some t1, None -> Some t1
+   *     | None, Some t2 -> Some t2
+   *     | Some t1, Some t2 -> 
+   *         if t1 = t2 then Some t1
+   *         else type_error "" "binary operation" op t1 t2
+   *     end
+   * | Expr.ECond (e1,e2,e3) ->   (\* TO FIX ? *\)
+   *     begin match type_of_expr e1, type_of_expr e2, type_of_expr e3 with
+   *       _, None, None -> None
+   *     | _, Some t1, None -> Some t1
+   *     | _, None, Some t2 -> Some t2
+   *     | _, Some t1, Some t2 -> 
+   *         if t1 = t2 then Some t1
+   *         else type_error "" "ternary conditioal" "" t1 t2
+   *     end
+   * | Expr.EFapp (f,es) -> None (\* TO FIX ? *\)
+   * | Expr.EArr (a,idx) -> None (\* TO FIX ? *\) *)
 
 let string_of_op = function
     "=" -> " = "
@@ -206,48 +202,49 @@ let string_of_op = function
   | "/." -> "/" 
   | op ->  op
 
-let string_of_expr ?(ty=None) e =
+let string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
-  let rec string_of ?(ty=None) level e =
-    match e with
-      Expr.EInt c -> vhdl_string_of_int ~ty:ty  c
-    | Expr.EFloat c -> vhdl_string_of_float c
-    | Expr.EBool c -> string_of_bool c
-    | Expr.EEnum c -> c
-    | Expr.EVar n ->  n
-    | Expr.EBinop (op,e1,e2) -> 
+  let rec string_of level e =
+    match e.Expr.e_desc, vhdl_type_of e.Expr.e_typ  with
+    | Expr.EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
+    | Expr.EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
+    | Expr.EInt n, Boolean -> if n > 0 then "true" else "false"
+    | Expr.EInt n, Std_logic -> if n > 0 then "'1'" else "'0'"
+    | Expr.EInt n, _ -> string_of_int n
+    | Expr.EFloat c, _ -> vhdl_string_of_float c
+    | Expr.EBool c, _ -> string_of_bool c
+    | Expr.EEnum c, _ -> c
+    | Expr.EVar n, _ ->  n
+    | Expr.EBinop (op,e1,e2), _ -> 
        let ty = type_of_expr e in
        begin match op, ty with 
-         "*", Some (Signed _)
-       | "*", Some (Unsigned _) ->  "mul(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
+         "*", Signed _
+       | "*", Unsigned _ ->  "mul(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
        | _, _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
        end
-    | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
-    | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
-    | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
-    | Expr.EArr (a,idx) -> a ^ "(" ^ string_of ~ty:(type_of_expr idx)level idx ^ ")"
+    | Expr.ECond (e1,e2,e3), _ -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
+    | Expr.EFapp (("~-"|"~-."),[e]), _ -> "-" ^ "(" ^ string_of level e ^ ")"
+    | Expr.EFapp (f,es), _ -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
+    | Expr.EArr (a,idx), _ -> a ^ "(" ^ string_of level idx ^ ")"
   in
-  string_of ~ty:ty 0 e
+  string_of 0 e
 
-                                                                      
 let string_of_action ?(lvars=[]) a = match a with
   | Action.Assign (Action.Var0 id, expr) ->
      let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
-     let ty = lookup_type id  in
-     id ^ asn ^ string_of_expr ~ty:ty expr
+     expr.Expr.e_typ <- lookup_type id;  (* ex: [v:=1] when [v:unsigned(2 downto 0)] *) 
+     id ^ asn ^ string_of_expr expr
   | Action.Assign (Action.Var1 (id,idx), expr) ->
      let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
-     let ty = match lookup_type id with
-       | Some (Array (sz, ty)) -> ty
-       | _ -> failwith "Vhdl.string_of_action" in
+     expr.Expr.e_typ <- Types.subtype_of (lookup_type id);  (* ex: [v[0]:=1] when [v:array of unsigned(2 downto 0)] *) 
      if List.mem_assoc id lvars
-     then id ^ "(" ^ string_of_expr ~ty:(Some Integer) idx ^ ")" ^ asn ^ string_of_expr ~ty:(Some ty) expr
+     then id ^ "(" ^ string_of_expr idx ^ ")" ^ asn ^ string_of_expr expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
   | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
 let string_of_condition (e,cs) =  
-  let string_of_guard gexp  = string_of_expr ~ty:(type_of_expr gexp) gexp in
+  let string_of_guard gexp  = string_of_expr gexp in
   match cs with
     [] -> failwith "Vhdl.string.of_condition"
   | _ -> ListExt.to_string string_of_guard " and " cs
@@ -300,10 +297,10 @@ let dump_module_arch oc m fsm =
   let m = Cmodel.c_model_of_fsm m fsm in
   let modname = m.c_name in
   let _ = reset_types () in
-  List.iter (function (id,ty) -> add_type (id, vhdl_type_of ty)) m.c_inps;
-  List.iter (function (id,ty) -> add_type (id, vhdl_type_of ty)) m.c_outps;
-  List.iter (function (id,ty) -> add_type (id, vhdl_type_of ty)) m.c_inouts;
-  List.iter (function (id,(ty,_)) -> add_type (id, vhdl_type_of ty)) m.c_vars;
+  List.iter (function (id,ty) -> add_type (id, ty)) m.c_inps;
+  List.iter (function (id,ty) -> add_type (id, ty)) m.c_outps;
+  List.iter (function (id,ty) -> add_type (id, ty)) m.c_inouts;
+  List.iter (function (id,(ty,_)) -> add_type (id, ty)) m.c_vars;
   let clk_sig = match List.filter (function (_, TyEvent) -> true | _ -> false) m.c_inps with
     [] -> raise (Vhdl_error (m.c_name, "no input event, hence no possible clock"))
   | [h,_] -> h
@@ -397,9 +394,7 @@ let dump_periodic_inp_process oc id (p,t1,t2) =
        fprintf oc "      wait;\n"
   
 let dump_vc_inp_process oc id vcs =
-       let ty = match lookup_type id with
-         | Some t -> t 
-         | None -> failwith ("Vhdl.dump_vc_inp_process: cannot retrieve type for identifier " ^ id) in
+       let ty = vhdl_type_of (lookup_type id) in
        let string_of_vc (t,v) = "(" ^ string_of_int t ^ " " ^ cfg.vhdl_time_unit ^ "," ^ string_of_value ~ty:(Some ty) v ^ ")" in
        fprintf oc "    type t_vc is record date: time; val: %s; end record;\n" (string_of_vhdl_type ty);
        fprintf oc "    type t_vcs is array ( 0 to %d ) of t_vc;\n" (List.length vcs-1);
@@ -437,7 +432,7 @@ let dump_testbench_impl fname m =
   let modname n = String.capitalize_ascii n in
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;	   \n";
-  fprintf oc "use ieee.numeric_std.all;\n";
+  if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
   fprintf oc "library %s;\n" cfg.vhdl_support_library;
   fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package;
   fprintf oc "\n";
@@ -453,7 +448,7 @@ let dump_testbench_impl fname m =
   List.iter
    (function (id,(ty,_)) ->
      fprintf oc "signal %s: %s;\n" (tb_name id) (string_of_type ty);
-     add_type (id, vhdl_type_of ty))
+     add_type (id, ty))
    (m.m_inputs @ m.m_outputs @ m.m_shared);
   fprintf oc "signal %s: std_logic;\n" (tb_name cfg.vhdl_reset_sig);
   if cfg.vhdl_trace then
@@ -500,7 +495,7 @@ let dump_fsm ?(prefix="") ?(dir="./vhdl") m fsm =
   let oc = open_out fname in
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
-  fprintf oc "use ieee.numeric_std.all;\n";
+  if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
   fprintf oc "library %s;\n" cfg.vhdl_support_library;
   fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package;
   if profil.has_globals then fprintf oc "use work.%s.all;\n" cfg.vhdl_globals_name;
@@ -527,7 +522,7 @@ let rec dump_globals ?(name="") ?(dir="./systemc") m =
   profil.has_globals <- true;
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
-  fprintf oc "use ieee.numeric_std.all;\n";
+  if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
   fprintf oc "library %s;\n" cfg.vhdl_support_library;
   fprintf oc "use %s.%s.all;\n\n" cfg.vhdl_support_library cfg.vhdl_support_package;
   dump_globals_intf oc prefix m.Sysm.m_fns;

@@ -11,7 +11,12 @@
 
 (** Expressions and values *)
 
-type t = 
+type t = {
+    e_desc: e_desc;
+    mutable e_typ: Types.typ;
+  }
+
+and e_desc = 
     EInt of int
   | EFloat of float         
   | EBool of bool         
@@ -38,7 +43,12 @@ exception Out_of_bound of string * int  (** array name, index value *)
                         
 val array_update : string -> e_val array -> int -> e_val -> e_val array
   
-val of_value : e_val -> t
+val of_value : e_val -> e_desc
+
+val type_of_value : e_val -> Types.typ
+  (** [type_of_value v] returns the "best known" type for value [v].
+      For an integer, this will always be [TyInt None].
+      For an enumerated value [c], this will be the "approximation" [TyEnum [c]]. *)
 
 val unset_event : e_val
 val set_event : e_val
