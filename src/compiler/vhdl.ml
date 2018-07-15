@@ -86,7 +86,7 @@ let rec vhdl_type_of t = match t with
   | TyInt None -> Integer
   | TyInt (Some (TiConst lo,TiConst hi)) ->
       if lo < 0 then Signed (Systemc.bit_size (max (-lo) hi)) else Unsigned (Systemc.bit_size hi)
-  | TyArray (sz,t') -> Array (sz, vhdl_type_of t')
+  | TyArray (Types.Index.TiConst sz,t') -> Array (sz, vhdl_type_of t')
   | TyInt _
   | _ ->
      Error.fatal_error "Vhdl.vhdl_type_of"
@@ -285,13 +285,14 @@ let dump_array_types oc m =
     List.fold_left
       (fun acc (_,(ty,_)) ->
         match ty with
-        | TyArray _ when not (List.mem ty acc) -> ty::acc
+        | TyArray (Types.Index.TiConst _, _) when not (List.mem ty acc) -> ty::acc
+        | TyArray (_, _) -> failwith "Vhdl.dump_array_types"
         | _ -> acc)
       []
       m.c_vars in
   List.iter 
     (function
-     | TyArray(sz,ty') as ty ->
+     | TyArray(Types.Index.TiConst sz,ty') as ty ->
         fprintf oc "  type %s is array (0 to %d) of %s;\n" (string_of_type ~type_marks:TM_Abbr ty) (sz-1) (string_of_type ty')
      | _ -> ())
       array_types

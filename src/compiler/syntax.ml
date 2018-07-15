@@ -26,7 +26,7 @@ and type_expr =
   | TEFloat
   | TEEvent
   | TEName of string
-  | TEArray of int * type_expr
+  | TEArray of type_index_expression * type_expr  (* size, type of elements *)
 
 and int_range = type_index_expression * type_index_expression (* min, max *)
 
@@ -180,7 +180,7 @@ let rec string_of_type_expr t = match t with
   | TEInt (Some (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
   | TEEvent -> "event"
   | TEName n -> n
-  | TEArray (sz,t') -> string_of_type_expr t' ^ "array[" ^ string_of_int sz ^ "]"
+  | TEArray (sz,t') -> string_of_type_expr t' ^ "array[" ^ string_of_type_index sz.ti_desc ^ "]"
           
 let string_of_type_expression t = string_of_type_expr t.te_desc
 

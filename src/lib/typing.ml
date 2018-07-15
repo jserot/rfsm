@@ -61,7 +61,7 @@ let rec type_expression tenv expr =
      let ty_idx = type_expression tenv idx in
      unify ty_idx (TyInt None);
      let ty_res = new_type_var () in
-     unify ty_arr (TyArray(size_of ty_arr, ty_res));
+     unify ty_arr (TyArray(TiConst (size_of ty_arr), ty_res));
      ty_res
 
 and type_application expr tenv ty_fn args =
