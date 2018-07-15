@@ -37,7 +37,7 @@ let rec type_of_type_expr tenv te = match te with
        try List.assoc n tenv.Typing.te_defns
        with Not_found -> raise (Unbound_type_ctor n)
      end
-  | TEArray (sz, te') -> TyArray (sz, type_of_type_expr tenv te')
+  | TEArray (sz, te') -> TyArray (type_index_of_index_expr sz, type_of_type_expr tenv te')
 
 and type_of_type_expression tenv te = type_of_type_expr tenv te.te_desc
 

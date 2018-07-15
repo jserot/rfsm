@@ -82,11 +82,13 @@ let array_cell_id id i =
 
 let register_fsm_var acc ((id,ty) as s) =
    match ty with
-  | TyArray (sz,ty') ->
+  | TyArray (Types.Index.TiConst sz, ty') ->
      List.fold_left
        (fun acc n -> register_signal acc (n,ty'))
        acc 
        (ListExt.range (array_cell_id id) 0 (sz-1))
+  | TyArray (_, _) ->
+     failwith "Vcd.register_fsm_var"
   | _ ->
      register_signal acc s
  
@@ -147,11 +149,13 @@ let dump_reaction oc signals (t,evs) =
 
 let dump_signal oc (name,(id,ty)) =
   match ty with
-  | TyArray (sz, ty') ->
+  | TyArray (Types.Index.TiConst sz, ty') ->
      let kind, size =  vcd_kind_of ty'  in
      for i=0 to sz-1 do
        fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string (array_cell_id name i))
      done
+  | TyArray (_, _) ->
+     failwith "Vcd.register_fsm_var"
   | _ ->
      let kind, size =  vcd_kind_of ty in
      fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string name)

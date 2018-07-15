@@ -76,10 +76,10 @@ type typ =
   | TyEnum of string list
   | TyInt of int_range option
   | TyFloat
-  | TyArray of int * typ    (* size, subtype *)
-  | TyVar of tvar           (* Only used internally for type checking *)
-  | TyArrow of typ * typ    (* Only used internally for type checking *)
-  | TyProduct of typ list   (* Only used internally for type checking *)
+  | TyArray of Index.t * typ    (* size, subtype *)
+  | TyVar of tvar               (* Only used internally for type checking *)
+  | TyArrow of typ * typ        (* Only used internally for type checking *)
+  | TyProduct of typ list       (* Only used internally for type checking *)
 
 and tvar =
   { stamp: string;             (* for debug only *)
@@ -197,6 +197,7 @@ let ivars_of = function
 let subst_indexes env ty =
     match ty with
     | TyInt (Some (hi, lo)) -> TyInt (Some (Index.subst env hi, Index.subst env lo))
+    | TyArray (sz, ty') -> TyArray (Index.subst env sz, ty')
     | _ -> ty
 
 (* Checking *)
@@ -234,7 +235,7 @@ let rec enums_of ty = match ty with
   | _ -> []
 
 let size_of ty = match ty with
-  | TyArray (sz, _) -> sz
+  | TyArray (TiConst sz, _) -> sz
   | TyProduct ts -> List.length ts
   | _ -> 0
 
@@ -257,6 +258,6 @@ let rec string_of_type t = match t with
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 
-  | TyArray (sz,ty') -> string_of_type ty' ^ " array[" ^ string_of_int sz ^ "]"
+  | TyArray (sz,ty') -> string_of_type ty' ^ " array[" ^ Index.to_string sz ^ "]"
 
 let string_of_type_scheme ts = "[]" ^ string_of_type ts.ts_body (* TOFIX *)

@@ -39,10 +39,10 @@ type typ =
   | TyEnum of string list
   | TyInt of int_range option
   | TyFloat
-  | TyArray of int * typ    (* size, subtype *)
-  | TyVar of tvar           (* Internal use only *)
-  | TyArrow of typ * typ    (* Internal use only *)
-  | TyProduct of typ list   (* Internal use only *)
+  | TyArray of Index.t * typ    (* size, subtype *)
+  | TyVar of tvar               (* Internal use only *)
+  | TyArrow of typ * typ        (* Internal use only *)
+  | TyProduct of typ list       (* Internal use only *)
 
 and tvar =
   { stamp: string;

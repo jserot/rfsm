@@ -49,7 +49,7 @@ let rec type_of_value = function
      begin
        match Array.length vs with
        | 0 -> failwith "Types.type_of_value"
-       | n -> Types.TyArray(n, type_of_value vs.(0))
+       | n -> TyArray(TiConst n, type_of_value vs.(0))
      end
 
 let of_value = function

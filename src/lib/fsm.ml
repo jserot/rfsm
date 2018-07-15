@@ -310,8 +310,12 @@ let build_instance ~tenv ~name ~model ~params ~ios =
       |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
     let senv = List.map (function id,(ty,v) -> id, v) bound_params in
     let mk_ival ty = match ty with
-        Types.TyArray(sz, _) -> Expr.Val_array (Array.make sz Expr.Val_unknown)
+      | Types.TyArray(TiConst sz, _) -> Expr.Val_array (Array.make sz Expr.Val_unknown)
+      | Types.TyArray(_, _) -> failwith "Fsm.build_instance.mk_ival"
       | _ -> Expr.Val_unknown in
+    let mk_var (id,ty) =
+      let ty' = Types.subst_indexes ienv ty in
+      id, (ty',mk_ival ty') in
     let r =
       { f_name = name;
         f_model = model;
@@ -320,7 +324,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         f_inps = filter_ios Types.IO_In bound_ios;
         f_outps = filter_ios Types.IO_Out bound_ios;
         f_inouts = filter_ios Types.IO_Inout bound_ios;
-        f_vars = List.map (function (id,ty) -> (id, (Types.subst_indexes ienv ty, mk_ival ty))) model.fm_vars;
+        f_vars = List.map mk_var model.fm_vars;
         f_l2g =
           mk_bindings
             ~local_names:(List.map (function (lid,_,_,_,_) -> lid) bound_ios)

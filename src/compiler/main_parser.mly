@@ -313,12 +313,15 @@ typ:
   | TYFLOAT { Syntax.TEFloat }
   | TYBOOL { Syntax.TEBool }
   | i=LID { Syntax.TEName i }
-  | t=typ TYARRAY LBRACKET s=INT RBRACKET { Syntax.TEArray (s,t) }
+  | t=typ TYARRAY LBRACKET s=array_size RBRACKET { Syntax.TEArray (s,t) }
 
 int_range:
     | LT lo=type_index_expr COLON hi=type_index_expr GT
         { (mk_type_index_expression ($symbolstartofs,$endofs) lo,
            mk_type_index_expression ($symbolstartofs,$endofs) hi) }
+
+array_size:
+    | sz = type_index_expr { mk_type_index_expression ($symbolstartofs,$endofs) sz }
 
 type_index_expr:
   | c = INT

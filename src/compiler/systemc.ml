@@ -71,10 +71,14 @@ let rec string_of_type t = match t with
   | TyFloat -> if cfg.sc_double_float then "double" else "float"
   | _ -> raise (Error ("string_of_type", "unsupported type"))
 
+let string_of_array_size sz = match sz with
+  | Types.Index.TiConst n -> string_of_int n
+  | _ -> failwith "Systemc.string_of_array_size"
+                                  
 let string_of_typed_item ?(scope="") (id,ty) =
   let id' = if scope = "" then id else scope ^ "::" ^ id in
   match ty with 
-  | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id' ^ "[" ^ string_of_int sz ^ "]"
+  | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id' ^ "[" ^ string_of_array_size sz ^ "]"
   | _ -> string_of_type ty ^ " " ^ id'
 
 let rec string_of_value v = match v with
