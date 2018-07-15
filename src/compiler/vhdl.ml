@@ -91,18 +91,24 @@ let rec vhdl_type_of t = match t with
   | _ ->
      Error.fatal_error "Vhdl.vhdl_type_of"
 
-let rec string_of_vhdl_type ?(type_marks=true) t = match t with 
-  | Std_logic -> "std_logic"
-  | Unsigned n -> if type_marks then  Printf.sprintf "unsigned(%d downto 0)" (n-1) else "unsigned"
-  | Signed n -> if type_marks then Printf.sprintf "signed(%d downto 0)" (n-1) else "signed"
-  | Integer -> "integer"
-  | Real -> "real"
-  | Boolean -> "boolean"
-  | Array (n,t') -> string_of_vhdl_array_type n t'
+type type_mark = TM_Full | TM_Abbr | TM_None
+                                   
+let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with 
+  | Std_logic, _ -> "std_logic"
+  | Unsigned n, TM_Full -> Printf.sprintf "unsigned(%d downto 0)" (n-1)
+  | Unsigned n, TM_Abbr -> Printf.sprintf "unsigned%d" n
+  | Unsigned n, TM_None -> "unsigned"
+  | Signed n, TM_Full -> Printf.sprintf "signed(%d downto 0)" (n-1)
+  | Signed n, TM_Abbr -> Printf.sprintf "signed%d" n
+  | Signed n, TM_None -> "signed"
+  | Integer, _ -> "integer"
+  | Real, _ -> "real"
+  | Boolean, _ -> "boolean"
+  | Array (n,t'), _ -> string_of_vhdl_array_type n t'
 
-and string_of_vhdl_array_type n t = "array_" ^ string_of_int n ^ "_" ^ string_of_vhdl_type t
+and string_of_vhdl_array_type n t = "array_" ^ string_of_int n ^ "_" ^ string_of_vhdl_type ~type_marks:TM_Abbr t
 
-let string_of_type ?(type_marks=true) t =
+let string_of_type ?(type_marks=TM_Full) t =
   string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
 
 let array_subtype = function
@@ -114,10 +120,6 @@ let global_types = ref ( [] : (string * vhdl_type) list )
 let lookup_type id = 
   try Some (List.assoc id !global_types)
   with Not_found -> None
-
-let get_type where id = match lookup_type id with
-  | Some t -> t
-  | None -> failwith where
 
 let type_error where what item ty1 ty2 = 
   raise (Vhdl_error(
@@ -161,7 +163,7 @@ let string_of_ival ?(ty=None) = function
   | Some v -> " = " ^ string_of_value ~ty:ty v
 
 let rec type_of_expr e = match e with
-    Expr.EInt c -> None (* too late .. *)
+    Expr.EInt c -> Some Integer
   | Expr.EFloat c -> Some (vhdl_type_of TyFloat)
   | Expr.EBool c -> Some (vhdl_type_of TyBool)
   | Expr.EEnum c -> None
@@ -206,7 +208,7 @@ let string_of_op = function
 
 let string_of_expr ?(ty=None) e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
-  let rec string_of level e =
+  let rec string_of ?(ty=None) level e =
     match e with
       Expr.EInt c -> vhdl_string_of_int ~ty:ty  c
     | Expr.EFloat c -> vhdl_string_of_float c
@@ -223,21 +225,23 @@ let string_of_expr ?(ty=None) e =
     | Expr.ECond (e1,e2,e3) -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
     | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
-    | Expr.EArr (a,idx) -> a ^ "(" ^ string_of level idx ^ ")"
+    | Expr.EArr (a,idx) -> a ^ "(" ^ string_of ~ty:(type_of_expr idx)level idx ^ ")"
   in
-  string_of 0 e
+  string_of ~ty:ty 0 e
 
                                                                       
 let string_of_action ?(lvars=[]) a = match a with
   | Action.Assign (Action.Var0 id, expr) ->
      let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
-     let ty = lookup_type id in
+     let ty = lookup_type id  in
      id ^ asn ^ string_of_expr ~ty:ty expr
   | Action.Assign (Action.Var1 (id,idx), expr) ->
      let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
-     let ty_res = get_type "Vhdl.string_of_action" id in
+     let ty = match lookup_type id with
+       | Some (Array (sz, ty)) -> ty
+       | _ -> failwith "Vhdl.string_of_action" in
      if List.mem_assoc id lvars
-     then id ^ "(" ^ string_of_expr ~ty:(Some Integer) idx ^ ")" ^ asn ^ string_of_expr ~ty:(Some ty_res) expr
+     then id ^ "(" ^ string_of_expr ~ty:(Some Integer) idx ^ ")" ^ asn ^ string_of_expr ~ty:(Some ty) expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
   | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)
@@ -276,6 +280,22 @@ let dump_state_case oc clk m c =
     fprintf oc "      when %s =>\n" c.st_src;
     dump_state oc clk m c
 
+let dump_array_types oc m =
+  let array_types =
+    List.fold_left
+      (fun acc (_,(ty,_)) ->
+        match ty with
+        | TyArray _ when not (List.mem ty acc) -> ty::acc
+        | _ -> acc)
+      []
+      m.c_vars in
+  List.iter 
+    (function
+     | TyArray(sz,ty') as ty ->
+        fprintf oc "  type %s is array (0 to %d) of %s;\n" (string_of_type ~type_marks:TM_Abbr ty) (sz-1) (string_of_type ty')
+     | _ -> ())
+      array_types
+
 let dump_module_arch oc m fsm =
   let m = Cmodel.c_model_of_fsm m fsm in
   let modname = m.c_name in
@@ -291,23 +311,10 @@ let dump_module_arch oc m fsm =
   fprintf oc "architecture RTL of %s is\n" modname;
   fprintf oc "  type t_%s is ( %s );\n" cfg.vhdl_state_var (ListExt.to_string (function s -> s) ", " m.c_states);
   fprintf oc "  signal %s: t_state;\n" cfg.vhdl_state_var;
-  let array_types =
-    List.fold_left
-      (fun acc (_,(ty,_)) ->
-        match ty with
-        | TyArray _ when not (List.mem ty acc) -> ty::acc
-        | _ -> acc)
-      []
-      m.c_vars in
-  List.iter 
-    (function
-     | TyArray(sz,ty') as ty ->
-        fprintf oc "  type %s is array (0 to %d) of %s;\n" (string_of_type ty) (sz-1) (string_of_type ty')
-     | _ -> ())
-      array_types;
+  dump_array_types oc m;
   if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous then 
     List.iter
-      (fun (id,(ty,iv)) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ty))
+      (fun (id,(ty,iv)) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ~type_marks:TM_Abbr ty))
       m.c_vars;
   fprintf oc "begin\n";
   fprintf oc "  process(%s, %s)\n" cfg.vhdl_reset_sig clk_sig;
@@ -539,7 +546,7 @@ and dump_global_fn_sig oc (id,(ty,gd)) = match gd, ty with
     fprintf oc "  function %s(%s) return %s;\n"
       id
       (ListExt.to_string string_of_fn_arg "; "  (List.combine args ts))
-      (string_of_type ~type_marks:false tr) 
+      (string_of_type ~type_marks:TM_None tr) 
 | _ -> ()
 
 and string_of_fn_arg (id,ty) = id ^ ":" ^ (string_of_type ty)
@@ -554,7 +561,7 @@ and dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
     fprintf oc "function %s(%s) return %s is\n"
       id
       (ListExt.to_string string_of_fn_arg "; "  (List.combine args ts))
-      (string_of_type ~type_marks:false tr) ;
+      (string_of_type ~type_marks:TM_None tr) ;
     fprintf oc "  begin\n";
     fprintf oc "    return %s;\n" (string_of_expr body);
     fprintf oc "  end %s;\n" id
