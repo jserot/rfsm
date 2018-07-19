@@ -205,6 +205,7 @@ let string_of_op = function
 let string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
+    Printf.printf "level=%d string_of(%s) : %s\n" level (Expr.to_string e) (string_of_type e.Expr.e_typ);
     match e.Expr.e_desc, vhdl_type_of e.Expr.e_typ  with
     | Expr.EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
     | Expr.EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
@@ -216,11 +217,14 @@ let string_of_expr e =
     | Expr.EEnum c, _ -> c
     | Expr.EVar n, _ ->  n
     | Expr.EBinop (op,e1,e2), _ -> 
-       let ty = type_of_expr e in
-       begin match op, ty with 
-         "*", Signed _
-       | "*", Unsigned _ ->  "mul(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
-       | _, _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
+       let s1 = string_of (level+1) e1 
+       and s2 = string_of (level+1) e2 in 
+       begin match op, type_of_expr e1, type_of_expr e2 with
+       | "*", Signed _, _
+       | "*", Unsigned _, _
+       | "*", _, Unsigned _
+       | "*", _, Signed _ ->  "mul(" ^ s1 ^ "," ^ s2 ^ ")"
+       | _, _, _ -> paren level (s1 ^ string_of_op op ^ s2)
        end
     | Expr.ECond (e1,e2,e3), _ -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
     | Expr.EFapp (("~-"|"~-."),[e]), _ -> "-" ^ "(" ^ string_of level e ^ ")"

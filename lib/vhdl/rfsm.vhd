@@ -15,6 +15,10 @@ package core is
   function eq(e1: real; e2: real) return unsigned;
   function mul(e1: signed; e2: signed) return signed;
   function mul(e1: unsigned; e2: unsigned) return unsigned;
+  function mul(e1: unsigned; e2: integer) return unsigned;
+  function mul(e1: signed; e2: integer) return signed;
+  function mul(e1: integer; e2: unsigned) return unsigned;
+  function mul(e1: integer; e2: signed) return signed;
   function to_std_logic_vector(e: unsigned; s: natural) return std_logic_vector;
   function to_std_logic_vector(e: signed; s: natural) return std_logic_vector;
   function to_std_logic_vector(e: boolean; s: natural) return std_logic_vector;
@@ -130,6 +134,30 @@ package body core is
         constant length: INTEGER := maximum(e1'length, e2'length);
     begin
         return resize(e1*e2, length);
+    end;
+
+  function mul (e1: unsigned; e2: integer) return unsigned is
+        constant length: INTEGER := e1'length;
+    begin
+        return resize(e1*to_unsigned(e2,length), length);
+    end;
+
+  function mul (e1: signed; e2: integer) return signed is
+        constant length: INTEGER := e1'length;
+    begin
+        return resize(e1*to_signed(e2,length), length);
+    end;
+
+  function mul (e1: integer; e2: unsigned) return unsigned is
+        constant length: INTEGER := e2'length;
+    begin
+        return resize(to_unsigned(e1,length)*e2, length);
+    end;
+
+  function mul (e1: integer; e2: signed) return signed is
+        constant length: INTEGER := e2'length;
+    begin
+        return resize(to_signed(e1,length)*e2, length);
     end;
 
   function to_std_logic_vector(e: unsigned; s:natural) return std_logic_vector is
