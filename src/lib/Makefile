@@ -19,13 +19,14 @@ clobber: clean
 
 byte:
 			$(OCB) rfsm.cma
-			\rm -f ../../lib/ml/*
+			if [ -d ../../lib/ml ]; then rm -f ../../lib/ml/*; else mkdir ../../lib/ml; fi
 			cp _build/rfsm.cma ../../lib/ml
 			cp _build/*.cmo _build/*.cmi ../../lib/ml
 			cp *.mli ../../lib/ml
 
 native:
 			$(OCB) rfsm.cmxa
+			if [ -d ../../lib/ml ]; then rm -f ../../lib/ml/*; else mkdir ../../lib/ml; fi
 			cp _build/rfsm.cmxa _build/rfsm.a  ../../lib/ml
 			cp _build/*.cmx _build/*.cmi ../../lib/ml
 			cp *.mli ../../lib/ml

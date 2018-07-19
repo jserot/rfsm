@@ -6,10 +6,10 @@ OCB = 		ocamlbuild $(OCB_FLAGS)
 
 all: 		byte native # profile debug
 
-byte: 		
+byte: options_spec.ml
 			$(OCB) main.byte
 
-native:  	
+native: options_spec.ml
 			$(OCB) main.native
 
 tags:
