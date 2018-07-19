@@ -143,7 +143,7 @@ let dump_reaction oc signals (t,evs) =
       | TyInt r, Expr.Val_int n -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
       | TyInt r, Expr.Val_bool b -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) (if b then 1 else 0)) id
       | TyFloat, Expr.Val_float n -> fprintf oc "r%.*f %c\n" cfg.float_precision n id
-      | _, _ -> fprintf oc "s%s %c" "Unknown" id (* should not happen *) in
+      | _, _-> () in
   fprintf oc "#%d\n" t;
   List.iter dump_event evs
 
