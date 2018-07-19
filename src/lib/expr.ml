@@ -99,7 +99,8 @@ let rec rename f expr = match expr.e_desc with
 let rec string_of_value v = match v with
   Val_int i -> string_of_int i
 | Val_float b -> string_of_float b
-| Val_bool b -> string_of_bool b
+(* | Val_bool b -> string_of_bool b *)
+| Val_bool b -> if b then "1" else "0"
 | Val_enum s -> s
 | Val_fn _ -> "<fun>"
 | Val_unknown -> "<unknown>"
@@ -117,7 +118,8 @@ let string_of_op = function
 let rec to_string e = match e.e_desc with
     EInt c -> string_of_int c
   | EFloat b -> string_of_float b
-  | EBool b -> string_of_bool b
+  (* | EBool b -> string_of_bool b *)
+  | EBool b -> if b then "1" else "0"
   | EEnum c -> c
   | EVar n -> n
   | EBinop (op,e1,e2) -> to_string e1 ^ string_of_op op ^ to_string e2 (* TODO : add parens *)
