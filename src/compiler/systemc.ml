@@ -385,6 +385,7 @@ let dump_global_fns_intf dir prefix fs =
   let oc = open_out fname in
   Printf.fprintf oc "#ifndef _%s_h\n" cfg.sc_globals_name;
   Printf.fprintf oc "#define _%s_h\n\n" cfg.sc_globals_name;
+  Printf.fprintf oc "#include \"systemc.h\"\n";
   List.iter (dump_global_fn_intf oc) fs;
   Printf.fprintf oc "\n#endif\n";
   Logfile.write fname;
