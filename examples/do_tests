@@ -1,0 +1,16 @@
+#!/bin/bash
+# A simple script for running regression tests
+
+nt=0
+ns=0
+
+for i in single/* single/*/v[1-9] multi/*
+do
+  if [ -d $i -a -f $i/Makefile ]; then
+      (( nt = nt + 1 ))
+      ./do_test $i
+      (( ns = ns + $? ))
+  fi
+done
+
+echo "***" $ns"/"$nt "test(s) OK"

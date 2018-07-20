@@ -6,10 +6,10 @@ OCB = 		ocamlbuild $(OCB_FLAGS)
 
 all: 		byte native # profile debug
 
-byte: options_spec.ml
+byte: 
 			$(OCB) main.byte
 
-native: options_spec.ml
+native:
 			$(OCB) main.native
 
 tags:
@@ -27,10 +27,10 @@ profile:
 debug: 
 			$(OCB) -tag debug main.byte
 
-options_spec.ml: options_spec.txt
-	echo "let options_spec = [" > options_spec.ml
-	awk -F ";" '{ printf("\"%s\", %s (Options.%s), \"%s\";\n", $$3, $$4, $$5, $$6) }' < options_spec.txt >> options_spec.ml
-	echo "];" >> options_spec.ml
+# options_spec.ml: options_spec.txt
+# 	echo "let options_spec = [" > options_spec.ml
+# 	awk -F ";" '{ printf("\"%s\", %s (Options.%s), \"%s\";\n", $$3, $$4, $$5, $$6) }' < options_spec.txt >> options_spec.ml
+# 	echo "];" >> options_spec.ml
 
 gen_tex_option = \
 	awk -F ";" '{ printf("%s & %s\\\\\n", $$3, $$6) }' < $(1) | sed 's/_/\\_/g' > $(2)

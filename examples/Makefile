@@ -1,6 +1,5 @@
-test: 
-	@for i in {single,multi}/*; do (test -d $$i && test -e $$i/Makefile && (cd $$i; make dot && make -s clean)); done
-	@for i in {single,multi}/*/*; do (test -d $$i && test -e $$i/Makefile && (cd $$i; make dot && make -s clean)); done
+tests: 
+	./do_tests
 
 clean: 
 	@for i in {single,multi}/*; do (test -d $$i && test -e $$i/Makefile && (cd $$i; make -s clean) || true); done

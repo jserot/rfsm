@@ -18,6 +18,9 @@ dot:
 		fi; \
 	done
 
+dot.run:
+	$(RFSMC) -dot -target_dir ./dot $(DOT_OPTS) $(APP).fsm
+
 all: dot sim ctask systemc vhdl
 
 sim.run:
@@ -69,12 +72,26 @@ test:
 	if [ -d ./vhdl ]; then make test3; else make test2; fi
 
 test2:
+	make dot.run
+	make sim.run
+	make systemc.run
+
+test3:
+	make dot.run
+	make sim.run
+	make systemc.run
+	make vhdl.run
+
+view:
+	if [ -d ./vhdl ]; then make view3; else make view2; fi
+
+view2:
 	make sim.run
 	make systemc.run
 	$(VCDVIEWER) -f ./sim/$(APP).vcd -a ./sim/$(APP).gtkw > /tmp/gtkwave.log 2>&1 &
 	(cd ./systemc; make view) 
 
-test3:
+view3:
 	make sim.run
 	make systemc.run
 	make vhdl.run
