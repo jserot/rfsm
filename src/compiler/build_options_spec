@@ -1,0 +1,8 @@
+#!/bin/bash
+if [ "$#" -eq 2 ]; then
+    echo "let options_spec = [" > $2
+    awk -F ";" '{ printf("\"%s\", %s (Options.%s), \"%s\";\n", $3, $4, $5, $6) }' < $1 >> $2
+    echo "];" >> $2
+else
+    echo "usage: $0 ifile ofile"
+fi
