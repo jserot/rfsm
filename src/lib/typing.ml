@@ -62,20 +62,21 @@ let rec type_expression tenv expr =
      unify ty_idx (TyInt None);
      let ty_res = new_type_var () in
      unify ty_arr (TyArray(TiConst (size_of ty_arr), ty_res));
-     ty_res in
-  let ty = type_expr expr in
+     Types.real_type ty_res in
+  let ty = Types.real_type (type_expr expr) in
+  Printf.printf "## Typing.type_expression(%s) = %s\n" (Expr.string_of_expr expr.e_desc) (Types.string_of_type ty); flush stdout;
   expr.e_typ <- ty;
   ty
 
 and type_application expr tenv ty_fn args =
-      let ty_arg = TyProduct (List.map (type_expression tenv) args) in
-      let ty_result = new_type_var () in
-      try 
-          unify ty_fn (TyArrow (ty_arg,ty_result));
-          real_type ty_result
-      with
-           TypeConflict (t,t')
-         | TypeCircularity(t,t') -> raise (Typing_error (expr, t, t'))
+  let ty_arg = TyProduct (List.map (type_expression tenv) args) in
+  let ty_result = new_type_var () in
+  try 
+    unify ty_fn (TyArrow (ty_arg,ty_result));
+    real_type ty_result
+  with
+    TypeConflict (t,t')
+  | TypeCircularity(t,t') -> raise (Typing_error (expr, t, t'))
 
 let builtin_tenv = {
   te_vars = [];

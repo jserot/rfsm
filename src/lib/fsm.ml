@@ -231,12 +231,20 @@ let sanity_check tenv f =
     | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
   let type_check_condition (_,gs) = List.iter type_check_guard gs in
   let type_check_action act = match act with 
-    | Action.Assign (Action.Var0 v, exp) -> 
-       let t = try List.assoc v tenv.te_vars with Not_found -> raise (Internal_error "Fsm.type_check_action") in
+    | Action.Assign (lhs, exp) -> 
+       let t =
+         begin match lhs with
+         | Var0 v -> List.assoc v tenv.te_vars
+         | Var1 (a,i) -> Types.subtype_of (List.assoc a tenv.te_vars)
+         | exception _ -> raise (Internal_error "Fsm.type_check_action")
+         end in
        let t' =
          try Typing.type_expression tenv exp
          with Typing.Typing_error (expr, ty, ty') ->
                raise (Typing.Type_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty')) in
+       Printf.printf "Fsm.type_check_action: %s:%s <- %s:%s\n"
+         (Action.string_of_lhs lhs) (Types.string_of_type t) (Expr.string_of_expr exp.e_desc) (Types.string_of_type t');
+       flush stdout;
        begin
          try type_check
                ~strict:false

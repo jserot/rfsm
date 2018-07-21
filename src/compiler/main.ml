@@ -75,9 +75,14 @@ try
        Vhdl.check_allowed m;
        check_dir !Options.target_dir;
        if m.Sysm.m_fns <> [] then Vhdl.dump_globals ~dir:!Options.target_dir m;
+       let m0 = List.hd m.Sysm.m_fsms in
+       let r0 = m0.Fsm.f_repr in
+       let t0s = Fsm.Repr.transitions r0 in
+       List.iter (function t -> Printf.printf "-- -- %s\n" (Fsm.string_of_transition t)) t0s;
        Vhdl.dump_model ~dir:!Options.target_dir m;
-       Vhdl.dump_testbench ~dir:!Options.target_dir m;
-       Vhdl.dump_makefile ~dir:!Options.target_dir m
+       (* Vhdl.dump_testbench ~dir:!Options.target_dir m;
+        * Vhdl.dump_makefile ~dir:!Options.target_dir m *)
+       ()
   | Some Options.Sim ->
        let ctx, reacts = Simul.run m in
        Vcd.output m ctx !Options.vcd_file reacts

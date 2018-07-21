@@ -34,4 +34,5 @@ val subst : Eval.env -> t -> t
 
 (** {2 Printers} *)
 
+val string_of_lhs : lhs -> string
 val to_string : t -> string

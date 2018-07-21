@@ -58,6 +58,7 @@ val rename : (string -> string) -> t -> t
 
 (** {2 Printers} *)
 
+val string_of_expr : e_desc -> string
 val to_string : t -> string
 val string_of_value : e_val -> string
 val string_of_opt_value : e_val option -> string

@@ -93,7 +93,7 @@ let rec vhdl_type_of t = match t with
         Integer (Some (lo,hi))
   | TyInt _ -> Integer None
   | TyArray (Types.Index.TiConst sz,t') -> Array (sz, vhdl_type_of t')
-  | _ -> Unknown
+  | _ -> (Printf.printf "** warning: vhdl_type_of(%s)=Unknown\n" (string_of_type t); flush stdout; Unknown)
 
 type type_mark = TM_Full | TM_Abbr | TM_None
                                    
@@ -110,7 +110,7 @@ let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with
   | Real, _ -> "real"
   | Boolean, _ -> "boolean"
   | Array (n,t'), _ -> string_of_vhdl_array_type n t'
-  | Unknown, _ -> failwith "Vhdl.string_of_vhdl_type"
+  | Unknown, _ -> "<unknown>" (* failwith "Vhdl.string_of_vhdl_type" *)
 
 and string_of_vhdl_array_type n t = "array_" ^ string_of_int n ^ "_" ^ string_of_vhdl_type ~type_marks:TM_Abbr t
 
@@ -134,6 +134,7 @@ let add_type (id,ty) =
     let ty' = List.assoc id !global_types in
     if ty' <> ty then type_error "" "id" id ty ty'
   with Not_found ->
+    (* Printf.printf "** Adding %s (%s) for id %s to global types\n" (string_of_type ty) (Types.string_of_type ty) id; *)
     global_types := (id,ty) :: !global_types
 
 let reset_types () = global_types := []
@@ -205,7 +206,7 @@ let string_of_op = function
 let string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    Printf.printf "level=%d string_of(%s) : %s\n" level (Expr.to_string e) (string_of_type e.Expr.e_typ);
+    Printf.printf "level=%d string_of(%s) : %s\n" level (Expr.to_string e) (string_of_type e.Expr.e_typ); flush stdout;
     match e.Expr.e_desc, vhdl_type_of e.Expr.e_typ  with
     | Expr.EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
     | Expr.EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s

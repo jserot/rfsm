@@ -115,7 +115,7 @@ let string_of_op = function
     "mod" -> " mod "
   | op -> op
 
-let rec to_string e = match e.e_desc with
+let rec string_of_expr e = match e with
     EInt c -> string_of_int c
   | EFloat b -> string_of_float b
   (* | EBool b -> string_of_bool b *)
@@ -126,3 +126,7 @@ let rec to_string e = match e.e_desc with
   | ECond (e1,e2,e3) -> to_string e1 ^ "?" ^ to_string e2 ^ ":" ^ to_string e3 (* TODO : add parens *)
   | EFapp (f,args) -> f ^ "(" ^ ListExt.to_string to_string "," args ^ ")"
   | EArr (a,e') -> a ^ "[" ^ to_string e' ^ "]"
+
+and to_string e =
+  let s = string_of_expr e.e_desc in
+  "(" ^ s ^ ":" ^ Types.string_of_type e.e_typ ^ ")"
