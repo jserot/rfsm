@@ -21,7 +21,11 @@ dot:
 dot.run:
 	$(RFSMC) -dot -target_dir ./dot $(DOT_OPTS) $(APP).fsm
 
+dot.test: dot.run
+
 all: dot sim ctask systemc vhdl
+
+all.test: dot.test sim.test ctask.test systemc.test vhdl.test
 
 sim.run:
 	$(RFSMC) $(SIM_OPTS) -sim -vcd "./sim/$(APP).vcd" $(APP).fsm
@@ -31,7 +35,10 @@ sim.view:
 
 sim: sim.run sim.view
 
+sim.test: sim.run
+
 ctask: ctask.code
+ctask.run: ctask.code
 
 ctask.code:
 	$(RFSMC) -ctask -target_dir ./ctask $(CTASK_OPTS) $(APP).fsm
@@ -46,6 +53,8 @@ ctask.view:
 
 ctask: ctask.run ctask.view
 
+ctask.test: ctask.code
+
 systemc.code:
 	$(RFSMC) -systemc -target_dir ./systemc -lib $(LIBDIR) $(SYSTEMC_OPTS) $(APP).fsm
 
@@ -57,6 +66,8 @@ systemc.view:
 
 systemc: systemc.run systemc.view
 
+systemc.test: systemc.run
+
 vhdl.code:
 	$(RFSMC) -vhdl -target_dir ./vhdl -lib $(LIBDIR) $(VHDL_OPTS) $(APP).fsm
 
@@ -67,6 +78,9 @@ vhdl.view:
 	if [ -d ./vhdl ]; then cd ./vhdl; make view; fi
 
 vhdl: vhdl.run vhdl.view
+
+vhdl.test:
+	if [ -d ./vhdl ]; then make vhdl.run; fi
 
 test:
 	if [ -d ./vhdl ]; then make test3; else make test2; fi

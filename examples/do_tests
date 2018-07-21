@@ -9,12 +9,12 @@ if [ "$#" -eq 1 ]; then
     do
         if [ -d $i -a -f $i/Makefile ]; then
             (( nt = nt + 1 ))
-            ./do_test $1.run $i
+            ./do_test $1.test $i
             (( ns = ns + $? ))
         fi
     done
     echo "***" $ns"/"$nt "test(s) OK"
 else
-    echo "usage: $0 (dot|sim|systemc|vhdl|all)"
+    echo "usage: $0 (dot|sim|ctask|systemc|vhdl|all)"
 fi
 
