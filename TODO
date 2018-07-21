@@ -1,4 +1,3 @@
-- fix bug in vhdl backend (see examples/others/camlink/conv21)
 - transl of bool type as std_logic in VHDL
 - update doc with arrays and bool consts=0/1
 - udpate figures on web site and doc with new syntax for integer range (':' instead of '..')

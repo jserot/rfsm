@@ -97,7 +97,7 @@ type inst = {
   f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
   f_vars: (string * (Types.typ * Expr.e_val)) list;         (** name, (type, value) *)
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
-  mutable f_tenv: Typing.tenv;                              (** Local typing environment (may be useful for backends) *)
+  (* mutable f_tenv: Typing.tenv;                              (\** Local typing environment (may be useful for backends) *\) *)
   f_l2g: string -> string;                                  (** local -> global name *)
   f_state: string;                                          (** current state *)
   f_has_reacted: bool;                                      (** true when implied in the last reaction *)
@@ -188,7 +188,7 @@ let type_check_stim fsm id ty st = match st with
   | _ ->
      ()
 
-let type_check_instance f =
+let type_check_instance tenv f =
   (* Type checks an FSM instance.
      Note: this function must called _after_ substitution of local parameters *)
   let local_types = 
@@ -206,10 +206,10 @@ let type_check_instance f =
       []
       local_types in
   let tenv = 
-    { f.f_tenv with
-        Typing.te_vars = f.f_tenv.te_vars @ local_types;
-        Typing.te_ctors = f.f_tenv.te_ctors @ local_ctors } in
-  f.f_tenv <- tenv;  (* Keep it here for subsequent use .. *)
+    { tenv with
+        Typing.te_vars = tenv.Typing.te_vars @ local_types;
+        Typing.te_ctors = tenv.Typing.te_ctors @ local_ctors } in
+  (* f.f_tenv <- tenv;  (\* Keep it here for subsequent use .. *\) *)
   let type_check_guard gexp =
     try type_check
           ~strict:true ("guard \"" ^ (Condition.string_of_guard gexp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
@@ -218,13 +218,23 @@ let type_check_instance f =
     | Typing.Typing_error (expr, ty, ty') ->
        raise (Typing.Type_error ("guard expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
     | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
+  let type_check_index_expression exp =
+    try type_check
+          ~strict:false ("index expression \"" ^ (Expr.to_string exp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
+          (Typing.type_expression tenv exp) (Types.TyInt None)
+    with
+    | Typing.Typing_error (expr, ty, ty') ->
+       raise (Typing.Type_error ("index expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
+    | Typing.Unbound_id (kind, id) -> raise (Undef_symbol (f.f_name, kind, id)) in 
   let type_check_condition (_,gs) = List.iter type_check_guard gs in
   let type_check_action act = match act with 
     | Action.Assign (lhs, exp) -> 
        let t =
          begin match lhs with
          | Var0 v -> List.assoc v tenv.te_vars
-         | Var1 (a,i) -> Types.subtype_of (List.assoc a tenv.te_vars)
+         | Var1 (a,i) ->
+            type_check_index_expression i;
+            Types.subtype_of (List.assoc a tenv.te_vars)
          | exception _ -> raise (Internal_error "Fsm.type_check_action")
          end in
        let t' =
@@ -365,7 +375,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         f_repr =
           (let subst_env = List.map (function id,(ty,v) -> id, v) bound_params in
           Repr.map_label (TransLabel.subst subst_env) model.fm_repr);
-        f_tenv = tenv;
+        (* f_tenv = tenv; *)
         f_params = bound_params;
         f_inps = filter_ios Types.IO_In bound_ios;
         f_outps = filter_ios Types.IO_Out bound_ios;
@@ -379,7 +389,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         f_has_reacted = false;
       } in
     sanity_check r;
-    type_check_instance r;
+    type_check_instance tenv r;
     r
 
 (* Dynamic behavior (reactive semantics) *)
@@ -672,7 +682,7 @@ let dump_inst oc f =
   Printf.fprintf oc "  OUTPS = { %s }\n" (of_list (string_of_io f) f.f_outps);
   (* Printf.fprintf oc "  INOUTS = { %s }\n" (of_list (string_of_io f) f.f_inouts); *)
   Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_var f.f_vars);
-  Printf.fprintf oc "  TENV =\n"; Typing.dump_tenv oc f.f_tenv; Printf.fprintf oc "\n";
+  (* Printf.fprintf oc "  TENV =\n"; Typing.dump_tenv oc f.f_tenv; Printf.fprintf oc "\n"; *)
   Printf.fprintf oc "  TRANS = {\n";
   List.iter 
     (fun (q,(cond,acts,p,_),q') ->

@@ -86,7 +86,7 @@ type inst = {
   f_inouts : (string * (Types.typ * global)) list;             (** in/outs, with bounded global *)
   f_vars : (string * (Types.typ * Expr.e_val)) list;           (** internal variable, with value ([Val_unknown] if not initialized) *)
   f_repr : Repr.t;                                             (** underlying LTS *)
-  mutable f_tenv: Typing.tenv;                                 (** Local typing environment (may be useful for backends) *)
+  (* mutable f_tenv: Typing.tenv;                                 (\** Local typing environment (may be useful for backends) *\) *)
   f_l2g : string -> string;                                    (** local to global name conversion function *)
   f_state : string;                                            (** current state *)
   f_has_reacted: bool;                                         (** true when implied in the last reaction *)

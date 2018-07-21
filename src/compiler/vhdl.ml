@@ -31,8 +31,6 @@ type vhdl_config = {
   mutable vhdl_reset_sig: string;
   mutable vhdl_reset_duration: int;
   mutable vhdl_ev_duration: int;
-  (* mutable vhdl_default_int_type: string;
-   * mutable vhdl_default_int_size: int; *)
   mutable vhdl_use_numeric_std: bool;
   mutable vhdl_support_library: string;
   mutable vhdl_support_package: string;
@@ -52,8 +50,6 @@ let cfg = {
   vhdl_time_unit = "ns";
   vhdl_reset_duration = 1;
   vhdl_ev_duration = 1;
-  (* vhdl_default_int_type = "unsigned";
-   * vhdl_default_int_size = 8; *)
   vhdl_use_numeric_std = false;
   vhdl_support_library = "rfsm";
   vhdl_support_package = "core";
@@ -117,10 +113,10 @@ and string_of_vhdl_array_type n t = "array_" ^ string_of_int n ^ "_" ^ string_of
 let string_of_type ?(type_marks=TM_Full) t =
   string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
 
-let global_types = ref ( [] : (string * Types.typ) list )
+(* let global_types = ref ( [] : (string * Types.typ) list ) *)
 
-let lookup_type id = 
-  try List.assoc id !global_types
+let lookup_type tenv id = 
+  try List.assoc id tenv 
   with Not_found -> failwith ("Vhdl.lookup_type(" ^ id ^ ")")
 
 let type_error where what item ty1 ty2 = 
@@ -129,15 +125,15 @@ let type_error where what item ty1 ty2 =
      Printf.sprintf "incompatible types for %s \"%s\": %s and %s"
        what item (string_of_type ty1) (string_of_type ty2)))
 
-let add_type (id,ty) =
-  try
-    let ty' = List.assoc id !global_types in
-    if ty' <> ty then type_error "" "id" id ty ty'
-  with Not_found ->
-    (* Printf.printf "** Adding %s (%s) for id %s to global types\n" (string_of_type ty) (Types.string_of_type ty) id; *)
-    global_types := (id,ty) :: !global_types
+(* let add_type (id,ty) =
+ *   try
+ *     let ty' = List.assoc id !global_types in
+ *     if ty' <> ty then type_error "" "id" id ty ty'
+ *   with Not_found ->
+ *     (\* Printf.printf "** Adding %s (%s) for id %s to global types\n" (string_of_type ty) (Types.string_of_type ty) id; *\)
+ *     global_types := (id,ty) :: !global_types *)
 
-let reset_types () = global_types := []
+(* let reset_types () = global_types := [] *)
 
 let vhdl_string_of_float x =
   Printf.sprintf "%#E" x
@@ -234,14 +230,18 @@ let string_of_expr e =
   in
   string_of 0 e
 
-let string_of_action ?(lvars=[]) a = match a with
+let string_of_action ?(lvars=[]) m a =
+  let tenv = List.map (function (id,(ty,_)) -> id, ty) m.c_vars @ m.c_outps @ m.c_inouts in
+    match a with
   | Action.Assign (Action.Var0 id, expr) ->
      let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
-     expr.Expr.e_typ <- lookup_type id;  (* ex: [v:=1] when [v:unsigned(2 downto 0)] *) 
+     let ty = lookup_type tenv id in
+     expr.Expr.e_typ <- ty;  (* To handle situations like [v:=1] when [v:unsigned(2 downto 0)] *) 
      id ^ asn ^ string_of_expr expr
   | Action.Assign (Action.Var1 (id,idx), expr) ->
      let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
-     expr.Expr.e_typ <- Types.subtype_of (lookup_type id);  (* ex: [v[0]:=1] when [v:array of unsigned(2 downto 0)] *) 
+     let ty = Types.subtype_of (lookup_type tenv id) in
+     expr.Expr.e_typ <- ty;  (* To handle situations like  [v[0]:=1] when [v:array of unsigned(2 downto 0)] *) 
      if List.mem_assoc id lvars
      then id ^ "(" ^ string_of_expr idx ^ ")" ^ asn ^ string_of_expr expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
@@ -254,28 +254,28 @@ let string_of_condition (e,cs) =
     [] -> failwith "Vhdl.string.of_condition"
   | _ -> ListExt.to_string string_of_guard " and " cs
 
-let dump_action ?(lvars=[]) oc tab a = fprintf oc "%s%s;\n" tab (string_of_action ~lvars:lvars a)
+let dump_action ?(lvars=[]) oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action ~lvars:lvars m a)
 
-let dump_transition ?(lvars=[]) oc tab src clk (is_first,needs_endif) (q',(cond,acts,_,_)) =
+let dump_transition ?(lvars=[]) oc tab src clk m (is_first,needs_endif) (q',(cond,acts,_,_)) =
   match cond with
     _, [] -> 
-       List.iter (dump_action ~lvars:lvars oc tab) acts;
+       List.iter (dump_action ~lvars:lvars oc tab m) acts;
        fprintf oc "%s%s <= %s;\n" tab cfg.vhdl_state_var q';
        (false,false)
   | _, _ ->
        fprintf oc "%s%s ( %s ) then\n" tab (if is_first then "if" else "elsif ") (string_of_condition cond);
-       List.iter (dump_action ~lvars:lvars oc (tab ^ "  ")) acts;
+       List.iter (dump_action ~lvars:lvars oc (tab ^ "  ") m) acts;
        if q' <> src then fprintf oc "%s  %s <= %s;\n" tab cfg.vhdl_state_var q';
        (false,true)
 
-let dump_sync_transitions ?(lvars=[]) oc src after clk ts =
+let dump_sync_transitions ?(lvars=[]) oc src after clk m ts =
    let tab = "        " in
-   let (_,needs_endif) = List.fold_left (dump_transition ~lvars:lvars oc tab src clk) (true,false) ts in
+   let (_,needs_endif) = List.fold_left (dump_transition ~lvars:lvars oc tab src clk m) (true,false) ts in
    if needs_endif then fprintf oc "        end if;\n"
      
 let dump_state oc clk m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   match tss with
-    [ev,ts] -> dump_sync_transitions ~lvars:m.c_vars oc q false clk ts
+    [ev,ts] -> dump_sync_transitions ~lvars:m.c_vars oc q false clk m ts
   | _ -> Error.not_implemented "VHDL: transitions involving multiple events"
 
 let dump_state_case oc clk m c =
@@ -299,14 +299,14 @@ let dump_array_types oc m =
      | _ -> ())
       array_types
 
-let dump_module_arch oc m fsm =
-  let m = Cmodel.c_model_of_fsm m fsm in
+let dump_module_arch oc s fsm =
+  let m = Cmodel.c_model_of_fsm s fsm in
   let modname = m.c_name in
-  let _ = reset_types () in
-  List.iter (function (id,ty) -> add_type (id, ty)) m.c_inps;
-  List.iter (function (id,ty) -> add_type (id, ty)) m.c_outps;
-  List.iter (function (id,ty) -> add_type (id, ty)) m.c_inouts;
-  List.iter (function (id,(ty,_)) -> add_type (id, ty)) m.c_vars;
+  (* let _ = reset_types () in
+   * List.iter (function (id,ty) -> add_type (id, ty)) m.c_inps;
+   * List.iter (function (id,ty) -> add_type (id, ty)) m.c_outps;
+   * List.iter (function (id,ty) -> add_type (id, ty)) m.c_inouts;
+   * List.iter (function (id,(ty,_)) -> add_type (id, ty)) m.c_vars; *)
   let clk_sig = match List.filter (function (_, TyEvent) -> true | _ -> false) m.c_inps with
     [] -> raise (Vhdl_error (m.c_name, "no input event, hence no possible clock"))
   | [h,_] -> h
@@ -328,7 +328,7 @@ let dump_module_arch oc m fsm =
   fprintf oc "  begin\n";
   fprintf oc "    if ( %s='1' ) then\n" cfg.vhdl_reset_sig;
   fprintf oc "      %s <= %s;\n" cfg.vhdl_state_var (fst m.c_init);
-  List.iter (dump_action ~lvars:m.c_vars oc "      ") (snd m.c_init);
+  List.iter (dump_action ~lvars:m.c_vars oc "      " m) (snd m.c_init);
   fprintf oc "    elsif rising_edge(%s) then \n" clk_sig;
   begin match m.c_body with
     [] -> () (* should not happen *)
@@ -399,8 +399,8 @@ let dump_periodic_inp_process oc id (p,t1,t2) =
        fprintf oc "      end loop;\n";
        fprintf oc "      wait;\n"
   
-let dump_vc_inp_process oc id vcs =
-       let ty = vhdl_type_of (lookup_type id) in
+let dump_vc_inp_process oc ty id vcs =
+       let ty = vhdl_type_of ty in
        let string_of_vc (t,v) = "(" ^ string_of_int t ^ " " ^ cfg.vhdl_time_unit ^ "," ^ string_of_value ~ty:(Some ty) v ^ ")" in
        fprintf oc "    type t_vc is record date: time; val: %s; end record;\n" (string_of_vhdl_type ty);
        fprintf oc "    type t_vcs is array ( 0 to %d ) of t_vc;\n" (List.length vcs-1);
@@ -424,7 +424,7 @@ let dump_input_process oc (id,(ty,desc)) =
     | MInp ({sd_comprehension=Sporadic ts}, _) -> dump_sporadic_inp_process oc id ts
     | MInp ({sd_comprehension=Periodic (p,t1,t2)}, _) -> dump_periodic_inp_process oc id (p,t1,t2)
     | MInp ({sd_comprehension=ValueChange []}, _) -> ()
-    | MInp ({sd_comprehension=ValueChange vcs}, _) -> dump_vc_inp_process oc id vcs 
+    | MInp ({sd_comprehension=ValueChange vcs}, _) -> dump_vc_inp_process oc ty id vcs 
     | _ -> failwith "Vhdl.dump_inp_module_arch" (* should not happen *) end;
   fprintf oc "  end process;\n"
 
@@ -449,12 +449,12 @@ let dump_testbench_impl fname m =
   fprintf oc "\n";
   List.iter (dump_module_intf "component" oc m) m.m_fsms;
   fprintf oc "\n";
-  reset_types ();
+  (* reset_types (); *)
   (* Signals *)
   List.iter
    (function (id,(ty,_)) ->
-     fprintf oc "signal %s: %s;\n" (tb_name id) (string_of_type ty);
-     add_type (id, ty))
+     fprintf oc "signal %s: %s;\n" (tb_name id) (string_of_type ty))
+     (* add_type (id, ty)) *)
    (m.m_inputs @ m.m_outputs @ m.m_shared);
   fprintf oc "signal %s: std_logic;\n" (tb_name cfg.vhdl_reset_sig);
   if cfg.vhdl_trace then
