@@ -86,6 +86,7 @@ type inst = {
   f_inouts : (string * (Types.typ * global)) list;             (** in/outs, with bounded global *)
   f_vars : (string * (Types.typ * Expr.e_val)) list;           (** internal variable, with value ([Val_unknown] if not initialized) *)
   f_repr : Repr.t;                                             (** underlying LTS *)
+  mutable f_tenv: Typing.tenv;                                 (** Local typing environment (may be useful for backends) *)
   f_l2g : string -> string;                                    (** local to global name conversion function *)
   f_state : string;                                            (** current state *)
   f_has_reacted: bool;                                         (** true when implied in the last reaction *)
@@ -132,8 +133,6 @@ val build_instance :
   params:(string * Expr.e_val) list ->
   ios:global list ->
   inst
-
-val sanity_check : Typing.tenv -> inst -> unit
 
 val is_rtl : inst -> bool
   (** [is_rtl f] is [true] iff all [is_rtl a] for all actions [a] of [f] *)

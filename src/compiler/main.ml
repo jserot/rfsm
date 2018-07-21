@@ -80,9 +80,8 @@ try
        let t0s = Fsm.Repr.transitions r0 in
        List.iter (function t -> Printf.printf "-- -- %s\n" (Fsm.string_of_transition t)) t0s;
        Vhdl.dump_model ~dir:!Options.target_dir m;
-       (* Vhdl.dump_testbench ~dir:!Options.target_dir m;
-        * Vhdl.dump_makefile ~dir:!Options.target_dir m *)
-       ()
+       Vhdl.dump_testbench ~dir:!Options.target_dir m;
+       Vhdl.dump_makefile ~dir:!Options.target_dir m
   | Some Options.Sim ->
        let ctx, reacts = Simul.run m in
        Vcd.output m ctx !Options.vcd_file reacts
@@ -127,7 +126,7 @@ with
 | Fsm.Binding_mismatch (fsm, what, id) ->
     eprintf "Error when binding %s for FSM %s:  %s\n" what fsm id; flush stderr; exit 4
 | Fsm.Invalid_parameter (fsm, id) ->
-    eprintf "Invalid parameter for FSM %s:  %s\n" fsm id; flush stderr; exit 4
+    eprintf "Invalid parameter value for FSM %s:  %s\n" fsm id; flush stderr; exit 4
 | Typing.Type_error (what, where, ty, ty') ->
    eprintf "Error when typing %s in %s: types %s and %s are not compatible\n"
      what where (Types.string_of_type ty) (Types.string_of_type ty');

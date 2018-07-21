@@ -90,12 +90,12 @@ let builtin_tenv = {
 
 (* Printing *)
 
-let dump_tenv tenv =  (* For debug only *)
-  Printf.printf "te.vars = %s\n"
+let dump_tenv oc tenv =  (* For debug only *)
+  Printf.fprintf oc " { te.vars = %s\n"
     (Utils.ListExt.to_string (function (id,ty) -> id ^ ":" ^ string_of_type ty) ", " tenv.te_vars);
-  Printf.printf "te.ctors = %s\n"
+  Printf.fprintf oc "   te.ctors = %s\n"
     (Utils.ListExt.to_string (function (id,ty) -> id ^ ":" ^ string_of_type ty) ", " tenv.te_ctors);
-  Printf.printf "te.defns = %s\n"
+  Printf.fprintf oc "   te.defns = %s\n"
     (Utils.ListExt.to_string (function (id,ty) -> id ^ "=" ^ string_of_type ty) ", " tenv.te_defns);
-  Printf.printf "te.prims = %s\n"
+  Printf.fprintf oc "   te.prims = %s }\n"
     (Utils.ListExt.to_string (function (id,ts) -> id ^ ":" ^ string_of_type_scheme ts) ", " tenv.te_prims)

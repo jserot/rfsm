@@ -97,6 +97,7 @@ type inst = {
   f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
   f_vars: (string * (Types.typ * Expr.e_val)) list;         (** name, (type, value) *)
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
+  mutable f_tenv: Typing.tenv;                              (** Local typing environment (may be useful for backends) *)
   f_l2g: string -> string;                                  (** local -> global name *)
   f_state: string;                                          (** current state *)
   f_has_reacted: bool;                                      (** true when implied in the last reaction *)
@@ -154,6 +155,8 @@ let mk_bindings ~local_names:ls ~global_names:gs =
   (function id -> try List.assoc id l2g with Not_found -> id)
 
 let build_model ~name ~states ~params ~ios ~vars ~trans ~itrans = 
+  (* Build a FSM model from a syntax level description.
+     No type checking here. It will be performed after instanciation *)
   let mk_trans (s,(ev,gds),acts,s',p) = s, (([ev],gds),acts,p,false), s' in
   let r = {
       fm_name = name;
@@ -185,42 +188,28 @@ let type_check_stim fsm id ty st = match st with
   | _ ->
      ()
 
-let sanity_check tenv f =
-  let isymbols, osymbols =
+let type_check_instance f =
+  (* Type checks an FSM instance.
+     Note: this function must called _after_ substitution of local parameters *)
+  let local_types = 
+            List.map (function (id, (ty,_)) -> id, ty) f.f_params
+          @ List.map (function (id, (ty,_)) -> id, ty) (f.f_inps @ f.f_outps @ f.f_inouts)
+          @ List.map (function (id, (ty,_)) -> id, ty) f.f_vars in
+  let local_ctors = 
+    let add acc cs =
+      List.fold_left
+        (fun acc (c,ty) -> if List.mem_assoc c acc then acc else (c,ty)::acc)
+        acc
+        cs in
     List.fold_left
-      (fun (ivs,ovs) (_,(cond,acts,_,_),_) ->
-        let ivs' = Expr.VarSet.union ivs (Condition.vars_of cond) in
-        List.fold_left
-          (fun (ivs,ovs) act ->
-            let ivs',ovs' = Action.vars_of act in
-            Expr.VarSet.union ivs ivs', Expr.VarSet.union ovs ovs')
-          (ivs',ovs)
-          acts)
-      (Expr.VarSet.empty, Expr.VarSet.empty)
-      (transitions_of f) in
-  let check_symbols kind ss ss' =
-    Expr.VarSet.iter
-      (function s -> if not (List.mem_assoc s ss') then raise (Undef_symbol(f.f_name,kind,s)))
-      ss in
-  let check_type kind (id,ty) = 
-    match Types.ivars_of ty with
-    | [] -> ()
-    | vs -> raise (Uninstanciated_type_vars (f.f_name, kind, id, vs)) in
-  let get l = List.map (function (id,(ty,_)) -> id, ty) l in
-  (* Check that each input symbol occuring in transition rules is declared as input or local variable *)
-  check_symbols "input or local variable"
-    isymbols
-    (get f.f_inps @ get f.f_inouts @ get f.f_vars @ get f.f_params);
-  (* Check that each output symbol occuring in transition rules is declared as output or local variable *)
-  check_symbols "output or local variable"
-    osymbols
-    (get f.f_outps @ get f.f_inouts @ get f.f_vars);
-  (* Check that all type indexes have been instanciated *)
-  List.iter (check_type "input") (List.map (function (id, (ty,_)) -> id,ty) f.f_inps);
-  List.iter (check_type "output") (List.map (function (id, (ty,_)) -> id,ty) f.f_outps);
-  List.iter (check_type "inout") (List.map (function (id, (ty,_)) -> id,ty) f.f_inouts);
-  List.iter (check_type "variable") (List.map (function (id, (ty,_)) -> id,ty) f.f_vars);
-  (* Type checking *)
+      (fun acc (_,ty) -> add acc (Types.enums_of ty))
+      []
+      local_types in
+  let tenv = 
+    { f.f_tenv with
+        Typing.te_vars = f.f_tenv.te_vars @ local_types;
+        Typing.te_ctors = f.f_tenv.te_ctors @ local_ctors } in
+  f.f_tenv <- tenv;  (* Keep it here for subsequent use .. *)
   let type_check_guard gexp =
     try type_check
           ~strict:true ("guard \"" ^ (Condition.string_of_guard gexp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
@@ -266,27 +255,74 @@ let sanity_check tenv f =
     List.iter type_check_action acts in
   let type_check_itransition ((_,acts,_,_),_) =
     List.iter type_check_action acts in
+  (* Check that all type indexes have been instanciated for IOs and local vars *)
+  let check_type kind (id,ty) = 
+    match Types.ivars_of ty with
+    | [] -> ()
+    | vs -> raise (Uninstanciated_type_vars (f.f_name, kind, id, vs)) in
+  List.iter (check_type "input") (List.map (function (id, (ty,_)) -> id,ty) f.f_inps);
+  List.iter (check_type "output") (List.map (function (id, (ty,_)) -> id,ty) f.f_outps);
+  List.iter (check_type "inout") (List.map (function (id, (ty,_)) -> id,ty) f.f_inouts);
+  List.iter (check_type "variable") (List.map (function (id, (ty,_)) -> id,ty) f.f_vars);
+  (* Type check conditions and actions on transitions *)
   List.iter type_check_transition (Repr.transitions f.f_repr);
   List.iter type_check_itransition (Repr.itransitions f.f_repr)
 
+let sanity_check f =
+  let isymbols, osymbols =
+    List.fold_left
+      (fun (ivs,ovs) (_,(cond,acts,_,_),_) ->
+        let ivs' = Expr.VarSet.union ivs (Condition.vars_of cond) in
+        List.fold_left
+          (fun (ivs,ovs) act ->
+            let ivs',ovs' = Action.vars_of act in
+            Expr.VarSet.union ivs ivs', Expr.VarSet.union ovs ovs')
+          (ivs',ovs)
+          acts)
+      (Expr.VarSet.empty, Expr.VarSet.empty)
+      (transitions_of f) in
+  let check_symbols kind ss ss' =
+    Expr.VarSet.iter
+      (function s -> if not (List.mem_assoc s ss') then raise (Undef_symbol(f.f_name,kind,s)))
+      ss in
+  let get l = List.map (function (id,(ty,_)) -> id, ty) l in
+  (* Check that each input symbol occuring in transition rules is declared as input or local variable *)
+  check_symbols "input or local variable"
+    isymbols
+    (get f.f_inps @ get f.f_inouts @ get f.f_vars @ get f.f_params);
+  (* Check that each output symbol occuring in transition rules is declared as output or local variable *)
+  check_symbols "output or local variable"
+    osymbols
+    (get f.f_outps @ get f.f_inouts @ get f.f_vars)
+
 let build_instance ~tenv ~name ~model ~params ~ios =
+    (* Builds an FSM instance from a model *)
     let bind_param vs (p,ty) =
-      match ty, List.assoc p vs with 
-        Types.TyInt _, (Expr.Val_int _ as v) -> p, (ty,v)
-      | Types.TyFloat, (Expr.Val_float _ as v) -> p, (ty,v)
-      | Types.TyBool, (Expr.Val_bool _ as v) -> p, (ty,v)
-      | Types.TyArray _, (Expr.Val_array _ as v) -> p, (ty,v)
-      | _, _ -> raise (Invalid_parameter (name, p))
-      | exception Not_found -> raise (Binding_mismatch (name, "parameters", p)) in
+      let rec compat ty v = match ty, v with
+        Types.TyInt _, Expr.Val_int _ -> true
+      | Types.TyFloat, Expr.Val_float _ -> true
+      | Types.TyBool, Expr.Val_bool _ -> true
+      | Types.TyArray (_,ty'), Expr.Val_array vs ->
+         if Array.length vs > 0
+         then compat ty' vs.(0)
+         else true  (* ? Should not happen anyway *)
+      | _, _ -> false in
+      let v =
+        begin
+          try List.assoc p vs
+          with Not_found -> raise (Binding_mismatch (name, "parameters", p))
+        end in
+      if compat ty v then p, (ty,v) else raise (Invalid_parameter (name, p)) in
     let bound_params = List.map (bind_param params) model.fm_params in
-    let ienv =
+    let ienv = 
       List.fold_left
         (fun acc (id,(ty,v)) -> match v with
-         | Expr.Val_int x -> (id,x) :: acc
+         | Expr.Val_int x -> (id,x) :: acc  (* Only int parameters can be used as indices *)
          | _ -> acc)
       []
       bound_params in
     let bind_io (lid,(dir,lty)) gl =
+      (* Bind FSM IOs to global objects, checking type compatibility *)
       let ty' = Types.subst_indexes ienv lty in
       match dir, gl with 
       | Types.IO_In, GInp (gid,ty,st) ->
@@ -316,7 +352,6 @@ let build_instance ~tenv ~name ~model ~params ~ios =
       bound_ios
       |> List.filter (function (_,_,k,_,_) -> k=kind)
       |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
-    let senv = List.map (function id,(ty,v) -> id, v) bound_params in
     let mk_ival ty = match ty with
       | Types.TyArray(TiConst sz, _) -> Expr.Val_array (Array.make sz Expr.Val_unknown)
       | Types.TyArray(_, _) -> failwith "Fsm.build_instance.mk_ival"
@@ -327,7 +362,10 @@ let build_instance ~tenv ~name ~model ~params ~ios =
     let r =
       { f_name = name;
         f_model = model;
-        f_repr = Repr.map_label (TransLabel.subst senv) model.fm_repr;
+        f_repr =
+          (let subst_env = List.map (function id,(ty,v) -> id, v) bound_params in
+          Repr.map_label (TransLabel.subst subst_env) model.fm_repr);
+        f_tenv = tenv;
         f_params = bound_params;
         f_inps = filter_ios Types.IO_In bound_ios;
         f_outps = filter_ios Types.IO_Out bound_ios;
@@ -340,26 +378,8 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         f_state = "";  (* current state is not defined until the initial transition has been carried out *)
         f_has_reacted = false;
       } in
-    let tenv' =
-      let vars = 
-            List.map (function (id, (ty,_)) -> id, ty) r.f_params
-          @ List.map (function (id, _, _, ty, _) -> id, ty) bound_ios
-          @ List.map (function (id, (ty,_)) -> id, ty) r.f_vars in
-      let local_ctors = 
-          let add acc cs =
-            List.fold_left
-              (fun acc (c,ty) -> if List.mem_assoc c acc then acc else (c,ty)::acc)
-              acc
-              cs in
-          List.fold_left
-            (fun acc (_,ty) -> add acc (Types.enums_of ty))
-            []
-            vars in
-      let open Typing in
-      { tenv with
-        te_vars = tenv.te_vars @ vars;
-        te_ctors = tenv.te_ctors @ local_ctors } in
-    sanity_check tenv' r;
+    sanity_check r;
+    type_check_instance r;
     r
 
 (* Dynamic behavior (reactive semantics) *)
@@ -652,6 +672,7 @@ let dump_inst oc f =
   Printf.fprintf oc "  OUTPS = { %s }\n" (of_list (string_of_io f) f.f_outps);
   (* Printf.fprintf oc "  INOUTS = { %s }\n" (of_list (string_of_io f) f.f_inouts); *)
   Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_var f.f_vars);
+  Printf.fprintf oc "  TENV =\n"; Typing.dump_tenv oc f.f_tenv; Printf.fprintf oc "\n";
   Printf.fprintf oc "  TRANS = {\n";
   List.iter 
     (fun (q,(cond,acts,p,_),q') ->

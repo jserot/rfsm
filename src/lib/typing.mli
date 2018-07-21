@@ -33,4 +33,4 @@ val type_expression : tenv -> Expr.t -> Types.typ
 
 (** {2 Printers} *)
 
-val dump_tenv : tenv -> unit
+val dump_tenv : out_channel -> tenv -> unit
