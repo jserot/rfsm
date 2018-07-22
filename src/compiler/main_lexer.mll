@@ -32,8 +32,8 @@ let keyword_table = [
   "float", TYFLOAT;
   "bool", TYBOOL;
   "array", TYARRAY;
-  "true", TRUE;
-  "false", FALSE;
+  (* "true", TRUE;
+   * "false", FALSE; *)
 ]
 }
 

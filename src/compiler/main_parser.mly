@@ -23,8 +23,8 @@
 %token TYFLOAT
 %token TYEVENT
 %token TYARRAY
-%token TRUE
-%token FALSE
+(* %token TRUE
+ * %token FALSE *)
 %token <string> LID
 %token <string> UID
 (* %token <string> STRING *)
@@ -299,7 +299,7 @@ opt_inst_params:
 inst_param_value:  
   | v=INT { Expr.Val_int v }
   | v=FLOAT { Expr.Val_float v }
-  | v=bool { Expr.Val_bool v }
+  (* | v=bool { Expr.Val_bool v } *)
   | v=array_val { Expr.Val_array v }
 
 array_val:
@@ -400,8 +400,8 @@ constant:
       { Expr.EInt c }
   | c = FLOAT
       { Expr.EFloat c }
-  | c = bool
-      { Expr.EBool c }
+  (* | c = bool
+   *     { Expr.EBool c } *)
 
 subtractive:
   | MINUS                                       { "-" }
@@ -412,13 +412,12 @@ const:
   | v = FLOAT { Expr.Val_float v }
   | MINUS v = INT { Expr.Val_int (-v) }
   | MINUS v = FLOAT { Expr.Val_float (-.v) }
-  | v = bool { Expr.Val_bool v }
+  (* | v = bool { Expr.Val_bool v } *)
   | c = UID { Expr.Val_enum c }
 
-bool:
-  | TRUE { true }
-  | FALSE { false }
-
+(* bool:
+ *   | TRUE { true }
+ *   | FALSE { false } *)
 
 id:
   | i = LID { i }

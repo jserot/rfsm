@@ -99,7 +99,6 @@ let rec rename f expr = match expr.e_desc with
 let rec string_of_value v = match v with
   Val_int i -> string_of_int i
 | Val_float b -> string_of_float b
-(* | Val_bool b -> string_of_bool b *)
 | Val_bool b -> if b then "1" else "0"
 | Val_enum s -> s
 | Val_fn _ -> "<fun>"
