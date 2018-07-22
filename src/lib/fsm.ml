@@ -97,7 +97,6 @@ type inst = {
   f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
   f_vars: (string * (Types.typ * Expr.e_val)) list;         (** name, (type, value) *)
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
-  (* mutable f_tenv: Typing.tenv;                              (\** Local typing environment (may be useful for backends) *\) *)
   f_l2g: string -> string;                                  (** local -> global name *)
   f_state: string;                                          (** current state *)
   f_has_reacted: bool;                                      (** true when implied in the last reaction *)
@@ -209,7 +208,6 @@ let type_check_instance tenv f =
     { tenv with
         Typing.te_vars = tenv.Typing.te_vars @ local_types;
         Typing.te_ctors = tenv.Typing.te_ctors @ local_ctors } in
-  (* f.f_tenv <- tenv;  (\* Keep it here for subsequent use .. *\) *)
   let type_check_guard gexp =
     try type_check
           ~strict:true ("guard \"" ^ (Condition.string_of_guard gexp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
@@ -240,10 +238,10 @@ let type_check_instance tenv f =
        let t' =
          try Typing.type_expression tenv exp
          with Typing.Typing_error (expr, ty, ty') ->
-               raise (Typing.Type_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty')) in
-       Printf.printf "Fsm.type_check_action: %s:%s <- %s:%s\n"
-         (Action.string_of_lhs lhs) (Types.string_of_type t) (Expr.string_of_expr exp.e_desc) (Types.string_of_type t');
-       flush stdout;
+           raise (Typing.Type_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty')) in
+       (* Printf.printf "Fsm.type_check_action: %s:%s <- %s:%s\n"
+        *   (Action.string_of_lhs lhs) (Types.string_of_type t) (Expr.string_of_expr exp.e_desc) (Types.string_of_type t');
+        * flush stdout; *)
        begin
          try type_check
                ~strict:false
@@ -375,7 +373,6 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         f_repr =
           (let subst_env = List.map (function id,(ty,v) -> id, v) bound_params in
           Repr.map_label (TransLabel.subst subst_env) model.fm_repr);
-        (* f_tenv = tenv; *)
         f_params = bound_params;
         f_inps = filter_ios Types.IO_In bound_ios;
         f_outps = filter_ios Types.IO_Out bound_ios;

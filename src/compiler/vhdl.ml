@@ -89,7 +89,7 @@ let rec vhdl_type_of t = match t with
         Integer (Some (lo,hi))
   | TyInt _ -> Integer None
   | TyArray (Types.Index.TiConst sz,t') -> Array (sz, vhdl_type_of t')
-  | _ -> (Printf.printf "** warning: vhdl_type_of(%s)=Unknown\n" (string_of_type t); flush stdout; Unknown)
+  | _ -> failwith "Vhdl.vhdl_type_of: TyUnknown"
 
 type type_mark = TM_Full | TM_Abbr | TM_None
                                    
@@ -113,8 +113,6 @@ and string_of_vhdl_array_type n t = "array_" ^ string_of_int n ^ "_" ^ string_of
 let string_of_type ?(type_marks=TM_Full) t =
   string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
 
-(* let global_types = ref ( [] : (string * Types.typ) list ) *)
-
 let lookup_type tenv id = 
   try List.assoc id tenv 
   with Not_found -> failwith ("Vhdl.lookup_type(" ^ id ^ ")")
@@ -124,16 +122,6 @@ let type_error where what item ty1 ty2 =
      where,
      Printf.sprintf "incompatible types for %s \"%s\": %s and %s"
        what item (string_of_type ty1) (string_of_type ty2)))
-
-(* let add_type (id,ty) =
- *   try
- *     let ty' = List.assoc id !global_types in
- *     if ty' <> ty then type_error "" "id" id ty ty'
- *   with Not_found ->
- *     (\* Printf.printf "** Adding %s (%s) for id %s to global types\n" (string_of_type ty) (Types.string_of_type ty) id; *\)
- *     global_types := (id,ty) :: !global_types *)
-
-(* let reset_types () = global_types := [] *)
 
 let vhdl_string_of_float x =
   Printf.sprintf "%#E" x
@@ -162,32 +150,6 @@ let string_of_ival ?(ty=None) = function
   | Some v -> " = " ^ string_of_value ~ty:ty v
 
 let rec type_of_expr e = vhdl_type_of e.Expr.e_typ
-  (* match e with
-   *   Expr.EInt c -> Some Integer
-   * | Expr.EFloat c -> Some (vhdl_type_of TyFloat)
-   * | Expr.EBool c -> Some (vhdl_type_of TyBool)
-   * | Expr.EEnum c -> None
-   * | Expr.EVar n -> lookup_type n 
-   * | Expr.EBinop (op,e1,e2) ->
-   *     begin match type_of_expr e1, type_of_expr e2 with
-   *       None, None -> None
-   *     | Some t1, None -> Some t1
-   *     | None, Some t2 -> Some t2
-   *     | Some t1, Some t2 -> 
-   *         if t1 = t2 then Some t1
-   *         else type_error "" "binary operation" op t1 t2
-   *     end
-   * | Expr.ECond (e1,e2,e3) ->   (\* TO FIX ? *\)
-   *     begin match type_of_expr e1, type_of_expr e2, type_of_expr e3 with
-   *       _, None, None -> None
-   *     | _, Some t1, None -> Some t1
-   *     | _, None, Some t2 -> Some t2
-   *     | _, Some t1, Some t2 -> 
-   *         if t1 = t2 then Some t1
-   *         else type_error "" "ternary conditioal" "" t1 t2
-   *     end
-   * | Expr.EFapp (f,es) -> None (\* TO FIX ? *\)
-   * | Expr.EArr (a,idx) -> None (\* TO FIX ? *\) *)
 
 let string_of_op = function
     "=" -> " = "
@@ -202,7 +164,6 @@ let string_of_op = function
 let string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    Printf.printf "level=%d string_of(%s) : %s\n" level (Expr.to_string e) (string_of_type e.Expr.e_typ); flush stdout;
     match e.Expr.e_desc, vhdl_type_of e.Expr.e_typ  with
     | Expr.EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
     | Expr.EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
@@ -302,11 +263,6 @@ let dump_array_types oc m =
 let dump_module_arch oc s fsm =
   let m = Cmodel.c_model_of_fsm s fsm in
   let modname = m.c_name in
-  (* let _ = reset_types () in
-   * List.iter (function (id,ty) -> add_type (id, ty)) m.c_inps;
-   * List.iter (function (id,ty) -> add_type (id, ty)) m.c_outps;
-   * List.iter (function (id,ty) -> add_type (id, ty)) m.c_inouts;
-   * List.iter (function (id,(ty,_)) -> add_type (id, ty)) m.c_vars; *)
   let clk_sig = match List.filter (function (_, TyEvent) -> true | _ -> false) m.c_inps with
     [] -> raise (Vhdl_error (m.c_name, "no input event, hence no possible clock"))
   | [h,_] -> h
@@ -449,12 +405,10 @@ let dump_testbench_impl fname m =
   fprintf oc "\n";
   List.iter (dump_module_intf "component" oc m) m.m_fsms;
   fprintf oc "\n";
-  (* reset_types (); *)
   (* Signals *)
   List.iter
    (function (id,(ty,_)) ->
      fprintf oc "signal %s: %s;\n" (tb_name id) (string_of_type ty))
-     (* add_type (id, ty)) *)
    (m.m_inputs @ m.m_outputs @ m.m_shared);
   fprintf oc "signal %s: std_logic;\n" (tb_name cfg.vhdl_reset_sig);
   if cfg.vhdl_trace then
