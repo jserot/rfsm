@@ -56,7 +56,7 @@ libs:
 
 doc: 
 	(cd src/lib; make doc)
-	rm -f doc/lib/*
+	if [ -d doc/lib ]; then rm -f doc/lib/*; else mkdir doc/lib; fi
 	cp src/lib/rfsm.docdir/* doc/lib
 	(cd doc/um; make; cp rfsm.pdf ..)
 	pandoc -o CHANGELOG.txt CHANGELOG.md
@@ -132,21 +132,25 @@ uninstall-opam:
 	@echo "Removing emacs mode from $(INSTALL_EMACSDIR)"
 	rm -f $(INSTALL_EMACSDIR)/rfsm-mode.el
 
-DISTDIR=/tmp/rfsm-$(VERSION)-source
+SRCTMPDIR=/tmp
+SRCDISTNAME=rfsm-source
+SRCDISTDIR=$(SRCTMPDIR)/$(SRCDISTNAME)
+EXCLUDES=--exclude .git --exclude .gitignore --exclude .DS_Store
+SRCTARBALL=$(SRCDISTNAME).tar
 
 source-dist: 
 	@echo "** Cleaning"
 	make clobber
-	@echo "** Creating $(DISTDIR)"
-	rm -rf $(DISTDIR)
-	mkdir -p $(DISTDIR)
+	@echo "** Creating $(SRCDISTDIR)"
+	rm -rf $(SRCDISTDIR)
+	mkdir -p $(SRCDISTDIR)
 	@echo "** Copying files"
-	cp -r {lib,src,doc} $(DISTDIR)
-	mkdir -p $(DISTDIR)/examples
-	cp -r examples/{single,multi,Makefile} $(DISTDIR)/examples
-	cp configure CHANGELOG.md README.md KNOWN-BUGS LICENSE VERSION INSTALL Makefile $(DISTDIR)
-	@echo "** Creating archive $(DISTDIR).tar.gz"
-	(cd /tmp; tar -zcvf rfsm-$(VERSION)-source.tar.gz rfsm-$(VERSION)-source)
+	cp -r {lib,src,doc} $(SRCDISTDIR)
+	mkdir -p $(SRCDISTDIR)/examples
+	cp -r examples/{single,multi,Makefile} $(SRCDISTDIR)/examples
+	cp configure CHANGELOG.md README.md KNOWN-BUGS LICENSE VERSION INSTALL Makefile $(SRCDISTDIR)
+	@echo "** Creating archive $(SRCDISTNAME).tar.gz"
+	(cd $(SRCTMPDIR); tar -zcvf $(SRCTARBALL).gz $(SRCDISTNAME))
 
 MACOS_DIST=/tmp/rfsm
 
@@ -236,9 +240,9 @@ win32-install:
 	cp ./src/gui/release/rfsm.exe $(WIN_INSTALL_DIR)
 	mkdir $(WIN_INSTALL_DIR)/bin
 	cp ./src/compiler/_build/main.native $(WIN_INSTALL_DIR)/bin/rfsmc.exe
-	cp ../caph/caphy-dlls/{Qt5Core,Qt5Gui,Qt5Widgets,libgcc_s_dw2-1,libstdc++-6,libwinpthread-1}.dll $(WIN_INSTALL_DIR)
+	cp ../caph/dlls/{Qt5Core,Qt5Gui,Qt5Widgets,libgcc_s_dw2-1,libstdc++-6,libwinpthread-1}.dll $(WIN_INSTALL_DIR)
 	mkdir $(WIN_INSTALL_DIR)/platforms
-	cp ../caph/caphy-dlls/qwindows.dll $(WIN_INSTALL_DIR)/platforms
+	cp ../caph/dlls/qwindows.dll $(WIN_INSTALL_DIR)/platforms
 	cp {CHANGELOG.txt,KNOWN-BUGS,LICENSE,README.txt} $(WIN_INSTALL_DIR)
 	cp ./dist/windows/FIRST.TXT $(WIN_INSTALL_DIR)
 	cp ./dist/windows/icons/*.{bmp,ico} $(WIN_INSTALL_DIR)
