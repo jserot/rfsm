@@ -15,12 +15,10 @@ used to describe and simulate the model of a calibrated pulse generator. Given a
 
 \begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A simple RFSM
   program,label={lst:rfsm-gensig},float]
-type bit = int<0:1>
-
 fsm model gensig<n:int> (
   in h: event,
-  in  e: bit,
-  out s: bit)
+  in  e: bool,
+  out s: bool)
   {
   states: E0, E1;
   vars: k: int<0..n>;
@@ -183,9 +181,10 @@ be found in Appendix~A.
 There are two categories of types~: builtin types and user defined types.
 
 \medskip
-\textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float} and \texttt{event}.
+\textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float}, \texttt{event} and
+\texttt{array}s.
 
-\step Objects of type \texttt{bool} can have only two values : \texttt{true} and \texttt{false}.
+\step Objects of type \texttt{bool} can have only two values : \texttt{0} (false) and \texttt{1} (true).
 
 \step The type \texttt{int} can be refined using a \emph{range annotation}. The type
 \verb|int<lo:hi>| designates integer values ranging from \verb|lo| to \verb|hi|. The range limits
@@ -193,12 +192,17 @@ There are two categories of types~: builtin types and user defined types.
 time (expressions involving parameter values, as exemplified line 9 in
 Listing~\ref{lst:rfsm-gensig}).  
 
-\step The operations on values of type \texttt{int} are : \verb|+|, \verb|-|, \verb|*|, \verb|/| and
-\verb|%| (modulo).
+\step The operations on values of type \texttt{int} are : "\verb|+|", "\verb|-|", "\verb|*|",
+"\verb|/|" and "\verb|%|" (modulo).
 
-\step The operations on values of type \texttt{float} are : \verb|+.|, \verb|-.|, \verb|*.|,
-\verb|/.| (the dot suffix is required to distinguish them from the corresponding operations on
+\step The operations on values of type \texttt{float} are : "\verb|+.|", "\verb|-.|", "\verb|*.|" and
+"\verb|/.|" (the dot suffix is required to distinguish them from the corresponding operations on
 \texttt{int}s).
+
+\step Arrays are 1D, fixed-size collections of \verb|int|s, \verb|bool|s or \verb|float|s. Indices
+range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
+ \verb|int array[4]| is the type describing arrays of four integers. If \verb|t| is an object
+  with an array type, its cell with index $i$ is denoted \verb|t[i]|.
 
 \medskip
 \textbf{User defined types} are either \emph{type abbreviations} or \emph{enumerations}.
@@ -212,7 +216,7 @@ expression. Type expressions in type abbreviations are currently limited to buil
 An example of type abbreviation has been given in the program of Listing~\ref{lst:rfsm-gensig}. 
 
 \medskip
-\textbf{Enumerated types}  are introduced with the following declaration
+\step Enumerated types  are introduced with the following declaration
 \begin{center}
   \framebox{\lstinline[language=Rfsm]|type typename = \{ C1, ..., Cn \}|}
 \end{center}
@@ -617,15 +621,13 @@ transitions going out of state \verb|Iter|.
 
 \begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=An RFSM program using a global
   function definition,label={lst:rfsm-heron},float]
-type bit = int<0:1>
-
 function f_abs(x: float) : float { return x < 0.0 ? -.x : x }
 
 fsm model Heron <eps: float> (
   in h: event, 
-  in start: bit,
+  in start: bool,
   in u: float,
-  out rdy: bit,
+  out rdy: bool,
   out niter: int,
   out r: float)
  {

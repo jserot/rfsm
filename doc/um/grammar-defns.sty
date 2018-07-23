@@ -52,6 +52,7 @@
 \newcommand\rfsmQMARK{\Verb|\textbf{?}|}
 \newcommand\rfsmLBRACE{\Verb|\textbf{\{}|}
 \newcommand\rfsmLPAREN{\Verb|\textbf{(}|}
+\newcommand\rfsmLBRACKET{\Verb|\textbf{[}|}
 \newcommand\rfsmLT{\Verb|\textbf{<}|}
 \newcommand\rfsmLTE{\Verb|\textbf{<=}|}
 \newcommand\rfsmMINUS{\Verb|\textbf{-}|}
@@ -65,6 +66,7 @@
 \newcommand\rfsmPLUS{\Verb|\textbf{+}|}
 \newcommand\rfsmFPLUS{\Verb|\textbf{+.}|}
 \newcommand\rfsmRBRACE{\Verb|\textbf{\}}|}
+\newcommand\rfsmRBRACKET{\Verb|\textbf{]}|}
 \newcommand\rfsmRPAREN{\Verb|\textbf{)}|}
 \newcommand\rfsmSEMICOLON{\Verb|\textbf{;}|}
 \newcommand\rfsmSHARED{\Verb|\textbf{shared}|}
@@ -77,6 +79,7 @@
 \newcommand\rfsmTYEVENT{\Verb|\textbf{event}|}
 \newcommand\rfsmTYINT{\Verb|\textbf{int}|}
 \newcommand\rfsmTYFLOAT{\Verb|\textbf{float}|}
+\newcommand\rfsmTYARRAY{\Verb|\textbf{array}|}
 \newcommand\rfsmVALUECHANGES{\Verb|\textbf{value\_changes}|}
 \newcommand\rfsmVARS{\Verb|\textbf{vars}|}
 \newcommand\rfsmaction{action}
@@ -97,6 +100,7 @@
 \newcommand\rfsmid{id}
 \newcommand\rfsmintrange{int\_range}
 \newcommand\rfsmio{io}
+\newcommand\rfsmlhs{lhs}
 \newcommand\rfsmiodesc{io\_desc}
 \newcommand\rfsmitransition{itransition}
 \newcommand\rfsmmylist{my\_list}
@@ -117,6 +121,7 @@
 \newcommand\rfsmvaluechange{value\_change}
 \newcommand\rfsmvar{var}
 \newcommand\rfsmvars{vars}
+\WithSuffix\newcommand\rfsmlhs*{\rfsmgramnonterm{\rfsmlhs}}
 \WithSuffix\newcommand\rfsmFUNCTION*{\rfsmgramterm{\rfsmFUNCTION}}
 \WithSuffix\newcommand\rfsmRETURN*{\rfsmgramterm{\rfsmRETURN}}
 \WithSuffix\newcommand\rfsmARROWEND*{\rfsmgramterm{\rfsmARROWEND}}
@@ -141,6 +146,7 @@
 \WithSuffix\newcommand\rfsmFLOAT*{\rfsmgramterm{\rfsmFLOAT}}
 \WithSuffix\newcommand\rfsmITRANS*{\rfsmgramterm{\rfsmITRANS}}
 \WithSuffix\newcommand\rfsmLBRACE*{\rfsmgramterm{\rfsmLBRACE}}
+\WithSuffix\newcommand\rfsmLBRACKET*{\rfsmgramterm{\rfsmLBRACKET}}
 \WithSuffix\newcommand\rfsmLID*{\rfsmgramterm{\rfsmLID}}
 \WithSuffix\newcommand\rfsmLPAREN*{\rfsmgramterm{\rfsmLPAREN}}
 \WithSuffix\newcommand\rfsmLT*{\rfsmgramterm{\rfsmLT}}
@@ -157,6 +163,7 @@
 \WithSuffix\newcommand\rfsmFPLUS*{\rfsmgramterm{\rfsmFPLUS}}
 \WithSuffix\newcommand\rfsmQMARK*{\rfsmgramterm{\rfsmQMARK}}
 \WithSuffix\newcommand\rfsmRBRACE*{\rfsmgramterm{\rfsmRBRACE}}
+\WithSuffix\newcommand\rfsmRBRACKET*{\rfsmgramterm{\rfsmRBRACKET}}
 \WithSuffix\newcommand\rfsmRPAREN*{\rfsmgramterm{\rfsmRPAREN}}
 \WithSuffix\newcommand\rfsmSEMICOLON*{\rfsmgramterm{\rfsmSEMICOLON}}
 \WithSuffix\newcommand\rfsmSHARED*{\rfsmgramterm{\rfsmSHARED}}
@@ -202,6 +209,7 @@
 \WithSuffix\newcommand\rfsmtransition*{\rfsmgramnonterm{\rfsmtransition}}
 \WithSuffix\newcommand\rfsmtyp*{\rfsmgramnonterm{\rfsmtyp}}
 \WithSuffix\newcommand\rfsmtypedecl*{\rfsmgramnonterm{\rfsmtypedecl}}
+\WithSuffix\newcommand\rfsmfndecl*{\rfsmgramnonterm{\rfsmfndecl}}
 \WithSuffix\newcommand\rfsmtypeindexexpr*{\rfsmgramnonterm{\rfsmtypeindexexpr}}
 \WithSuffix\newcommand\rfsmvaluechange*{\rfsmgramnonterm{\rfsmvaluechange}}
 \WithSuffix\newcommand\rfsmvar*{\rfsmgramnonterm{\rfsmvar}}
