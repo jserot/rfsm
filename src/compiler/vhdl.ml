@@ -32,6 +32,7 @@ type vhdl_config = {
   mutable vhdl_reset_duration: int;
   mutable vhdl_ev_duration: int;
   mutable vhdl_use_numeric_std: bool;
+  mutable vhdl_bool_as_bool: bool;
   mutable vhdl_support_library: string;
   mutable vhdl_support_package: string;
   mutable vhdl_trace: bool;
@@ -51,6 +52,7 @@ let cfg = {
   vhdl_reset_duration = 1;
   vhdl_ev_duration = 1;
   vhdl_use_numeric_std = false;
+  vhdl_bool_as_bool = false;
   vhdl_support_library = "rfsm";
   vhdl_support_package = "core";
   vhdl_trace = false;
@@ -79,7 +81,7 @@ and int_range = int * int
 
 let rec vhdl_type_of t = match t with 
   | TyEvent -> Std_logic
-  | TyBool -> Boolean
+  | TyBool -> if cfg.vhdl_bool_as_bool then Boolean else Std_logic
   | TyFloat -> Real
   | TyEnum cs -> Error.not_implemented "VHDL translation of enumerated type"
   | TyInt (Some (TiConst lo,TiConst hi)) ->
@@ -127,18 +129,23 @@ let vhdl_string_of_float x =
   Printf.sprintf "%#E" x
   (* let s = string_of_float x in
    * if String.get s (String.length s - 1) = '.' then s ^ "0" else s *)
+
+let vhdl_string_of_bool b = match cfg.vhdl_bool_as_bool, b with
+  | true, _ -> string_of_bool b
+  | false, true -> "'1'"
+  | false, false -> "'0'"
   
 let string_of_value ?(ty=None) v = match v, ty with
   Expr.Val_int i, Some (Unsigned n) -> Printf.sprintf "to_unsigned(%d,%d)" i n
 | Expr.Val_int i, Some (Signed n) -> Printf.sprintf "to_signed(%d,%d)" i n
 | Expr.Val_int i, Some Std_logic -> Printf.sprintf "'%d'" i
 | Expr.Val_int i, Some (Integer _) -> Printf.sprintf "%d" i
-| Expr.Val_int i, Some Boolean -> if i > 0 then "true" else "false"
+| Expr.Val_int i, Some Boolean -> vhdl_string_of_bool (i > 0)
 | Expr.Val_int i, Some Real -> Printf.sprintf "%d.0" i
 | Expr.Val_int i, None -> Printf.sprintf "%d" i
 | Expr.Val_int i, _ -> failwith "Vhdl.string_of_value"
 | Expr.Val_float f, _ -> vhdl_string_of_float f
-| Expr.Val_bool b, _ -> string_of_bool b
+| Expr.Val_bool b, _ -> vhdl_string_of_bool b
 | Expr.Val_enum s, _ -> Error.not_implemented "VHDL translation of enumerated value"
 | Expr.Val_fn _, _ -> Error.not_implemented "VHDL translation of function value"
 | Expr.Val_unknown, _ -> "<unknown>"
@@ -167,11 +174,11 @@ let string_of_expr e =
     match e.Expr.e_desc, vhdl_type_of e.Expr.e_typ  with
     | Expr.EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
     | Expr.EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
-    | Expr.EInt n, Boolean -> if n > 0 then "true" else "false"
-    | Expr.EInt n, Std_logic -> if n > 0 then "'1'" else "'0'"
+    | Expr.EInt n, Boolean -> vhdl_string_of_bool (n > 0)
+    | Expr.EInt n, Std_logic -> vhdl_string_of_bool (n > 0)
     | Expr.EInt n, _ -> string_of_int n
     | Expr.EFloat c, _ -> vhdl_string_of_float c
-    | Expr.EBool c, _ -> string_of_bool c
+    | Expr.EBool c, _ -> vhdl_string_of_bool c
     | Expr.EEnum c, _ -> c
     | Expr.EVar n, _ ->  n
     | Expr.EBinop (op,e1,e2), _ -> 
@@ -191,19 +198,19 @@ let string_of_expr e =
   in
   string_of 0 e
 
-let string_of_action ?(lvars=[]) m a =
+let string_of_action m a =
   let tenv = List.map (function (id,(ty,_)) -> id, ty) m.c_vars @ m.c_outps @ m.c_inouts in
     match a with
   | Action.Assign (Action.Var0 id, expr) ->
-     let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
+     let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = lookup_type tenv id in
      expr.Expr.e_typ <- ty;  (* To handle situations like [v:=1] when [v:unsigned(2 downto 0)] *) 
      id ^ asn ^ string_of_expr expr
   | Action.Assign (Action.Var1 (id,idx), expr) ->
-     let asn = if List.mem_assoc id lvars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
+     let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = Types.subtype_of (lookup_type tenv id) in
      expr.Expr.e_typ <- ty;  (* To handle situations like  [v[0]:=1] when [v:array of unsigned(2 downto 0)] *) 
-     if List.mem_assoc id lvars
+     if List.mem_assoc id m.c_vars
      then id ^ "(" ^ string_of_expr idx ^ ")" ^ asn ^ string_of_expr expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
   | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
@@ -215,28 +222,28 @@ let string_of_condition (e,cs) =
     [] -> failwith "Vhdl.string.of_condition"
   | _ -> ListExt.to_string string_of_guard " and " cs
 
-let dump_action ?(lvars=[]) oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action ~lvars:lvars m a)
+let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
 
-let dump_transition ?(lvars=[]) oc tab src clk m (is_first,needs_endif) (q',(cond,acts,_,_)) =
+let dump_transition oc tab src clk m (is_first,needs_endif) (q',(cond,acts,_,_)) =
   match cond with
     _, [] -> 
-       List.iter (dump_action ~lvars:lvars oc tab m) acts;
+       List.iter (dump_action oc tab m) acts;
        fprintf oc "%s%s <= %s;\n" tab cfg.vhdl_state_var q';
        (false,false)
   | _, _ ->
        fprintf oc "%s%s ( %s ) then\n" tab (if is_first then "if" else "elsif ") (string_of_condition cond);
-       List.iter (dump_action ~lvars:lvars oc (tab ^ "  ") m) acts;
+       List.iter (dump_action oc (tab ^ "  ") m) acts;
        if q' <> src then fprintf oc "%s  %s <= %s;\n" tab cfg.vhdl_state_var q';
        (false,true)
 
-let dump_sync_transitions ?(lvars=[]) oc src after clk m ts =
+let dump_sync_transitions oc src after clk m ts =
    let tab = "        " in
-   let (_,needs_endif) = List.fold_left (dump_transition ~lvars:lvars oc tab src clk m) (true,false) ts in
+   let (_,needs_endif) = List.fold_left (dump_transition oc tab src clk m) (true,false) ts in
    if needs_endif then fprintf oc "        end if;\n"
      
 let dump_state oc clk m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   match tss with
-    [ev,ts] -> dump_sync_transitions ~lvars:m.c_vars oc q false clk m ts
+    [ev,ts] -> dump_sync_transitions oc q false clk m ts
   | _ -> Error.not_implemented "VHDL: transitions involving multiple events"
 
 let dump_state_case oc clk m c =
@@ -284,7 +291,7 @@ let dump_module_arch oc s fsm =
   fprintf oc "  begin\n";
   fprintf oc "    if ( %s='1' ) then\n" cfg.vhdl_reset_sig;
   fprintf oc "      %s <= %s;\n" cfg.vhdl_state_var (fst m.c_init);
-  List.iter (dump_action ~lvars:m.c_vars oc "      " m) (snd m.c_init);
+  List.iter (dump_action oc "      " m) (snd m.c_init);
   fprintf oc "    elsif rising_edge(%s) then \n" clk_sig;
   begin match m.c_body with
     [] -> () (* should not happen *)

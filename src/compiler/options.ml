@@ -41,6 +41,7 @@ let set_vhdl_time_unit u = Vhdl.cfg.Vhdl.vhdl_time_unit <- u
 let set_vhdl_ev_duration d = Vhdl.cfg.Vhdl.vhdl_ev_duration <- d
 let set_vhdl_rst_duration d = Vhdl.cfg.Vhdl.vhdl_reset_duration <- d
 let set_vhdl_use_numeric_std () = Vhdl.cfg.Vhdl.vhdl_use_numeric_std <- true
+let set_vhdl_bool_as_bool () = Vhdl.cfg.Vhdl.vhdl_bool_as_bool <- true
 
 let set_stop_time d =
   Systemc.cfg.Systemc.sc_stop_time <- d;
