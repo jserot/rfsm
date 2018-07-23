@@ -1,4 +1,4 @@
-# Model of 1x3 convoluer
+# Model of 1x3 Finite Impulse Responde filter
 # y_i = a_0 * x_i + a_1 * x_{i-1} + a_2 * x_{i-2}
 # v1: with separate coeffs and buffering variables
 
