@@ -562,7 +562,7 @@ let check_allowed m =
   let no_outp_event f = match Fsm.output_events_of f with
     | [] -> ()
     | _ -> Error.not_implemented "Vhdl: FSM with output event(s)" in
-  if List.length m.m_fsms > 1 then Error.not_implemented "Vhdl: multi-FSMs model";
+  if List.length m.m_fsms > 1 && m.m_shared <> [] then Error.not_implemented "Vhdl: shared objects in multi-FSMs model";
   List.iter is_mono_sync m.m_fsms;
   List.iter no_outp_event m.m_fsms;
   if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous && List.exists (function f -> not (Fsm.is_rtl f)) m.m_fsms then

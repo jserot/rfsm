@@ -6,7 +6,8 @@ COMPILER
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - var and output attr on states (Moore-style)
 - clarify mechanism for delta-waits insertion in SystemC backend
-- VHDL implementation for multi-event and multi-FSM models
+- VHDL implementation of models with multiple input events
+- VHDL implementation of event and variable synchronized models
 - man page for rfsmc
 - FreeRTOS (or other RTOS) specialized C-backend
 - SCXML backend (www.w3.org/TR/scxml, Yakindu, ...)
