@@ -310,10 +310,9 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         Types.TyInt _, Expr.Val_int _ -> true
       | Types.TyFloat, Expr.Val_float _ -> true
       | Types.TyBool, Expr.Val_bool _ -> true
-      | Types.TyArray (_,ty'), Expr.Val_array vs ->
-         if Array.length vs > 0
-         then compat ty' vs.(0)
-         else true  (* ? Should not happen anyway *)
+      | Types.TyArray (TiConst n,ty'), Expr.Val_array vs ->
+         let n' = Array.length vs in
+         n > 0 && n = n' && compat ty' vs.(0)
       | _, _ -> false in
       let v =
         begin
