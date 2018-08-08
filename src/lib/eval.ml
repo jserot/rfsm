@@ -46,14 +46,17 @@ let rec subst vs expr = match expr.e_desc with
      end
   | ECond (e1,e2,e3) -> { expr with e_desc = ECond (subst vs e1, subst vs e2, subst vs e3) }
   | EFapp (f, es) -> { expr with e_desc = EFapp (f, List.map (subst vs) es) }
-  | EArr (a,idx) when List.mem_assoc a vs -> 
-     begin
-       match List.assoc a vs, eval [] idx with
-       | Val_array vs, Val_int i when i >= 0 && i < Array.length vs ->
-          { expr with e_desc = Expr.of_value (vs.(i)) }
-       | _, _ ->
-          expr
-     end
+  | EArr (a,idx) ->
+     if List.mem_assoc a vs then
+       begin
+         match List.assoc a vs, eval [] idx with
+         | Val_array vs, Val_int i when i >= 0 && i < Array.length vs ->
+            { expr with e_desc = Expr.of_value (vs.(i)) }
+         | _, _ ->
+            { expr with e_desc = EArr (a, subst vs idx) }
+       end
+     else
+       { expr with e_desc = EArr (a, subst vs idx) }
   | _ -> expr
                
 and eval env exp = 

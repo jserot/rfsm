@@ -1,5 +1,7 @@
 COMPILER
 
+- bug using an undeclared id within a transition should not raise an exception in Intern.mk_fsm_model but
+  should be detected before (at the TC level) 
 - support for enum values in the SystemC and VHDL backends
 - support for synchronous actions in CTask and SystemC
 - bound check for ranged integers

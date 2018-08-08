@@ -55,7 +55,9 @@ let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } =
   let local_types =
       List.map (function (dir,(id,te)) -> (id, type_of_type_expression tenv te)) f.fd_ios
     @ List.map (function (id,te) -> id, type_of_type_expression tenv te) f.fd_vars in
-  let type_of id = try List.assoc id local_types with Not_found -> failwith "Intern.mk_fsm_model" in
+  let type_of id =
+    try List.assoc id local_types
+    with Not_found -> failwith ("Intern.mk_fsm_model: cannot retrieve type for identifier " ^ id) in
   let pp_action a = match a with
     (* Replace all assignations [v:=0/1], where [v:bool] by [v:=false/true] *)
     | Action.Assign (Var0 v, e) ->
