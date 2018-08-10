@@ -255,8 +255,8 @@ let dump_array_types oc m =
     List.fold_left
       (fun acc (_,(ty,_)) ->
         match ty with
-        | TyArray (Types.Index.TiConst _, _) when not (List.mem ty acc) -> ty::acc
-        | TyArray (_, _) -> failwith "Vhdl.dump_array_types"
+        | TyArray (Types.Index.TiConst _, _) -> if not (List.mem ty acc) then ty::acc else acc
+        | TyArray (_, _) -> failwith ("Vhdl.dump_array_types: " ^ Types.string_of_type ty)
         | _ -> acc)
       []
       m.c_vars in
