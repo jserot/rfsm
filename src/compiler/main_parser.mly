@@ -326,6 +326,8 @@ array_size:
 type_index_expr:
   | c = INT
       { Syntax.TEConst c }
+  | MINUS c = INT
+      { Syntax.TEConst (-c) }
   | i = LID
       { Syntax.TEVar i }
   | LPAREN e = type_index_expr RPAREN
