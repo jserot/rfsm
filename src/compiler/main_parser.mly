@@ -297,8 +297,8 @@ opt_inst_params:
   |  LT params=separated_nonempty_list(COMMA, inst_param_value) GT { params }
 
 inst_param_value:  
-  | v=INT { Expr.Val_int v }
-  | v=FLOAT { Expr.Val_float v }
+  | v=int_const { Expr.Val_int v }
+  | v=float_const { Expr.Val_float v }
   (* | v=bool { Expr.Val_bool v } *)
   | v=array_val { Expr.Val_array v }
 
@@ -324,10 +324,8 @@ array_size:
     | sz = type_index_expr { mk_type_index_expression ($symbolstartofs,$endofs) sz }
 
 type_index_expr:
-  | c = INT
+  | c = int_const
       { Syntax.TEConst c }
-  | MINUS c = INT
-      { Syntax.TEConst (-c) }
   | i = LID
       { Syntax.TEVar i }
   | LPAREN e = type_index_expr RPAREN
@@ -410,12 +408,18 @@ subtractive:
   | FMINUS                                      { "-." }
 
 const:
-  | v = INT { Expr.Val_int v }
-  | v = FLOAT { Expr.Val_float v }
-  | MINUS v = INT { Expr.Val_int (-v) }
-  | MINUS v = FLOAT { Expr.Val_float (-.v) }
+  | v = int_const { Expr.Val_int v }
+  | v = float_const { Expr.Val_float v }
   (* | v = bool { Expr.Val_bool v } *)
   | c = UID { Expr.Val_enum c }
+
+int_const:
+  | v = INT { v }
+  | MINUS v = INT { -v }
+
+float_const:
+  | v = FLOAT { v }
+  | MINUS v = FLOAT { -.v }
 
 (* bool:
  *   | TRUE { true }
