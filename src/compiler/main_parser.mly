@@ -242,7 +242,7 @@ actions:
 
 action:
   | i=LID               { mk_action ($symbolstartofs,$endofs) (Action.Emit i) }
-  | l=lhs COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign (l,e)) }
+  | l=lhs COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign ({l_desc=l},e)) }
 
 lhs:
   | v=LID { Action.Var0 v }

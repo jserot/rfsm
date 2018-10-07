@@ -17,7 +17,7 @@ fsm model Rxd<n:int> ( # n gives the bit duration (in clk periods)
     Sync -- clk.k<n/2-1 | k:=k+1 -> Sync,
     Sync -- clk.k=n/2-1 | k:=0; i:=0 -> Rx,
     Rx -- clk.k<n-1 | k:=k+1 -> Rx,
-    Rx -- clk.(k=n-1).(i<8) | r:=r/2+128*sin; k:=0; i:=i+1 -> Rx,
+    Rx -- clk.(k=n-1).(i<8) | r[i]:=sin; k:=0; i:=i+1 -> Rx,
     Rx -- clk.(k=n-1).(i=8) | dout:=r -> Idle;
   itrans: -> Idle;
   }

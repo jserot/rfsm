@@ -118,6 +118,8 @@ let string_of_op = function
   | "/." -> "/" 
   | op ->  op
 
+let string_of_int_range a hi lo = a ^ ".range(" ^ lo ^ "," ^ hi ^ ")"
+
 let string_of_expr m e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
@@ -132,20 +134,27 @@ let string_of_expr m e =
     | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
     | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
+    | Expr.EBit (a,idx) -> let i = string_of level idx in string_of_int_range a i i
   in
   string_of 0 e
 
 let string_of_guard m e = string_of_expr m e
 
 let string_of_action m a = match a with
-  | Action.Assign (Action.Var0 id, expr) ->
+  | Action.Assign ({l_desc=Action.Var0 id}, expr) ->
      if List.mem_assoc id m.c_outps
      then id ^ ".write(" ^ string_of_expr m expr ^ ")"
      else id ^ "=" ^ string_of_expr m expr
-  | Action.Assign (Action.Var1 (id,idx), expr) ->
+  | Action.Assign ({l_desc=Action.Var1 (id,idx)}, expr) ->
      if List.mem_assoc id m.c_outps
      then failwith "Systemc.string_of_action: assignation of a non-scalar output"
      else id ^ "[" ^ string_of_expr m idx ^ "]" ^ "=" ^ string_of_expr m expr
+  | Action.Assign ({l_desc=Action.Var2 (id,idx)}, expr) ->
+     if List.mem_assoc id m.c_outps
+     then failwith "Systemc.string_of_action: assignation of a non-scalar output"
+     else
+       let i = string_of_expr m idx in 
+       string_of_int_range id i i ^ "=" ^ string_of_expr m expr
   | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)
 

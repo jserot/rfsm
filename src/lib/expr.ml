@@ -12,7 +12,7 @@
 open Utils
 
 type t = {
-    e_desc: e_desc;
+    mutable e_desc: e_desc;
     mutable e_typ: Types.typ;
   }
 
@@ -25,7 +25,8 @@ and e_desc =
   | EBinop of string * t * t
   | ECond of t * t * t        (** e1 ? e2 : e3 *)
   | EFapp of string * t list  (** f(arg1,...,argn) *)
-  | EArr of string * t        (** t[i] *)
+  | EArr of string * t        (** t[i] when t is an array *)
+  | EBit of string * t        (** t[i] when t is an int *)
 
 and e_val = 
   | Val_int of int
@@ -125,6 +126,7 @@ let rec string_of_expr e = match e with
   | ECond (e1,e2,e3) -> to_string e1 ^ "?" ^ to_string e2 ^ ":" ^ to_string e3 (* TODO : add parens *)
   | EFapp (f,args) -> f ^ "(" ^ ListExt.to_string to_string "," args ^ ")"
   | EArr (a,e') -> a ^ "[" ^ to_string e' ^ "]"
+  | EBit (a,e') -> a ^ "[" ^ to_string e' ^ "]"
 
 and to_string e =
   let s = string_of_expr e.e_desc in

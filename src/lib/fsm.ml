@@ -228,11 +228,18 @@ let type_check_instance tenv f =
   let type_check_action act = match act with 
     | Action.Assign (lhs, exp) -> 
        let t =
-         begin match lhs with
+         begin match lhs.l_desc with
          | Var0 v -> List.assoc v tenv.te_vars
          | Var1 (a,i) ->
             type_check_index_expression i;
-            Types.subtype_of (List.assoc a tenv.te_vars)
+            begin match List.assoc a tenv.te_vars with
+            | TyInt _ -> (* Special case *)
+               lhs.l_desc <- Var2 (a,i);  (* This is a hack *)
+               TyInt (Some (TiConst 0, TiConst 1))
+            | ty ->  (* Should be an array *)
+               Types.subtype_of ty
+            end
+         | Var2 (a,i) -> raise (Internal_error "Fsm.type_check_action")
          | exception _ -> raise (Internal_error "Fsm.type_check_action")
          end in
        let t' =
@@ -419,9 +426,14 @@ let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
      a list of responses [resps], and an updated (local) environment [env']. *)
   let array_upd id idx v = 
-    match List.assoc id env, Eval.eval env idx with
-    | Val_array vs, Val_int i -> Expr.Val_array (Expr.array_update id vs i v), i
-    | _, _ -> failwith "Fsm.do_action.array_upd" in
+    match List.assoc id env, Eval.eval env idx, v with
+    | Expr.Val_array vs, Expr.Val_int i, _ -> Expr.Val_array (Expr.array_update id vs i v), i
+    | _, _, _ -> failwith "Fsm.do_action.array_upd" in
+  let set_bit x i v = if v = 1 then x lor (1 lsl i) else x land (lnot (1 lsl i)) in
+  let bits_upd id idx v = 
+    match List.assoc id env, Eval.eval env idx, v with
+    | Expr.Val_int x, Expr.Val_int i, Expr.Val_int b -> Expr.Val_int (set_bit x i (b mod 2))
+    | _, _, _ -> failwith "Fsm.do_action.bits_upd" in
   match act with
     Action.Assign (lhs, expr) ->
       let id = Action.lhs_name lhs in
@@ -431,7 +443,7 @@ let do_action (f,resps,resps',env) act =
         | Sequential ->
           (* In the sequential interpretation, updates of local variables are performed immediately
              and reflected in the environment (so that actions sequences such as "c:=c+1;s=c" are interpreted correctly. *)
-           begin match lhs with
+           begin match lhs.l_desc with
            | Action.Var0 id ->
               let v' = Eval.eval env expr in
               { f with f_vars = replace_assoc' id v' f.f_vars },
@@ -444,12 +456,18 @@ let do_action (f,resps,resps',env) act =
               resps @ [Var1 (Ident.Local (f.f_name, id), i), v],
               resps',
               ListExt.replace_assoc id v' env
+           | Action.Var2 (id,idx) ->
+              let v' = bits_upd id idx v in
+              { f with f_vars = replace_assoc' id v' f.f_vars },
+              resps @ [Var0 (Ident.Local (f.f_name, id)), v'],
+              resps',
+              ListExt.replace_assoc id v' env
            end
         | Synchronous ->
           (* In the synchronous interpretation, updates of local variables are not performed immediately
              nor reflected in the environment, but only reported in [resps] so that they can be performed at the end of the
              reaction. *)
-           begin match lhs with
+           begin match lhs.l_desc with
            | Action.Var0 id ->
               let v' = Eval.eval env expr in
               f,
@@ -462,18 +480,25 @@ let do_action (f,resps,resps',env) act =
               resps,
               resps' @ [Var1 (Ident.Local (f.f_name, id), i), v],
               env
+           | Action.Var2 (id, idx) ->
+              let v' = bits_upd id idx v in
+              f,
+              resps,
+              resps' @ [Var0 (Ident.Local (f.f_name, id)), v'],
+              env
            end
         end
       else  (* Global IO or shared value. Updates are never performed immediately *)
-        begin match lhs with
+        begin match lhs.l_desc with
         | Action.Var0 id ->
            let v' = Eval.eval env expr in
            f,
            resps @ [Var0 (Ident.Global (f.f_l2g id)), v'],
            resps',
            env
-        | Action.Var1 (id, idx) ->
-           failwith "Fsm.do_action: not implemented: global IO or shared value with array type"
+        | Action.Var1 (id, idx)
+        | Action.Var2 (id, idx) ->
+           failwith "Fsm.do_action: not implemented: global IO or shared value with array/bitset type"
         end
   | Action.Emit id ->
      f,

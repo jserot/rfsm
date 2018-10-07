@@ -24,6 +24,7 @@ val builtin_tenv: tenv
 exception Unbound_id of string * string 
 exception Typing_error of Expr.t * Types.typ * Types.typ 
 exception Type_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
+exception Internal_error of string (** where *)
 
 (** {2 Typing} *)
   

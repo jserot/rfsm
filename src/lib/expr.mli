@@ -12,7 +12,7 @@
 (** Expressions and values *)
 
 type t = {
-    e_desc: e_desc;
+    mutable e_desc: e_desc;
     mutable e_typ: Types.typ;
   }
 
@@ -25,7 +25,8 @@ and e_desc =
   | EBinop of string * t * t  (** e1 op e2 *)
   | ECond of t * t * t        (** e1 ? e2 : e3 *)
   | EFapp of string * t list  (** f(arg1,...,argn) *)
-  | EArr of string * t        (** t[i] *)
+  | EArr of string * t        (** t[i] when t is an array *)
+  | EBit of string * t        (** t[i] when t is an int *)
 
 and e_val = 
   | Val_int of int

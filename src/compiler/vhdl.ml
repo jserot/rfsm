@@ -172,6 +172,8 @@ let string_of_op = function
   | "/." -> "/" 
   | op ->  op
 
+let string_of_range a hi lo = a ^ "(to_integer(" ^ hi ^ ") downto to_integer(" ^ lo ^ "))"
+
 let string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
@@ -199,23 +201,33 @@ let string_of_expr e =
     | Expr.EFapp (("~-"|"~-."),[e]), _ -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es), _ -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
     | Expr.EArr (a,idx), _ -> a ^ "(" ^ string_of level idx ^ ")"
+    | Expr.EBit (a,idx), _ ->
+       let i = string_of level idx in
+       string_of_range a i i 
   in
   string_of 0 e
 
 let string_of_action m a =
   let tenv = List.map (function (id,(ty,_)) -> id, ty) m.c_vars @ m.c_outps @ m.c_inouts in
     match a with
-  | Action.Assign (Action.Var0 id, expr) ->
+  | Action.Assign ({l_desc=Action.Var0 id}, expr) ->
      let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = lookup_type tenv id in
      expr.Expr.e_typ <- ty;  (* To handle situations like [v:=1] when [v:unsigned(2 downto 0)] *) 
      id ^ asn ^ string_of_expr expr
-  | Action.Assign (Action.Var1 (id,idx), expr) ->
+  | Action.Assign ({l_desc=Action.Var1 (id,idx)}, expr) ->
      let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = Types.subtype_of (lookup_type tenv id) in
      expr.Expr.e_typ <- ty;  (* To handle situations like  [v[0]:=1] when [v:array of unsigned(2 downto 0)] *) 
      if List.mem_assoc id m.c_vars
      then id ^ "(" ^ string_of_expr idx ^ ")" ^ asn ^ string_of_expr expr
+     else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
+  | Action.Assign ({l_desc=Action.Var2 (id,idx)}, expr) ->
+     let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
+     let ty = lookup_type tenv id in
+     expr.Expr.e_typ <- ty;  (* To handle situations like  [v[0]:=1] when  [v:unsigned(2 downto 0)] *) 
+     if List.mem_assoc id m.c_vars
+     then let i = string_of_expr idx in string_of_range id i i ^ asn ^ string_of_expr expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
   | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)
@@ -481,7 +493,7 @@ let dump_testbench ?(name="") ?(dir="./vhdl") m =
   let prefix = match name with "" -> cfg.vhdl_tb_name | p -> p in
   dump_testbench_impl (dir ^ "/" ^ prefix ^ ".vhd") m
 
-(* Dumping toplevel module *)
+(* Dumping toplevel module - for multi-FSMs models with shared variables *)
   
 let dump_toplevel_impl fname m =
   let oc = open_out fname in
@@ -499,11 +511,11 @@ let dump_toplevel_impl fname m =
    (function (id,(ty,_)) ->
      fprintf oc "        %s: in %s;\n" (tb_name id) (string_of_type ty))
    m.m_inputs;
-  fprintf oc "        %s: in std_logic" cfg.vhdl_reset_sig;
   List.iter
    (function (id,(ty,_)) ->
      fprintf oc "  %s: out %s;\n" (tb_name id) (string_of_type ty))
    m.m_outputs;
+  fprintf oc "        %s: in std_logic" cfg.vhdl_reset_sig;
   fprintf oc "        );\n";
   fprintf oc "end entity;\n";
   fprintf oc "\n";

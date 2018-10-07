@@ -16,9 +16,12 @@ type t =
   | Emit of string                            (** event *)
   | StateMove of string * string * string     (** fsm name, old state, new state *)
 
-and lhs =
-  | Var0 of string             (** scalar *)
-  | Var1 of string * Expr.t    (** 1D array location *)
+and lhs = { mutable l_desc: lhs_desc }
+
+and lhs_desc = 
+  | Var0 of string             (* v := ... *)
+  | Var1 of string * Expr.t    (* v[i] := ... when v is an array *)
+  | Var2 of string * Expr.t    (* v[i] := ... when v is an int *)
 
 val lhs_name : lhs -> string
   

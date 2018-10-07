@@ -241,7 +241,7 @@ let size_of ty = match ty with
 
 let subtype_of = function
   | TyArray (_,t) -> t
-  | _ -> failwith "Types.array_subtype"
+  | _ -> failwith "Types.subtype_of"
        
 (* Printing *)
 

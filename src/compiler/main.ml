@@ -156,6 +156,7 @@ with
 | Error.Model_error ->
   ()
 | Error.Internal_error msg
+| Typing.Internal_error msg
 | Fsm.Internal_error msg ->
     eprintf "Internal error: %s.\n" msg; flush stderr; exit 23
 | End_of_file -> exit 0

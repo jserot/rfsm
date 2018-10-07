@@ -14,6 +14,7 @@ open Types
 exception Unbound_id of string * string 
 exception Typing_error of Expr.t * Types.typ * Types.typ
 exception Type_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
+exception Internal_error of string (** where *)
 
 type tenv =
   { te_vars: (string * typ) list;
@@ -57,12 +58,20 @@ let rec type_expression tenv expr =
       unify ty_e2 ty_e3;
       ty_e2
   | Expr.EArr (a,idx) ->
-     let ty_arr = lookup_type "array" tenv.te_vars a in
+     let ty_arg = lookup_type "array or int" tenv.te_vars a in
      let ty_idx = type_expression tenv idx in
      unify ty_idx (TyInt None);
-     let ty_res = new_type_var () in
-     unify ty_arr (TyArray(TiConst (size_of ty_arr), ty_res));
-     Types.real_type ty_res in
+     begin match ty_arg with
+     | TyInt _ ->  (* Special case *)
+        expr.Expr.e_desc <- EBit (a,idx);  (* This is a hack.. *)
+        TyInt (Some (TiConst 0, TiConst 1))
+     | _ -> 
+        let ty_res = new_type_var () in
+        unify ty_arg (TyArray(TiConst (size_of ty_arg), ty_res));
+        Types.real_type ty_res
+     end 
+  | Expr.EBit (a,idx) ->
+     raise (Internal_error "Typing.type_expression") (* should not happen *) in
   let ty = Types.real_type (type_expr expr) in
   (* Printf.printf "** Typing.type_expression(%s) = %s\n" (Expr.string_of_expr expr.e_desc) (Types.string_of_type ty); flush stdout; *)
   expr.e_typ <- ty;

@@ -60,16 +60,16 @@ let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } =
     with Not_found -> failwith ("Intern.mk_fsm_model: cannot retrieve type for identifier " ^ id) in
   let pp_action a = match a with
     (* Replace all assignations [v:=0/1], where [v:bool] by [v:=false/true] *)
-    | Action.Assign (Var0 v, e) ->
+    | Action.Assign ({l_desc=Var0 v}, e) ->
        begin
          match type_of v with
-         | Types.TyBool -> Action.Assign (Var0 v, mk_bool_expr e)
+         | Types.TyBool -> Action.Assign ({l_desc=Var0 v}, mk_bool_expr e)
          | _ -> a
        end
-    | Action.Assign (Var1 (v,i), e) ->
+    | Action.Assign ({l_desc=Var1 (v,i)}, e) ->
        begin
          match type_of v with
-         | Types.TyArray (_, Types.TyBool) -> Action.Assign (Var1 (v,i), mk_bool_expr e)
+         | Types.TyArray (_, Types.TyBool) -> Action.Assign ({l_desc=Var1 (v,i)}, mk_bool_expr e)
          | _ -> a
        end
     | _ -> a in

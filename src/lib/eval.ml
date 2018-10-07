@@ -90,6 +90,13 @@ and eval env exp =
           else raise (Invalid_array_access (a,i))
        | _ -> raise (Illegal_array_access exp)
      end
+  | EBit (a,idx) ->
+     begin
+       match lookup env a, eval env idx with
+       | Val_int x, Val_int i -> 
+          Val_int ((x lsr i) land 1)
+       | _ -> raise (Illegal_array_access exp)
+     end
   in
   (* Printf.printf "Eval.eval [%s] (%s) -> %s\n" (string_of_env env) (Expr.to_string exp) (string_of_value r); *)
   r
