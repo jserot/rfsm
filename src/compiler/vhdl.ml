@@ -23,6 +23,7 @@ type vhdl_config = {
   mutable vhdl_lib_name: string;
   mutable vhdl_lib_dir: string;
   mutable vhdl_inpmod_prefix: string;
+  mutable vhdl_top_name: string;
   mutable vhdl_tb_name: string;
   mutable vhdl_globals_name: string;
   mutable vhdl_state_var: string;
@@ -43,6 +44,7 @@ let cfg = {
   vhdl_lib_name = "rfsm";
   vhdl_lib_dir = ".";
   vhdl_inpmod_prefix = "inp_";
+  vhdl_top_name = "top";
   vhdl_tb_name = "tb";
   vhdl_globals_name = "globals";
   vhdl_state_var = "state";
@@ -61,10 +63,12 @@ let cfg = {
 
 type profil = {
     mutable has_globals: bool;
+    mutable has_toplevel: bool;
   }
 
 let profil = {
   has_globals = false;
+  has_toplevel = false;
   }
 
 type vhdl_type = 
@@ -477,8 +481,77 @@ let dump_testbench ?(name="") ?(dir="./vhdl") m =
   let prefix = match name with "" -> cfg.vhdl_tb_name | p -> p in
   dump_testbench_impl (dir ^ "/" ^ prefix ^ ".vhd") m
 
+(* Dumping toplevel module *)
+  
+let dump_toplevel_impl fname m =
+  let oc = open_out fname in
+  let open Sysm in
+  let modname n = String.capitalize_ascii n in
+  fprintf oc "library ieee;\n";
+  fprintf oc "use ieee.std_logic_1164.all;	   \n";
+  if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
+  fprintf oc "library %s;\n" cfg.vhdl_support_library;
+  fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package;
+  fprintf oc "\n";
+  fprintf oc "entity top is\n";
+  fprintf oc "  port(\n";
+  List.iter
+   (function (id,(ty,_)) ->
+     fprintf oc "        %s: in %s;\n" (tb_name id) (string_of_type ty))
+   m.m_inputs;
+  fprintf oc "        %s: in std_logic" cfg.vhdl_reset_sig;
+  List.iter
+   (function (id,(ty,_)) ->
+     fprintf oc "  %s: out %s;\n" (tb_name id) (string_of_type ty))
+   m.m_outputs;
+  fprintf oc "        );\n";
+  fprintf oc "end entity;\n";
+  fprintf oc "\n";
+  fprintf oc "architecture struct of top is\n";
+  fprintf oc "\n";
+  (* FSMs *)
+  List.iter (dump_module_intf "component" oc m) m.m_fsms;
+  fprintf oc "\n";
+  (* Shared signals *)
+  List.iter
+   (function (id,(ty,_)) ->
+     fprintf oc "signal %s: %s;\n" (tb_name id) (string_of_type ty))
+   m.m_shared;
+  if cfg.vhdl_trace then
+    List.iter
+      (function f -> fprintf oc "  signal %s: integer;\n" (f.f_name ^ "_state"))
+      m.m_fsms;  
+  fprintf oc "\n";
+  fprintf oc "begin\n";
+  (* Instanciated components *)
+  List.iteri
+    (fun i f ->
+      let m = Cmodel.c_model_of_fsm m f in
+      let actual_name (id,_) = f.f_l2g id in
+      fprintf oc "  U%d: %s port map(%s%s);\n"
+        i
+        (modname f.f_name)
+        (ListExt.to_string tb_name ","
+           (List.map actual_name (m.c_inps @  m.c_outps @ m.c_inouts) @ [cfg.vhdl_reset_sig]))
+        (if cfg.vhdl_trace then "," ^ f.f_name ^ "_state" else ""))
+    m.m_fsms;
+  fprintf oc "end architecture;\n";
+  Logfile.write fname;
+  close_out oc
+
+let dump_toplevel ?(name="") ?(dir="./vhdl") m =
+  let prefix = match name with "" -> cfg.vhdl_top_name | p -> p in
+  dump_toplevel_impl (dir ^ "/" ^ prefix ^ ".vhd") m
+
 let dump_model ?(dir="./vhdl") m =
-  List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms
+  match m.Sysm.m_shared with
+  | [] -> 
+     List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms; 
+     profil.has_toplevel <- false  (* TODO ? Should we add one even in this case ? *)
+  | ss -> 
+     List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms;
+     dump_toplevel ~dir:dir m;
+     profil.has_toplevel <- true
 
 (* Dumping global functions *)
 
@@ -547,6 +620,8 @@ let dump_makefile ?(dir="./vhdl") m =
   List.iter
     (function f -> fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s\n" (modname ".vhd" f))
     m.m_fsms;
+  if profil.has_toplevel then 
+    fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_top_name;
   fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_tb_name;
   fprintf oc "\t$(GHDL) -e $(GHDLOPTS) %s\n" cfg.vhdl_tb_name;
   Logfile.write fname;
@@ -562,9 +637,17 @@ let check_allowed m =
   let no_outp_event f = match Fsm.output_events_of f with
     | [] -> ()
     | _ -> Error.not_implemented "Vhdl: FSM with output event(s)" in
-  if List.length m.m_fsms > 1 && m.m_shared <> [] then Error.not_implemented "Vhdl: shared objects in multi-FSMs model";
+  let valid_shared (id, (ty, desc)) = match desc with
+      MShared ([_], _) ->
+       begin match ty with
+       | TyInt _ | TyBool | TyFloat -> ()
+       | _ ->  Error.not_implemented ("Vhdl: " ^ id ^ ": shared signal with type=" ^ Types.string_of_type ty)
+       end
+    | MShared (_,_)  -> Error.not_implemented ("Vhdl: " ^ id ^ ": shared signal with more than one writer")
+    | _ -> Error.not_implemented ("Vhdl: " ^ id ^ ": unsupported kind of shared signal") in
   List.iter is_mono_sync m.m_fsms;
   List.iter no_outp_event m.m_fsms;
+  List.iter valid_shared m.m_shared;
   if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous && List.exists (function f -> not (Fsm.is_rtl f)) m.m_fsms then
      Error.warning "Vhdl: Some FSM(s) have non-RTL transitions. This may cause incorrect behavior when using the synchronous interpretation of actions."
    
