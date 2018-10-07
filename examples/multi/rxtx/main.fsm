@@ -17,9 +17,9 @@ fsm model Txd<n:int> ( # n gives the bit duration (in clk periods)
     Idle -- clk.wr=0 -> Idle,
     Idle -- clk.wr=1 | r:=din; sout:=0; k:=0 -> Start,
     Start -- clk.k<n-1 | k:=k+1 -> Start,
-    Start -- clk.k=n-1 | k:=0; i:=0; sout:=r%2 -> Tx,
+    Start -- clk.k=n-1 | k:=0; i:=1; sout:=r[0] -> Tx,
     Tx -- clk.k<n-1 | k:=k+1 -> Tx,
-    Tx -- clk.(k=n-1).(i<8) | r:=r/2; sout:=r%2; k:=0; i:=i+1 -> Tx,
+    Tx -- clk.(k=n-1).(i<8) | sout:=r[i]; i:=i+1; k:=0 -> Tx,
     Tx -- clk.(k=n-1).(i=8) | sout:=1 -> Idle;
   itrans: | sout:=1 -> Idle;
   }
@@ -39,11 +39,10 @@ fsm model Rxd<n:int> ( # n gives the bit duration (in clk periods)
     Sync -- clk.k<n/2-1 | k:=k+1 -> Sync,
     Sync -- clk.k=n/2-1 | k:=0; i:=0 -> Rx,
     Rx -- clk.k<n-1 | k:=k+1 -> Rx,
-    Rx -- clk.(k=n-1).(i<8) | r:=r/2+128*sin; k:=0; i:=i+1 -> Rx,
+    Rx -- clk.(k=n-1).(i<8) | r[i]:=sin; k:=0; i:=i+1 -> Rx,
     Rx -- clk.(k=n-1).(i=8) | dout:=r -> Idle;
   itrans: -> Idle;
   }
-
 
 input clk:event = periodic(10,10,550)
 input din:int<0:255> = value_changes(10:69)  # 0x45
