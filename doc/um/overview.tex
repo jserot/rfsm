@@ -204,6 +204,12 @@ range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
  \verb|int array[4]| is the type describing arrays of four integers. If \verb|t| is an object
   with an array type, its cell with index $i$ is denoted \verb|t[i]|.
 
+\step Indexing can also be used to access a given bit within an integer value. For example, if
+\verb|x| is an integer ranging from 0 to 255 then \verb|x[i]|, where \verb|i| ranges from 0 to 7
+gives access to the \verb|i|$^{th}$ bit of \verb|x| (with index 0 giving the LSB and index 7 the
+MSB). Integer bits can be both read and written. The behavior is unspecified if the index falls
+outside the integer range.
+
 \medskip
 \textbf{User defined types} are either \emph{type abbreviations} or \emph{enumerations}.
 
