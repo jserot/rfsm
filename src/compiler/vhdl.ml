@@ -63,12 +63,10 @@ let cfg = {
 
 type profil = {
     mutable has_globals: bool;
-    mutable has_toplevel: bool;
   }
 
 let profil = {
   has_globals = false;
-  has_toplevel = false;
   }
 
 type vhdl_type = 
@@ -407,6 +405,78 @@ let dump_input_process oc (id,(ty,desc)) =
     | _ -> failwith "Vhdl.dump_inp_module_arch" (* should not happen *) end;
   fprintf oc "  end process;\n"
 
+(* Dumping toplevel module *)
+
+let dump_libraries oc =
+  fprintf oc "library ieee;\n";
+  fprintf oc "use ieee.std_logic_1164.all;	   \n";
+  if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
+  fprintf oc "library %s;\n" cfg.vhdl_support_library;
+  fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package;
+  fprintf oc "\n"
+
+let top_name s = s
+               
+let dump_toplevel_intf kind oc m =
+  fprintf oc "%s %s is\n" kind cfg.vhdl_top_name;
+  fprintf oc "  port(\n";
+  let open Sysm in
+  List.iter
+   (function (id,(ty,_)) ->
+     fprintf oc "        %s: in %s;\n" (top_name id) (string_of_type ty))
+   m.m_inputs;
+  List.iter
+   (function (id,(ty,_)) ->
+     fprintf oc "        %s: out %s;\n" (top_name id) (string_of_type ty))
+   m.m_outputs;
+  if cfg.vhdl_trace then
+    List.iter
+      (function f -> fprintf oc "        %s: out integer;\n" (f.f_name ^ "_state"))
+      m.m_fsms;  
+  fprintf oc "        %s: in std_logic\n" cfg.vhdl_reset_sig;
+  fprintf oc "        );\n";
+  fprintf oc "end %s;\n" kind;
+  fprintf oc "\n"
+  
+let dump_toplevel_impl fname m =
+  let oc = open_out fname in
+  let open Sysm in
+  let modname n = String.capitalize_ascii n in
+  dump_libraries oc;
+  dump_toplevel_intf "entity" oc m;
+  fprintf oc "architecture struct of %s is\n" cfg.vhdl_top_name;
+  fprintf oc "\n";
+  (* FSMs *)
+  List.iter (dump_module_intf "component" oc m) m.m_fsms;
+  fprintf oc "\n";
+  (* Shared signals *)
+  List.iter
+   (function (id,(ty,_)) ->
+     fprintf oc "signal %s: %s;\n" (top_name id) (string_of_type ty))
+   m.m_shared;
+  fprintf oc "\n";
+  fprintf oc "begin\n";
+  (* Instanciated components *)
+  List.iter
+    (fun f ->
+      let m = Cmodel.c_model_of_fsm m f in
+      let n = modname f.f_name in
+      let actual_name (id,_) = f.f_l2g id in
+      fprintf oc "  U_%s: %s port map(%s%s);\n"
+        (String.capitalize_ascii n)
+        n
+        (ListExt.to_string top_name ","
+           (List.map actual_name (m.c_inps @  m.c_outps @ m.c_inouts) @ [cfg.vhdl_reset_sig]))
+        (if cfg.vhdl_trace then "," ^ f.f_name ^ "_state" else ""))
+    m.m_fsms;
+  fprintf oc "end architecture;\n";
+  Logfile.write fname;
+  close_out oc
+
+let dump_toplevel ?(name="") ?(dir="./vhdl") m =
+  let prefix = match name with "" -> cfg.vhdl_top_name | p -> p in
+  dump_toplevel_impl (dir ^ "/" ^ prefix ^ ".vhd") m
+
 (* Dumping the testbench *)
 
 let tb_name s = s
@@ -414,63 +484,55 @@ let tb_name s = s
 let dump_testbench_impl fname m =
   let oc = open_out fname in
   let open Sysm in
-  let modname n = String.capitalize_ascii n in
-  fprintf oc "library ieee;\n";
-  fprintf oc "use ieee.std_logic_1164.all;	   \n";
-  if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
-  fprintf oc "library %s;\n" cfg.vhdl_support_library;
-  fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package;
-  fprintf oc "\n";
+  dump_libraries oc;
   fprintf oc "entity tb is\n";
   fprintf oc "end tb;\n";
   fprintf oc "\n";
-  fprintf oc "architecture Bench of tb is\n";
+  fprintf oc "architecture struct of tb is\n";
   fprintf oc "\n";
-  List.iter (dump_module_intf "component" oc m) m.m_fsms;
-  fprintf oc "\n";
+  dump_toplevel_intf "component" oc m;
   (* Signals *)
   List.iter
    (function (id,(ty,_)) ->
      fprintf oc "signal %s: %s;\n" (tb_name id) (string_of_type ty))
-   (m.m_inputs @ m.m_outputs @ m.m_shared);
+   (m.m_inputs @ m.m_outputs);
   fprintf oc "signal %s: std_logic;\n" (tb_name cfg.vhdl_reset_sig);
   if cfg.vhdl_trace then
     List.iter
-      (function f -> fprintf oc "  signal %s: integer;\n" (f.f_name ^ "_state"))
+      (function f -> fprintf oc "signal %s: integer;\n" (f.f_name ^ "_state"))
       m.m_fsms;  
   fprintf oc "\n";
   fprintf oc "begin\n";
   fprintf oc "\n";
   (* Input generators *)
   List.iter (dump_input_process oc) m.m_inputs;
-  fprintf oc "\n";
-  (* Instanciated components *)
-  List.iteri
-    (fun i f ->
-      let m = Cmodel.c_model_of_fsm m f in
-      let actual_name (id,_) = f.f_l2g id in
-      fprintf oc "  U%d: %s port map(%s%s);\n"
-        i
-        (modname f.f_name)
-        (ListExt.to_string tb_name ","
-           (List.map actual_name (m.c_inps @  m.c_outps @ m.c_inouts) @ [cfg.vhdl_reset_sig]))
-        (if cfg.vhdl_trace then "," ^ f.f_name ^ "_state" else ""))
-    m.m_fsms;
-  (* Main process *)
-  fprintf oc "\n";
-  fprintf oc "  process\n";
-  fprintf oc "\n";
+  (* Reset generator *)
+  fprintf oc "  reset: process\n";
   fprintf oc "  begin\n";
   fprintf oc "    %s <= '1';\n" cfg.vhdl_reset_sig;
   fprintf oc "    wait for %d %s;\n" cfg.vhdl_reset_duration cfg.vhdl_time_unit;
   fprintf oc "    %s <= '0';\n" cfg.vhdl_reset_sig;
   fprintf oc "    wait for %d %s;\n" cfg.vhdl_stop_time cfg.vhdl_time_unit;
   fprintf oc "    wait;\n";
-  fprintf oc "\n";
   fprintf oc "  end process;\n";
-  fprintf oc "end Bench;\n";
+  fprintf oc "\n";
+  (* Toplevel instanciation  *)
+  fprintf oc "  U_%s: %s port map(%s%s,%s);\n"
+    (String.capitalize_ascii cfg.vhdl_top_name)
+    cfg.vhdl_top_name
+    (ListExt.to_string tb_name "," (List.map fst (m.m_inputs @  m.m_outputs)))
+    (if cfg.vhdl_trace then "," ^ ListExt.to_string (function f -> f.f_name ^ "_state") "," m.m_fsms else "")
+    cfg.vhdl_reset_sig;
+  fprintf oc "\n";
+  fprintf oc "end architecture;\n";
   Logfile.write fname;
   close_out oc
+
+let dump_testbench ?(name="") ?(dir="./vhdl") m =
+  let prefix = match name with "" -> cfg.vhdl_tb_name | p -> p in
+  dump_testbench_impl (dir ^ "/" ^ prefix ^ ".vhd") m
+
+(* Dumping model *)
 
 let dump_fsm ?(prefix="") ?(dir="./vhdl") m fsm =
   let prefix = match prefix with "" -> fsm.Fsm.f_name | p -> p in
@@ -489,81 +551,10 @@ let dump_fsm ?(prefix="") ?(dir="./vhdl") m fsm =
   Logfile.write fname;
   close_out oc
 
-let dump_testbench ?(name="") ?(dir="./vhdl") m =
-  let prefix = match name with "" -> cfg.vhdl_tb_name | p -> p in
-  dump_testbench_impl (dir ^ "/" ^ prefix ^ ".vhd") m
-
-(* Dumping toplevel module - for multi-FSMs models with shared variables *)
   
-let dump_toplevel_impl fname m =
-  let oc = open_out fname in
-  let open Sysm in
-  let modname n = String.capitalize_ascii n in
-  fprintf oc "library ieee;\n";
-  fprintf oc "use ieee.std_logic_1164.all;	   \n";
-  if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
-  fprintf oc "library %s;\n" cfg.vhdl_support_library;
-  fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package;
-  fprintf oc "\n";
-  fprintf oc "entity top is\n";
-  fprintf oc "  port(\n";
-  List.iter
-   (function (id,(ty,_)) ->
-     fprintf oc "        %s: in %s;\n" (tb_name id) (string_of_type ty))
-   m.m_inputs;
-  List.iter
-   (function (id,(ty,_)) ->
-     fprintf oc "  %s: out %s;\n" (tb_name id) (string_of_type ty))
-   m.m_outputs;
-  fprintf oc "        %s: in std_logic" cfg.vhdl_reset_sig;
-  fprintf oc "        );\n";
-  fprintf oc "end entity;\n";
-  fprintf oc "\n";
-  fprintf oc "architecture struct of top is\n";
-  fprintf oc "\n";
-  (* FSMs *)
-  List.iter (dump_module_intf "component" oc m) m.m_fsms;
-  fprintf oc "\n";
-  (* Shared signals *)
-  List.iter
-   (function (id,(ty,_)) ->
-     fprintf oc "signal %s: %s;\n" (tb_name id) (string_of_type ty))
-   m.m_shared;
-  if cfg.vhdl_trace then
-    List.iter
-      (function f -> fprintf oc "  signal %s: integer;\n" (f.f_name ^ "_state"))
-      m.m_fsms;  
-  fprintf oc "\n";
-  fprintf oc "begin\n";
-  (* Instanciated components *)
-  List.iteri
-    (fun i f ->
-      let m = Cmodel.c_model_of_fsm m f in
-      let actual_name (id,_) = f.f_l2g id in
-      fprintf oc "  U%d: %s port map(%s%s);\n"
-        i
-        (modname f.f_name)
-        (ListExt.to_string tb_name ","
-           (List.map actual_name (m.c_inps @  m.c_outps @ m.c_inouts) @ [cfg.vhdl_reset_sig]))
-        (if cfg.vhdl_trace then "," ^ f.f_name ^ "_state" else ""))
-    m.m_fsms;
-  fprintf oc "end architecture;\n";
-  Logfile.write fname;
-  close_out oc
-
-let dump_toplevel ?(name="") ?(dir="./vhdl") m =
-  let prefix = match name with "" -> cfg.vhdl_top_name | p -> p in
-  dump_toplevel_impl (dir ^ "/" ^ prefix ^ ".vhd") m
-
 let dump_model ?(dir="./vhdl") m =
-  match m.Sysm.m_shared with
-  | [] -> 
-     List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms; 
-     profil.has_toplevel <- false  (* TODO ? Should we add one even in this case ? *)
-  | ss -> 
-     List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms;
-     dump_toplevel ~dir:dir m;
-     profil.has_toplevel <- true
+  List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms;
+  dump_toplevel ~dir:dir m
 
 (* Dumping global functions *)
 
@@ -632,8 +623,7 @@ let dump_makefile ?(dir="./vhdl") m =
   List.iter
     (function f -> fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s\n" (modname ".vhd" f))
     m.m_fsms;
-  if profil.has_toplevel then 
-    fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_top_name;
+  fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_top_name;
   fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_tb_name;
   fprintf oc "\t$(GHDL) -e $(GHDLOPTS) %s\n" cfg.vhdl_tb_name;
   Logfile.write fname;
