@@ -361,17 +361,19 @@ let dump_sporadic_inp_process oc id ts =
 let dump_periodic_inp_process oc id (p,t1,t2) =
        fprintf oc "    type t_periodic is record period: time; t1: time; t2: time; end record;\n";
        fprintf oc "    constant periodic : t_periodic := ( %s, %s, %s );\n"
-               (string_of_time (p-cfg.vhdl_ev_duration))
-               (string_of_time t1)
+         (string_of_time p)
+         (string_of_time t1)
                (string_of_time t2);
        fprintf oc "    variable t : time := 0 %s;\n" cfg.vhdl_time_unit;
        fprintf oc "    begin\n";
        fprintf oc "      %s <= '0';\n" id;
        fprintf oc "      wait for periodic.t1;\n";
-       fprintf oc "      notify_ev(%s,%d %s);\n" id cfg.vhdl_ev_duration cfg.vhdl_time_unit;
+       fprintf oc "      t := t + periodic.t1;\n";
        fprintf oc "      while ( t < periodic.t2 ) loop\n";
-       fprintf oc "        wait for periodic.period;\n";
-       fprintf oc "        notify_ev(%s,%d %s);\n" id cfg.vhdl_ev_duration cfg.vhdl_time_unit;
+       fprintf oc "        %s <= '1';\n" id;
+       fprintf oc "        wait for periodic.period/2;\n";
+       fprintf oc "        %s <= '0';\n" id;
+       fprintf oc "        wait for periodic.period/2;\n";
        fprintf oc "        t := t + periodic.period;\n";
        fprintf oc "      end loop;\n";
        fprintf oc "      wait;\n"

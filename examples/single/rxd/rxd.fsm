@@ -1,29 +1,33 @@
-# Serial to parallel converter (1 start bit, LSB->MSB, no parity bit, 1 stop bit)
+# Serial to parallel converter (1 start bit, LSB->MSB, 1 parity bit, 1 stop bit)
 
 type bit = int<0:1>
 
 fsm model Rxd<n:int> ( # n gives the bit duration (in clk periods)
      in clk: event,
      in sin: bit,
-    out dout: int<0:255>)
+    out dout: int<0:255>,
+    out err: bool)
   {
-  states: Idle, Sync, Rx;
+  states: Idle, Sync, Rx ;
   vars:
     i: int<0:8>,
     k: int<0:n>,
-    r: int<0:255>;
+    r: int<0:255>,
+    p: int<0:8>;
   trans:
     Idle -- clk.sin=0 | r:=0; k:=0 -> Sync,
     Sync -- clk.k<n/2-1 | k:=k+1 -> Sync,
-    Sync -- clk.k=n/2-1 | k:=0; i:=0 -> Rx,
+    Sync -- clk.k=n/2-1 | k:=0; i:=0; p:=0 -> Rx,
     Rx -- clk.k<n-1 | k:=k+1 -> Rx,
-    Rx -- clk.(k=n-1).(i<8) | r[i]:=sin; k:=0; i:=i+1 -> Rx,
-    Rx -- clk.(k=n-1).(i=8) | dout:=r -> Idle;
+    Rx -- clk.(k=n-1).(i<8) | r[i]:=sin; p:=p+sin; k:=0; i:=i+1 -> Rx,
+    Rx -- clk.(k=n-1).(i=8) | err:=sin=p[0]?0:1; dout:=r -> Idle;
   itrans: -> Idle;
   }
 
 input clk:event = periodic(10,10,550)
-input sin:bit = value_changes(0:1, 100:0, 140:1, 180:0, 220:1, 260:0, 380:1, 420:0, 460:1) # 0x45
+input sin:bit = value_changes(0:1, 105:0, 145:1, 185:0, 225:1, 265:0, 305:0, 345:0, 385:1, 425:0, 465:1, 505:1) # 0x45,P=1
+#                                  START     B0     B1     B2     B3     B4     B5     B6     B7      P   STOP
 output dout: int<0:255>
+output err: bool
 
-fsm rxd = Rxd<4>(clk,sin,dout)
+fsm rxd = Rxd<4>(clk,sin,dout,err)

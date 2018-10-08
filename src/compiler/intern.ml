@@ -42,9 +42,10 @@ let rec type_of_type_expr tenv te = match te with
 and type_of_type_expression tenv te = type_of_type_expr tenv te.te_desc
 
 
-let mk_bool_expr e = match e.Expr.e_desc with
+let rec mk_bool_expr e = match e.Expr.e_desc with
     | Expr.EInt 0 -> { e with Expr.e_desc = EBool false }
     | Expr.EInt 1 -> { e with Expr.e_desc = EBool true }
+    | Expr.ECond (c,e1,e2) -> { e with Expr.e_desc = ECond (c, mk_bool_expr e1, mk_bool_expr e2) }
     | _ -> e 
 
 let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } = 

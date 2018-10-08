@@ -27,6 +27,7 @@ type sc_config = {
   mutable sc_state_var: string;
   mutable sc_proc_name: string;
   mutable sc_inp_proc_name: string;
+  mutable sc_clk_step_proc_name: string;
   mutable sc_time_unit: string;
   mutable sc_stop_time: int;
   mutable sc_trace: bool;
@@ -43,6 +44,7 @@ let cfg = {
   sc_state_var = "state";
   sc_proc_name = "react";
   sc_inp_proc_name = "gen";
+  sc_clk_step_proc_name = "step";
   sc_time_unit = "SC_NS";
   sc_stop_time = 100;
   sc_trace = false;
@@ -312,10 +314,10 @@ let dump_inp_module_impl fname (id,(ty,desc)) =
        failwith "Systemc.dump_inp_module_impl" (* should not happen *)
   end;
   fprintf oc "\n";
-  fprintf oc "void %s::%s()\n" modname cfg.sc_inp_proc_name;
-  fprintf oc "{\n";
   begin match desc with
     | MInp ({sd_comprehension=Sporadic ts}, _) ->
+       fprintf oc "void %s::%s()\n" modname cfg.sc_inp_proc_name;
+       fprintf oc "{\n";
        fprintf oc "  int _i=0, _t=0;\n";
        fprintf oc "  while ( _i < %d ) {\n" (List.length ts);
        fprintf oc "    wait(_dates[_i]-_t, SC_NS);\n";
@@ -323,19 +325,31 @@ let dump_inp_module_impl fname (id,(ty,desc)) =
        fprintf oc "    _t = _dates[_i];\n";
        fprintf oc "    _i++;\n";
        fprintf oc "    }\n";
+       fprintf oc "};\n";
     | MInp ({sd_comprehension=Periodic (p,t1,t2)}, _) ->
-       fprintf oc "  int _t=0;\n";
+       fprintf oc "void %s::%s(void)\n" modname cfg.sc_inp_proc_name;
+       fprintf oc "{\n";
+       fprintf oc "  t=0;\n";
+       fprintf oc "  %s.write(0);\n" id;
        fprintf oc "  wait(_clk.t1, SC_NS);\n";
-       fprintf oc "  notify_ev(%s,\"%s\");\n" id id;
-       fprintf oc "  _t = _clk.t1;\n";
-       fprintf oc "  while ( _t <= _clk.t2 ) {\n";
-       fprintf oc "    wait(_clk.period, SC_NS);\n";
-       fprintf oc "    notify_ev(%s,\"%s\");\n" id id;
-       fprintf oc "    _t += _clk.period;\n";
+       fprintf oc "  t += _clk.t1;\n";
+       fprintf oc "  while ( t <= _clk.t2 ) {\n";
+       fprintf oc "    %s();\n" cfg.sc_clk_step_proc_name;
        fprintf oc "    }\n";
+       fprintf oc "};\n\n";
+       fprintf oc "void %s::%s(void)\n" modname cfg.sc_clk_step_proc_name;
+       fprintf oc "{\n";
+       fprintf oc "  %s.write(1);\n" id;
+       fprintf oc "  wait(_clk.period/2, SC_NS);\n";
+       fprintf oc "  %s.write(0);\n" id;
+       fprintf oc "  wait(_clk.period/2, SC_NS);\n";
+       fprintf oc "  t += _clk.period;\n";
+       fprintf oc "};\n"
     | MInp ({sd_comprehension=ValueChange []}, _) ->
        ()
     | MInp ({sd_comprehension=ValueChange vcs}, _) ->
+       fprintf oc "void %s::%s()\n" modname cfg.sc_inp_proc_name;
+       fprintf oc "{\n";
        fprintf oc "  int _i=0, _t=0;\n";
        fprintf oc "  while ( _i < %d ) {\n" (List.length vcs);
        fprintf oc "    wait(_vcs[_i].date-_t, SC_NS);\n";
@@ -343,10 +357,10 @@ let dump_inp_module_impl fname (id,(ty,desc)) =
        fprintf oc "    _t = _vcs[_i].date;\n";
        fprintf oc "    _i++;\n";
        fprintf oc "    }\n";
+       fprintf oc "};\n";
     | _ ->
        failwith "Systemc.dump_inp_module_impl" (* should not happen *)
   end;
-  fprintf oc "};\n";
   Logfile.write fname;
   close_out oc
 
@@ -360,7 +374,13 @@ let dump_inp_module_intf fname (id,(ty,desc)) =
   fprintf oc "  // Output\n";
   fprintf oc "  sc_out<%s> %s;\n" (string_of_type ty) id;
   fprintf oc "\n";
-  fprintf oc "  void %s();\n" cfg.sc_inp_proc_name;
+  begin match desc with
+  | Sysm.MInp ({sd_comprehension=Periodic _}, _) -> (* For clock processes *)
+     fprintf oc "  void %s();\n" cfg.sc_clk_step_proc_name;
+     fprintf oc "  int t;\n"
+  | _ -> ()
+  end;
+  fprintf oc "  void %s(void);\n" cfg.sc_inp_proc_name;
   fprintf oc "\n";
   fprintf oc "  SC_CTOR(%s) {\n" modname;
   fprintf oc "    SC_THREAD(%s);\n" cfg.sc_inp_proc_name;
