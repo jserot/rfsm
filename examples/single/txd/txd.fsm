@@ -17,8 +17,8 @@ fsm model Txd<n:int> ( # n gives the bit duration (in clk periods)
   trans:
     Idle -- clk.wr=0 -> Idle,
     Idle -- clk.wr=1 | r:=din; sout:=0; k:=0 -> Start,
-    Start -- clk.k<n-1 | k:=k+1 -> Start,
-    Start -- clk.k=n-1 | k:=0; i:=1; sout:=r[0]; p:=r[0] -> Tx,
+    Start -- clk.k<n-1 | k:=k+1; p:=0 -> Start,
+    Start -- clk.k=n-1 | k:=0; i:=1; sout:=r[0]; p:=p+r[0] -> Tx,
     Tx -- clk.k<n-1 | k:=k+1 -> Tx,
     Tx -- clk.(k=n-1).(i<8) | sout:=r[i]; p:=p+r[i]; i:=i+1; k:=0 -> Tx,
     Tx -- clk.(k=n-1).(i=8) | sout:=p[0]; k:=0 -> Parity,
