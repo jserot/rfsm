@@ -204,11 +204,11 @@ range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
  \verb|int array[4]| is the type describing arrays of four integers. If \verb|t| is an object
   with an array type, its cell with index $i$ is denoted \verb|t[i]|.
 
-\step Indexing can also be used to access a given bit within an integer value. For example, if
-\verb|x| is an integer ranging from 0 to 255 then \verb|x[i]|, where \verb|i| ranges from 0 to 7
-gives access to the \verb|i|$^{th}$ bit of \verb|x| (with index 0 giving the LSB and index 7 the
-MSB). Integer bits can be both read and written. The behavior is unspecified if the index falls
-outside the integer range.
+\step Integers can be manipulated at the bit level using \emph{bit ranges}. If \verb|n| is an
+integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]| designates the
+value represented by the bits \verb|hi|...\verb|lo| in the binary representation of \verb|n|. Bit
+ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The syntax
+\verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|.
 
 \medskip
 \textbf{User defined types} are either \emph{type abbreviations} or \emph{enumerations}.

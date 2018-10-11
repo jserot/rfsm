@@ -82,7 +82,8 @@ let rec string_of_expr e =
      paren level (string_of (level+1) e1 ^ " ? " ^ string_of (level+1) e2 ^ " : " ^ string_of (level+1) e3)
   | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
   | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
-  | Expr.EBit (a,idx) -> a ^ "[" ^ string_of level idx ^ "]" in
+  | Expr.EBit (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
+  | Expr.EBitrange (a,hi,lo) -> a ^ "[" ^ string_of level hi ^ ":" ^ string_of level lo ^ "]" in
   string_of 0 e
 
 and string_of_op = function
@@ -98,8 +99,8 @@ let string_of_guard exp = string_of_expr exp
 
 let string_of_lhs l = match l.Action.l_desc with
   | Action.Var0 id -> id
-  | Action.Var1 (id,idx) 
-  | Action.Var2 (id,idx) -> id ^ "[" ^ string_of_expr idx ^ "]"
+  | Action.Var1 (id,idx) -> id ^ "[" ^ string_of_expr idx ^ "]"
+  | Action.Var2 (id,hi,lo) -> id ^ "[" ^ string_of_expr hi ^ ":" ^ string_of_expr lo ^ "]"
                           
 let string_of_action a = match a with
     | Action.Assign (lhs, expr) -> string_of_lhs lhs ^ "=" ^ string_of_expr expr

@@ -234,12 +234,20 @@ let type_check_instance tenv f =
             type_check_index_expression i;
             begin match List.assoc a tenv.te_vars with
             | TyInt _ -> (* Special case *)
-               lhs.l_desc <- Var2 (a,i);  (* This is a hack *)
+               lhs.l_desc <- Var2 (a,i,i);  (* This is a hack *)
                TyInt (Some (TiConst 0, TiConst 1))
             | ty ->  (* Should be an array *)
                Types.subtype_of ty
             end
-         | Var2 (a,i) -> raise (Internal_error "Fsm.type_check_action")
+         | Var2 (a,i1,i2) ->
+            type_check_index_expression i1;
+            type_check_index_expression i2;
+            begin match List.assoc a tenv.te_vars with
+            | TyInt _ -> (* Special case *)
+               TyInt None
+            | ty -> 
+               raise (Typing.Type_error ("action \"" ^ Action.to_string act ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, TyInt None))
+            end
          | exception _ -> raise (Internal_error "Fsm.type_check_action")
          end in
        let t' =
@@ -429,11 +437,10 @@ let do_action (f,resps,resps',env) act =
     match List.assoc id env, Eval.eval env idx, v with
     | Expr.Val_array vs, Expr.Val_int i, _ -> Expr.Val_array (Expr.array_update id vs i v), i
     | _, _, _ -> failwith "Fsm.do_action.array_upd" in
-  let set_bit x i v = if v = 1 then x lor (1 lsl i) else x land (lnot (1 lsl i)) in
-  let bits_upd id idx v = 
-    match List.assoc id env, Eval.eval env idx, v with
-    | Expr.Val_int x, Expr.Val_int i, Expr.Val_int b -> Expr.Val_int (set_bit x i (b mod 2))
-    | _, _, _ -> failwith "Fsm.do_action.bits_upd" in
+  let set_bits id idx1 idx2 v = 
+    match List.assoc id env, Eval.eval env idx1, Eval.eval env idx2, v with
+    | Expr.Val_int x, Expr.Val_int hi, Expr.Val_int lo, Expr.Val_int b -> Expr.Val_int (Intbits.set_bits hi lo x b)
+    | _, _, _, _ -> failwith "Fsm.do_action.set_bits" in
   match act with
     Action.Assign (lhs, expr) ->
       let id = Action.lhs_name lhs in
@@ -456,8 +463,8 @@ let do_action (f,resps,resps',env) act =
               resps @ [Var1 (Ident.Local (f.f_name, id), i), v],
               resps',
               ListExt.replace_assoc id v' env
-           | Action.Var2 (id,idx) ->
-              let v' = bits_upd id idx v in
+           | Action.Var2 (id,idx1,idx2) ->
+              let v' = set_bits id idx1 idx2 v in
               { f with f_vars = replace_assoc' id v' f.f_vars },
               resps @ [Var0 (Ident.Local (f.f_name, id)), v'],
               resps',
@@ -480,8 +487,8 @@ let do_action (f,resps,resps',env) act =
               resps,
               resps' @ [Var1 (Ident.Local (f.f_name, id), i), v],
               env
-           | Action.Var2 (id, idx) ->
-              let v' = bits_upd id idx v in
+           | Action.Var2 (id, idx1, idx2) ->
+              let v' = set_bits id idx1 idx2 v in
               f,
               resps,
               resps' @ [Var0 (Ident.Local (f.f_name, id)), v'],
@@ -496,8 +503,8 @@ let do_action (f,resps,resps',env) act =
            resps @ [Var0 (Ident.Global (f.f_l2g id)), v'],
            resps',
            env
-        | Action.Var1 (id, idx)
-        | Action.Var2 (id, idx) ->
+        | Action.Var1 (id, _)
+        | Action.Var2 (id, _, _) ->
            failwith "Fsm.do_action: not implemented: global IO or shared value with array/bitset type"
         end
   | Action.Emit id ->

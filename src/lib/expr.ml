@@ -27,6 +27,7 @@ and e_desc =
   | EFapp of string * t list  (** f(arg1,...,argn) *)
   | EArr of string * t        (** t[i] when t is an array *)
   | EBit of string * t        (** t[i] when t is an int *)
+  | EBitrange of string * t * t   (** t[hi:lo] when t is an int *)
 
 and e_val = 
   | Val_int of int
@@ -127,6 +128,7 @@ let rec string_of_expr e = match e with
   | EFapp (f,args) -> f ^ "(" ^ ListExt.to_string to_string "," args ^ ")"
   | EArr (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBit (a,e') -> a ^ "[" ^ to_string e' ^ "]"
+  | EBitrange (a,e1,e2) -> a ^ "[" ^ to_string e1 ^ ":" ^ to_string e2 ^ "]"
 
 and to_string e =
   let s = string_of_expr e.e_desc in

@@ -9,17 +9,10 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Evaluating and manipulating expressions *)
+exception Invalid_range of int * int
 
-exception Unknown_id of string
-exception Illegal_expr of Expr.t
-exception Illegal_application of Expr.t
-exception Illegal_array_access of Expr.t
-exception Illegal_bit_range_access of Expr.t
-exception Invalid_array_access of string * int (* array name, index value *)
+let get_bits hi lo n = (n lsr lo) mod (1 lsl (hi-lo+1))
 
-type env = (string * Expr.e_val) list
-
-val subst : (string * Expr.e_val) list -> Expr.t -> Expr.t
-
-val eval : (string * Expr.e_val) list -> Expr.t -> Expr.e_val
+let set_bits hi lo n v =
+  let v' = v mod (1 lsl (hi-lo+1)) in
+  n lor (v' lsl lo)

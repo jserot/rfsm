@@ -124,19 +124,21 @@ let string_of_int_range a hi lo = a ^ ".range(" ^ lo ^ "," ^ hi ^ ")"
 
 let string_of_expr m e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
+  let access id = if List.mem_assoc id (m.c_inps @ m.c_inouts) then id ^ ".read()" else id in
   let rec string_of level e =
     match e.Expr.e_desc with
       Expr.EInt c -> string_of_int c
     | Expr.EFloat c -> string_of_float c
     | Expr.EBool c -> string_of_bool c
     | Expr.EEnum c -> c
-    | Expr.EVar n -> if List.mem_assoc n (m.c_inps @ m.c_inouts) then n ^ ".read()" else n
+    | Expr.EVar n -> access n
     | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
     | Expr.ECond (e1,e2,e3) -> paren level (string_of (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
     | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
-    | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
-    | Expr.EBit (a,idx) -> let i = string_of level idx in string_of_int_range a i i
+    | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]" (* [a] is always a local var *)
+    | Expr.EBit (a,idx) -> let i = string_of level idx in string_of_int_range (access a) i i
+    | Expr.EBitrange (a,hi,lo) -> string_of_int_range (access a) (string_of level hi) (string_of level lo)
   in
   string_of 0 e
 
@@ -151,12 +153,13 @@ let string_of_action m a = match a with
      if List.mem_assoc id m.c_outps
      then failwith "Systemc.string_of_action: assignation of a non-scalar output"
      else id ^ "[" ^ string_of_expr m idx ^ "]" ^ "=" ^ string_of_expr m expr
-  | Action.Assign ({l_desc=Action.Var2 (id,idx)}, expr) ->
+  | Action.Assign ({l_desc=Action.Var2 (id,idx1,idx2)}, expr) ->
      if List.mem_assoc id m.c_outps
      then failwith "Systemc.string_of_action: assignation of a non-scalar output"
      else
-       let i = string_of_expr m idx in 
-       string_of_int_range id i i ^ "=" ^ string_of_expr m expr
+       let hi = string_of_expr m idx1 in 
+       let lo = string_of_expr m idx2 in 
+       string_of_int_range id hi lo ^ "=" ^ string_of_expr m expr
   | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)
 

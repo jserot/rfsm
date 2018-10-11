@@ -247,6 +247,7 @@ action:
 lhs:
   | v=LID { Action.Var0 v }
   | a=LID LBRACKET i=expr RBRACKET { Action.Var1 (a, i) }
+  | a=LID LBRACKET lo=expr COLON hi=expr RBRACKET { Action.Var2 (a,lo,hi) }
 
 (* GLOBALS *)
 
@@ -382,6 +383,8 @@ expr:
       { mk_expr (EFapp (f,args)) }
   | a = LID LBRACKET i=expr RBRACKET 
       { mk_expr (EArr (a,i)) }
+  | a = LID LBRACKET i1=expr COLON i2=expr RBRACKET 
+      { mk_expr (EBitrange (a,i1,i2)) }
   | e1 = expr QMARK e2 = expr COLON e3 = expr
       { mk_expr (ECond (e1, e2, e3)) }
 

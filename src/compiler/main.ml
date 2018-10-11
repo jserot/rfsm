@@ -111,6 +111,8 @@ with
     eprintf "Illegal application: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Illegal_array_access e -> 
     eprintf "Illegal array access: %s\n" (Expr.to_string e); flush stderr; exit 3
+| Eval.Illegal_bit_range_access e -> 
+    eprintf "Illegal bit_range access: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Invalid_array_access (a,i) -> 
     eprintf "Array access out of bound: %s[%d]\n" a i; flush stderr; exit 3
 | Fsm.Undef_symbol (fsm, what, id) ->

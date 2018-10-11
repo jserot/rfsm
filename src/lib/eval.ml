@@ -17,6 +17,7 @@ exception Unknown_id of string
 exception Illegal_expr of Expr.t
 exception Illegal_application of Expr.t
 exception Illegal_array_access of Expr.t
+exception Illegal_bit_range_access of Expr.t
 exception Invalid_array_access of string * int (* array name, index value *)
 
 let lookup env id = 
@@ -94,8 +95,15 @@ and eval env exp =
      begin
        match lookup env a, eval env idx with
        | Val_int x, Val_int i -> 
-          Val_int ((x lsr i) land 1)
-       | _ -> raise (Illegal_array_access exp)
+          Val_int (Intbits.get_bits i i x)
+       | _ -> raise (Illegal_bit_range_access exp)
+     end
+  | EBitrange (a,idx1,idx2) ->
+     begin
+       match lookup env a, eval env idx1, eval env idx2 with
+       | Val_int x, Val_int hi, Val_int lo -> 
+          Val_int (Intbits.get_bits hi lo x)
+       | _ -> raise (Illegal_bit_range_access exp)
      end
   in
   (* Printf.printf "Eval.eval [%s] (%s) -> %s\n" (string_of_env env) (Expr.to_string exp) (string_of_value r); *)

@@ -71,7 +71,19 @@ let rec type_expression tenv expr =
         Types.real_type ty_res
      end 
   | Expr.EBit (a,idx) ->
-     raise (Internal_error "Typing.type_expression") (* should not happen *) in
+     let ty_arg = lookup_type "int" tenv.te_vars a in
+     let ty_idx = type_expression tenv idx in
+     unify ty_idx (TyInt None);
+     unify ty_arg (TyInt None);
+     TyInt (Some (TiConst 0, TiConst 1))
+  | Expr.EBitrange (a,idx1,idx2) ->
+     let ty_arg = lookup_type "int" tenv.te_vars a in
+     let ty_idx1 = type_expression tenv idx1 in
+     let ty_idx2 = type_expression tenv idx2 in
+     unify ty_idx1 (TyInt None);
+     unify ty_idx2 (TyInt None);
+     unify ty_arg (TyInt None);
+     TyInt None in
   let ty = Types.real_type (type_expr expr) in
   (* Printf.printf "** Typing.type_expression(%s) = %s\n" (Expr.string_of_expr expr.e_desc) (Types.string_of_type ty); flush stdout; *)
   expr.e_typ <- ty;

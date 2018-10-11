@@ -9,17 +9,12 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Evaluating and manipulating expressions *)
+(** Bit level operations on [int]s *)
 
-exception Unknown_id of string
-exception Illegal_expr of Expr.t
-exception Illegal_application of Expr.t
-exception Illegal_array_access of Expr.t
-exception Illegal_bit_range_access of Expr.t
-exception Invalid_array_access of string * int (* array name, index value *)
+exception Invalid_range of int * int
 
-type env = (string * Expr.e_val) list
+val get_bits: int -> int -> int -> int
+  (** [get_bits hi lo n] returns the value represented by the bit range [hi..lo] in [n]. *)
 
-val subst : (string * Expr.e_val) list -> Expr.t -> Expr.t
-
-val eval : (string * Expr.e_val) list -> Expr.t -> Expr.e_val
+val set_bits: int -> int -> int -> int -> int
+  (** [set_bits hi lo n v] returns the value obtained by setting by the bit range [hi..lo] in [n] to [v]. *)
