@@ -37,7 +37,7 @@ type typ =
   | TyEvent
   | TyBool
   | TyEnum of string list
-  | TyInt of int_range option
+  | TyInt of int_annot
   | TyFloat
   | TyArray of Index.t * typ    (* size, subtype *)
   | TyVar of tvar               (* Internal use only *)
@@ -52,7 +52,10 @@ and 'a value =
   | Unknown
   | Known of 'a
 
-and int_range = Index.t * Index.t (* min, max *)
+and int_annot =
+  | Int_none
+  | Int_size of Index.t (* size in bits *)
+  | Int_range of Index.t * Index.t  (* min, max *)
 
 type typ_scheme =
   { ts_params: tvar list;
@@ -103,8 +106,6 @@ val unify: typ -> typ -> unit
 val type_instance: typ_scheme -> typ
   
 (** {2 Printers} *)
-
-val string_of_range : Index.t * Index.t -> string
 
 val string_of_type_scheme : typ_scheme -> string
 

@@ -74,7 +74,7 @@ type typ =
   | TyEvent
   | TyBool
   | TyEnum of string list
-  | TyInt of int_range option
+  | TyInt of int_annot
   | TyFloat
   | TyArray of Index.t * typ    (* size, subtype *)
   | TyVar of tvar               (* Only used internally for type checking *)
@@ -89,7 +89,10 @@ and 'a value =
   | Unknown
   | Known of 'a
 
-and int_range = Index.t * Index.t (* min, max *)
+and int_annot =
+  | Int_none
+  | Int_size of Index.t (* size in bits *)
+  | Int_range of Index.t * Index.t  (* min, max *)
 
 type typ_scheme =
   { ts_params: tvar list;
@@ -169,7 +172,9 @@ let rec unify ty1 ty2 =
       List.iter2 unify ts1 ts2
   | TyArray (sz1, ty1), TyArray (sz2, ty2) when sz1 = sz2 ->
      unify ty1 ty2
-  | TyInt (Some (lo1,hi1)), TyInt (Some (lo2,hi2)) ->
+  | TyInt (Int_size sz1), TyInt (Int_size sz2) ->
+     if sz1 <> sz2 then raise (TypeConflict(val1, val2))
+  | TyInt (Int_range (lo1,hi1)), TyInt (Int_range (lo2,hi2)) ->
      if lo1 <> lo2 || hi1 <> hi2 then raise (TypeConflict(val1, val2))
   | TyInt _, TyInt _ -> ()
   | TyBool, TyBool -> ()
@@ -189,14 +194,16 @@ and occur_check var ty =
 
 
 let ivars_of = function
-  | TyInt (Some (lo,hi)) -> VarSet.elements (VarSet.union (Index.vars_of lo) (Index.vars_of hi))
+  | TyInt (Int_size sz) -> VarSet.elements (Index.vars_of sz)
+  | TyInt (Int_range (lo,hi)) -> VarSet.elements (VarSet.union (Index.vars_of lo) (Index.vars_of hi))
   | _ -> []
 
 (* Index manipulation *)
        
 let subst_indexes env ty =
     match ty with
-    | TyInt (Some (hi, lo)) -> TyInt (Some (Index.subst env hi, Index.subst env lo))
+    | TyInt (Int_size sz) -> TyInt (Int_size (Index.subst env sz))
+    | TyInt (Int_range (hi, lo)) -> TyInt (Int_range (Index.subst env hi, Index.subst env lo))
     | TyArray (sz, ty') -> TyArray (Index.subst env sz, ty')
     | _ -> ty
 
@@ -210,10 +217,13 @@ let rec type_equal ~strict t1 t2 =
   match real_type t1, real_type t2 with
   | TyBool, TyBool -> true
   | TyEvent, TyEvent -> true
-  | TyInt (Some (lo1,hi1)), TyInt (Some (lo2,hi2)) -> if strict then lo1=lo2 && hi1=hi2 else true
-  | TyInt (Some _), TyInt None
-  | TyInt None, TyInt (Some _) -> if strict then false else true
-  | TyInt None, TyInt None -> true
+  | TyInt (Int_size sz1), TyInt (Int_size sz2) -> if strict then sz1=sz2 else true
+  | TyInt (Int_range (lo1,hi1)), TyInt (Int_range (lo2,hi2)) -> if strict then lo1=lo2 && hi1=hi2 else true
+  | TyInt (Int_size _), TyInt Int_none
+  | TyInt (Int_range _), TyInt Int_none
+  | TyInt Int_none, TyInt (Int_size _)
+  | TyInt Int_none, TyInt (Int_range _) -> if strict then false else true
+  | TyInt Int_none, TyInt Int_none -> true
   | TyFloat, TyFloat -> true
   | TyEnum cs1, TyEnum cs2 ->
      if strict then List.sort compare cs1 = List.sort compare cs2
@@ -252,8 +262,9 @@ let rec string_of_type t = match t with
   | TyEvent -> "event"
   | TyBool -> "bool"
   | TyEnum cs -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
-  | TyInt None -> "int"
-  | TyInt (Some (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
+  | TyInt Int_none -> "int"
+  | TyInt (Int_size sz) -> "int<" ^ Index.to_string sz ^ ">"
+  | TyInt (Int_range (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
   | TyFloat -> "float"
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2

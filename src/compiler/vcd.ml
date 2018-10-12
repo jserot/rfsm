@@ -48,9 +48,10 @@ let bits_of_int s v =
   else bits_of_uint s v
 
 let vcd_size_of_range = function
-    None -> cfg.default_int_size
-  | Some (Types.Index.TiConst min, Types.Index.TiConst max) -> bits_for_range min max
-  | Some _ -> Error.fatal_error "Vcd.vcd_size_of_range"
+    Int_none -> cfg.default_int_size
+  | Int_size (Types.Index.TiConst sz) -> sz
+  | Int_range (Types.Index.TiConst min, Types.Index.TiConst max) -> bits_for_range min max
+  | _ -> Error.fatal_error "Vcd.vcd_size_of_range"
 
 let vcd_kind_of ty = match ty with
   TyEvent -> "event", 1

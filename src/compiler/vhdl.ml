@@ -86,12 +86,15 @@ let rec vhdl_type_of t = match t with
   | TyBool -> if cfg.vhdl_bool_as_bool then Boolean else Std_logic
   | TyFloat -> Real
   | TyEnum cs -> Error.not_implemented "VHDL translation of enumerated type"
-  | TyInt (Some (TiConst lo,TiConst hi)) ->
+  | TyInt (Int_size (TiConst sz)) ->
+      if cfg.vhdl_use_numeric_std then Unsigned sz
+      else Integer (Some (0, 1 lsl sz - 1))
+  | TyInt (Int_range (TiConst lo,TiConst hi)) ->
       if cfg.vhdl_use_numeric_std then
-        if lo < 0 then Signed (Systemc.bit_size (max (-lo) hi)) else Unsigned (Systemc.bit_size hi)
+        if lo < 0 then Signed (Intbits.bit_size (max (-lo) hi)) else Unsigned (Intbits.bit_size hi)
       else
         Integer (Some (lo,hi))
-  | TyInt _ -> Integer None
+  | TyInt Int_none -> Integer None
   | TyArray (Types.Index.TiConst sz,t') -> Array (sz, vhdl_type_of t')
   | _ -> failwith "Vhdl.vhdl_type_of: TyUnknown"
 
@@ -206,31 +209,38 @@ let string_of_expr e =
   in
   string_of 0 e
 
+let type_cast ty1 ty2 expr =
+  match vhdl_type_of ty1, vhdl_type_of ty2 with
+    (* Unsigned sz1, Unsigned sz2 -> "resize(" ^ string_of_expr expr ^ "," ^ string_of_int sz1 ^ ")" *)
+  | _, _ -> string_of_expr expr (* TO FIX ! *)
+          
 let string_of_action m a =
   let tenv = List.map (function (id,(ty,_)) -> id, ty) m.c_vars @ m.c_outps @ m.c_inouts in
-    match a with
+  let asn id = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
+  let open Types in
+  match a with
   | Action.Assign ({l_desc=Action.Var0 id}, expr) ->
-     let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
-     let ty = lookup_type tenv id in
-     Printf.printf "** %s:%s %s %s:%s\n" id (Types.string_of_type ty) asn (Expr.to_string expr) (Types.string_of_type expr.Expr.e_typ);
-     expr.Expr.e_typ <- ty;  (* To handle situations like [v:=1] when [v:unsigned(2 downto 0)] *) 
-     id ^ asn ^ string_of_expr expr
+     let ty_lhs = lookup_type tenv id in
+     let ty_exp = expr.Expr.e_typ in
+     Printf.printf "** %s:%s(%s) %s %s:%s(%s)\n"
+       id (Types.string_of_type ty_lhs) (string_of_vhdl_type (vhdl_type_of ty_lhs))
+       (asn id) (string_of_expr expr) (Types.string_of_type ty_exp) (string_of_vhdl_type (vhdl_type_of ty_exp));
+     expr.Expr.e_typ <- ty_lhs;  (* To handle situations like [v:=1] when [v:unsigned(2 downto 0)] *)
+     id ^ asn id ^ type_cast ty_lhs ty_exp expr
   | Action.Assign ({l_desc=Action.Var1 (id,idx)}, expr) ->
-     let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = Types.subtype_of (lookup_type tenv id) in
      expr.Expr.e_typ <- ty;  (* To handle situations like  [v[0]:=1] when [v:array of unsigned(2 downto 0)] *) 
      if List.mem_assoc id m.c_vars
-     then id ^ "(" ^ string_of_expr idx ^ ")" ^ asn ^ string_of_expr expr
+     then id ^ "(" ^ string_of_expr idx ^ ")" ^ asn id ^ string_of_expr expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
   | Action.Assign ({l_desc=Action.Var2 (id,idx1,idx2)}, expr) ->
-     let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = lookup_type tenv id in
      expr.Expr.e_typ <- ty;  (* To handle situations like  [v[0]:=1] when  [v:unsigned(2 downto 0)] *) 
      if List.mem_assoc id m.c_vars
      then 
          let hi = string_of_expr idx1 in
          let lo = string_of_expr idx2 in
-         string_of_range id hi lo ^ asn ^ string_of_expr expr
+         string_of_range id hi lo ^ asn id ^ string_of_expr expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
   | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)

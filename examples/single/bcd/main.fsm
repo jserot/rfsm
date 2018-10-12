@@ -1,18 +1,16 @@
-type uint8 = int<0:255>
-type uint20 = int<0:1048575>
 type digit = int<0:9>
 
 fsm model Convert(
   in h: event, 
   in start: bool,
-  in inp: uint8,
+  in inp: int<8>,
   out rdy: bool,
   out d0: digit,
   out d1: digit,
   out d2: digit)
  {
   states: Idle, Convert;
-  vars: r:uint20, i:int<0:8>;
+  vars: r:int<20>, i:int<0:8>;
   trans:
     Idle -- h.start=1 | r:=inp; i:=0; rdy:=0 -> Convert,
     Convert -- h.i<8 | r[11:8] := r[11:8]>4?r[11:8]+3:r[11:8];
@@ -25,7 +23,7 @@ fsm model Convert(
   }
 
 input h : event = periodic (10,10,200)
-input n : uint8 = value_changes (5:243)
+input n : int<8> = value_changes (5:243)
 input start : bool = value_changes (0:0, 25:1, 35:0)
 output rdy : bool
 output d0 : digit

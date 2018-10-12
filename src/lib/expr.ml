@@ -40,7 +40,7 @@ and e_val =
   | Val_array of e_val array
 
 let rec type_of_value = function
-  | Val_int _ -> Types.TyInt None
+  | Val_int _ -> Types.TyInt Int_none
   | Val_float _ -> Types.TyFloat
   | Val_bool _ -> Types.TyBool
   | Val_enum c -> Types.TyEnum [c]  (* TO FIX *)

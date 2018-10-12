@@ -186,14 +186,22 @@ There are two categories of types~: builtin types and user defined types.
 
 \step Objects of type \texttt{bool} can have only two values : \texttt{0} (false) and \texttt{1} (true).
 
-\step The type \texttt{int} can be refined using a \emph{range annotation}. The type
-\verb|int<lo:hi>| designates integer values ranging from \verb|lo| to \verb|hi|. The range limits
-\verb|lo| and \verb|hi| can be constants or expressions whose value can be computed as compile
-time (expressions involving parameter values, as exemplified line 9 in
-Listing~\ref{lst:rfsm-gensig}).  
+\step The type \texttt{int} can be refined using a \emph{size} or a \emph{range annotation}. The
+type \verb|int<sz>|, where \verb|sz| is an integer, is the type of integers which can be encoded using
+\verb|n| bits. The type \verb|int<min:max>|, where both \verb|min| and \verb|max| are integers, is
+the type of integers whose value ranges from \verb|min| to \verb|max|. The size and range limits,
+can be constants or expressions whose value can be computed as compile time
+(expressions involving parameter values, as exemplified line 9 in Listing~\ref{lst:rfsm-gensig}).
 
-\step The operations on values of type \texttt{int} are : "\verb|+|", "\verb|-|", "\verb|*|",
-"\verb|/|" and "\verb|%|" (modulo).
+\step The operations on values of type \texttt{int} are~:
+\verb|+|", "\verb|-|", "\verb|*|", "\verb|/|", "\verb|%|" (modulo), "\verb|<<|" (shift left) and
+"\verb|>>|" (shift right).
+
+\step Integers can be manipulated at the bit level using \emph{bit ranges}. If \verb|n| is an
+integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]| designates the
+value represented by the bits \verb|hi|...\verb|lo| in the binary representation of \verb|n|. Bit
+ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The syntax
+\verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|.
 
 \step The operations on values of type \texttt{float} are : "\verb|+.|", "\verb|-.|", "\verb|*.|" and
 "\verb|/.|" (the dot suffix is required to distinguish them from the corresponding operations on
@@ -204,11 +212,6 @@ range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
  \verb|int array[4]| is the type describing arrays of four integers. If \verb|t| is an object
   with an array type, its cell with index $i$ is denoted \verb|t[i]|.
 
-\step Integers can be manipulated at the bit level using \emph{bit ranges}. If \verb|n| is an
-integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]| designates the
-value represented by the bits \verb|hi|...\verb|lo| in the binary representation of \verb|n|. Bit
-ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The syntax
-\verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|.
 
 \medskip
 \textbf{User defined types} are either \emph{type abbreviations} or \emph{enumerations}.

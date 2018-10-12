@@ -219,7 +219,7 @@ let type_check_instance tenv f =
   let type_check_index_expression exp =
     try type_check
           ~strict:false ("index expression \"" ^ (Expr.to_string exp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
-          (Typing.type_expression tenv exp) (Types.TyInt None)
+          (Typing.type_expression tenv exp) (Types.TyInt Types.Int_none)
     with
     | Typing.Typing_error (expr, ty, ty') ->
        raise (Typing.Type_error ("index expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
@@ -235,7 +235,7 @@ let type_check_instance tenv f =
             begin match List.assoc a tenv.te_vars with
             | TyInt _ -> (* Special case *)
                lhs.l_desc <- Var2 (a,i,i);  (* This is a hack *)
-               TyInt (Some (TiConst 0, TiConst 1))
+               TyInt (Int_size (TiConst 1))
             | ty ->  (* Should be an array *)
                Types.subtype_of ty
             end
@@ -244,9 +244,9 @@ let type_check_instance tenv f =
             type_check_index_expression i2;
             begin match List.assoc a tenv.te_vars with
             | TyInt _ -> (* Special case *)
-               TyInt None
+               TyInt Int_none
             | ty -> 
-               raise (Typing.Type_error ("action \"" ^ Action.to_string act ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, TyInt None))
+               raise (Typing.Type_error ("action \"" ^ Action.to_string act ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, TyInt Int_none))
             end
          | exception _ -> raise (Internal_error "Fsm.type_check_action")
          end in

@@ -38,7 +38,7 @@ let rec type_expression tenv expr =
     | Types.TypeCircularity _ ->
       raise (Typing_error (expr, t1, t2)) in   
   let type_expr expr = match expr.Expr.e_desc with
-    Expr.EInt c -> TyInt None
+    Expr.EInt c -> TyInt Int_none
   | Expr.EFloat b -> TyFloat
   | Expr.EBool b -> TyBool
   | Expr.EVar id -> lookup_type "variable" tenv.te_vars id
@@ -60,11 +60,11 @@ let rec type_expression tenv expr =
   | Expr.EArr (a,idx) ->
      let ty_arg = lookup_type "array or int" tenv.te_vars a in
      let ty_idx = type_expression tenv idx in
-     unify ty_idx (TyInt None);
+     unify ty_idx (TyInt Int_none);
      begin match ty_arg with
      | TyInt _ ->  (* Special case *)
         expr.Expr.e_desc <- EBit (a,idx);  (* This is a hack.. *)
-        TyInt (Some (TiConst 0, TiConst 1))
+        TyInt (Int_size (TiConst 1))
      | _ -> 
         let ty_res = new_type_var () in
         unify ty_arg (TyArray(TiConst (size_of ty_arg), ty_res));
@@ -73,17 +73,17 @@ let rec type_expression tenv expr =
   | Expr.EBit (a,idx) ->
      let ty_arg = lookup_type "int" tenv.te_vars a in
      let ty_idx = type_expression tenv idx in
-     unify ty_idx (TyInt None);
-     unify ty_arg (TyInt None);
-     TyInt (Some (TiConst 0, TiConst 1))
+     unify ty_idx (TyInt Int_none);
+     unify ty_arg (TyInt Int_none);
+     TyInt (Int_size (TiConst 1))
   | Expr.EBitrange (a,idx1,idx2) ->
      let ty_arg = lookup_type "int" tenv.te_vars a in
      let ty_idx1 = type_expression tenv idx1 in
      let ty_idx2 = type_expression tenv idx2 in
-     unify ty_idx1 (TyInt None);
-     unify ty_idx2 (TyInt None);
-     unify ty_arg (TyInt None);
-     TyInt None in
+     unify ty_idx1 (TyInt Int_none);
+     unify ty_idx2 (TyInt Int_none);
+     unify ty_arg (TyInt Int_none);
+     TyInt Int_none in
   let ty = Types.real_type (type_expr expr) in
   (* Printf.printf "** Typing.type_expression(%s) = %s\n" (Expr.string_of_expr expr.e_desc) (Types.string_of_type ty); flush stdout; *)
   expr.e_typ <- ty;

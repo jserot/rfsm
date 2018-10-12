@@ -28,9 +28,10 @@ exception Unbound_type_ctor of string
                              
 let rec type_of_type_expr tenv te = match te with
   | TEBool -> Types.TyBool
-  | TEInt None -> Types.TyInt None
+  | TEInt TA_none -> Types.TyInt Int_none
+  | TEInt (TA_size sz) -> Types.TyInt (Int_size (type_index_of_index_expr sz))
+  | TEInt (TA_range (lo,hi)) -> Types.TyInt (Int_range (type_index_of_index_expr lo, type_index_of_index_expr hi))
   | TEFloat -> Types.TyFloat
-  | TEInt (Some (lo,hi)) -> Types.TyInt (Some (type_index_of_index_expr lo, type_index_of_index_expr hi))
   | TEEvent -> Types.TyEvent
   | TEName n ->
      begin

@@ -60,16 +60,13 @@ let profil = {
   has_globals = false;
   }
 
-let rec bit_size n = if n=0 then 0 else 1 + bit_size (n/2)
-
 let rec string_of_type t = match t with 
   | TyEvent -> "bool"
   | TyBool -> "bool"
   | TyEnum cs -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
-  | TyInt (Some (TiConst lo,TiConst hi)) ->
-     if lo < 0 then "sc_int<" ^ string_of_int (bit_size (max (-lo) hi)) ^ "> "
-     else "sc_uint<" ^ string_of_int (bit_size hi) ^ "> "
-  | TyInt _ -> "int"
+  | TyInt (Int_size (TiConst sz)) -> "sc_uint<" ^ string_of_int sz ^ "> "
+  | TyInt (Int_range _) -> "int"  (* range annotations ignored here *)
+  | TyInt Int_none -> "int"
   | TyFloat -> if cfg.sc_double_float then "double" else "float"
   | _ -> raise (Error ("string_of_type", "unsupported type"))
 

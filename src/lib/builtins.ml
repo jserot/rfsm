@@ -13,10 +13,10 @@ open Types
 open Expr
 
 let type_arithm2 () = 
-  { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt None; TyInt None], TyInt None) }
+  { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt Int_none; TyInt Int_none], TyInt Int_none) }
 
 let type_arithm1 () = 
-  { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt None], TyInt None) }
+  { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt Int_none], TyInt Int_none) }
 
 let type_compar () = 
   let tv = Types.mk_type_var () in

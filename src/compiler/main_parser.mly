@@ -312,16 +312,20 @@ array_val:
 
 typ:
   | TYEVENT { Syntax.TEEvent }
-  | TYINT r=option(int_range) { Syntax.TEInt r }
+  | TYINT a=int_annot { Syntax.TEInt a }
   | TYFLOAT { Syntax.TEFloat }
   | TYBOOL { Syntax.TEBool }
   | i=LID { Syntax.TEName i }
   | t=typ TYARRAY LBRACKET s=array_size RBRACKET { Syntax.TEArray (s,t) }
 
-int_range:
+int_annot:
+    | (* Nothing *)
+      { TA_none }
+    | LT sz=type_index_expr GT
+        { TA_size (mk_type_index_expression ($symbolstartofs,$endofs) sz) }
     | LT lo=type_index_expr COLON hi=type_index_expr GT
-        { (mk_type_index_expression ($symbolstartofs,$endofs) lo,
-           mk_type_index_expression ($symbolstartofs,$endofs) hi) }
+        { TA_range (mk_type_index_expression ($symbolstartofs,$endofs) lo,
+                    mk_type_index_expression ($symbolstartofs,$endofs) hi) }
 
 array_size:
     | sz = type_index_expr { mk_type_index_expression ($symbolstartofs,$endofs) sz }

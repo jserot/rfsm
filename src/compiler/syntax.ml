@@ -22,13 +22,16 @@ type type_expression = {
 
 and type_expr = 
   | TEBool
-  | TEInt of int_range option
+  | TEInt of int_annot
   | TEFloat
   | TEEvent
   | TEName of string
   | TEArray of type_index_expression * type_expr  (* size, type of elements *)
 
-and int_range = type_index_expression * type_index_expression (* min, max *)
+and int_annot =
+  TA_none
+| TA_size of type_index_expression
+| TA_range of type_index_expression * type_index_expression (* min, max *)
 
 and type_index_expression = {
   ti_desc: type_index_expr;
@@ -171,13 +174,15 @@ let rec string_of_type_index = function
   | TEVar v -> v
   | TEBinop (op,e1,e2) -> string_of_type_index e1 ^ op ^ string_of_type_index e2 (* TO FIX *)
             
-let string_of_range (lo,hi) = string_of_type_index lo.ti_desc ^ ".." ^ string_of_type_index hi.ti_desc
+let string_of_int_annot = function
+    TA_none -> ""
+  | TA_size sz -> "<" ^ string_of_type_index sz.ti_desc ^ ">"
+  | TA_range (lo,hi) -> "<" ^ string_of_type_index lo.ti_desc ^ ":" ^ string_of_type_index hi.ti_desc ^ ">"
 
 let rec string_of_type_expr t = match t with 
   | TEBool -> "bool"
-  | TEInt None -> "int"
+  | TEInt a -> "int" ^ string_of_int_annot a
   | TEFloat -> "float"
-  | TEInt (Some (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
   | TEEvent -> "event"
   | TEName n -> n
   | TEArray (sz,t') -> string_of_type_expr t' ^ "array[" ^ string_of_type_index sz.ti_desc ^ "]"
