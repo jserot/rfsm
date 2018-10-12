@@ -1,0 +1,2 @@
+Binary -> BCD conversion using the so-called "Double Dabble" algorithm.
+This example demonstrates the use of bit level operators on integers.
