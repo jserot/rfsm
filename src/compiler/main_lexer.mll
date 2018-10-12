@@ -83,6 +83,8 @@ rule main = parse
 | '*' { TIMES }
 | '/' { DIV }
 | '%' { MOD }
+| ">>" { SHR }
+| "<<" { SHL }
   | eof { EOF }
   | _
       { raise (Lexical_error(Illegal_character,

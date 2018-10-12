@@ -48,6 +48,7 @@
 %token GTE
 %token PLUS MINUS TIMES DIV MOD
 %token FPLUS FMINUS FTIMES FDIV
+%token SHL SHR
 %token ARROW_START
 %token ARROW_END
 %token BAR
@@ -58,6 +59,7 @@
 
 %nonassoc QMARK COLON              (* Lowest precedence *)
 %left EQUAL NOTEQUAL GT LT GTE LTE
+%left SHR SHL
 %left PLUS MINUS FPLUS FMINUS
 %left TIMES DIV FTIMES FDIV MOD   
 %nonassoc prec_unary_minus         (* Highest precedence *)
@@ -247,7 +249,7 @@ action:
 lhs:
   | v=LID { Action.Var0 v }
   | a=LID LBRACKET i=expr RBRACKET { Action.Var1 (a, i) }
-  | a=LID LBRACKET lo=expr COLON hi=expr RBRACKET { Action.Var2 (a,lo,hi) }
+  | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { Action.Var2 (a,hi,lo) }
 
 (* GLOBALS *)
 
@@ -347,6 +349,10 @@ type_index_expr:
 expr:
   | e = simple_expr
       { e }
+  | e1 = expr SHR e2 = expr
+      { mk_expr (EBinop (">>", e1, e2)) }
+  | e1 = expr SHL e2 = expr
+      { mk_expr (EBinop ("<<", e1, e2)) }
   | e1 = expr PLUS e2 = expr
       { mk_expr (EBinop ("+", e1, e2)) }
   | e1 = expr MINUS e2 = expr

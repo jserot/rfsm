@@ -185,6 +185,8 @@ let string_of_expr e =
     | Expr.EBool c, _ -> vhdl_string_of_bool c
     | Expr.EEnum c, _ -> c
     | Expr.EVar n, _ ->  n
+    | Expr.EBinop (">>",e1,e2), _ -> "shift_right(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
+    | Expr.EBinop ("<<",e1,e2), _ -> "shift_left(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
     | Expr.EBinop (op,e1,e2), _ -> 
        let s1 = string_of (level+1) e1 
        and s2 = string_of (level+1) e2 in 
@@ -210,6 +212,7 @@ let string_of_action m a =
   | Action.Assign ({l_desc=Action.Var0 id}, expr) ->
      let asn = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
      let ty = lookup_type tenv id in
+     Printf.printf "** %s:%s %s %s:%s\n" id (Types.string_of_type ty) asn (Expr.to_string expr) (Types.string_of_type expr.Expr.e_typ);
      expr.Expr.e_typ <- ty;  (* To handle situations like [v:=1] when [v:unsigned(2 downto 0)] *) 
      id ^ asn ^ string_of_expr expr
   | Action.Assign ({l_desc=Action.Var1 (id,idx)}, expr) ->

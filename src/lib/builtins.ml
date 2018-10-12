@@ -94,6 +94,8 @@ let env = [
     "/", (type_arithm2 (), prim2 encode_int  ( / ) decode_int);
     "~-", (type_arithm1 (), prim1 encode_int  ( ~- ) decode_int);
     "mod", (type_arithm2 (), prim2 encode_int  ( mod ) decode_int);
+    ">>", (type_arithm2 (), prim2 encode_int  ( lsr ) decode_int);
+    "<<", (type_arithm2 (), prim2 encode_int  ( lsl ) decode_int);
     "+.", (type_farithm2 (), prim2 encode_float  ( +. ) decode_float);
     "-.", (type_farithm2 (), prim2 encode_float  ( -. ) decode_float);
     "*.", (type_farithm2 (), prim2 encode_float  ( *. ) decode_float);

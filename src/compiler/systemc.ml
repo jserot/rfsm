@@ -120,7 +120,7 @@ let string_of_op = function
   | "/." -> "/" 
   | op ->  op
 
-let string_of_int_range a hi lo = a ^ ".range(" ^ lo ^ "," ^ hi ^ ")"
+let string_of_int_range a hi lo = a ^ ".range(" ^ hi ^ "," ^ lo ^ ")"
 
 let string_of_expr m e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in

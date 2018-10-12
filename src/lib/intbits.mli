@@ -18,3 +18,6 @@ val get_bits: int -> int -> int -> int
 
 val set_bits: int -> int -> int -> int -> int
   (** [set_bits hi lo n v] returns the value obtained by setting by the bit range [hi..lo] in [n] to [v]. *)
+
+val to_string: int -> int -> string
+  (** [to_string s n] returns binary representation, as a string of length [s] of integer [n] *)
