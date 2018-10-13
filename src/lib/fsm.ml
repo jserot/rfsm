@@ -176,8 +176,12 @@ let build_model ~name ~states ~params ~ios ~vars ~trans ~itrans =
   r
 
 let type_check ~strict what where ty ty'  =
-  if not (Types.type_equal ~strict ty ty') 
-  then raise (Typing.Type_error (what, where, ty, ty'))
+  (* if not (Types.type_equal ~strict ty ty') 
+   * then raise (Typing.Type_error (what, where, ty, ty')) *)
+  try
+    Types.unify ty ty'
+  with
+    Types.TypeConflict _ -> raise (Typing.Type_error (what, where, ty, ty'))
 
 let type_check_stim fsm id ty st = match st with
   | ValueChange vcs ->
@@ -219,7 +223,7 @@ let type_check_instance tenv f =
   let type_check_index_expression exp =
     try type_check
           ~strict:false ("index expression \"" ^ (Expr.to_string exp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
-          (Typing.type_expression tenv exp) (Types.TyInt Types.Int_none)
+          (Typing.type_expression tenv exp) (Types.type_int [])
     with
     | Typing.Typing_error (expr, ty, ty') ->
        raise (Typing.Type_error ("index expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
@@ -235,18 +239,20 @@ let type_check_instance tenv f =
             begin match List.assoc a tenv.te_vars with
             | TyInt _ -> (* Special case *)
                lhs.l_desc <- Var2 (a,i,i);  (* This is a hack *)
-               TyInt (Int_size (TiConst 1))
+               Types.type_int [1]
             | ty ->  (* Should be an array *)
                Types.subtype_of ty
             end
          | Var2 (a,i1,i2) ->
             type_check_index_expression i1;
             type_check_index_expression i2;
-            begin match List.assoc a tenv.te_vars with
-            | TyInt _ -> (* Special case *)
-               TyInt Int_none
-            | ty -> 
-               raise (Typing.Type_error ("action \"" ^ Action.to_string act ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, TyInt Int_none))
+            begin match List.assoc a tenv.te_vars, i1.e_desc, i2.e_desc with
+            | TyInt (Types.SzExpr1 (Types.Index.TiConst sz)), Expr.EInt hi, Expr.EInt lo when hi >= lo ->
+               Types.type_int [hi-lo+1]  (* If x::int<n>, then x[hi:lo]::int<hi-lo+1> *)
+            | TyInt _, _, _ ->           (* Cannot infer size otherwise  *)
+               Types.type_int []
+            | ty, _, _ -> 
+               raise (Typing.Type_error ("action \"" ^ Action.to_string act ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, Types.type_int []))
             end
          | exception _ -> raise (Internal_error "Fsm.type_check_action")
          end in
@@ -254,9 +260,6 @@ let type_check_instance tenv f =
          try Typing.type_expression tenv exp
          with Typing.Typing_error (expr, ty, ty') ->
            raise (Typing.Type_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty')) in
-       (* Printf.printf "Fsm.type_check_action: %s:%s <- %s:%s\n"
-        *   (Action.string_of_lhs lhs) (Types.string_of_type t) (Expr.string_of_expr exp.e_desc) (Types.string_of_type t');
-        * flush stdout; *)
        begin
          try type_check
                ~strict:false

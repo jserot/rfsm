@@ -15,6 +15,7 @@ exception Unbound_id of string * string
 exception Typing_error of Expr.t * Types.typ * Types.typ
 exception Type_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
 exception Internal_error of string (** where *)
+exception Illegal_cast of Expr.t
 
 type tenv =
   { te_vars: (string * typ) list;
@@ -29,7 +30,40 @@ let lookup_type what env id =
 let lookup_type_scheme env id =
   try List.assoc id env
   with Not_found -> raise (Unbound_id ("builtin operator", id))
-                  
+
+(* Typing type expressions *)
+
+let type_index_of_index_expr e =
+  let open Type_expr in
+  let rec type_index_of = function 
+    TEConst c -> Types.Index.TiConst c
+  | TEVar v -> Types.Index.TiVar v
+  | TEBinop (op,e1,e2) -> Types.Index.TiBinop (op, type_index_of e1, type_index_of e2) in
+  type_index_of e
+
+exception Unbound_type_ctor of string
+                             
+let rec type_of_type_expr tenv texpr =
+  let open Type_expr in 
+  let rec type_texpr te = match te.te_desc with
+  | TEBool -> Types.TyBool
+  | TEInt TA_none -> TyInt (new_size_var())
+  | TEInt (TA_size sz) -> Types.TyInt (Types.SzExpr1 (type_index_of_index_expr sz))
+  | TEInt (TA_range (lo,hi)) -> Types.TyInt (SzExpr2 (type_index_of_index_expr lo, type_index_of_index_expr hi))
+  | TEFloat -> Types.TyFloat
+  | TEEvent -> Types.TyEvent
+  | TEName n ->
+     begin
+       try List.assoc n tenv.te_defns
+       with Not_found -> raise (Unbound_type_ctor n)
+     end
+  | TEArray (sz, te') -> TyArray (type_index_of_index_expr sz, type_of_type_expr tenv te') in
+  let ty = Types.real_type (type_texpr texpr) in
+  texpr.te_typ <- ty;
+  ty
+  
+(* Typing expressions *)
+                                    
 let rec type_expression tenv expr =
   let unify t1 t2 =
     try Types.unify t1 t2
@@ -38,7 +72,7 @@ let rec type_expression tenv expr =
     | Types.TypeCircularity _ ->
       raise (Typing_error (expr, t1, t2)) in   
   let type_expr expr = match expr.Expr.e_desc with
-    Expr.EInt c -> TyInt Int_none
+    Expr.EInt c -> type_int []
   | Expr.EFloat b -> TyFloat
   | Expr.EBool b -> TyBool
   | Expr.EVar id -> lookup_type "variable" tenv.te_vars id
@@ -60,11 +94,11 @@ let rec type_expression tenv expr =
   | Expr.EArr (a,idx) ->
      let ty_arg = lookup_type "array or int" tenv.te_vars a in
      let ty_idx = type_expression tenv idx in
-     unify ty_idx (TyInt Int_none);
+     unify ty_idx (type_int []);
      begin match ty_arg with
      | TyInt _ ->  (* Special case *)
         expr.Expr.e_desc <- EBit (a,idx);  (* This is a hack.. *)
-        TyInt (Int_size (TiConst 1))
+        type_int [1]
      | _ -> 
         let ty_res = new_type_var () in
         unify ty_arg (TyArray(TiConst (size_of ty_arg), ty_res));
@@ -73,17 +107,21 @@ let rec type_expression tenv expr =
   | Expr.EBit (a,idx) ->
      let ty_arg = lookup_type "int" tenv.te_vars a in
      let ty_idx = type_expression tenv idx in
-     unify ty_idx (TyInt Int_none);
-     unify ty_arg (TyInt Int_none);
-     TyInt (Int_size (TiConst 1))
+     unify ty_idx (type_int []);
+     unify ty_arg (type_int []);
+     type_int [1]
   | Expr.EBitrange (a,idx1,idx2) ->
      let ty_arg = lookup_type "int" tenv.te_vars a in
      let ty_idx1 = type_expression tenv idx1 in
      let ty_idx2 = type_expression tenv idx2 in
-     unify ty_idx1 (TyInt Int_none);
-     unify ty_idx2 (TyInt Int_none);
-     unify ty_arg (TyInt Int_none);
-     TyInt Int_none in
+     unify ty_idx1 (type_int []);
+     unify ty_idx2 (type_int []);
+     unify ty_arg (type_int []);
+     type_int []
+  | Expr.ECast (e,te) ->
+      let ty_e = type_expression tenv e in
+      let ty_t = type_of_type_expr tenv te in
+      type_cast e ty_e ty_t in
   let ty = Types.real_type (type_expr expr) in
   (* Printf.printf "** Typing.type_expression(%s) = %s\n" (Expr.string_of_expr expr.e_desc) (Types.string_of_type ty); flush stdout; *)
   expr.e_typ <- ty;
@@ -99,6 +137,18 @@ and type_application expr tenv ty_fn args =
     TypeConflict (t,t')
   | TypeCircularity(t,t') -> raise (Typing_error (expr, t, t'))
 
+and type_cast e t1 t2 = match t1, t2 with
+  | TyInt _, TyInt _
+  | TyInt _, TyBool
+  | TyInt _, TyFloat
+  | TyBool, TyBool
+  | TyBool, TyInt _
+  | TyFloat, TyFloat
+  | TyFloat, TyInt _ -> t2
+  | _, _ -> raise (Illegal_cast e)
+          
+(* Typing environment *)
+                           
 let builtin_tenv = {
   te_vars = [];
   te_ctors = [

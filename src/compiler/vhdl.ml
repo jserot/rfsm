@@ -81,20 +81,20 @@ type vhdl_type =
 
 and int_range = int * int
 
-let rec vhdl_type_of t = match t with 
+let rec vhdl_type_of t = match Types.real_type t with 
   | TyEvent -> Std_logic
   | TyBool -> if cfg.vhdl_bool_as_bool then Boolean else Std_logic
   | TyFloat -> Real
   | TyEnum cs -> Error.not_implemented "VHDL translation of enumerated type"
-  | TyInt (Int_size (TiConst sz)) ->
+  | TyInt (SzExpr1 (TiConst sz)) ->
       if cfg.vhdl_use_numeric_std then Unsigned sz
       else Integer (Some (0, 1 lsl sz - 1))
-  | TyInt (Int_range (TiConst lo,TiConst hi)) ->
+  | TyInt (SzExpr2 (TiConst lo, TiConst hi)) ->
       if cfg.vhdl_use_numeric_std then
         if lo < 0 then Signed (Intbits.bit_size (max (-lo) hi)) else Unsigned (Intbits.bit_size hi)
       else
         Integer (Some (lo,hi))
-  | TyInt Int_none -> Integer None
+  | TyInt _ -> Integer None
   | TyArray (Types.Index.TiConst sz,t') -> Array (sz, vhdl_type_of t')
   | _ -> failwith "Vhdl.vhdl_type_of: TyUnknown"
 
@@ -171,11 +171,30 @@ let string_of_op = function
   | "-." -> "-" 
   | "*." -> "*" 
   | "/." -> "/" 
+  | "&" -> " and " 
+  | "|" -> " or " 
+  | "^" -> " xor " 
   | op ->  op
 
-let string_of_range a hi lo = a ^ "(to_integer(" ^ hi ^ ") downto to_integer(" ^ lo ^ "))"
 
-let string_of_expr e =
+let string_of_cast t_exp t_ty e = match t_exp, t_ty with
+  | Integer _, Unsigned n -> sprintf "conv_unsigned(%s,%d)" e n
+  | Signed n, Unsigned n' when n=n' -> sprintf "conv_unsigned(%s,%d)" e n
+  | Boolean, Unsigned n ->  sprintf "conv_unsigned(%s,%d)" e n
+  | Unsigned n', Unsigned n when n<>n' ->  sprintf "resize(%s,%d)" e n
+  | Integer _, Signed n -> sprintf "conv_signed(%s,%d)" e n
+  | Signed n, Signed n' when n=n' -> sprintf "conv_signed(%s,%d)" e n
+  | Boolean, Signed n ->  sprintf "conv_signed(%s,%d)" e n
+  | Signed n', Signed n when n<>n' -> sprintf "resize(%s,%d)" e n
+  | Integer _, Boolean -> sprintf "to_bool(%s)" e
+  | Unsigned _, Boolean -> sprintf "to_bool(%s)" e
+  | Signed _, Boolean -> sprintf "to_bool(%s)" e
+  | Signed _, Integer _ -> sprintf "to_integer(%s)" e
+  | Integer _, Integer _ -> e
+  | t, t' when t=t' -> e
+  | _, _ -> failwith "Vhdl.string_of_cast" (* should  not happen *)
+
+let rec string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
     match e.Expr.e_desc, vhdl_type_of e.Expr.e_typ  with
@@ -188,8 +207,8 @@ let string_of_expr e =
     | Expr.EBool c, _ -> vhdl_string_of_bool c
     | Expr.EEnum c, _ -> c
     | Expr.EVar n, _ ->  n
-    | Expr.EBinop (">>",e1,e2), _ -> "shift_right(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
-    | Expr.EBinop ("<<",e1,e2), _ -> "shift_left(" ^ string_of level e1 ^ "," ^ string_of level e2 ^ ")"
+    | Expr.EBinop (">>",e1,e2), _ -> "shift_right(" ^ string_of level e1 ^ "," ^ string_of_int_expr  e2 ^ ")"
+    | Expr.EBinop ("<<",e1,e2), _ -> "shift_left(" ^ string_of level e1 ^ "," ^ string_of_int_expr e2 ^ ")"
     | Expr.EBinop (op,e1,e2), _ -> 
        let s1 = string_of (level+1) e1 
        and s2 = string_of (level+1) e2 in 
@@ -204,43 +223,32 @@ let string_of_expr e =
     | Expr.EFapp (("~-"|"~-."),[e]), _ -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es), _ -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
     | Expr.EArr (a,idx), _ -> a ^ "(" ^ string_of level idx ^ ")"
-    | Expr.EBit (a,idx), _ -> let i = string_of level idx in string_of_range a i i 
-    | Expr.EBitrange (a,hi,lo), _ -> string_of_range a (string_of level hi) (string_of level lo) 
+    | Expr.EBit (a,idx), _ -> string_of_range a idx idx
+    | Expr.EBitrange (a,hi,lo), _ -> string_of_range a hi lo
+    | Expr.ECast (e,te), ty_e -> string_of_cast (vhdl_type_of e.e_typ) (vhdl_type_of te.te_typ) (string_of level e)
   in
   string_of 0 e
 
-let type_cast ty1 ty2 expr =
-  match vhdl_type_of ty1, vhdl_type_of ty2 with
-    (* Unsigned sz1, Unsigned sz2 -> "resize(" ^ string_of_expr expr ^ "," ^ string_of_int sz1 ^ ")" *)
-  | _, _ -> string_of_expr expr (* TO FIX ! *)
-          
+and string_of_int_expr e = match e.Expr.e_desc, vhdl_type_of (e.Expr.e_typ) with
+    Expr.EInt n, _ -> string_of_int n
+  | _, Integer _ -> string_of_expr e
+  | _, _ -> "to_integer(" ^ string_of_expr e ^ ")"
+
+and string_of_range id hi lo = id ^ "(" ^ string_of_int_expr hi ^ " downto " ^ string_of_int_expr lo ^ ")"
+
 let string_of_action m a =
-  let tenv = List.map (function (id,(ty,_)) -> id, ty) m.c_vars @ m.c_outps @ m.c_inouts in
   let asn id = if List.mem_assoc id m.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
   let open Types in
   match a with
   | Action.Assign ({l_desc=Action.Var0 id}, expr) ->
-     let ty_lhs = lookup_type tenv id in
-     let ty_exp = expr.Expr.e_typ in
-     Printf.printf "** %s:%s(%s) %s %s:%s(%s)\n"
-       id (Types.string_of_type ty_lhs) (string_of_vhdl_type (vhdl_type_of ty_lhs))
-       (asn id) (string_of_expr expr) (Types.string_of_type ty_exp) (string_of_vhdl_type (vhdl_type_of ty_exp));
-     expr.Expr.e_typ <- ty_lhs;  (* To handle situations like [v:=1] when [v:unsigned(2 downto 0)] *)
-     id ^ asn id ^ type_cast ty_lhs ty_exp expr
+     id ^ asn id ^ string_of_expr expr
   | Action.Assign ({l_desc=Action.Var1 (id,idx)}, expr) ->
-     let ty = Types.subtype_of (lookup_type tenv id) in
-     expr.Expr.e_typ <- ty;  (* To handle situations like  [v[0]:=1] when [v:array of unsigned(2 downto 0)] *) 
      if List.mem_assoc id m.c_vars
      then id ^ "(" ^ string_of_expr idx ^ ")" ^ asn id ^ string_of_expr expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
   | Action.Assign ({l_desc=Action.Var2 (id,idx1,idx2)}, expr) ->
-     let ty = lookup_type tenv id in
-     expr.Expr.e_typ <- ty;  (* To handle situations like  [v[0]:=1] when  [v:unsigned(2 downto 0)] *) 
      if List.mem_assoc id m.c_vars
-     then 
-         let hi = string_of_expr idx1 in
-         let lo = string_of_expr idx2 in
-         string_of_range id hi lo ^ asn id ^ string_of_expr expr
+     then string_of_range id idx1 idx2 ^ asn id ^ string_of_expr expr
      else failwith "Vhdl.string_of_action: assignation of a non-scalar output"
   | Action.Emit id -> "notify_ev(" ^ id ^ "," ^ (string_of_int cfg.vhdl_ev_duration) ^ " " ^ cfg.vhdl_time_unit ^ ")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)

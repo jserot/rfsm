@@ -27,6 +27,7 @@ package core is
   function from_std_logic_vector(e: std_logic_vector; s: natural) return signed;
   function from_std_logic_vector(e: std_logic_vector; s: natural) return boolean;
   function from_std_logic_vector(e: std_logic_vector; s: natural) return std_logic_vector;
+  function to_bool(e: integer) return boolean;
   function to_bool(e: unsigned) return boolean;
   function to_bool(e: signed) return boolean;
   function to_bool(e: std_logic_vector) return boolean;
@@ -39,6 +40,7 @@ package core is
   function conv_signed(e: boolean; s: natural) return signed;
   function conv_signed(e: integer; s: natural) return signed;
   function to_integer(e: integer) return integer;
+  function to_integer(e: boolean) return integer;
 
   procedure notify_ev(signal s: out std_logic; duration: time);
   
@@ -215,6 +217,11 @@ package body core is
     -- return e(e'high downto e'high-s+1);
   end;
 
+  function to_bool(e: integer) return boolean is
+  begin
+    if e = 0 then return false; else return true; end if;
+  end;
+                                      
   function to_bool(e: unsigned) return boolean is
   begin
     if e = (e'range=>'0') then return false; else return true; end if;
@@ -273,6 +280,11 @@ package body core is
   function to_integer(e: integer) return integer is
   begin
     return e;
+  end;
+
+  function to_integer(e: boolean) return integer is
+  begin
+    if ( e ) then return 1; else return 0; end if;
   end;
 
   procedure notify_ev(signal s: out std_logic; duration: time) is

@@ -12,36 +12,13 @@
 (* Abstract syntax of programs *)
 
 open Utils
-   
+
 (* Type expressions *)
 
 type type_expression = {
-  te_desc: type_expr;
+  te_desc: Type_expr.t;
   te_loc: Location.location;
   }
-
-and type_expr = 
-  | TEBool
-  | TEInt of int_annot
-  | TEFloat
-  | TEEvent
-  | TEName of string
-  | TEArray of type_index_expression * type_expr  (* size, type of elements *)
-
-and int_annot =
-  TA_none
-| TA_size of type_index_expression
-| TA_range of type_index_expression * type_index_expression (* min, max *)
-
-and type_index_expression = {
-  ti_desc: type_index_expr;
-  ti_loc: Location.location;
-  }
-
-and type_index_expr =
-  | TEConst of int
-  | TEVar of string
-  | TEBinop of string * type_index_expr * type_index_expr
 
 (* Expressions *)
              
@@ -59,7 +36,7 @@ type type_declaration = {
 
 and type_decl =
   TD_Enum of string * string list  (* Name, constructors *)
-| TD_Alias of string * type_expr   (* Name, abbreviated type expr *)
+| TD_Alias of string * Type_expr.t   (* Name, abbreviated type expr *)
 
 (* Function declarations *)
 
@@ -169,25 +146,7 @@ let string_of_stim = function
 
 let string_of_stimuli st = string_of_stim st.stim_desc
    
-let rec string_of_type_index = function
-    TEConst c -> string_of_int c
-  | TEVar v -> v
-  | TEBinop (op,e1,e2) -> string_of_type_index e1 ^ op ^ string_of_type_index e2 (* TO FIX *)
-            
-let string_of_int_annot = function
-    TA_none -> ""
-  | TA_size sz -> "<" ^ string_of_type_index sz.ti_desc ^ ">"
-  | TA_range (lo,hi) -> "<" ^ string_of_type_index lo.ti_desc ^ ":" ^ string_of_type_index hi.ti_desc ^ ">"
-
-let rec string_of_type_expr t = match t with 
-  | TEBool -> "bool"
-  | TEInt a -> "int" ^ string_of_int_annot a
-  | TEFloat -> "float"
-  | TEEvent -> "event"
-  | TEName n -> n
-  | TEArray (sz,t') -> string_of_type_expr t' ^ "array[" ^ string_of_type_index sz.ti_desc ^ "]"
-          
-let string_of_type_expression t = string_of_type_expr t.te_desc
+let string_of_type_expression t = Type_expr.string_of_type_expr t.te_desc
 
 let string_of_io_tag = function Types.IO_In -> "in" | Types.IO_Out -> "out" | Types.IO_Inout -> "inout"
                                                                             
@@ -195,7 +154,7 @@ let string_of_io (tag,(id,ty)) = string_of_io_tag tag ^ " " ^ id ^ ": " ^ string
 
 let dump_type_decl oc { td_desc=d } = match d with
     TD_Alias (name,te) ->
-     Printf.printf "TYPE %s = %s\n" name (string_of_type_expr te)
+     Printf.printf "TYPE %s = %s\n" name (Type_expr.string_of_type_expr te)
   | TD_Enum (name, cs) ->
      Printf.printf "TYPE %s = { %s }\n" name (ListExt.to_string (function c -> c) "," cs)
 

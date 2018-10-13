@@ -37,34 +37,40 @@ type typ =
   | TyEvent
   | TyBool
   | TyEnum of string list
-  | TyInt of int_annot
+  | TyInt of siz                
   | TyFloat
   | TyArray of Index.t * typ    (* size, subtype *)
-  | TyVar of tvar               (* Internal use only *)
+  | TyVar of typ var            (* Internal use only *)
   | TyArrow of typ * typ        (* Internal use only *)
   | TyProduct of typ list       (* Internal use only *)
 
-and tvar =
-  { stamp: string;
-    mutable value: typ value }
+and siz =
+  | SzExpr1 of Index.t                  (* For ints: bit width, for arrays: dimension *)
+  | SzExpr2 of Index.t * Index.t        (* For ints: range, for arrays: dimensions *)
+  | SzVar of siz var   
+
+and 'a var =
+  { stamp: string;             (* for debug only *)
+    mutable value: 'a value }
 
 and 'a value =
   | Unknown
   | Known of 'a
 
-and int_annot =
-  | Int_none
-  | Int_size of Index.t (* size in bits *)
-  | Int_range of Index.t * Index.t  (* min, max *)
-
 type typ_scheme =
-  { ts_params: tvar list;
+  { ts_tparams: (typ var) list;
+    ts_sparams: (siz var) list;
     ts_body: typ }
 
-val mk_type_var: unit -> tvar
+val mk_type_var: unit -> typ var
 val new_type_var: unit -> typ
+val mk_size_var: unit -> siz var
+val new_size_var: unit -> siz
 
 val real_type: typ -> typ
+val real_size: siz -> siz
+
+val type_int: int list -> typ
   
 (** {2 Exceptions} *)
 

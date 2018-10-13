@@ -28,6 +28,7 @@ and e_desc =
   | EArr of string * t        (** t[i] when t is an array *)
   | EBit of string * t        (** t[i] when t is an int *)
   | EBitrange of string * t * t   (** t[hi:lo] when t is an int *)
+  | ECast of t * Type_expr.t
 
 and e_val = 
   | Val_int of int
@@ -40,7 +41,7 @@ and e_val =
   | Val_array of e_val array
 
 let rec type_of_value = function
-  | Val_int _ -> Types.TyInt Int_none
+  | Val_int _ -> Types.TyInt (Types.new_size_var())
   | Val_float _ -> Types.TyFloat
   | Val_bool _ -> Types.TyBool
   | Val_enum c -> Types.TyEnum [c]  (* TO FIX *)
@@ -129,6 +130,7 @@ let rec string_of_expr e = match e with
   | EArr (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBit (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBitrange (a,e1,e2) -> a ^ "[" ^ to_string e1 ^ ":" ^ to_string e2 ^ "]"
+  | ECast (e,te) -> to_string e ^ "::" ^ Type_expr.string_of_type_expr te
 
 and to_string e =
   let s = string_of_expr e.e_desc in

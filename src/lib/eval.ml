@@ -105,7 +105,19 @@ and eval env exp =
           Val_int (Intbits.get_bits hi lo x)
        | _ -> raise (Illegal_bit_range_access exp)
      end
+  | ECast (e,te) ->
+     let v = eval env e in
+     eval_cast te.te_typ v
   in
   (* Printf.printf "Eval.eval [%s] (%s) -> %s\n" (string_of_env env) (Expr.to_string exp) (string_of_value r); *)
   r
-       
+
+and eval_cast ty v = match v, ty with
+  | Val_int _, Types.TyInt _ -> v
+  | Val_int x, Types.TyBool -> Val_bool (x <> 0)
+  | Val_int x, Types.TyFloat -> Val_float (float_of_int x)
+  | Val_bool _, Types.TyBool -> v
+  | Val_bool b, Types.TyInt _ -> Val_int (if b then 1 else 0)
+  | Val_float _, Types.TyFloat -> v
+  | Val_float x, Types.TyInt _ -> Val_int (int_of_float x)
+  | _, _ -> failwith "Eval.eval_cast" (* should not happen *)

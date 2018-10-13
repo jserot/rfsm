@@ -99,7 +99,7 @@ with
     eprintf "Unbound type index: %s\n" v; flush stderr; exit 2
 | Types.Index.Illegal_op op -> 
     eprintf "Illegal operation on type index: %s\n" op; flush stderr; exit 2
-| Intern.Unbound_type_ctor c -> 
+| Typing.Unbound_type_ctor c -> 
     eprintf "Unbound type constructor: %s\n" c; flush stderr; exit 2
 | Builtins.Unbound_id id -> 
     eprintf "Unknown builtin operator: %s\n" id; flush stderr; exit 3
@@ -109,6 +109,8 @@ with
     eprintf "Illegal expression: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Illegal_application e -> 
     eprintf "Illegal application: %s\n" (Expr.to_string e); flush stderr; exit 3
+| Typing.Illegal_cast e -> 
+    eprintf "Illegal type cast: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Illegal_array_access e -> 
     eprintf "Illegal array access: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Illegal_bit_range_access e -> 

@@ -13,20 +13,22 @@ open Types
 open Expr
 
 let type_arithm2 () = 
-  { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt Int_none; TyInt Int_none], TyInt Int_none) }
+  let sz = Types.mk_size_var () in
+  { ts_tparams=[]; ts_sparams=[sz]; ts_body=TyArrow (TyProduct [TyInt (SzVar sz); TyInt (SzVar sz)], TyInt (SzVar sz)) }
 
 let type_arithm1 () = 
-  { ts_params=[]; ts_body=TyArrow (TyProduct [TyInt Int_none], TyInt Int_none) }
+  let sz = Types.mk_size_var () in
+  { ts_tparams=[]; ts_sparams=[sz]; ts_body=TyArrow (TyProduct [TyInt (SzVar sz)], TyInt (SzVar sz)) }
 
 let type_compar () = 
   let tv = Types.mk_type_var () in
-  { ts_params = [tv]; ts_body=TyArrow (TyProduct [TyVar tv; TyVar tv], TyBool) }
+  { ts_tparams = [tv]; ts_sparams=[]; ts_body=TyArrow (TyProduct [TyVar tv; TyVar tv], TyBool) }
 
 let type_farithm2 () = 
-  { ts_params=[]; ts_body=TyArrow (TyProduct [TyFloat; TyFloat], TyFloat) }
+  { ts_tparams=[]; ts_sparams=[]; ts_body=TyArrow (TyProduct [TyFloat; TyFloat], TyFloat) }
 
 let type_farithm1 () = 
-  { ts_params=[]; ts_body=TyArrow (TyProduct [TyFloat], TyFloat) }
+  { ts_tparams=[]; ts_sparams=[]; ts_body=TyArrow (TyProduct [TyFloat], TyFloat) }
 
 exception Internal_error of string
 
@@ -96,6 +98,9 @@ let env = [
     "mod", (type_arithm2 (), prim2 encode_int  ( mod ) decode_int);
     ">>", (type_arithm2 (), prim2 encode_int  ( lsr ) decode_int);
     "<<", (type_arithm2 (), prim2 encode_int  ( lsl ) decode_int);
+    "&", (type_arithm2 (), prim2 encode_int  ( land ) decode_int);
+    "|", (type_arithm2 (), prim2 encode_int  ( lor ) decode_int);
+    "^", (type_arithm2 (), prim2 encode_int  ( lxor ) decode_int);
     "+.", (type_farithm2 (), prim2 encode_float  ( +. ) decode_float);
     "-.", (type_farithm2 (), prim2 encode_float  ( -. ) decode_float);
     "*.", (type_farithm2 (), prim2 encode_float  ( *. ) decode_float);

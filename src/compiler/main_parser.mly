@@ -48,10 +48,12 @@
 %token GTE
 %token PLUS MINUS TIMES DIV MOD
 %token FPLUS FMINUS FTIMES FDIV
+%token LAND LOR LXOR
 %token SHL SHR
 %token ARROW_START
 %token ARROW_END
 %token BAR
+%token COLONCOLON
 (* %token BARBAR *)
 %token EOF
 
@@ -60,8 +62,10 @@
 %nonassoc QMARK COLON              (* Lowest precedence *)
 %left EQUAL NOTEQUAL GT LT GTE LTE
 %left SHR SHL
+%left LAND LOR LXOR
 %left PLUS MINUS FPLUS FMINUS
 %left TIMES DIV FTIMES FDIV MOD   
+%nonassoc COLONCOLON
 %nonassoc prec_unary_minus         (* Highest precedence *)
 
 %type <Syntax.program> program
@@ -79,8 +83,8 @@ let mk_global_decl p desc = { Syntax.g_desc = desc; Syntax.g_loc = mk_location p
 let mk_fsm_decl p desc = { Syntax.fsm_desc = desc; Syntax.fsm_loc = mk_location p }
 let mk_stim_decl p desc = { Syntax.stim_desc = desc; Syntax.stim_loc = mk_location p }
 let mk_fsm_inst p desc = { Syntax.fi_desc = desc; Syntax.fi_loc = mk_location p }
+let mk_type_expr desc = { Type_expr.te_desc = desc; Type_expr.te_typ = TyUnknown }
 let mk_type_expression p desc = { Syntax.te_desc = desc; Syntax.te_loc = mk_location p }
-let mk_type_index_expression p desc = { Syntax.ti_desc = desc; Syntax.ti_loc = mk_location p }
 let mk_expr desc = { Expr.e_desc = desc; Expr.e_typ = TyUnknown }
 let mk_expression p desc = { Syntax.e_desc = desc; Syntax.e_loc = mk_location p }
 let mk_condition p desc = { Syntax.cond_desc = desc; Syntax.cond_loc = mk_location p }
@@ -147,7 +151,7 @@ program:
 (* TYPE DECLARATION *)
 
 type_decl:
-  | TYPE id=LID EQUAL t=typ
+  | TYPE id=LID EQUAL t=type_expr
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Alias (id,t)) }
   | TYPE id=LID EQUAL cs=braced(my_separated_list(COMMA,UID))
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Enum (id,cs)) }
@@ -167,10 +171,10 @@ fn_decl:
            Syntax.ff_res=res;
            Syntax.ff_body=body; } }
 farg:
-  | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=LID COLON ty=type_expr { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 fres:
-  | ty=typ { mk_type_expression ($symbolstartofs,$endofs) ty }
+  | ty=type_expr { mk_type_expression ($symbolstartofs,$endofs) ty }
 
 fbody:
   | e=expr { mk_expression ($symbolstartofs,$endofs) e }
@@ -202,7 +206,7 @@ params:
   | LT params=my_separated_list(COMMA, param) GT { params }
 
 param:
-  | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=LID COLON ty=type_expr { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 io:
   | IN d=io_desc { (Types.IO_In, d) }
@@ -210,13 +214,13 @@ io:
   | INOUT d=io_desc { (Types.IO_Inout, d) }
 
 io_desc:
-  | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=LID COLON ty=type_expr { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 vars:
   | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { vars }
 
 var:
-  | id=LID COLON ty=typ { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | id=LID COLON ty=type_expr { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 transition:
   | prio=prio
@@ -254,19 +258,19 @@ lhs:
 (* GLOBALS *)
 
 global:
-  | INPUT id=id COLON ty=typ EQUAL st=stimuli
+  | INPUT id=id COLON ty=type_expr EQUAL st=stimuli
       { mk_global_decl
          ($symbolstartofs,$endofs)
          { Syntax.gd_name = id;
            Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
            Syntax.gd_desc = Syntax.GInp st } }
-  | OUTPUT id=id COLON ty=typ
+  | OUTPUT id=id COLON ty=type_expr
       { mk_global_decl
          ($symbolstartofs,$endofs)
          { Syntax.gd_name = id;
            Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
            Syntax.gd_desc = Syntax.GOutp } }
-  | SHARED id=id COLON ty=typ
+  | SHARED id=id COLON ty=type_expr
       { mk_global_decl
          ($symbolstartofs,$endofs)
          { Syntax.gd_name = id;
@@ -308,45 +312,44 @@ inst_param_value:
 array_val:
   | LBRACKET vs = separated_nonempty_list(COMMA,inst_param_value) RBRACKET { Array.of_list vs }
                    
-(* CORE TYPE EXPRESSIONs *)
+(* TYPE EXPRESSIONs *)
 
-typ:
-  | TYEVENT { Syntax.TEEvent }
-  | TYINT a=int_annot { Syntax.TEInt a }
-  | TYFLOAT { Syntax.TEFloat }
-  | TYBOOL { Syntax.TEBool }
-  | i=LID { Syntax.TEName i }
-  | t=typ TYARRAY LBRACKET s=array_size RBRACKET { Syntax.TEArray (s,t) }
+type_expr:
+  | TYEVENT { mk_type_expr (Type_expr.TEEvent) }
+  | TYINT a=int_annot { mk_type_expr (Type_expr.TEInt a) }
+  | TYFLOAT { mk_type_expr (Type_expr.TEFloat) }
+  | TYBOOL { mk_type_expr (Type_expr.TEBool) }
+  | i=LID { mk_type_expr (Type_expr.TEName i) }
+  | t=type_expr TYARRAY LBRACKET s=array_size RBRACKET { mk_type_expr (Type_expr.TEArray (s,t)) }
 
 int_annot:
     | (* Nothing *)
       { TA_none }
     | LT sz=type_index_expr GT
-        { TA_size (mk_type_index_expression ($symbolstartofs,$endofs) sz) }
+        { TA_size sz }
     | LT lo=type_index_expr COLON hi=type_index_expr GT
-        { TA_range (mk_type_index_expression ($symbolstartofs,$endofs) lo,
-                    mk_type_index_expression ($symbolstartofs,$endofs) hi) }
+        { TA_range (lo, hi) }
 
 array_size:
-    | sz = type_index_expr { mk_type_index_expression ($symbolstartofs,$endofs) sz }
+    | sz = type_index_expr { sz }
 
 type_index_expr:
   | c = int_const
-      { Syntax.TEConst c }
+      { Type_expr.TEConst c }
   | i = LID
-      { Syntax.TEVar i }
+      { Type_expr.TEVar i }
   | LPAREN e = type_index_expr RPAREN
       { e }
   | e1 = type_index_expr PLUS e2 = type_index_expr
-      { Syntax.TEBinop ("+", e1, e2) }
+      { Type_expr.TEBinop ("+", e1, e2) }
   | e1 = type_index_expr MINUS e2 = type_index_expr
-      { Syntax.TEBinop ("-", e1, e2) }
+      { Type_expr.TEBinop ("-", e1, e2) }
   | e1 = type_index_expr TIMES e2 = type_index_expr
-      { Syntax.TEBinop ("*", e1, e2) }
+      { Type_expr.TEBinop ("*", e1, e2) }
   | e1 = type_index_expr DIV e2 = type_index_expr
-      { Syntax.TEBinop ("/", e1, e2) }
+      { Type_expr.TEBinop ("/", e1, e2) }
   | e1 = type_index_expr MOD e2 = type_index_expr
-      { Syntax.TEBinop ("mod", e1, e2) }
+      { Type_expr.TEBinop ("mod", e1, e2) }
 
 (* EXPRESSIONS *)
 
@@ -357,6 +360,12 @@ expr:
       { mk_expr (EBinop (">>", e1, e2)) }
   | e1 = expr SHL e2 = expr
       { mk_expr (EBinop ("<<", e1, e2)) }
+  | e1 = expr LAND e2 = expr
+      { mk_expr (EBinop ("&", e1, e2)) }
+  | e1 = expr LOR e2 = expr
+      { mk_expr (EBinop ("|", e1, e2)) }
+  | e1 = expr LXOR e2 = expr
+      { mk_expr (EBinop ("^", e1, e2)) }
   | e1 = expr PLUS e2 = expr
       { mk_expr (EBinop ("+", e1, e2)) }
   | e1 = expr MINUS e2 = expr
@@ -397,6 +406,8 @@ expr:
       { mk_expr (EBitrange (a,i1,i2)) }
   | e1 = expr QMARK e2 = expr COLON e3 = expr
       { mk_expr (ECond (e1, e2, e3)) }
+  | e = expr COLONCOLON t = type_expr
+      { mk_expr (ECast (e, t)) }
 
 simple_expr:
   | v = LID

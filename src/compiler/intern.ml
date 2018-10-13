@@ -12,36 +12,8 @@
 (* Abstract syntax -> internal models *)
 
 open Syntax
-   
-(* Types from type expressions *)
 
-exception Unbound_expr_index of string * type_index_expr 
-
-let type_index_of_index_expr e =
-  let rec type_index_of = function 
-    TEConst c -> Types.Index.TiConst c
-  | TEVar v -> Types.Index.TiVar v
-  | TEBinop (op,e1,e2) -> Types.Index.TiBinop (op, type_index_of e1, type_index_of e2) in
-  type_index_of e.ti_desc
-    
-exception Unbound_type_ctor of string
-                             
-let rec type_of_type_expr tenv te = match te with
-  | TEBool -> Types.TyBool
-  | TEInt TA_none -> Types.TyInt Int_none
-  | TEInt (TA_size sz) -> Types.TyInt (Int_size (type_index_of_index_expr sz))
-  | TEInt (TA_range (lo,hi)) -> Types.TyInt (Int_range (type_index_of_index_expr lo, type_index_of_index_expr hi))
-  | TEFloat -> Types.TyFloat
-  | TEEvent -> Types.TyEvent
-  | TEName n ->
-     begin
-       try List.assoc n tenv.Typing.te_defns
-       with Not_found -> raise (Unbound_type_ctor n)
-     end
-  | TEArray (sz, te') -> TyArray (type_index_of_index_expr sz, type_of_type_expr tenv te')
-
-and type_of_type_expression tenv te = type_of_type_expr tenv te.te_desc
-
+let type_of_type_expression tenv te = Typing.type_of_type_expr tenv te.te_desc
 
 let rec mk_bool_expr e = match e.Expr.e_desc with
     | Expr.EInt 0 -> { e with Expr.e_desc = EBool false }

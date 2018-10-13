@@ -25,8 +25,13 @@ exception Unbound_id of string * string
 exception Typing_error of Expr.t * Types.typ * Types.typ 
 exception Type_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
 exception Internal_error of string (** where *)
+exception Illegal_cast of Expr.t
+exception Unbound_type_ctor of string
 
 (** {2 Typing} *)
+
+val type_of_type_expr : tenv -> Type_expr.t -> Types.typ
+  (** [type_expression env te] returns the type represented by type expression [te] in environment [env] *)
   
 val type_expression : tenv -> Expr.t -> Types.typ
   (** [type_expression env e] returns the type of expression [e] in environment [env], performing

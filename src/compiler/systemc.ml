@@ -64,9 +64,9 @@ let rec string_of_type t = match t with
   | TyEvent -> "bool"
   | TyBool -> "bool"
   | TyEnum cs -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
-  | TyInt (Int_size (TiConst sz)) -> "sc_uint<" ^ string_of_int sz ^ "> "
-  | TyInt (Int_range _) -> "int"  (* range annotations ignored here *)
-  | TyInt Int_none -> "int"
+  | TyInt (SzExpr1 (TiConst sz)) -> "sc_uint<" ^ string_of_int sz ^ "> "
+  | TyInt (SzExpr2  _) -> "int"  (* range annotations ignored here *)
+  | TyInt _ -> "int"
   | TyFloat -> if cfg.sc_double_float then "double" else "float"
   | _ -> raise (Error ("string_of_type", "unsupported type"))
 
@@ -136,6 +136,7 @@ let string_of_expr m e =
     | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]" (* [a] is always a local var *)
     | Expr.EBit (a,idx) -> let i = string_of level idx in string_of_int_range (access a) i i
     | Expr.EBitrange (a,hi,lo) -> string_of_int_range (access a) (string_of level hi) (string_of level lo)
+    | Expr.ECast (e,te) -> "(" ^ string_of_type te.te_typ ^ ")(" ^ string_of level e ^ ")"
   in
   string_of 0 e
 

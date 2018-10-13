@@ -74,28 +74,29 @@ type typ =
   | TyEvent
   | TyBool
   | TyEnum of string list
-  | TyInt of int_annot
+  | TyInt of siz                
   | TyFloat
   | TyArray of Index.t * typ    (* size, subtype *)
-  | TyVar of tvar               (* Only used internally for type checking *)
+  | TyVar of typ var            (* Only used internally for type checking *)
   | TyArrow of typ * typ        (* Only used internally for type checking *)
   | TyProduct of typ list       (* Only used internally for type checking *)
 
-and tvar =
+and siz =
+  | SzExpr1 of Index.t                  (* For ints: bit width, for arrays: dimension *)
+  | SzExpr2 of Index.t * Index.t        (* For ints: range, for arrays: dimensions *)
+  | SzVar of siz var   
+
+and 'a var =
   { stamp: string;             (* for debug only *)
-    mutable value: typ value }
+    mutable value: 'a value }
 
 and 'a value =
   | Unknown
   | Known of 'a
 
-and int_annot =
-  | Int_none
-  | Int_size of Index.t (* size in bits *)
-  | Int_range of Index.t * Index.t  (* min, max *)
-
 type typ_scheme =
-  { ts_params: tvar list;
+  { ts_tparams: (typ var) list;
+    ts_sparams: (siz var) list;
     ts_body: typ }
 
 (* Type variables *)
@@ -106,6 +107,17 @@ let new_stamp =
 let mk_type_var () = { value = Unknown; stamp=new_stamp () }
 let new_type_var () = TyVar (mk_type_var ())
 
+let mk_size_var () = { value = Unknown; stamp=new_stamp () }
+let new_size_var () = SzVar (mk_size_var ())
+
+(* Builders *)
+
+let type_int = function
+    [] -> TyInt (new_size_var ())
+  | [w] -> TyInt (SzExpr1 (TiConst w))
+  | [lo;hi] -> TyInt (SzExpr2 (TiConst lo, TiConst hi))
+  | _ -> invalid_arg "Types.type_int"
+                
 let rec type_repr = function
   | TyVar ({value = Known ty1} as var) ->
       let ty = type_repr ty1 in
@@ -113,16 +125,30 @@ let rec type_repr = function
       ty
   | ty -> ty
 
-and real_type ty = 
+let rec size_repr = function
+  | SzVar ({value = Known sz1} as var) ->
+      let sz = size_repr sz1 in
+      var.value <- Known sz;
+      sz
+  | sz -> sz
+
+(* Real type : path compression + unabbreviation *)
+
+let rec real_type ty = 
   match type_repr ty with
   | TyArrow (ty1,ty2) -> TyArrow (real_type ty1, real_type ty2)
   | TyProduct ts  -> TyProduct (List.map real_type ts)        
   | TyArray (sz, ty') -> TyArray (sz, real_type ty')
   | TyVar { value=Known ty'} -> ty'
+  | TyInt sz -> TyInt (real_size sz)
   | ty -> ty
 
+and real_size sz = 
+  match size_repr sz with
+  | SzVar { value=Known sz'} -> sz'
+  | sz -> sz
 
-let copy_type tvbs ty =
+let rec copy_type tvbs svbs ty =
   let rec copy ty = 
     match type_repr ty with
     | TyVar var as ty ->
@@ -137,15 +163,28 @@ let copy_type tvbs ty =
         TyProduct (List.map copy ts)
     | TyArray (sz, ty') ->
          TyArray (sz, copy ty')
+    | TyInt sz ->
+         TyInt (copy_size ty svbs sz)
     | ty -> ty in
   copy ty
 
+and copy_size ty svbs sz =
+  match size_repr sz with
+  | SzVar var as sz ->
+      begin try
+        List.assq var svbs 
+      with Not_found ->
+        sz
+      end
+  | sz -> sz
+
 let type_instance ty_sch =
-  match ty_sch.ts_params with
-  | [] -> ty_sch.ts_body
-  | params ->
-      let unknowns = List.map (fun var -> (var, new_type_var())) params in
-      copy_type unknowns ty_sch.ts_body
+  match ty_sch.ts_tparams, ty_sch.ts_sparams with
+  | [], [] -> ty_sch.ts_body
+  | tparams, sparams ->
+      let unknown_ts = List.map (fun var -> (var, new_type_var())) tparams in
+      let unknown_ss = List.map (fun var -> (var, new_size_var())) sparams in
+      copy_type unknown_ts unknown_ss ty_sch.ts_body
 
 (* Type unification - the classical algorithm *)
 
@@ -172,16 +211,35 @@ let rec unify ty1 ty2 =
       List.iter2 unify ts1 ts2
   | TyArray (sz1, ty1), TyArray (sz2, ty2) when sz1 = sz2 ->
      unify ty1 ty2
-  | TyInt (Int_size sz1), TyInt (Int_size sz2) ->
-     if sz1 <> sz2 then raise (TypeConflict(val1, val2))
-  | TyInt (Int_range (lo1,hi1)), TyInt (Int_range (lo2,hi2)) ->
-     if lo1 <> lo2 || hi1 <> hi2 then raise (TypeConflict(val1, val2))
-  | TyInt _, TyInt _ -> ()
+  | TyInt sz1, TyInt sz2 ->
+     unify_size (val1,val2) sz1 sz2
   | TyBool, TyBool -> ()
   | TyEvent, TyEvent  -> ()
   | TyEnum cs1, TyEnum cs2 when cs1=cs2 -> ()
   | _, _ ->
       raise (TypeConflict(val1, val2))
+
+and unify_size (ty1,ty2) sz1 sz2 =
+  let val1 = real_size sz1
+  and val2 = real_size sz2 in
+  if val1 == val2 then
+    ()
+  else
+  match (val1, val2) with
+    | SzVar var1, SzVar var2 when var1 == var2 ->  (* This is hack *)
+        ()
+    | SzVar var, sz ->
+        occur_check_size (ty1,ty2) var sz;
+        var.value <- Known sz
+    | sz, SzVar var ->
+        occur_check_size (ty1,ty2) var sz;
+        var.value <- Known sz
+    | SzExpr1 (TiConst w1), SzExpr1 (TiConst w2) when w1 = w2 ->
+        ()
+    | SzExpr2 (TiConst lo1, TiConst hi1), SzExpr2 (TiConst lo2, TiConst hi2) when lo1 = lo2 && hi1 = hi2 ->
+        ()
+    | _, _ ->
+        raise (TypeConflict(ty1, ty2))
 
 and occur_check var ty =
   let rec test t =
@@ -192,18 +250,27 @@ and occur_check var ty =
     | _ -> ()
   in test ty
 
+and occur_check_size (ty1,ty2) var sz =
+  let rec test s =
+    match size_repr s with
+    | SzVar var' ->
+        if var == var' then raise(TypeCircularity(ty1,ty2))
+    | _ ->
+        ()
+  in test sz
 
 let ivars_of = function
-  | TyInt (Int_size sz) -> VarSet.elements (Index.vars_of sz)
-  | TyInt (Int_range (lo,hi)) -> VarSet.elements (VarSet.union (Index.vars_of lo) (Index.vars_of hi))
+  | TyInt (SzExpr1 sz) -> VarSet.elements (Index.vars_of sz)
+  | TyInt (SzExpr2 (lo,hi)) -> VarSet.elements (VarSet.union (Index.vars_of lo) (Index.vars_of hi))
+  | TyArray (sz, ty) -> VarSet.elements (Index.vars_of sz)
   | _ -> []
 
 (* Index manipulation *)
        
 let subst_indexes env ty =
     match ty with
-    | TyInt (Int_size sz) -> TyInt (Int_size (Index.subst env sz))
-    | TyInt (Int_range (hi, lo)) -> TyInt (Int_range (Index.subst env hi, Index.subst env lo))
+    | TyInt (SzExpr1 sz) -> TyInt (SzExpr1 (Index.subst env sz))
+    | TyInt (SzExpr2 (hi,lo)) -> TyInt (SzExpr2 (Index.subst env hi, Index.subst env lo))
     | TyArray (sz, ty') -> TyArray (Index.subst env sz, ty')
     | _ -> ty
 
@@ -217,13 +284,7 @@ let rec type_equal ~strict t1 t2 =
   match real_type t1, real_type t2 with
   | TyBool, TyBool -> true
   | TyEvent, TyEvent -> true
-  | TyInt (Int_size sz1), TyInt (Int_size sz2) -> if strict then sz1=sz2 else true
-  | TyInt (Int_range (lo1,hi1)), TyInt (Int_range (lo2,hi2)) -> if strict then lo1=lo2 && hi1=hi2 else true
-  | TyInt (Int_size _), TyInt Int_none
-  | TyInt (Int_range _), TyInt Int_none
-  | TyInt Int_none, TyInt (Int_size _)
-  | TyInt Int_none, TyInt (Int_range _) -> if strict then false else true
-  | TyInt Int_none, TyInt Int_none -> true
+  | TyInt sz1, TyInt sz2 -> size_equal ~strict:strict sz1 sz2
   | TyFloat, TyFloat -> true
   | TyEnum cs1, TyEnum cs2 ->
      if strict then List.sort compare cs1 = List.sort compare cs2
@@ -238,6 +299,13 @@ let rec type_equal ~strict t1 t2 =
      sz1 = sz2 && type_equal ~strict ty1 ty2
   | _, _ -> false
 
+and size_equal ~strict s1 s2 =
+  match real_size s1, real_size s2 with
+  | SzExpr1 w1, SzExpr1 w2 -> w1 = w2
+  | SzExpr2 (lo1,hi1), SzExpr2 (lo2,hi2) -> lo1 = lo2 && hi1 = hi2
+  | SzVar v1, SzVar v2 -> v1 == v2
+  | _, _ -> false
+    
 (* Accessors *)
                  
 let rec enums_of ty = match ty with
@@ -262,13 +330,17 @@ let rec string_of_type t = match t with
   | TyEvent -> "event"
   | TyBool -> "bool"
   | TyEnum cs -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
-  | TyInt Int_none -> "int"
-  | TyInt (Int_size sz) -> "int<" ^ Index.to_string sz ^ ">"
-  | TyInt (Int_range (lo,hi)) -> "int<" ^ string_of_range (lo,hi) ^ ">"
+  | TyInt sz -> "int<" ^ string_of_size sz ^ ">"
   | TyFloat -> "float"
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 
   | TyArray (sz,ty') -> string_of_type ty' ^ " array[" ^ Index.to_string sz ^ "]"
+
+and string_of_size sz =
+  match size_repr sz with
+  | SzVar v -> v.stamp 
+  | SzExpr1 e -> Index.to_string e
+  | SzExpr2 (e1,e2) -> Index.to_string e1 ^ ":" ^ Index.to_string e2
 
 let string_of_type_scheme ts = "[]" ^ string_of_type ts.ts_body (* TOFIX *)

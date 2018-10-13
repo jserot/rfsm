@@ -193,15 +193,32 @@ the type of integers whose value ranges from \verb|min| to \verb|max|. The size 
 can be constants or expressions whose value can be computed as compile time
 (expressions involving parameter values, as exemplified line 9 in Listing~\ref{lst:rfsm-gensig}).
 
-\step The operations on values of type \texttt{int} are~:
-\verb|+|", "\verb|-|", "\verb|*|", "\verb|/|", "\verb|%|" (modulo), "\verb|<<|" (shift left) and
-"\verb|>>|" (shift right).
+\step Supported operations on values of type \texttt{int} are described in Table~\ref{tab:int-ops}.
+If \verb|n| is an integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]|
+designates the value represented by the bits \verb|hi|...\verb|lo| in the binary representation of
+\verb|n|. Bit ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The
+syntax \verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|. The \emph{resize}
+operator (\verb|::|) can be used to combine integers with different sizes (for example, if \verb|n|
+has type \verb|int<16>| and \verb|m| has type \verb|int<8>|, writing \verb|n:=n+m| is not allowed
+and mus be written, instead, \verb|n:=n+m::16|. The resize factor must be a constant. Note that the
+logical ``or'' operator is denoted ``\verb+||+'' because the single ``\verb+|+'' is already used in
+the syntax.
 
-\step Integers can be manipulated at the bit level using \emph{bit ranges}. If \verb|n| is an
-integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]| designates the
-value represented by the bits \verb|hi|...\verb|lo| in the binary representation of \verb|n|. Bit
-ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The syntax
-\verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|.
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|} \hline
+\verb|+|, \verb|-|, \verb|*|, \verb|/|, \verb|%| (modulo) & arithmetic operations \\ \hline 
+\verb|>>|, \verb|<<| & (logical) shift right and left \\ \hline 
+\verb|&|, \verb+||+, \verb|^| & bitwise and, or and xor \\ \hline 
+\verb|[.:.]| & bit range extraction (ex: \verb|n:=m[5:3]|) \\ \hline 
+\verb|[.]| & single bit extraction (ex: \verb|b:=m[4]|) \\ \hline 
+\verb|::| & resize (ex: \verb|n::8|) \\ \hline 
+\end{tabular}
+\label{tab:int-ops}
+\caption{Builtin operations on integers}
+\end{center}
+\end{table}
+
 
 \step The operations on values of type \texttt{float} are : "\verb|+.|", "\verb|-.|", "\verb|*.|" and
 "\verb|/.|" (the dot suffix is required to distinguish them from the corresponding operations on

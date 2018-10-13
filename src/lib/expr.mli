@@ -28,6 +28,7 @@ and e_desc =
   | EArr of string * t        (** t[i] when t is an array *)
   | EBit of string * t        (** t[i] when t is an int *)
   | EBitrange of string * t * t   (** t[hi:lo] when t is an int *)
+  | ECast of t * Type_expr.t
 
 and e_val = 
   | Val_int of int

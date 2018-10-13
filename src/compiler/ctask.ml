@@ -27,6 +27,8 @@ let cfg = {
   recvd_ev_name = "received";
   }
 
+exception Ctask_error of string * string  (* where, msg *)
+
 let string_of_type t = match t with 
   | TyEvent -> "event"
   | TyBool -> "bool"
@@ -83,7 +85,8 @@ let rec string_of_expr e =
   | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
   | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
   | Expr.EBit (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
-  | Expr.EBitrange (a,hi,lo) -> a ^ "[" ^ string_of level hi ^ ":" ^ string_of level lo ^ "]" in
+  | Expr.EBitrange (a,hi,lo) -> a ^ "[" ^ string_of level hi ^ ":" ^ string_of level lo ^ "]" 
+  | Expr.ECast (e,te) -> "(" ^ string_of_type te.te_typ ^ ")(" ^ string_of level e ^ ")" in
   string_of 0 e
 
 and string_of_op = function

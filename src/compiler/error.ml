@@ -48,10 +48,10 @@ let io_mismatch loc what id =
 let unbound_expr_index id expr  = 
   eprintf "The identifier %s is unbound in index expression:  %s.\n" 
   id
-  (Syntax.string_of_type_index expr);
+  (Type_expr.string_of_type_index expr);
   raise Model_error
 
 let illegal_expr_index id expr  = 
   eprintf "Illegal type index expression:  %s.\n" 
-  (Syntax.string_of_type_index expr);
+  (Type_expr.string_of_type_index expr);
   raise Model_error

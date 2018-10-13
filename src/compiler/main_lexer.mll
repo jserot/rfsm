@@ -68,23 +68,26 @@ rule main = parse
   | "=" { EQUAL }
   | ":=" { COLEQ }
   | "|" { BAR }
-  (* | "||" { BARBAR } *)
   | "!="    { NOTEQUAL }
   | '>'    { GT }
   | '<'    { LT }
   | ">="    { GTE }
   | "<="    { LTE }
-| "+." { FPLUS }
-| "-." { FMINUS }
-| "*." { FTIMES }
-| "/." { FDIV }
-| '+' { PLUS }
-| '-' { MINUS }
-| '*' { TIMES }
-| '/' { DIV }
-| '%' { MOD }
-| ">>" { SHR }
-| "<<" { SHL }
+  | "+." { FPLUS }
+  | "-." { FMINUS }
+  | "*." { FTIMES }
+  | "/." { FDIV }
+  | '+' { PLUS }
+  | '-' { MINUS }
+  | '*' { TIMES }
+  | '/' { DIV }
+  | '%' { MOD }
+  | '&' { LAND }
+  | "||" { LOR }
+  | '^' { LXOR }
+  | ">>" { SHR }
+  | "<<" { SHL }
+  | "::" { COLONCOLON }
   | eof { EOF }
   | _
       { raise (Lexical_error(Illegal_character,
