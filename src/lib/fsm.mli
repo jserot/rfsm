@@ -141,6 +141,7 @@ exception Internal_error of string (** where *)
 exception Invalid_state of string * string (** FSM, id *)
 exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
 exception Invalid_parameter of string * string (** FSM, name *)
+exception IllegalAction of inst * Action.t
 
 (** {2 Dynamic behavior} *)
 

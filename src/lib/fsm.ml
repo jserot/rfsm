@@ -433,17 +433,19 @@ let rec replace_assoc' k v env =
   
 type fsm_env = (string * Expr.e_val) list
 
+exception IllegalAction of inst * Action.t
+                    
 let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
      a list of responses [resps], and an updated (local) environment [env']. *)
   let array_upd id idx v = 
     match List.assoc id env, Eval.eval env idx, v with
     | Expr.Val_array vs, Expr.Val_int i, _ -> Expr.Val_array (Expr.array_update id vs i v), i
-    | _, _, _ -> failwith "Fsm.do_action.array_upd" in
+    | _, _, _ -> raise (IllegalAction (f,act)) in
   let set_bits id idx1 idx2 v = 
     match List.assoc id env, Eval.eval env idx1, Eval.eval env idx2, v with
     | Expr.Val_int x, Expr.Val_int hi, Expr.Val_int lo, Expr.Val_int b -> Expr.Val_int (Intbits.set_bits hi lo x b)
-    | _, _, _, _ -> failwith "Fsm.do_action.set_bits" in
+    | _, _, _, _ -> raise (IllegalAction (f,act)) in
   match act with
     Action.Assign (lhs, expr) ->
       let id = Action.lhs_name lhs in

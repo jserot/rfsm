@@ -140,6 +140,10 @@ with
 | Fsm.Undeterminate (m,id,t) ->
     eprintf "Error when simulating FSM %s: unknown value for identifier %s at t=%d\n" m.Fsm.f_name id t;
     flush stderr; exit 7
+| Fsm.IllegalAction(m,a) ->
+   eprintf "Error when executing action \"%s\" within FSM \"%s\" (check for undefined values...)\n"
+     (Action.to_string a) m.Fsm.f_name;
+   flush stderr; exit 7
 | Simul.OverReaction t ->
     eprintf "Simulation loops (over-reaction) at t=%d\n" t; flush stderr; exit 5
 | Cmodel.Error (m,msg) ->
