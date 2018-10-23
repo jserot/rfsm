@@ -325,22 +325,25 @@ let subtype_of = function
 
 let string_of_range (lo,hi) = Index.to_string lo ^ ":" ^ Index.to_string hi
 
-let rec string_of_type t = match t with 
+let rec string_of_type ?(szvars=false) t = match t with 
   | TyUnknown -> "<unknown>"
   | TyEvent -> "event"
   | TyBool -> "bool"
   | TyEnum cs -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
-  | TyInt sz -> "int<" ^ string_of_size sz ^ ">"
+  | TyInt sz -> "int" ^ string_of_size ~szvars sz
   | TyFloat -> "float"
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 
   | TyArray (sz,ty') -> string_of_type ty' ^ " array[" ^ Index.to_string sz ^ "]"
 
-and string_of_size sz =
-  match size_repr sz with
-  | SzVar v -> v.stamp 
+and string_of_size ?(szvars=false) sz =
+  let s = match size_repr sz with
+  | SzVar v -> if szvars then v.stamp else ""
   | SzExpr1 e -> Index.to_string e
-  | SzExpr2 (e1,e2) -> Index.to_string e1 ^ ":" ^ Index.to_string e2
+  | SzExpr2 (e1,e2) -> Index.to_string e1 ^ ":" ^ Index.to_string e2 in
+  match s with
+  | "" -> ""
+  | _ -> "<" ^ s ^ ">"
 
 let string_of_type_scheme ts = "[]" ^ string_of_type ts.ts_body (* TOFIX *)

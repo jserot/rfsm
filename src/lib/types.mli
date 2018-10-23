@@ -115,4 +115,4 @@ val type_instance: typ_scheme -> typ
 
 val string_of_type_scheme : typ_scheme -> string
 
-val string_of_type : typ -> string
+val string_of_type : ?szvars:bool -> typ -> string
