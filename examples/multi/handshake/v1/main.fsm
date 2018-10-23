@@ -1,0 +1,50 @@
+# Synchronisation de deux automates par un protocole de type handshake
+# CF par ex [1] "Architectures Logicielles et Materielles". Amblard et al. Dunod. Sec 3.2 pp 125-128
+# v1. Horloges emetteur et recepteur distinctes
+
+type t_data = int # Par ex
+
+fsm model Emetteur(
+     in h: event,
+     in r_rdy: bool,
+     out data: t_data,
+     out e_rdy: bool)
+  {
+  states: E1, E2;
+  vars: cnt: int;
+  trans:
+    E1 -- h.r_rdy=1 | data:=cnt; cnt:=cnt+1; e_rdy:=1 -> E2,
+    E2 -- h.r_rdy=0 | e_rdy:=0 -> E1;
+  itrans: | e_rdy:=0; cnt:=1 -> E1;
+  }
+
+fsm model Recepteur(
+     in h: event,
+     in e_rdy: bool,
+     in data: t_data,
+     out r_rdy: bool,
+     out dout: t_data)
+  {
+  states: R1, R2;
+  trans:
+    R1 -- h.e_rdy=1 | dout:=data; r_rdy:=0 -> R2,
+    R2 -- h.e_rdy=0 | r_rdy:=1 -> R1;
+  itrans: | r_rdy:=1 -> R1;
+  }
+
+# Scenario 1 : recepteur plus lent que l'emetteur
+# input He:event = periodic(10,10,300)
+# input Hr:event = periodic(24,15,300)
+
+# Scenario 2 : recepteur plus rapide que l'emetteur
+input He:event = periodic(10,10,300)
+input Hr:event = periodic(4,15,300)
+
+shared e_rdy:bool
+shared r_rdy:bool
+shared v:t_data
+
+output r_data: t_data
+
+fsm e = Emetteur(He,r_rdy,v,e_rdy)
+fsm r = Recepteur(Hr,e_rdy,v,r_rdy,r_data)
