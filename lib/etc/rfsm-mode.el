@@ -4,8 +4,8 @@
 (setq rfsm-font-lock-keywords
       (let* (
             ;; define several category of keywords
-            (x-keywords '("type" "function" "fsm" "model" "in" "out" "inout" "states" "vars" "trans" "itrans" "input" "output" "shared"))
-            (x-types '("int" "bool" "float" "event", "array"))
+            (x-keywords '("type" "function" "constant" "fsm" "model" "in" "out" "inout" "states" "vars" "trans" "itrans" "input" "output" "shared"))
+            (x-types '("int" "bool" "float" "event" "array"))
             (x-constants '("true" "false"))
             (x-functions '("periodic" "sporadic" "value_changes" "return" ))
 

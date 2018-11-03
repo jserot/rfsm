@@ -3,7 +3,10 @@ COMPILER
 - bug using an undeclared id within a transition should not raise an exception in Intern.mk_fsm_model but
   should be detected before (at the TC level) 
 - support for enum values in the SystemC and VHDL backends
+- support for variant types 
+- support for global constants (esp useful for arrays)
 - support for synchronous actions in CTask and SystemC
+- multiple names style decls (ex: output o1,o2,o3: int)
 - bound check for ranged integers
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - var and output attr on states (Moore-style)
@@ -13,7 +16,7 @@ COMPILER
 - man page for rfsmc
 - FreeRTOS (or other RTOS) specialized C-backend
 - SCXML backend (www.w3.org/TR/scxml, Yakindu, ...)
-- SMV backend (with state predicated for connection to model-checking tools)
+- SMV backend (with predicated states for connection to model-checking tools)
 - foreign function interfacing
 - defactorisation wrt. variable(s) ?
 - functorization (FSM module is parametized on State, Condition and Action) ?
