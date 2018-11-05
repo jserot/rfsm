@@ -17,6 +17,7 @@ exception Illegal_application of Expr.t
 exception Illegal_array_access of Expr.t
 exception Illegal_bit_range_access of Expr.t
 exception Invalid_array_access of string * int (* array name, index value *)
+exception Non_static_expr of Expr.t * Expr.t
 
 type env = (string * Expr.e_val) list
 

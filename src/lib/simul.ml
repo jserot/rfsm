@@ -34,6 +34,7 @@ type context = {  (* The simulator state *)
   c_inputs: (string * (Types.typ * Expr.e_val)) list;   (* Global inputs *)
   c_outputs: (string * (Types.typ * Expr.e_val)) list;  (* Global outputs *)
   c_fns: (string * (Types.typ * Expr.e_val)) list;      (* Global functions *)
+  c_csts: (string * (Types.typ * Expr.e_val)) list;     (* Global constants *)
   c_vars: (string * (Types.typ * Expr.e_val)) list;     (* Shared variables *)
   c_evs: (string * (Types.typ * Expr.e_val)) list;      (* Shared events *)
   c_fsms: Fsm.inst list * Fsm.inst list;                (* FSMs, partitioned into active and inactive subsets *)
@@ -84,6 +85,14 @@ let string_of_event (lhs,v) = match lhs with
 
 let string_of_events evs = "[" ^ ListExt.to_string string_of_event "," evs ^ "]"
 
+let mk_fsm_env ctx = {
+    Fsm.fe_inputs = ctx.c_inputs;
+    Fsm.fe_csts = ctx.c_csts;
+    Fsm.fe_fns = ctx.c_fns;
+    Fsm.fe_vars = ctx.c_vars;
+    Fsm.fe_evs = ctx.c_evs
+  }
+
 let rec react t ctx stimuli =
   let is_reentrant =     (* A reentrant stimulus is one which can trigger a micro-reaction *)
     function
@@ -99,7 +108,7 @@ let rec react t ctx stimuli =
   let still_active f = not f.Fsm.f_has_reacted in
   let micro_react ctx stimuli =
     let ctx' = List.fold_left update_ctx ctx stimuli in 
-    let genv = List.map erase_type (ctx'.c_inputs @ ctx'.c_fns @ ctx'.c_vars @ ctx'.c_evs) in
+    let genv = mk_fsm_env ctx' in
     let fsms', resps =
       List.split (List.map (Fsm.react t genv) (fst ctx'.c_fsms)) in (* Only active FSMs play here.. *)
     (* TODO : check coherency for this set of resps (for ex that no global var is assigned diff value.. ) *)
@@ -159,6 +168,9 @@ let run m =
   let mk_gfun (id,(ty,desc)) = match desc with
       MFun (args,body) -> id, (ty, Expr.Val_fn (args, body))
     | _ -> failwith "Simul.run: cannot build global function description" in
+  let mk_gcst (id,(ty,desc)) = match desc with
+      MConst v -> id, (ty, v)
+    | _ -> failwith "Simul.run: cannot build global constant description" in
   let ctx0, resps0 =
       let shared_vars, shared_evs = List.fold_left extract_shared ([],[]) m.m_shared in
       let init_ctx = {
@@ -166,10 +178,11 @@ let run m =
           c_inputs = List.map mk_ival m.m_inputs; 
           c_outputs = List.map mk_ival m.m_outputs; 
           c_fns = List.map mk_gfun m.m_fns; 
+          c_csts = List.map mk_gcst m.m_consts; 
           c_vars = shared_vars;
           c_evs = shared_evs;
           c_fsms = m.m_fsms, [] } in
-      let init_env = List.map erase_type (init_ctx.c_inputs @ init_ctx.c_fns @ init_ctx.c_vars @ init_ctx.c_evs) in
+      let init_env = mk_fsm_env init_ctx in
       let fsms', resps =
         List.split (List.map (Fsm.init_fsm init_env) (fst init_ctx.c_fsms)) in 
       let resps' = List.concat resps in
@@ -193,12 +206,13 @@ let string_of_fsm f = (* short version for context printing *)
   | vs -> f.f_name ^ "={st=" ^ f.f_state ^ ";vars=" ^ ListExt.to_string string_of_var "," f.f_vars ^ "}"
 
 let dump_context c = 
-  Printf.printf "t=%4d: active_fsms=[%s] inactive_fsms=[%s] inps=[%s] outps=[%s] fns=[%s] shared_vars=[%s] shared_evs=[%s]\n" 
+  Printf.printf "t=%4d: active_fsms=[%s] inactive_fsms=[%s] inps=[%s] outps=[%s] csts=[%s] fns=[%s] shared_vars=[%s] shared_evs=[%s]\n" 
     c.c_date
     (ListExt.to_string string_of_fsm " " (fst c.c_fsms))
     (ListExt.to_string string_of_fsm " " (snd c.c_fsms))
     (ListExt.to_string string_of_comp " " c.c_inputs)
     (ListExt.to_string string_of_comp " " c.c_outputs)
+    (ListExt.to_string string_of_comp " " c.c_csts)
     (ListExt.to_string string_of_comp " " c.c_fns)
     (ListExt.to_string string_of_comp " " c.c_vars)
     (ListExt.to_string string_of_comp " " c.c_evs)

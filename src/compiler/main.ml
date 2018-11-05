@@ -67,14 +67,14 @@ try
   | Some Options.SystemC ->
        Systemc.check_allowed m;
        check_dir !Options.target_dir;
-       if m.Sysm.m_fns <> [] then Systemc.dump_globals ~dir:!Options.target_dir m;
+       if m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] then Systemc.dump_globals ~dir:!Options.target_dir m;
        Systemc.dump_model ~dir:!Options.target_dir m;
        Systemc.dump_testbench ~dir:!Options.target_dir m;
        Systemc.dump_makefile ~dir:!Options.target_dir m
   | Some Options.Vhdl ->
        Vhdl.check_allowed m;
        check_dir !Options.target_dir;
-       if m.Sysm.m_fns <> [] then Vhdl.dump_globals ~dir:!Options.target_dir m;
+       if m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] then Vhdl.dump_globals ~dir:!Options.target_dir m;
        Vhdl.dump_model ~dir:!Options.target_dir m;
        Vhdl.dump_testbench ~dir:!Options.target_dir m;
        Vhdl.dump_makefile ~dir:!Options.target_dir m
@@ -99,6 +99,8 @@ with
     eprintf "Unbound type index: %s\n" v; flush stderr; exit 2
 | Types.Index.Illegal_op op -> 
     eprintf "Illegal operation on type index: %s\n" op; flush stderr; exit 2
+| Typing.Unbound_id (what,id) -> 
+    eprintf "Cannot retrieve type for %s \"%s\"\n" what id; flush stderr; exit 2
 | Typing.Unbound_type_ctor c -> 
     eprintf "Unbound type constructor: %s\n" c; flush stderr; exit 2
 | Builtins.Unbound_id id -> 
@@ -109,6 +111,9 @@ with
     eprintf "Illegal expression: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Illegal_application e -> 
     eprintf "Illegal application: %s\n" (Expr.to_string e); flush stderr; exit 3
+| Eval.Non_static_expr (e,e') -> 
+   eprintf "The sub-expression \"%s\" in expression \"%s\" cannot be statically evaluated\n"
+     (Expr.to_string e') (Expr.to_string e); flush stderr; exit 3
 | Typing.Illegal_cast e -> 
     eprintf "Illegal type cast: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Illegal_array_access e -> 

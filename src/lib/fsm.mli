@@ -146,7 +146,13 @@ exception IllegalAction of inst * Action.t
 (** {2 Dynamic behavior} *)
 
 type lenv = (string * Expr.e_val) list
-type genv = (Ident.t * Expr.e_val) list
+type genv = {
+  fe_inputs: (string * (Types.typ * Expr.e_val)) list;   (** Global inputs *)
+  fe_csts: (string * (Types.typ * Expr.e_val)) list;     (** Global constants *)
+  fe_fns: (string * (Types.typ * Expr.e_val)) list;      (** Global functions *)
+  fe_vars: (string * (Types.typ * Expr.e_val)) list;     (** Shared variables *)
+  fe_evs: (string * (Types.typ * Expr.e_val)) list;      (** Shared events *)
+  }
 
 type response = lhs * Expr.e_val
 
@@ -156,7 +162,7 @@ and lhs =
 
 val react :
   Types.date ->
-  lenv ->
+  genv ->
   inst ->
   inst * response list
 
@@ -170,7 +176,7 @@ val check_cond : inst -> lenv -> Condition.t -> bool
 
 val is_event_set : lenv -> Condition.event -> bool
 
-val init_fsm : lenv -> inst -> inst * response list
+val init_fsm : genv -> inst -> inst * response list
 
 (** {2 Printers} *)
 

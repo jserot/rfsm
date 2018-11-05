@@ -294,7 +294,7 @@ let type_check_instance tenv f =
   List.iter type_check_transition (Repr.transitions f.f_repr);
   List.iter type_check_itransition (Repr.itransitions f.f_repr)
 
-let sanity_check f =
+let sanity_check tenv f =
   let isymbols, osymbols =
     List.fold_left
       (fun (ivs,ovs) (_,(cond,acts,_,_),_) ->
@@ -312,10 +312,18 @@ let sanity_check f =
       (function s -> if not (List.mem_assoc s ss') then raise (Undef_symbol(f.f_name,kind,s)))
       ss in
   let get l = List.map (function (id,(ty,_)) -> id, ty) l in
-  (* Check that each input symbol occuring in transition rules is declared as input or local variable *)
+  let global_consts =
+    List.fold_left  
+      (fun acc (id,ty) ->
+        match ty with
+        | Types.TyInt _ | Types.TyFloat | TyArray (_,_) -> (id,ty) :: acc
+        | _ -> acc)
+      []
+      tenv.Typing.te_vars in
+  (* Check that each input symbol occuring in transition rules is declared as input, local variable or global constant *)
   check_symbols "input or local variable"
     isymbols
-    (get f.f_inps @ get f.f_inouts @ get f.f_vars @ get f.f_params);
+    (get f.f_inps @ get f.f_inouts @ get f.f_vars @ get f.f_params @ global_consts);
   (* Check that each output symbol occuring in transition rules is declared as output or local variable *)
   check_symbols "output or local variable"
     osymbols
@@ -402,7 +410,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
         f_state = "";  (* current state is not defined until the initial transition has been carried out *)
         f_has_reacted = false;
       } in
-    sanity_check r;
+    sanity_check tenv r;
     type_check_instance tenv r;
     r
 
@@ -413,7 +421,15 @@ exception Undeterminate of inst * string * Types.date
 exception NonDetTrans of inst * transition list * Types.date
 
 type lenv = (string * Expr.e_val) list
-type genv = (Ident.t * Expr.e_val) list
+(* type genv = (Ident.t * Expr.e_val) list *)
+
+type genv = {
+  fe_inputs: (string * (Types.typ * Expr.e_val)) list;   (** Global inputs *)
+  fe_csts: (string * (Types.typ * Expr.e_val)) list;     (** Global constants *)
+  fe_fns: (string * (Types.typ * Expr.e_val)) list;      (** Global functions *)
+  fe_vars: (string * (Types.typ * Expr.e_val)) list;     (** Shared variables *)
+  fe_evs: (string * (Types.typ * Expr.e_val)) list;      (** Shared events *)
+  }
 
 (* type response = Ident.t * Expr.e_val *)
 type response = lhs * Expr.e_val
@@ -428,10 +444,6 @@ let rec replace_assoc' k v env =
     [] -> []
   | (k',(x,v'))::rest -> if k=k' then (k,(x,v)) :: repl rest else (k',(x,v')) :: repl rest in
   repl env
-
-(* FSM environment *)
-  
-type fsm_env = (string * Expr.e_val) list
 
 exception IllegalAction of inst * Action.t
                     
@@ -551,18 +563,18 @@ let do_actions env f acts =
 
 let mk_local_env f genv = 
   let get_value id =
-      try List.assoc (f.f_l2g id) genv
+      try snd  (List.assoc (f.f_l2g id) (genv.fe_inputs @ genv.fe_vars @ genv.fe_evs))
       with Not_found -> raise (Internal_error "Fsm.mk_local_env") in (* should not happen *)
-  let extract_global_fns acc (id, v) = match v with
-      Expr.Val_fn _ -> (id,v) :: acc
-    | _ -> acc in
+  (* let extract_global_fns acc (id, v) = match v with
+   *     Expr.Val_fn _ -> (id,v) :: acc
+   *   | _ -> acc in *)
   List.map (function (id,ty) -> id, get_value id) (f.f_inps @ f.f_inouts)
   @ List.map erase_type f.f_vars
-  @ List.fold_left extract_global_fns [] genv 
+  @ List.map erase_type (genv.fe_csts @ genv.fe_fns)
 
 let rec react t genv f =
   (* Compute the reaction, at time [t] of FSM [f] in a global environment [genv].
-     The global environment contains the values of global inputs, shared objects and global functions.
+     The global environment contains the values of global inputs, shared objects and global functions/constants.
      Return an updated fsm and list of responses consisting of
      - updates to global outputs or shared objects
      - updates to local variables (including state move) *)

@@ -51,6 +51,19 @@ and fn_decl = {
   ff_res: type_expression;
   ff_body: expression;
   }
+
+(* Constant declarations *)
+
+type cst_declaration = {
+  cst_desc: cst_decl;
+  cst_loc: Location.location;
+  }
+
+and cst_decl = {
+  cc_name: string;
+  cc_typ: type_expression;
+  cc_val: Expr.e_val;
+  }
             
 (* FSM declarations *)
 
@@ -128,12 +141,13 @@ and fsm_inst_desc = {
 type program = {
   p_type_decls: type_declaration list;
   p_fn_decls: fn_declaration list;
+  p_cst_decls: cst_declaration list;
   p_fsm_models: fsm_model list;
   p_globals: global_decl list;
   p_fsm_insts: fsm_inst list
   }
 
-let empty={ p_type_decls=[]; p_fn_decls=[]; p_fsm_models=[]; p_globals=[]; p_fsm_insts=[] }
+let empty={ p_type_decls=[]; p_fn_decls=[]; p_cst_decls=[]; p_fsm_models=[]; p_globals=[]; p_fsm_insts=[] }
 
 (* Printing *)
 

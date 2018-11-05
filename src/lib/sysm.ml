@@ -26,6 +26,7 @@ type t = {
   m_inputs: (string * global) list; 
   m_outputs: (string * global) list; 
   m_fns: (string * global) list; 
+  m_consts: (string * global) list; 
   m_shared: (string * global) list; 
   m_stimuli: Stimuli.stimuli list;
   m_deps: dependencies;
@@ -36,7 +37,8 @@ and global = Types.typ * mg_desc
 and mg_desc =
   | MInp of istim_desc * string list     (** stimuli desc, reader(s) *)
   | MOutp of string list                 (** writer(s) *)
-  | MFun of string list * Expr.t        (** args, body *)
+  | MFun of string list * Expr.t         (** args, body *)
+  | MConst of Expr.e_val                 (** value *)
   | MShared of string list * string list (** writer(s), reader(s) *)
 
 and istim_desc = {
@@ -137,17 +139,20 @@ let build_dependencies fsms shared =
   { md_graph = g;
     md_node = function n -> try List.assoc n !nodes with Not_found -> failwith "Model.md_node " }
 
-let build ~name ~gfns ~fsm_insts =
+exception Illegal_const_expr of Expr.t
+                              
+let build ~name ~gfns ~gcsts ~fsm_insts =
   let inputs, outputs, shared = List.fold_left extract_globals ([],[],[]) fsm_insts in
   let mk_stimuli = function
       name, (ty, MInp ({sd_extension=evs}, _)) -> List.map (Stimuli.mk_stimuli name) evs
-    | _ -> failwith "Model.mk_stimuli" (* should not happen *) in
+    | _ -> failwith "Sysm.mk_stimuli" (* should not happen *) in
   let stimuli = List.map mk_stimuli inputs in
   { m_name = name;
     m_fsms = fsm_insts;
     m_inputs = inputs;
     m_outputs = outputs;
     m_fns = gfns;
+    m_consts = gcsts;
     m_shared = shared;
     m_stimuli = Stimuli.merge_stimuli stimuli;
     m_deps = build_dependencies fsm_insts shared;
@@ -160,6 +165,7 @@ let string_of_global (name, (ty, desc)) =
     | MInp _ -> "input"
     | MOutp _ -> "output"
     | MFun _ -> "function"
+    | MConst _ -> "const"
     | MShared _ -> "shared" in
   pfx ^ " " ^ name ^ ":" ^ Types.string_of_type ty
 
@@ -185,6 +191,7 @@ let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(wit
   let caption = StringExt.concat_sep "\\r" 
             [ListExt.to_string string_of_global "\\r" m.m_inputs;
              ListExt.to_string string_of_global "\\r" m.m_outputs;
+             ListExt.to_string string_of_global "\\r" m.m_consts;
              ListExt.to_string string_of_global "\\r" m.m_fns;
              ListExt.to_string string_of_global "\\r" m.m_shared] in
   Printf.fprintf oc "%s_globals [label=\"%s\", shape=rect, style=rounded]\n" m.m_name caption;
@@ -208,6 +215,10 @@ let dump_global oc (name,(ty,g_desc)) = match g_desc with
        (ListExt.to_string Misc.id "," wrs)
   | MFun (args,body) ->
      Printf.fprintf oc "FUNCTION %s : %s\n"
+       name
+       (Types.string_of_type ty)
+  | MConst v ->
+     Printf.fprintf oc "CONST %s : %s\n"
        name
        (Types.string_of_type ty)
   | MShared (wrs,rrs) ->

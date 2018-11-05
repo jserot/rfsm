@@ -19,6 +19,7 @@ type t = {
   m_inputs : (string * global) list;
   m_outputs : (string * global) list;
   m_fns: (string * global) list; 
+  m_consts: (string * global) list; 
   m_shared : (string * global) list;
   m_stimuli : Stimuli.stimuli list;
   m_deps : dependencies;                (** dependency graph *)
@@ -30,6 +31,7 @@ and mg_desc =
   | MInp of istim_desc * string list     (** stimuli desc, reader(s) *)
   | MOutp of string list                 (** writer(s) *)
   | MFun of string list * Expr.t         (** args, body *)
+  | MConst of Expr.e_val                 (** value *)
   | MShared of string list * string list (** writer(s), reader(s) *)
 
 and istim_desc = {
@@ -42,10 +44,15 @@ and dependencies = {
   md_node : string -> DepG.V.t;
   }
 
+(** {2 Exceptions} *)
+
+exception Illegal_const_expr of Expr.t
+
 (** {2 Builders} *)
 
-val build : name:string -> gfns:(string * global) list -> fsm_insts:Fsm.inst list -> t
-  (** [build name gfns fsms] builds a system description from a list of global functions and FSM instances *)
+val build : name:string -> gfns:(string * global) list -> gcsts:(string * global) list -> fsm_insts:Fsm.inst list -> t
+  (** [build name gfns fsms] builds a system description from a list of global functions
+      and constants and FSM instances *)
 
 (** {2 Printers} *)
   

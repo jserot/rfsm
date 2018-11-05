@@ -390,9 +390,13 @@ let dump_inp_module_intf fname (id,(ty,desc)) =
   Logfile.write fname;
   close_out oc
 
-(* Dumping global functions *)
+(* Dumping global functions and constants *)
 
 let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MConst _, TyArray(sz,ty') ->
+     fprintf oc "extern %s %s[%s];\n" (string_of_type ty') id (string_of_array_size sz)
+| Sysm.MConst _, _ ->
+     fprintf oc "%s %s;\n" (string_of_type ty) id 
 | Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
     fprintf oc "%s %s (%s);\n"
       (string_of_type tr)
@@ -401,6 +405,10 @@ let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
 | _ -> ()
 
 let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MConst v, TyArray(sz,ty') ->
+     fprintf oc "%s %s[%s] = %s;\n" (string_of_type ty') id (string_of_array_size sz) (string_of_value v)
+| Sysm.MConst v, _ -> 
+    fprintf oc "%s %s = %s;\n" (string_of_type ty) id (string_of_value v)
 | Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
     fprintf oc "%s %s (%s) { return %s; }\n"
       (string_of_type tr)
@@ -431,8 +439,8 @@ let dump_global_fns_impl dir prefix fs =
 
 let dump_globals ?(name="") ?(dir="./systemc") m =
   let prefix = match name with "" -> cfg.sc_globals_name | p -> p in
-  dump_global_fns_intf dir prefix m.Sysm.m_fns;
-  dump_global_fns_impl dir prefix m.Sysm.m_fns
+  dump_global_fns_intf dir prefix (m.Sysm.m_consts @ m.Sysm.m_fns);
+  dump_global_fns_impl dir prefix (m.Sysm.m_consts @ m.Sysm.m_fns)
 
 (* Dumping the testbench *)
 

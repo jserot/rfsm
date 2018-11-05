@@ -17,4 +17,6 @@ let list_split_at n l =
     | n, [] -> invalid_arg "list_split_at"
     | n, x::xs -> h (n-1) (left@[x]) xs in
   h n [] l
+
+let left_fold f elems l = List.fold_left f l elems
       

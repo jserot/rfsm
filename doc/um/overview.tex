@@ -688,6 +688,30 @@ where
 like so-called \emph{macros} in the C language than full-fledged functions and are typically used to
 improve readability of the programs.
 
+\subsection{Constants}
+\label{sec:constants}
+
+Global constants can also be defined using the following syntax~:  
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]|constant name : <type> = <value>|}
+\end{center}
+
+\noindent
+where
+\begin{itemize}
+\item \lstinline[language=Rfsm]|<type>| is the type of the defined constant (currently limited to
+  \verb|int|, \verb|float| and arrays of \verb|int|s or \verb|float|s,
+\item \lstinline[language=Rfsm]|<value>| is the value of the constant (which must be an \verb|int|
+  or \verb|float| literal or an array of such literals).
+\end{itemize}
+
+Global constants, just like global functions, have a global scope and hence can be used in any FSM
+model or instance.
+
+The definitions of constants must be placed in a separate section just before the definitions of
+global functions or the FSM models (when there's no global functions).
+
 \subsection{Semantic issues}
 \label{sec:semantic-issues}
 

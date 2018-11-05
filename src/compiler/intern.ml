@@ -131,21 +131,42 @@ let type_of_function tenv fd =
   with Types.TypeConflict _ -> raise (Typing.Type_error ("result", "function \"" ^ fd.ff_name ^ "\"", ty_body, ty_result)) end;
   Types.TyArrow (Types.TyProduct (List.map snd ty_args), ty_result)
 
+let type_of_constant tenv cd =
+  try
+    let ty = type_of_type_expression tenv cd.cc_typ in
+    let ty' = Expr.type_of_value cd.cc_val in
+    Types.unify ty ty';
+    ty
+  with
+  | Typing.Typing_error (_,t,t') 
+  | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("expression", "constant \"" ^ cd.cc_name ^ "\"", t, t'))
+
+let mk_cst_defn tenv { cst_desc = cd } =
+  { tenv with Typing.te_vars = (cd.cc_name, type_of_constant tenv cd) :: tenv.te_vars }
+
 let mk_fn_defn tenv { fd_desc = fd } =
   { tenv with Typing.te_vars = (fd.ff_name, type_of_function tenv fd) :: tenv.te_vars }
 
 let mk_global_fn tenv { fd_desc = fd } =
     let ty = List.assoc fd.ff_name tenv.Typing.te_vars in
     fd.ff_name, (ty, Sysm.MFun (List.map fst fd.ff_args, fd.ff_body.e_desc))
+
+let mk_global_cst tenv { cst_desc = cd } =
+    let ty = List.assoc cd.cc_name tenv.Typing.te_vars in
+    cd.cc_name, (ty, Sysm.MConst cd.cc_val)
                       
 let build_system name p = 
-  let tenv = List.fold_left mk_type_defn Typing.builtin_tenv p.p_type_decls in
-  let tenv' = List.fold_left mk_fn_defn tenv p.p_fn_decls in
-  (* let _ = Typing.dump_tenv tenv' in *)
-  let models = List.map (mk_fsm_model tenv') p.p_fsm_models in
-  let globals = List.map (mk_global tenv') p.p_globals in
-  let gfns = List.map (mk_global_fn tenv') p.p_fn_decls in
-  let fsms = List.map (mk_fsm_inst tenv' models globals) p.p_fsm_insts in
-  let m = Sysm.build name gfns fsms in
+  let tenv =
+       Typing.builtin_tenv
+    |> Misc.left_fold mk_type_defn p.p_type_decls
+    |> Misc.left_fold mk_cst_defn p.p_cst_decls
+    |> Misc.left_fold mk_fn_defn p.p_fn_decls in
+  (* let _ = Typing.dump_tenv tenv in *)
+  let models = List.map (mk_fsm_model tenv) p.p_fsm_models in
+  let globals = List.map (mk_global tenv) p.p_globals in
+  let gcsts = List.map (mk_global_cst tenv) p.p_cst_decls in
+  let gfns = List.map (mk_global_fn tenv) p.p_fn_decls in
+  let fsms = List.map (mk_fsm_inst tenv models globals) p.p_fsm_insts in
+  let m = Sysm.build name gfns gcsts fsms in
   (* let _ = Sysm.dump stdout m in *)
   m

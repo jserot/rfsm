@@ -1,5 +1,6 @@
 %token TYPE
 %token FUNCTION
+%token CONSTANT
 %token RETURN
 %token FSM
 %token MODEL
@@ -79,6 +80,7 @@ let mk_location (p1,p2) = Loc (!input_name, p1, p2)
 
 let mk_type_decl p desc = { Syntax.td_desc = desc; Syntax.td_loc = mk_location p }
 let mk_fn_decl p desc = { Syntax.fd_desc = desc; Syntax.fd_loc = mk_location p }
+let mk_cst_decl p desc = { Syntax.cst_desc = desc; Syntax.cst_loc = mk_location p }
 let mk_global_decl p desc = { Syntax.g_desc = desc; Syntax.g_loc = mk_location p }
 let mk_fsm_decl p desc = { Syntax.fsm_desc = desc; Syntax.fsm_loc = mk_location p }
 let mk_stim_decl p desc = { Syntax.stim_desc = desc; Syntax.stim_loc = mk_location p }
@@ -136,12 +138,14 @@ let mkuminus name exp =
 
 program:
   | tydecls=my_list(type_decl)
+    cstdecls=my_list(cst_decl)
     fndecls=my_list(fn_decl)
     models=my_nonempty_list(fsm_model)
     globals=my_nonempty_list(global)
     fsms=my_nonempty_list(fsm_inst)
     EOF
     { { Syntax.p_type_decls = tydecls;
+        Syntax.p_cst_decls = cstdecls;
         Syntax.p_fn_decls = fndecls;
         Syntax.p_fsm_models = models;
         Syntax.p_globals = globals;
@@ -155,6 +159,24 @@ type_decl:
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Alias (id,t)) }
   | TYPE id=LID EQUAL cs=braced(my_separated_list(COMMA,UID))
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Enum (id,cs)) }
+
+(* CONSTANT DECLARATION *)
+
+cst_decl:
+  | CONSTANT name=LID COLON ty=fres EQUAL v=const_val
+     { mk_cst_decl
+         ($symbolstartofs,$endofs)
+         { Syntax.cc_name=name;
+           Syntax.cc_typ=ty;
+           Syntax.cc_val=v; } }
+
+const_val:  
+  | v=int_const { Expr.Val_int v }
+  | v=float_const { Expr.Val_float v }
+  | v=const_array_val { Expr.Val_array v }
+
+const_array_val:
+  | LBRACKET vs = separated_nonempty_list(COMMA,const_val) RBRACKET { Array.of_list vs }
 
 (* FUNCTION DECLARATION *)
 

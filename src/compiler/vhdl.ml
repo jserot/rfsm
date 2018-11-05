@@ -176,7 +176,6 @@ let string_of_op = function
   | "^" -> " xor " 
   | op ->  op
 
-
 let string_of_cast t_exp t_ty e = match t_exp, t_ty with
   | Integer _, Unsigned n -> sprintf "conv_unsigned(%s,%d)" e n
   | Signed n, Unsigned n' when n=n' -> sprintf "conv_unsigned(%s,%d)" e n
@@ -581,7 +580,7 @@ let dump_model ?(dir="./vhdl") m =
   List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms;
   dump_toplevel ~dir:dir m
 
-(* Dumping global functions *)
+(* Dumping global functions and constants *)
 
 let rec dump_globals ?(name="") ?(dir="./systemc") m =
   let prefix = match name with "" -> cfg.vhdl_globals_name | p -> p in
@@ -593,18 +592,23 @@ let rec dump_globals ?(name="") ?(dir="./systemc") m =
   if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
   fprintf oc "library %s;\n" cfg.vhdl_support_library;
   fprintf oc "use %s.%s.all;\n\n" cfg.vhdl_support_library cfg.vhdl_support_package;
-  dump_globals_intf oc prefix m.Sysm.m_fns;
+  dump_globals_intf oc prefix (m.Sysm.m_consts @ m.Sysm.m_fns);
   fprintf oc "\n";
   dump_globals_impl oc prefix m.Sysm.m_fns;
   Logfile.write fname;
   close_out oc
 
-and dump_globals_intf oc package_name fns =
+and dump_globals_intf oc package_name gs =
   fprintf oc "package %s is\n" package_name;
-  List.iter (dump_global_fn_sig oc) fns;
+  List.iter (dump_global_sig oc) gs;
   fprintf oc "end %s;\n" package_name
 
-and dump_global_fn_sig oc (id,(ty,gd)) = match gd, ty with
+and dump_global_sig oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MConst v, _ -> 
+    fprintf oc "  constant %s : %s := %s;\n"
+      id
+      (string_of_type ty) 
+      (string_of_value ~ty:(Some (vhdl_type_of ty)) v) 
 | Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
     fprintf oc "  function %s(%s) return %s;\n"
       id
@@ -614,9 +618,9 @@ and dump_global_fn_sig oc (id,(ty,gd)) = match gd, ty with
 
 and string_of_fn_arg (id,ty) = id ^ ":" ^ (string_of_type ty)
 
-and dump_globals_impl oc package_name fns =
+and dump_globals_impl oc package_name gs =
   fprintf oc "package body %s is\n" package_name;
-  List.iter (dump_global_fn_impl oc) fns;
+  List.iter (dump_global_fn_impl oc) gs;
   fprintf oc "end %s;\n" package_name
 
 and dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
