@@ -1,4 +1,4 @@
-# TX -> RX (1 start bit, LSB->MSB, no parity bit, 1 stop bit)
+# TX -> RX (1 start bit, LSB->MSB, 1 parity bit, 1 stop bit)
 
 type bit = int<1>
 

@@ -140,7 +140,7 @@ let vhdl_string_of_bool b = match cfg.vhdl_bool_as_bool, b with
   | false, true -> "'1'"
   | false, false -> "'0'"
   
-let string_of_value ?(ty=None) v = match v, ty with
+let rec string_of_value ?(ty=None) v = match v, ty with
   Expr.Val_int i, Some (Unsigned n) -> Printf.sprintf "to_unsigned(%d,%d)" i n
 | Expr.Val_int i, Some (Signed n) -> Printf.sprintf "to_signed(%d,%d)" i n
 | Expr.Val_int i, Some Std_logic -> Printf.sprintf "'%d'" i
@@ -155,7 +155,9 @@ let string_of_value ?(ty=None) v = match v, ty with
 | Expr.Val_fn _, _ -> Error.not_implemented "VHDL translation of function value"
 | Expr.Val_unknown, _ -> "<unknown>"
 | Expr.Val_none, _ -> "<none>"
-| Expr.Val_array _, _ -> Error.not_implemented "VHDL translation of array value"
+| Expr.Val_array vs, Some (Array (_,ty')) ->
+   "(" ^ ListExt.to_string (string_of_value ~ty:(Some ty')) "," (Array.to_list vs) ^")"
+| Expr.Val_array vs, _ -> failwith "Vhdl.string_of_value" (* should not happen *)
 
 let string_of_ival ?(ty=None) = function
     None -> ""
@@ -286,7 +288,7 @@ let dump_state_case oc clk m c =
     fprintf oc "      when %s =>\n" c.st_src;
     dump_state oc clk m c
 
-let dump_array_types oc m =
+let dump_array_types oc vs =
   let array_types =
     List.fold_left
       (fun acc (_,(ty,_)) ->
@@ -295,7 +297,7 @@ let dump_array_types oc m =
         | TyArray (_, _) -> failwith ("Vhdl.dump_array_types: " ^ Types.string_of_type ty)
         | _ -> acc)
       []
-      m.c_vars in
+      vs in
   List.iter 
     (function
      | TyArray(Types.Index.TiConst sz,ty') as ty ->
@@ -313,7 +315,7 @@ let dump_module_arch oc s fsm =
   fprintf oc "architecture RTL of %s is\n" modname;
   fprintf oc "  type t_%s is ( %s );\n" cfg.vhdl_state_var (ListExt.to_string (function s -> s) ", " m.c_states);
   fprintf oc "  signal %s: t_state;\n" cfg.vhdl_state_var;
-  dump_array_types oc m;
+  dump_array_types oc m.c_vars;
   if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous then 
     List.iter
       (fun (id,(ty,iv)) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ~type_marks:TM_Abbr ty))
@@ -600,6 +602,7 @@ let rec dump_globals ?(name="") ?(dir="./systemc") m =
 
 and dump_globals_intf oc package_name gs =
   fprintf oc "package %s is\n" package_name;
+  dump_array_types oc gs;
   List.iter (dump_global_sig oc) gs;
   fprintf oc "end %s;\n" package_name
 

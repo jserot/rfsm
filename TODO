@@ -4,10 +4,8 @@ COMPILER
   should be detected before (at the TC level) 
 - fix bug in rfsm_mode.el; should not inherit from C mode !
 - support for enum values in the SystemC and VHDL backends
-- support for variant types 
+- support for record types 
 - support for char type 
-- support for case exprs (ex: x:=case {i;k1: v1; ...;kn:vn; default} (only in functions ?)
-- support for array values in VHDL
 - support for synchronous actions in CTask and SystemC
 - multiple names style decls (ex: output o1,o2,o3: int)
 - bound check for ranged integers
