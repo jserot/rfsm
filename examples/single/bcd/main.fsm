@@ -26,8 +26,6 @@ input h : event = periodic (10,10,200)
 input n : int<8> = value_changes (5:243)
 input start : bool = value_changes (0:0, 25:1, 35:0)
 output rdy : bool
-output d0 : digit
-output d1 : digit
-output d2 : digit
+output d0, d1, d2 : digit
 
 fsm conv = Convert(h,start,n,rdy,d0,d1,d2)

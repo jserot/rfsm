@@ -8,9 +8,7 @@ fsm model conv13 <a0:int,a1:int,a2:int> (
     out y: int)
   {
   states: Run;
-  vars:
-     zx: int, 
-     zzx: int; 
+  vars: zx, zzx: int;
   trans:
     Run -- h | y:=a0*x+a1*zx+a2*zzx; zzx:=zx; zx:=x -> Run;
   itrans: | zx:=0; zzx:=0 -> Run;

@@ -137,7 +137,7 @@ and fsm_inst_desc = {
   }
 
 (* Programs *)
-                  
+
 type program = {
   p_type_decls: type_declaration list;
   p_fn_decls: fn_declaration list;

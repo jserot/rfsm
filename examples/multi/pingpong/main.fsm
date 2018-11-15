@@ -31,8 +31,7 @@ fsm model B <delay:int> (
 
 input H: event = periodic(1, 0, 10)
 input Top: event = sporadic(4)
-shared Ping: event
-shared Pong: event
+shared Ping, Pong: event
 
 fsm A = A(Top,Pong,Ping)
 fsm B = B<3>(H,Ping,Pong)
