@@ -148,7 +148,7 @@ program:
         Syntax.p_cst_decls = cstdecls;
         Syntax.p_fn_decls = fndecls;
         Syntax.p_fsm_models = models;
-        Syntax.p_globals = globals;
+        Syntax.p_globals = List.flatten globals;
         Syntax.p_fsm_insts = fsms; }
       }
   
@@ -239,10 +239,11 @@ io_desc:
   | id=LID COLON ty=type_expr { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
 vars:
-  | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { vars }
+  | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { List.flatten vars }
 
 var:
-  | id=LID COLON ty=type_expr { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
+  | ids=my_separated_nonempty_list(COMMA,LID) COLON ty=type_expr
+      { List.map (fun id -> (id, mk_type_expression ($symbolstartofs,$endofs) ty)) ids }
 
 transition:
   | prio=prio
@@ -281,23 +282,27 @@ lhs:
 
 global:
   | INPUT id=id COLON ty=type_expr EQUAL st=stimuli
-      { mk_global_decl
+      { [mk_global_decl
          ($symbolstartofs,$endofs)
          { Syntax.gd_name = id;
            Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
-           Syntax.gd_desc = Syntax.GInp st } }
-  | OUTPUT id=id COLON ty=type_expr
-      { mk_global_decl
+           Syntax.gd_desc = Syntax.GInp st }] }
+  | OUTPUT ids=my_separated_nonempty_list(COMMA,id) COLON ty=type_expr
+      { List.map (function id ->
+          mk_global_decl
+            ($symbolstartofs,$endofs)
+            { Syntax.gd_name = id;
+              Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
+              Syntax.gd_desc = Syntax.GOutp })
+          ids }
+  | SHARED ids=my_separated_nonempty_list(COMMA,id) COLON ty=type_expr
+      { List.map (function id ->
+          mk_global_decl
          ($symbolstartofs,$endofs)
          { Syntax.gd_name = id;
            Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
-           Syntax.gd_desc = Syntax.GOutp } }
-  | SHARED id=id COLON ty=type_expr
-      { mk_global_decl
-         ($symbolstartofs,$endofs)
-         { Syntax.gd_name = id;
-           Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
-           Syntax.gd_desc = Syntax.GShared } }
+           Syntax.gd_desc = Syntax.GShared })
+          ids }
 
 stimuli:
   | PERIODIC LPAREN p=INT COMMA s=INT COMMA d=INT RPAREN

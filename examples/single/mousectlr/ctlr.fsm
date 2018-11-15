@@ -21,7 +21,6 @@ fsm model ctlr<d:int> (
 
 input Clk: event = periodic(10,10,120)
 input Clic: event = sporadic(25,75,95)
-output SimpleClic: event
-output DoubleClic: event
+output SimpleClic, DoubleClic: event
 
 fsm c1 = ctlr<5>(Clk,Clic,SimpleClic,DoubleClic)

@@ -40,8 +40,7 @@ fsm model Recepteur(
 input He:event = periodic(10,10,300)
 input Hr:event = periodic(4,15,300)
 
-shared e_rdy:bool
-shared r_rdy:bool
+shared e_rdy, r_rdy:bool
 shared v:t_data
 
 output r_data: t_data

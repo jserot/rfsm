@@ -71,12 +71,9 @@ fsm model Interm<delai:int>(
 
 input H:event = periodic(10,10,800)
 
-shared e_rdy1:bool
-shared r_rdy1:bool
-shared e_rdy2:bool
-shared r_rdy2:bool
-shared v1:t_data
-shared v2:t_data
+shared e_rdy1, r_rdy1: bool
+shared e_rdy2, r_rdy2: bool
+shared v1, v2:t_data
 
 output r_data: t_data
 

@@ -7,7 +7,6 @@ COMPILER
 - support for record types 
 - support for char type 
 - support for synchronous actions in CTask and SystemC
-- multiple names style decls (ex: output o1,o2,o3: int)
 - bound check for ranged integers
 - allow declarations (fns, csts, fsms, ...) to appear in any order (provided that dependencies are respected)
 - check for coherency in reaction responses (see src/lib/simul.ml)

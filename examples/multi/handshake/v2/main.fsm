@@ -11,9 +11,7 @@ fsm model Emetteur<delai:int>(
      out e_rdy: bool)
   {
   states: E1, E2, Att;
-  vars:
-    t: int,
-    cnt: int;
+  vars: t, cnt: int;
   trans:
     E1 -- h.r_rdy=1 | data:=cnt; cnt:=cnt+1; e_rdy:=1 -> E2,
     E2 -- h.r_rdy=0 | e_rdy:=0; t:=0 -> Att,
@@ -41,8 +39,7 @@ fsm model Recepteur<delai:int>(
 
 input H:event = periodic(10,10,400)
 
-shared e_rdy:bool
-shared r_rdy:bool
+shared e_rdy, r_rdy:bool;
 shared v:t_data
 
 output r_data: t_data

@@ -12,7 +12,7 @@ fsm model Heron <eps: float> (
   out r: float)
  {
   states: Idle, Iter;
-  vars: a: float, x:float, n:int;
+  vars: a, x: float, n:int;
   trans:
     Idle -- h.start=1 | a:=u; x:=u; rdy:=0; n:=0 -> Iter,
     Iter -- h.f_abs(x*.x-.a)>=eps | x:=(x+.a/.x)/.2.0; n:=n+1 -> Iter,
