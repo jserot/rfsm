@@ -24,6 +24,8 @@
 %token TYFLOAT
 %token TYEVENT
 %token TYARRAY
+%token ENUM
+%token RECORD
 (* %token TRUE
  * %token FALSE *)
 %token <string> LID
@@ -157,26 +159,32 @@ program:
 type_decl:
   | TYPE id=LID EQUAL t=type_expr
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Alias (id,t)) }
-  | TYPE id=LID EQUAL cs=braced(my_separated_list(COMMA,UID))
+  | TYPE id=LID EQUAL ENUM cs=braced(my_separated_list(COMMA,UID))
       { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Enum (id,cs)) }
+  | TYPE id=LID EQUAL RECORD LBRACE fs=my_separated_nonempty_list(COMMA,record_field) RBRACE
+      { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Record (id,fs)) }
+
+record_field:
+  | n=LID COLON t=type_expr { (n,t) }
 
 (* CONSTANT DECLARATION *)
 
 cst_decl:
-  | CONSTANT name=LID COLON ty=fres EQUAL v=const_val
+  (* | CONSTANT name=LID COLON ty=fres EQUAL v=const_val *)
+  | CONSTANT name=LID COLON ty=fres EQUAL v=const
      { mk_cst_decl
          ($symbolstartofs,$endofs)
          { Syntax.cc_name=name;
            Syntax.cc_typ=ty;
            Syntax.cc_val=v; } }
 
-const_val:  
-  | v=int_const { Expr.Val_int v }
-  | v=float_const { Expr.Val_float v }
-  | v=const_array_val { Expr.Val_array v }
+(* const_val:  
+ *   | v=int_const { Expr.Val_int v }
+ *   | v=float_const { Expr.Val_float v }
+ *   | v=const_array_val { Expr.Val_array v } *)
 
-const_array_val:
-  | LBRACKET vs = separated_nonempty_list(COMMA,const_val) RBRACKET { Array.of_list vs }
+(* const_array_val:
+ *   | LBRACKET vs = separated_nonempty_list(COMMA,const_val) RBRACKET { Array.of_list vs } *)
 
 (* FUNCTION DECLARATION *)
 
@@ -277,6 +285,7 @@ lhs:
   | v=LID { Action.Var0 v }
   | a=LID LBRACKET i=expr RBRACKET { Action.Var1 (a, i) }
   | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { Action.Var2 (a,hi,lo) }
+  | a=LID DOT f=LID { Action.Var3 (a, f) }
 
 (* GLOBALS *)
 
@@ -429,6 +438,8 @@ expr:
       { mk_expr (EFapp (f,args)) }
   | a = LID LBRACKET i=expr RBRACKET 
       { mk_expr (EArr (a,i)) }
+  | a = LID DOT f = LID
+      { mk_expr (ERecord (a,f)) }
   | a = LID LBRACKET i1=expr COLON i2=expr RBRACKET 
       { mk_expr (EBitrange (a,i1,i2)) }
   | e1 = expr QMARK e2 = expr COLON e3 = expr
@@ -459,10 +470,24 @@ subtractive:
   | FMINUS                                      { "-." }
 
 const:
+  | c = scalar_const { c }
+  | c = array_const { c }
+  | c = record_const { c }
+
+array_const:
+  | LBRACKET vs = separated_nonempty_list(COMMA,scalar_const) RBRACKET { Expr.Val_array (Array.of_list vs) }
+
+record_const:
+  | LBRACE vs = separated_nonempty_list(COMMA,record_field_const) RBRACE { Expr.Val_record { rv_typ=""; rv_val=vs } }
+
+record_field_const:
+  | id = LID EQUAL v = scalar_const { (id, v) }
+                         
+scalar_const:
   | v = int_const { Expr.Val_int v }
   | v = float_const { Expr.Val_float v }
   (* | v = bool { Expr.Val_bool v } *)
-  | c = UID { Expr.Val_enum c }
+  | c = UID { Expr.Val_enum { ev_typ=""; ev_val=c } }
 
 int_const:
   | v = INT { v }

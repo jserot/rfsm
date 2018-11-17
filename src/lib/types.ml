@@ -69,17 +69,18 @@ module Index = struct
                 
 end
 
-type typ = 
+type typ =
   | TyUnknown
   | TyEvent
   | TyBool
-  | TyEnum of string list
+  | TyEnum of string * string list              (** Name, list of values *)
   | TyInt of siz                
   | TyFloat
-  | TyArray of Index.t * typ    (* size, subtype *)
-  | TyVar of typ var            (* Only used internally for type checking *)
-  | TyArrow of typ * typ        (* Only used internally for type checking *)
-  | TyProduct of typ list       (* Only used internally for type checking *)
+  | TyArray of Index.t * typ                    (** size, subtype *)
+  | TyVar of typ var                            (** Internal use only *)
+  | TyArrow of typ * typ                        (** Internal use only *)
+  | TyProduct of typ list                       (** Internal use only *)
+  | TyRecord of string * (string * typ) list    (** Name, fields *)
 
 and siz =
   | SzExpr1 of Index.t                  (* For ints: bit width, for arrays: dimension *)
@@ -215,7 +216,9 @@ let rec unify ty1 ty2 =
      unify_size (val1,val2) sz1 sz2
   | TyBool, TyBool -> ()
   | TyEvent, TyEvent  -> ()
-  | TyEnum cs1, TyEnum cs2 when cs1=cs2 -> ()
+  | TyEnum ("",cs1), TyEnum ("",cs2) when cs1=cs2 -> ()
+  | TyEnum (n1,_), TyEnum (n2,_) when n1=n2 -> ()
+  | TyRecord (n1,_), TyEnum (n2,_) when n1=n2 -> ()
   | _, _ ->
       raise (TypeConflict(val1, val2))
 
@@ -286,10 +289,11 @@ let rec type_equal ~strict t1 t2 =
   | TyEvent, TyEvent -> true
   | TyInt sz1, TyInt sz2 -> size_equal ~strict:strict sz1 sz2
   | TyFloat, TyFloat -> true
-  | TyEnum cs1, TyEnum cs2 ->
+  | TyEnum ("",cs1), TyEnum ("",cs2) -> (* Anomynous enum *)
      if strict then List.sort compare cs1 = List.sort compare cs2
      else List.for_all (function c -> List.mem c cs1) cs2
         (* so that, for ex, [type_equal ~strict:false {On,Off} {On} = true] *)
+  | TyEnum (n1,_), TyEnum (n2,_) -> n1=n2 (* Named enum *)
   | TyVar { stamp=s1; value=Unknown }, TyVar { stamp=s2; value=Unknown } -> s1 = s2
   | TyArrow (ty1, ty1'), TyArrow (ty2, ty2') ->
       type_equal ~strict ty1 ty2 && type_equal ~strict ty1' ty2'
@@ -309,7 +313,7 @@ and size_equal ~strict s1 s2 =
 (* Accessors *)
                  
 let rec enums_of ty = match ty with
-  | TyEnum cs -> List.map (function c -> c, ty) cs
+  | TyEnum (_,cs) -> List.map (function c -> c, ty) cs
   | _ -> []
 
 let size_of ty = match ty with
@@ -329,13 +333,15 @@ let rec string_of_type ?(szvars=false) t = match t with
   | TyUnknown -> "<unknown>"
   | TyEvent -> "event"
   | TyBool -> "bool"
-  | TyEnum cs -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
+  | TyEnum ("", cs) -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
+  | TyEnum (n, _) -> n
   | TyInt sz -> "int" ^ string_of_size ~szvars sz
   | TyFloat -> "float"
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 
   | TyArray (sz,ty') -> string_of_type ty' ^ " array[" ^ Index.to_string sz ^ "]"
+  | TyRecord (n,fs) -> n
 
 and string_of_size ?(szvars=false) sz =
   let s = match size_repr sz with
@@ -345,5 +351,7 @@ and string_of_size ?(szvars=false) sz =
   match s with
   | "" -> ""
   | _ -> "<" ^ s ^ ">"
+
+and string_of_field (n,ty) = n ^ ":" ^ string_of_type ty
 
 let string_of_type_scheme ts = "[]" ^ string_of_type ts.ts_body (* TOFIX *)

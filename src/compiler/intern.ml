@@ -116,9 +116,13 @@ let mk_type_defn tenv { td_desc = d; td_loc = loc } =
   | TD_Alias (id, te) ->
      { tenv with te_defns = (id, type_of_type_expr tenv te) :: tenv.te_defns }
   | TD_Enum (id, cs) ->
-     let ty = Types.TyEnum cs in
+     let ty = Types.TyEnum (id,cs) in
      { tenv with te_defns = (id, ty) :: tenv.te_defns;
                  te_ctors = List.map (function c -> c, ty) cs @ tenv.te_ctors }
+  | TD_Record (id, fs) ->
+     let ty = Types.TyRecord (id, List.map (function (n,te) -> (n, type_of_type_expr tenv te)) fs) in
+     { tenv with te_defns = (id, ty) :: tenv.te_defns;
+                 te_rfields = List.map (function (n,_) -> n, ty) fs @ tenv.te_rfields }
 
 let type_of_function tenv fd =
   let ty_args = List.map (function (id,te) -> id, type_of_type_expression tenv te) fd.ff_args in
@@ -134,7 +138,7 @@ let type_of_function tenv fd =
 let type_of_constant tenv cd =
   try
     let ty = type_of_type_expression tenv cd.cc_typ in
-    let ty' = Expr.type_of_value cd.cc_val in
+    let ty' = Typing.type_of_value Typing.builtin_tenv cd.cc_val in
     Types.unify ty ty';
     ty
   with
@@ -155,6 +159,11 @@ let mk_global_cst tenv { cst_desc = cd } =
     let ty = List.assoc cd.cc_name tenv.Typing.te_vars in
     cd.cc_name, (ty, Sysm.MConst cd.cc_val)
                       
+let is_global_type_defn (_,ty) = match ty with
+  | Types.TyEnum (name, cs) when name <> "" -> true
+  | Types.TyRecord (name, fs) -> true
+  | _ -> false
+
 let build_system name p = 
   let tenv =
        Typing.builtin_tenv
@@ -164,9 +173,10 @@ let build_system name p =
   (* let _ = Typing.dump_tenv tenv in *)
   let models = List.map (mk_fsm_model tenv) p.p_fsm_models in
   let globals = List.map (mk_global tenv) p.p_globals in
+  let gtyps = List.rev (List.filter is_global_type_defn tenv.te_defns) in 
   let gcsts = List.map (mk_global_cst tenv) p.p_cst_decls in
   let gfns = List.map (mk_global_fn tenv) p.p_fn_decls in
   let fsms = List.map (mk_fsm_inst tenv models globals) p.p_fsm_insts in
-  let m = Sysm.build name gfns gcsts fsms in
+  let m = Sysm.build name gtyps gfns gcsts fsms in
   (* let _ = Sysm.dump stdout m in *)
   m

@@ -36,13 +36,14 @@ type typ =
   | TyUnknown
   | TyEvent
   | TyBool
-  | TyEnum of string list
+  | TyEnum of string * string list              (** Name, list of values *)
   | TyInt of siz                
   | TyFloat
-  | TyArray of Index.t * typ    (* size, subtype *)
-  | TyVar of typ var            (* Internal use only *)
-  | TyArrow of typ * typ        (* Internal use only *)
-  | TyProduct of typ list       (* Internal use only *)
+  | TyArray of Index.t * typ                    (** size, subtype *)
+  | TyVar of typ var                            (** Internal use only *)
+  | TyArrow of typ * typ                        (** Internal use only *)
+  | TyProduct of typ list                       (** Internal use only *)
+  | TyRecord of string * (string * typ) list    (** Name, fields *)
 
 and siz =
   | SzExpr1 of Index.t                  (* For ints: bit width, for arrays: dimension *)

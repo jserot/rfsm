@@ -10,6 +10,8 @@ exception Lexical_error of lexical_error * int * int
 
 let keyword_table = [
   "type", TYPE;
+  "enum", ENUM;
+  "record", RECORD;
   "function", FUNCTION;
   "constant", CONSTANT;
   "return", RETURN;

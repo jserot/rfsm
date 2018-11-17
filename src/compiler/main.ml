@@ -67,7 +67,7 @@ try
   | Some Options.SystemC ->
        Systemc.check_allowed m;
        check_dir !Options.target_dir;
-       if m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] then Systemc.dump_globals ~dir:!Options.target_dir m;
+       if Systemc.need_globals m then Systemc.dump_globals ~dir:!Options.target_dir m;
        Systemc.dump_model ~dir:!Options.target_dir m;
        Systemc.dump_testbench ~dir:!Options.target_dir m;
        Systemc.dump_makefile ~dir:!Options.target_dir m
@@ -116,6 +116,8 @@ with
      (Expr.to_string e') (Expr.to_string e); flush stderr; exit 3
 | Typing.Illegal_cast e -> 
     eprintf "Illegal type cast: %s\n" (Expr.to_string e); flush stderr; exit 3
+| Typing.Invalid_record_access e -> 
+    eprintf "Illegal record access: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Illegal_array_access e -> 
     eprintf "Illegal array access: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Illegal_bit_range_access e -> 
@@ -145,6 +147,9 @@ with
 | Fsm.Undeterminate (m,id,t) ->
     eprintf "Error when simulating FSM %s: unknown value for identifier %s at t=%d\n" m.Fsm.f_name id t;
     flush stderr; exit 7
+| Fsm.Nonatomic_IO_write(m,a) ->
+   eprintf "Illegal action \"%s\" within FSM \"%s\": non atomic write(s) are forbidden for global IOs and shared objects\n"
+     (Action.to_string a) m.Fsm.f_name;
 | Fsm.IllegalAction(m,a) ->
    eprintf "Error when executing action \"%s\" within FSM \"%s\" (check for undefined values...)\n"
      (Action.to_string a) m.Fsm.f_name;

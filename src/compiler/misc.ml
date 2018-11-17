@@ -19,4 +19,5 @@ let list_split_at n l =
   h n [] l
 
 let left_fold f elems l = List.fold_left f l elems
-      
+
+let id x = x

@@ -28,30 +28,38 @@ and e_desc =
   | EArr of string * t        (** t[i] when t is an array *)
   | EBit of string * t        (** t[i] when t is an int *)
   | EBitrange of string * t * t   (** t[hi:lo] when t is an int *)
+  | ERecord of string * string (** v.name when v is a record *)
   | ECast of t * Type_expr.t
 
 and e_val = 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool
-  | Val_enum of string
+  | Val_enum of enum_value
   | Val_fn of string list * t   (** args, body *)
-  | Val_unknown                 
+  | Val_unknown
   | Val_none                    (** used for pure events *)
   | Val_array of e_val array
+  | Val_record of record_value
+
+and enum_value = {
+    ev_typ: string; (** Type name *)
+    ev_val: string;
+  }
+
+and record_value = {
+    rv_typ: string; (** Record type name *)
+    rv_val: (string * e_val) list  (** (Field name, value) list *)
+  }
 
 module VarSet : Set.S with type elt = string
 
 exception Out_of_bound of string * int  (** array name, index value *)
                         
 val array_update : string -> e_val array -> int -> e_val -> e_val array
+val record_update : string -> (string * e_val) list -> string -> e_val -> (string * e_val) list
   
 val of_value : e_val -> e_desc
-
-val type_of_value : e_val -> Types.typ
-  (** [type_of_value v] returns the "best known" type for value [v].
-      For an integer, this will always be [TyInt None].
-      For an enumerated value [c], this will be the "approximation" [TyEnum [c]]. *)
 
 val unset_event : e_val
 val set_event : e_val

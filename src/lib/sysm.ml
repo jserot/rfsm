@@ -25,6 +25,7 @@ type t = {
   m_fsms: Fsm.inst list;
   m_inputs: (string * global) list; 
   m_outputs: (string * global) list; 
+  m_types: (string * Types.typ) list; 
   m_fns: (string * global) list; 
   m_consts: (string * global) list; 
   m_shared: (string * global) list; 
@@ -45,7 +46,7 @@ and istim_desc = {
   sd_comprehension: Fsm.stim_desc;
   sd_extension: Stimuli.event list
   }
-               
+
 and dependencies = {
     md_graph: DepG.t;
     md_node: string -> DepG.V.t;
@@ -141,7 +142,7 @@ let build_dependencies fsms shared =
 
 exception Illegal_const_expr of Expr.t
                               
-let build ~name ~gfns ~gcsts ~fsm_insts =
+let build ~name ~gtyps ~gfns ~gcsts ~fsm_insts =
   let inputs, outputs, shared = List.fold_left extract_globals ([],[],[]) fsm_insts in
   let mk_stimuli = function
       name, (ty, MInp ({sd_extension=evs}, _)) -> List.map (Stimuli.mk_stimuli name) evs
@@ -151,6 +152,7 @@ let build ~name ~gfns ~gcsts ~fsm_insts =
     m_fsms = fsm_insts;
     m_inputs = inputs;
     m_outputs = outputs;
+    m_types = gtyps;
     m_fns = gfns;
     m_consts = gcsts;
     m_shared = shared;

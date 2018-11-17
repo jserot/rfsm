@@ -142,6 +142,7 @@ exception Invalid_state of string * string (** FSM, id *)
 exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
 exception Invalid_parameter of string * string (** FSM, name *)
 exception IllegalAction of inst * Action.t
+exception Nonatomic_IO_write of inst * Action.t 
 
 (** {2 Dynamic behavior} *)
 
@@ -159,6 +160,7 @@ type response = lhs * Expr.e_val
 and lhs =
   | Var0 of Ident.t         (* Scalar *)
   | Var1 of Ident.t * int   (* 1D array location *)
+  | Var3 of Ident.t * string   (* Record field *)
 
 val react :
   Types.date ->

@@ -82,6 +82,7 @@ let erase_type (id,(ty,v)) = id, v
 let string_of_event (lhs,v) = match lhs with
   | Fsm.Var0 id -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
   | Fsm.Var1 (id,k) -> Ident.to_string id ^ "[" ^ string_of_int k ^ "]" ^ ":=" ^ Expr.string_of_value v
+  | Fsm.Var3 (id,f) -> Ident.to_string id ^ "." ^ f
 
 let string_of_events evs = "[" ^ ListExt.to_string string_of_event "," evs ^ "]"
 

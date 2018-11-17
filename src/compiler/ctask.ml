@@ -32,9 +32,12 @@ exception Ctask_error of string * string  (* where, msg *)
 let string_of_type t = match t with 
   | TyEvent -> "event"
   | TyBool -> "bool"
-  | TyEnum cs -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
+  | TyEnum ("", cs) -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
+  | TyEnum (n, _) -> n
   | TyInt _ -> "int"
   | TyFloat -> "float"
+  | TyRecord ("",fs) -> "struct {" ^ ListExt.to_string (function (f,t) -> f ^ ":" ^ string_of_type t) ";" fs ^ "}"
+  | TyRecord (n,_) -> n
   | _ -> Error.fatal_error "Ctask.string_of_type"
 
 let string_of_array_size sz = match sz with
@@ -49,11 +52,14 @@ let rec string_of_value v = match v with
   Expr.Val_int i -> string_of_int i
 | Expr.Val_float b -> string_of_float b
 | Expr.Val_bool b -> string_of_bool b
-| Expr.Val_enum s -> s
+| Expr.Val_enum e -> e.ev_val
 | Expr.Val_fn _ -> "<fun>"
 | Expr.Val_unknown -> "<unknown>"
 | Expr.Val_none -> "<none>"
 | Expr.Val_array vs -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
+| Expr.Val_record r -> "{" ^ ListExt.to_string string_of_field "," r.rv_val ^ "}"
+
+and string_of_field (n,v) = string_of_value v
 
 (*
 <case> ::= [ <async_transitions> ] [ sync_transitions ] "break"
@@ -84,6 +90,7 @@ let rec string_of_expr e =
      paren level (string_of (level+1) e1 ^ " ? " ^ string_of (level+1) e2 ^ " : " ^ string_of (level+1) e3)
   | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
   | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
+  | Expr.ERecord (a,f) -> a ^ "." ^ f
   | Expr.EBit (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
   | Expr.EBitrange (a,hi,lo) -> a ^ "[" ^ string_of level hi ^ ":" ^ string_of level lo ^ "]" 
   | Expr.ECast (e,te) -> "(" ^ string_of_type te.te_typ ^ ")(" ^ string_of level e ^ ")" in
@@ -104,6 +111,7 @@ let string_of_lhs l = match l.Action.l_desc with
   | Action.Var0 id -> id
   | Action.Var1 (id,idx) -> id ^ "[" ^ string_of_expr idx ^ "]"
   | Action.Var2 (id,hi,lo) -> id ^ "[" ^ string_of_expr hi ^ ":" ^ string_of_expr lo ^ "]"
+  | Action.Var3 (id,f) -> id ^ "." ^ f
                           
 let string_of_action a = match a with
     | Action.Assign (lhs, expr) -> string_of_lhs lhs ^ "=" ^ string_of_expr expr
@@ -171,7 +179,7 @@ let dump_module_impl m fname fsm =
   fprintf oc "{\n";
   List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s%s;\n" (string_of_typed_item (id,ty)) (string_of_ival iv)) m.c_vars;
   if List.length m.c_states > 1 then 
-    fprintf oc "  %s %s = %s;\n" (string_of_type (Types.TyEnum m.c_states)) cfg.state_var_name (fst m.c_init);
+    fprintf oc "  %s %s = %s;\n" (string_of_type (Types.TyEnum ("",m.c_states))) cfg.state_var_name (fst m.c_init);
   if List.exists (function c -> List.length c.st_sensibility_list > 1) m.c_body then
       fprintf oc "  event %s;\n" cfg.recvd_ev_name;
   List.iter (dump_action oc "  ") (snd m.c_init);

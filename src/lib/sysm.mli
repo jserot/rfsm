@@ -18,6 +18,7 @@ type t = {
   m_fsms : Fsm.inst list;
   m_inputs : (string * global) list;
   m_outputs : (string * global) list;
+  m_types: (string * Types.typ) list; 
   m_fns: (string * global) list; 
   m_consts: (string * global) list; 
   m_shared : (string * global) list;
@@ -50,9 +51,14 @@ exception Illegal_const_expr of Expr.t
 
 (** {2 Builders} *)
 
-val build : name:string -> gfns:(string * global) list -> gcsts:(string * global) list -> fsm_insts:Fsm.inst list -> t
-  (** [build name gfns fsms] builds a system description from a list of global functions
-      and constants and FSM instances *)
+val build : name:string
+            -> gtyps:(string * Types.typ) list
+            -> gfns:(string * global) list
+            -> gcsts:(string * global) list
+            -> fsm_insts:Fsm.inst list
+            -> t
+  (** [build name gfns fsms] builds a system description from a list of global type, function
+      and constant declarations and FSM instances *)
 
 (** {2 Printers} *)
   

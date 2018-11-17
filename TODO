@@ -4,10 +4,10 @@ COMPILER
   should be detected before (at the TC level) 
 - fix bug in rfsm_mode.el; should not inherit from C mode !
 - support for enum values in the SystemC and VHDL backends
-- support for record types 
 - support for char type 
 - support for synchronous actions in CTask and SystemC
 - bound check for ranged integers
+- generationof [globals.{c,h}] by the CTask backend 
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - var and output attr on states (Moore-style)
 - clarify mechanism for delta-waits insertion in SystemC backend

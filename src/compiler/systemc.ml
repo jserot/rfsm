@@ -40,7 +40,7 @@ let cfg = {
   sc_lib_dir = ".";
   sc_inpmod_prefix = "inp_";
   sc_tb_name = "tb";
-  sc_globals_name = "global_fns";
+  sc_globals_name = "globals";
   sc_state_var = "state";
   sc_proc_name = "react";
   sc_inp_proc_name = "gen";
@@ -52,22 +52,20 @@ let cfg = {
   sc_double_float = false;
   }
 
-type profil = {
-    mutable has_globals: bool;
-  }
+let record_access f = ".repr." ^ f 
 
-let profil = {
-  has_globals = false;
-  }
+let need_globals m = m.Sysm.m_types <> [] || m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] 
 
 let rec string_of_type t = match t with 
   | TyEvent -> "bool"
   | TyBool -> "bool"
-  | TyEnum cs -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
+  | TyEnum ("", cs) -> "enum {" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
+  | TyEnum (n, _) -> n
   | TyInt (SzExpr1 (TiConst sz)) -> "sc_uint<" ^ string_of_int sz ^ "> "
   | TyInt (SzExpr2  _) -> "int"  (* range annotations ignored here *)
   | TyInt _ -> "int"
   | TyFloat -> if cfg.sc_double_float then "double" else "float"
+  | TyRecord (n, fs) -> n
   | _ -> raise (Error ("string_of_type", "unsupported type"))
 
 let string_of_array_size sz = match sz with
@@ -80,33 +78,19 @@ let string_of_typed_item ?(scope="") (id,ty) =
   | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id' ^ "[" ^ string_of_array_size sz ^ "]"
   | _ -> string_of_type ty ^ " " ^ id'
 
+let string_of_enum_value tyname v = "_enum<" ^ tyname ^ "::" ^ v ^ ">()"
+
 let rec string_of_value v = match v with
   Expr.Val_int i -> string_of_int i
-| Expr.Val_float i -> string_of_float i
+| Expr.Val_float i-> string_of_float i
 | Expr.Val_bool i -> string_of_bool i
-| Expr.Val_enum s -> s
+| Expr.Val_enum e -> string_of_enum_value e.ev_typ e.ev_val
 | Expr.Val_fn _ -> "<fun>"
 | Expr.Val_unknown -> "<unknown>"
 | Expr.Val_none -> "<none>"
 | Expr.Val_array vs -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
-
-exception Type_of_value
-        
-let rec type_of_value v = match v with
-  Expr.Val_int _ -> "int"
-| Expr.Val_float _ -> "float"
-| Expr.Val_bool _ -> "bool"
-| Expr.Val_enum _ -> raise Type_of_value (* TO FIX ? *)
-| Expr.Val_fn _ -> raise Type_of_value
-| Expr.Val_unknown -> raise Type_of_value
-| Expr.Val_none -> "event"
-| Expr.Val_array vs ->
-   begin
-     match Array.length vs with
-     | 0 -> raise Type_of_value
-     | n -> type_of_value (Array.get vs 0) ^ " array[" ^ string_of_int n ^ "]" 
-   end
-
+| Expr.Val_record r ->
+   r.rv_typ ^ "(" ^ ListExt.to_string string_of_value "," (List.map snd r.rv_val) ^ ")" (* Use class contructor *)
 
 let string_of_op = function
     "=" -> "=="
@@ -123,20 +107,22 @@ let string_of_expr m e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let access id = if List.mem_assoc id (m.c_inps @ m.c_inouts) then id ^ ".read()" else id in
   let rec string_of level e =
-    match e.Expr.e_desc with
-      Expr.EInt c -> string_of_int c
-    | Expr.EFloat c -> string_of_float c
-    | Expr.EBool c -> string_of_bool c
-    | Expr.EEnum c -> c
-    | Expr.EVar n -> access n
-    | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
-    | Expr.ECond (e1,e2,e3) -> paren level (string_of (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
-    | Expr.EFapp (("~-"|"~-."),[e]) -> "-" ^ "(" ^ string_of level e ^ ")"
-    | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
-    | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]" (* [a] is always a local var *)
-    | Expr.EBit (a,idx) -> let i = string_of level idx in string_of_int_range (access a) i i
-    | Expr.EBitrange (a,hi,lo) -> string_of_int_range (access a) (string_of level hi) (string_of level lo)
-    | Expr.ECast (e,te) -> "(" ^ string_of_type te.te_typ ^ ")(" ^ string_of level e ^ ")"
+    match e.Expr.e_desc, e.Expr.e_typ with
+      Expr.EInt c, _ -> string_of_int c
+    | Expr.EFloat c, _ -> string_of_float c
+    | Expr.EBool c, _ -> string_of_bool c
+    | Expr.EEnum c, Types.TyEnum (n, _) -> string_of_enum_value n c
+    | Expr.EEnum c, _ -> failwith "Systemc.string_of_expr"
+    | Expr.EVar n, _ -> access n
+    | Expr.EBinop (op,e1,e2), _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
+    | Expr.ECond (e1,e2,e3), _ -> paren level (string_of (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
+    | Expr.EFapp (("~-"|"~-."),[e]), _ -> "-" ^ "(" ^ string_of level e ^ ")"
+    | Expr.EFapp (f,es), _ -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
+    | Expr.EArr (a,idx), _ -> a ^ "[" ^ string_of level idx ^ "]" (* [a] is always a local var *)
+    | Expr.ERecord (n,f), _ -> access n ^ record_access f
+    | Expr.EBit (a,idx), _ -> let i = string_of level idx in string_of_int_range (access a) i i
+    | Expr.EBitrange (a,hi,lo), _ -> string_of_int_range (access a) (string_of level hi) (string_of level lo)
+    | Expr.ECast (e,te), _ -> "(" ^ string_of_type te.te_typ ^ ")(" ^ string_of level e ^ ")"
   in
   string_of 0 e
 
@@ -158,6 +144,10 @@ let string_of_action m a = match a with
        let hi = string_of_expr m idx1 in 
        let lo = string_of_expr m idx2 in 
        string_of_int_range id hi lo ^ "=" ^ string_of_expr m expr
+  | Action.Assign ({l_desc=Action.Var3 (id,f)}, expr) ->
+     if List.mem_assoc id m.c_outps
+     then failwith "Systemc.string_of_action: assignation of a non-scalar output"
+     else id ^ record_access f ^ "=" ^ string_of_expr m expr
   | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)
 
@@ -225,7 +215,7 @@ let dump_module_impl g fname m =
   let modname = String.capitalize_ascii m.c_name in
   fprintf oc "#include \"%s.h\"\n" m.c_name;
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
-  if profil.has_globals then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
+  if need_globals g then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
   (* List.iter (fun (id,(ty,v)) -> fprintf oc "  static const %s = %s;\n" (string_of_typed_item (id,ty)) (string_of_value v)) m.c_consts; *)
   List.iter
@@ -252,14 +242,16 @@ let dump_module_impl g fname m =
   Logfile.write fname;
   close_out oc
 
-let dump_module_intf fname m = 
+let dump_module_intf g fname m = 
   let oc = open_out fname in
   let modname = String.capitalize_ascii m.c_name in
   let string_of_ival = function
     | Expr.Val_unknown -> ""
     | Expr.Val_array vs when List.for_all (function Expr.Val_unknown -> true | _ -> false) (Array.to_list vs) -> ""
+    | Expr.Val_record r when List.for_all (function Expr.Val_unknown -> true | _ -> false) (List.map snd r.rv_val) -> ""
     | v -> " = " ^ string_of_value v in
   fprintf oc "#include \"systemc.h\"\n";
+  if need_globals g then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
   fprintf oc "SC_MODULE(%s)\n" modname;
   fprintf oc "{\n";
@@ -288,7 +280,7 @@ let dump_module_intf fname m =
   Logfile.write fname;
   close_out oc
 
-let dump_inp_module_impl fname (id,(ty,desc)) = 
+let dump_inp_module_impl g fname (id,(ty,desc)) = 
   let oc = open_out fname in
   let name = cfg.sc_inpmod_prefix ^ id in
   let modname = String.capitalize_ascii name in
@@ -305,11 +297,11 @@ let dump_inp_module_impl fname (id,(ty,desc)) =
     | MInp ({sd_comprehension=ValueChange []}, _) ->
        ()
     | MInp ({sd_comprehension=ValueChange vcs}, _) ->
-       let ty =
-         try type_of_value (snd (List.hd vcs))
-         with Type_of_value -> Error.not_implemented "SystemC input generator with non-int values" in
+       (* let ty =
+        *   try type_of_value (snd (List.hd vcs))
+        *   with Type_of_value -> Error.not_implemented "SystemC input generator with non-int values" in *)
        let string_of_vc (t,v) = "{" ^ string_of_int t ^ "," ^ string_of_value v ^ "}" in
-       fprintf oc "typedef struct { int date; %s val; } _vc_t;\n" ty;
+       fprintf oc "typedef struct { int date; %s val; } _vc_t;\n" (string_of_type ty);
        fprintf oc "static _vc_t _vcs[%d] = { %s };\n" (List.length vcs) (ListExt.to_string string_of_vc ", " vcs)
     | _ ->
        failwith "Systemc.dump_inp_module_impl" (* should not happen *)
@@ -356,6 +348,8 @@ let dump_inp_module_impl fname (id,(ty,desc)) =
        fprintf oc "    wait(_vcs[_i].date-_t, SC_NS);\n";
        fprintf oc "    %s = _vcs[_i].val;\n" id;
        fprintf oc "    _t = _vcs[_i].date;\n";
+       if cfg.sc_trace then
+         fprintf oc "    cout << \"%s: t=\" << _vcs[_i].date << \": wrote \" << _vcs[_i].val << endl;\n" modname;
        fprintf oc "    _i++;\n";
        fprintf oc "    }\n";
        fprintf oc "};\n";
@@ -365,10 +359,11 @@ let dump_inp_module_impl fname (id,(ty,desc)) =
   Logfile.write fname;
   close_out oc
 
-let dump_inp_module_intf fname (id,(ty,desc)) = 
+let dump_inp_module_intf g fname (id,(ty,desc)) = 
   let oc = open_out fname in
   let modname = String.capitalize_ascii (cfg.sc_inpmod_prefix ^ id) in
   fprintf oc "#include \"systemc.h\"\n";
+  if need_globals g then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
   fprintf oc "SC_MODULE(%s)\n" modname;
   fprintf oc "{\n";
@@ -390,7 +385,72 @@ let dump_inp_module_intf fname (id,(ty,desc)) =
   Logfile.write fname;
   close_out oc
 
-(* Dumping global functions and constants *)
+(* Dumping global type declarations, functions and constants *)
+
+let dump_record_type_defn oc name fields = 
+  let mk f sep fs = ListExt.to_string f sep fs in
+  fprintf oc "class %s {\n" name;
+  fprintf oc "public:\n";
+  fprintf oc "  struct { %s } repr;\n"
+    (mk (function (n,t) -> string_of_type t ^ " " ^ n ^ ";") " " fields);
+  fprintf oc "  ~%s() { };\n" name;
+  fprintf oc "  %s() { };\n" name;
+  fprintf oc "  %s(%s) { %s };\n"
+    name
+    (mk (function (n,t) -> string_of_type t ^ " " ^ n) ", " fields)
+    (mk (function (n,_) -> "repr." ^ n ^ "=" ^ n ^ ";") " " fields);
+  fprintf oc "  inline %s& operator = (const %s& v) { repr = v.repr; return *this; }\n" name name;
+  fprintf oc "  inline friend bool operator == ( const %s& v1, const %s& v2)\n" name name;
+  fprintf oc "    { return %s; }\n"
+    (mk (function (n,_) -> "v1.repr." ^ n ^ "==v2.repr." ^ n) " && " fields);
+  fprintf oc "  inline friend ::std::ostream& operator << ( ::std::ostream& os, const %s& v) {\n" name;
+  fprintf oc "    os << \"{\" << %s << \"} \";\n"
+    (mk (function (n,_) -> "\"" ^ n ^ "=\"" ^ " << v.repr." ^ n) " << \",\" << " fields); 
+  fprintf oc "    return os;\n";
+  fprintf oc "    }\n";
+  fprintf oc "  inline friend ::std::istream& operator >> ( ::std::istream& is, %s& v) {\n" name;
+  fprintf oc "    is >> %s;\n"
+    (mk (function (n,_) -> "v.repr." ^ n) " >> " fields); 
+  fprintf oc "    return is;\n";
+  fprintf oc "  }\n";
+  fprintf oc "};\n";
+  fprintf oc "\n\n";
+  fprintf oc "inline void sc_trace(sc_trace_file *tf, const %s& v, const std::string& n) { /* TOFIX */ }\n" name
+
+let dump_enum_type_defn oc name vs = 
+  fprintf oc "#include \"enumid.h\"\n\n";
+  fprintf oc "class %s {\n" name;
+  fprintf oc "public:\n";
+  fprintf oc "  enum { %s } repr;\n" (ListExt.to_string Misc.id "," vs);
+  fprintf oc "  ~%s() { };\n" name;
+  fprintf oc "  %s() { };\n" name;
+  List.iter
+    (function v -> fprintf oc "  %s(_enum<%s>) { repr = %s; };\n" name v v)
+    vs;
+  fprintf oc "  inline %s& operator = (const %s& v) { repr = v.repr; return *this; }\n" name name;
+  fprintf oc "  inline friend bool operator == ( const %s& v1, const %s& v2) { return v1.repr == v2.repr; }\n" name name;
+  fprintf oc "  inline friend ::std::ostream& operator << ( ::std::ostream& os, const %s& v) {\n" name;
+  fprintf oc "    switch ( v.repr ) {\n";
+  List.iter
+    (function v -> fprintf oc "      case %s: os << \"%s \"; return os;\n" v v)
+    vs;
+  fprintf oc "      }\n";
+  fprintf oc "    }\n";
+  fprintf oc "  inline friend ::std::istream& operator >> ( ::std::istream& is, %s& v) {\n" name;
+  fprintf oc "    char tmp[64];\n";
+  fprintf oc "    is >> tmp;\n";
+  List.iter
+    (function v -> fprintf oc "    if ( !strcmp(tmp,\"%s\") ) { v.repr=%s; return is;}\n" v v)
+    vs;
+  fprintf oc "    return is;\n";
+  fprintf oc "  }\n";
+  fprintf oc "};\n\n";
+  fprintf oc "inline void sc_trace(sc_trace_file *tf, const %s& v, const std::string& n) { /* TOFIX */ }\n" name
+
+let dump_global_type_defn oc (name,ty) = match ty with
+  | TyEnum (id,cs) -> dump_enum_type_defn oc id cs
+  | TyRecord (id,fs) -> dump_record_type_defn oc id fs
+  | _ -> ()
 
 let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
 | Sysm.MConst _, TyArray(sz,ty') ->
@@ -417,30 +477,32 @@ let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
       (string_of_expr Cmodel.empty body)
 | _ -> ()
 
-let dump_global_fns_intf dir prefix fs =
+let dump_globals_intf dir prefix m =
   let fname = dir ^ "/" ^ prefix ^ ".h" in
-  profil.has_globals <- true;
   let oc = open_out fname in
   Printf.fprintf oc "#ifndef _%s_h\n" cfg.sc_globals_name;
   Printf.fprintf oc "#define _%s_h\n\n" cfg.sc_globals_name;
-  Printf.fprintf oc "#include \"systemc.h\"\n";
-  List.iter (dump_global_fn_intf oc) fs;
+  Printf.fprintf oc "#include \"systemc.h\"\n\n";
+  if List.exists (function (_,Types.TyEnum _) -> true | _ -> false) m.Sysm.m_types then
+    Printf.fprintf oc "#include \"enumid.h\"\n\n";
+  List.iter (dump_global_type_defn oc) m.Sysm.m_types; 
+  List.iter (dump_global_fn_intf oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
   Printf.fprintf oc "\n#endif\n";
   Logfile.write fname;
   close_out oc
 
-let dump_global_fns_impl dir prefix fs =
+let dump_globals_impl dir prefix m =
   let fname = dir ^ "/" ^ prefix ^ ".cpp" in
   let oc = open_out fname in
   Printf.fprintf oc "#include \"%s.h\"\n\n" prefix;
-  List.iter (dump_global_fn_impl oc) fs;
+  List.iter (dump_global_fn_impl oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
   Logfile.write fname;
   close_out oc
 
 let dump_globals ?(name="") ?(dir="./systemc") m =
   let prefix = match name with "" -> cfg.sc_globals_name | p -> p in
-  dump_global_fns_intf dir prefix (m.Sysm.m_consts @ m.Sysm.m_fns);
-  dump_global_fns_impl dir prefix (m.Sysm.m_consts @ m.Sysm.m_fns)
+  dump_globals_intf dir prefix m;
+  dump_globals_impl dir prefix m
 
 (* Dumping the testbench *)
 
@@ -524,7 +586,7 @@ let dump_makefile ?(dir="./systemc") m =
   let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
   let open Sysm in
   fprintf oc "include %s/etc/Makefile.systemc\n\n" cfg.sc_lib_dir;
-  let globals suffix = if profil.has_globals then cfg.sc_globals_name ^ suffix else "" in
+  let globals suffix = if need_globals m then cfg.sc_globals_name ^ suffix else "" in
   (* fprintf oc "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
   List.iter
     (function f -> fprintf oc "%s.o: %s.h %s.cpp %s\n" f.Fsm.f_name f.Fsm.f_name f.Fsm.f_name (globals ".h"))
@@ -584,16 +646,16 @@ let dump_makefile ?(dir="./systemc") m =
 let dump_fsm m ?(prefix="") ?(dir="./systemc") fsm =
   let f = Cmodel.c_model_of_fsm m fsm in
   let prefix = match prefix with "" -> fsm.Fsm.f_name | p -> p in
-  dump_module_intf (dir ^ "/" ^ prefix ^ ".h") f;
+  dump_module_intf m (dir ^ "/" ^ prefix ^ ".h") f;
   dump_module_impl m (dir ^ "/" ^ prefix ^ ".cpp") f
 
-let dump_input ?(prefix="") ?(dir="./systemc") ((id,_) as inp) =
+let dump_input ?(prefix="") ?(dir="./systemc") m ((id,_) as inp) =
   let prefix = match prefix with "" -> cfg.sc_inpmod_prefix ^ id | p -> p in
-  dump_inp_module_intf (dir ^ "/" ^ prefix ^ ".h") inp;
-  dump_inp_module_impl (dir ^ "/" ^ prefix ^ ".cpp") inp
+  dump_inp_module_intf m (dir ^ "/" ^ prefix ^ ".h") inp;
+  dump_inp_module_impl m (dir ^ "/" ^ prefix ^ ".cpp") inp
 
 let dump_model ?(dir="./systemc") m = 
-  List.iter (dump_input ~dir:dir) m.Sysm.m_inputs;
+  List.iter (dump_input ~dir:dir m) m.Sysm.m_inputs;
   List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms
 
 let dump_testbench ?(name="") ?(dir="./systemc") m =

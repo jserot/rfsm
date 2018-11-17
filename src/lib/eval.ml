@@ -19,6 +19,7 @@ exception Illegal_application of Expr.t
 exception Illegal_array_access of Expr.t
 exception Illegal_bit_range_access of Expr.t
 exception Invalid_array_access of string * int (* array name, index value *)
+exception Illegal_record_access of Expr.t
 exception Non_static_expr of Expr.t * Expr.t
 
 let lookup env id = 
@@ -67,29 +68,30 @@ let rec subst vs expr = match expr.e_desc with
   | _ -> expr
                
 and eval env exp = 
-  let r = match exp.e_desc with
-    EInt v -> Val_int v
-  | EFloat v -> Val_float v
-  | EBool v -> Val_bool v
-  | EEnum c -> Val_enum c
-  | EVar id -> lookup env id 
-  | EBinop (op, exp1, exp2) ->
+  let r = match exp.e_desc, exp.e_typ with
+    EInt v, _ -> Val_int v
+  | EFloat v, _ -> Val_float v
+  | EBool v, _ -> Val_bool v
+  | EEnum c, Types.TyEnum (n, _) -> Val_enum { ev_typ=n; ev_val=c }
+  | EEnum c, _ -> failwith "Eval.eval"
+  | EVar id, _ -> lookup env id 
+  | EBinop (op, exp1, exp2), _ ->
      let f = Builtins.lookup_val op in
      f [eval env exp1; eval env exp2]
-  | ECond (e1, e2, e3) ->
+  | ECond (e1, e2, e3), _ ->
      begin match eval env e1 with
        Val_bool true -> eval env e2
      | Val_bool false -> eval env e3
      | _ -> raise (Illegal_expr exp)
      end
-  | EFapp (f, exps) ->
+  | EFapp (f, exps), _ ->
      begin match lookup env f with
      | Val_fn (args, body) -> 
         let env' = List.map2 (fun arg exp -> arg, eval env exp) args exps in
         eval (env'@env) body
      | _ -> raise (Illegal_application exp)
      end
-  | EArr (a,idx) ->
+  | EArr (a,idx), _ ->
      begin
        match lookup env a, eval env idx with
        | Val_array vs, Val_int i -> 
@@ -97,21 +99,31 @@ and eval env exp =
           else raise (Invalid_array_access (a,i))
        | _ -> raise (Illegal_array_access exp)
      end
-  | EBit (a,idx) ->
+  | EBit (a,idx), _ ->
      begin
        match lookup env a, eval env idx with
        | Val_int x, Val_int i -> 
           Val_int (Intbits.get_bits i i x)
        | _ -> raise (Illegal_bit_range_access exp)
      end
-  | EBitrange (a,idx1,idx2) ->
+  | EBitrange (a,idx1,idx2), _ ->
      begin
        match lookup env a, eval env idx1, eval env idx2 with
        | Val_int x, Val_int hi, Val_int lo -> 
           Val_int (Intbits.get_bits hi lo x)
        | _ -> raise (Illegal_bit_range_access exp)
      end
-  | ECast (e,te) ->
+  | ERecord (a,f), _ ->
+     begin
+       match lookup env a with
+       | Val_record { rv_val=vs } -> 
+          begin
+            try List.assoc f vs
+            with Not_found -> raise (Illegal_record_access exp)
+          end
+       | _ -> raise (Illegal_record_access exp)
+     end
+  | ECast (e,te), _ ->
      let v = eval env e in
      eval_cast te.te_typ v
   in

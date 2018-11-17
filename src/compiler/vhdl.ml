@@ -85,7 +85,7 @@ let rec vhdl_type_of t = match Types.real_type t with
   | TyEvent -> Std_logic
   | TyBool -> if cfg.vhdl_bool_as_bool then Boolean else Std_logic
   | TyFloat -> Real
-  | TyEnum cs -> Error.not_implemented "VHDL translation of enumerated type"
+  | TyEnum (_,cs) -> Error.not_implemented "VHDL translation of enumerated type"
   | TyInt (SzExpr1 (TiConst sz)) ->
       if cfg.vhdl_use_numeric_std then Unsigned sz
       else Integer (Some (0, 1 lsl sz - 1))

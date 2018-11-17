@@ -28,38 +28,35 @@ and e_desc =
   | EArr of string * t        (** t[i] when t is an array *)
   | EBit of string * t        (** t[i] when t is an int *)
   | EBitrange of string * t * t   (** t[hi:lo] when t is an int *)
+  | ERecord of string * string (** v.name when v is a record *)
   | ECast of t * Type_expr.t
 
 and e_val = 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool
-  | Val_enum of string
+  | Val_enum of enum_value
   | Val_fn of string list * t   (** args, body *)
   | Val_unknown
   | Val_none                    (** used for pure events *)
   | Val_array of e_val array
+  | Val_record of record_value
 
-let rec type_of_value = function
-  | Val_int _ -> Types.TyInt (Types.new_size_var())
-  | Val_float _ -> Types.TyFloat
-  | Val_bool _ -> Types.TyBool
-  | Val_enum c -> Types.TyEnum [c]  (* TO FIX *)
-  | Val_fn (args,body) -> Types.TyArrow (Types.TyProduct (List.map (function arg -> Types.TyBool) args),Types.TyBool) (* TO FIX ! *)
-  | Val_unknown -> Types.new_type_var ()
-  | Val_none -> Types.TyEvent
-  | Val_array vs ->
-     begin
-       match Array.length vs with
-       | 0 -> failwith "Types.type_of_value"
-       | n -> TyArray(TiConst n, type_of_value vs.(0))
-     end
+and enum_value = {
+    ev_typ: string; (** Type name *)
+    ev_val: string;
+  }
+
+and record_value = {
+    rv_typ: string; (** Record type name *)
+    rv_val: (string * e_val) list  (** (Field name, value) list *)
+  }
 
 let of_value = function
     Val_int v -> EInt v
   | Val_float f -> EFloat f
   | Val_bool b -> EBool b
-  | Val_enum c -> EEnum c
+  | Val_enum c -> EEnum c.ev_val
   | Val_fn _ -> failwith "Expr.of_value"
   | Val_unknown -> failwith "Expr.of_value"
   | Val_none -> failwith "Expr.of_value"
@@ -71,6 +68,8 @@ let array_update id a i v =
   if i >= 0 && i < Array.length a
   then let a' = Array.copy a in Array.set a' i v; a'
   else raise (Out_of_bound (id,i))
+
+let record_update id r f v = ListExt.replace_assoc f v r 
 
 let unset_event = Val_bool false
 let set_event = Val_bool true
@@ -103,11 +102,14 @@ let rec string_of_value v = match v with
   Val_int i -> string_of_int i
 | Val_float b -> string_of_float b
 | Val_bool b -> if b then "1" else "0"
-| Val_enum s -> s
+| Val_enum s -> s.ev_val
 | Val_fn _ -> "<fun>"
 | Val_unknown -> "<unknown>"
 | Val_none -> "<none>"
 | Val_array vs -> "[" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "]"
+| Val_record r -> "{" ^ ListExt.to_string string_of_field_value "," r.rv_val ^ "}"
+
+and string_of_field_value (n,v) = n ^ "=" ^ string_of_value v
 
 let string_of_opt_value = function
     None -> "?"
@@ -130,6 +132,7 @@ let rec string_of_expr e = match e with
   | EArr (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBit (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBitrange (a,e1,e2) -> a ^ "[" ^ to_string e1 ^ ":" ^ to_string e2 ^ "]"
+  | ERecord (a,f) -> a ^ "." ^ f
   | ECast (e,te) -> to_string e ^ "::" ^ Type_expr.string_of_type_expr te
 
 and to_string e =

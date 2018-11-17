@@ -138,6 +138,7 @@ exception Internal_error of string (** where *)
 exception Invalid_state of string * string (** FSM, id *)
 exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
 exception Invalid_parameter of string * string (** FSM, name *)
+exception Nonatomic_IO_write of inst * Action.t 
 
 exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
 
@@ -183,11 +184,11 @@ let type_check ~strict what where ty ty'  =
   with
     Types.TypeConflict _ -> raise (Typing.Type_error (what, where, ty, ty'))
 
-let type_check_stim fsm id ty st = match st with
+let type_check_stim tenv fsm id ty st = match st with
   | ValueChange vcs ->
      List.iter
        (type_check ~strict:false "stimuli" ("input \"" ^ id ^ "\"") ty) 
-       (List.map (function (_,v) -> Expr.type_of_value v) vcs)
+       (List.map (function (_,v) -> Typing.type_of_value tenv v) vcs)
   | _ ->
      ()
 
@@ -254,6 +255,11 @@ let type_check_instance tenv f =
             | ty, _, _ -> 
                raise (Typing.Type_error ("action \"" ^ Action.to_string act ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, Types.type_int []))
             end
+         | Var3 (a,f) ->
+              begin match List.assoc a tenv.te_vars with
+              | TyRecord (_,fs) -> List.assoc f fs 
+              | _ -> raise (Internal_error "Fsm.type_check_action")
+              end
          | exception _ -> raise (Internal_error "Fsm.type_check_action")
          end in
        let t' =
@@ -359,7 +365,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
       let ty' = Types.subst_indexes ienv lty in
       match dir, gl with 
       | Types.IO_In, GInp (gid,ty,st) ->
-         type_check_stim name gid ty st;
+         type_check_stim tenv name gid ty st;
          type_check ~strict:true ("input " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_In,ty,gl)
       | Types.IO_In, GShared (gid,ty) ->
@@ -385,9 +391,10 @@ let build_instance ~tenv ~name ~model ~params ~ios =
       bound_ios
       |> List.filter (function (_,_,k,_,_) -> k=kind)
       |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
-    let mk_ival ty = match ty with
+    let rec mk_ival ty = match ty with
       | Types.TyArray(TiConst sz, _) -> Expr.Val_array (Array.make sz Expr.Val_unknown)
       | Types.TyArray(_, _) -> failwith "Fsm.build_instance.mk_ival"
+      | Types.TyRecord (n,fs) -> Expr.Val_record { rv_typ=n; rv_val=List.map (function (n,t) -> n, mk_ival t) fs }
       | _ -> Expr.Val_unknown in
     let mk_var (id,ty) =
       let ty' = Types.subst_indexes ienv ty in
@@ -437,6 +444,7 @@ type response = lhs * Expr.e_val
 and lhs =
   | Var0 of Ident.t         (* Scalar *)
   | Var1 of Ident.t * int   (* 1D array location *)
+  | Var3 of Ident.t * string   (* Record field *)
 
 let rec replace_assoc' k v env =
   (* This is a variation on [ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *)
@@ -451,9 +459,13 @@ let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
      a list of responses [resps], and an updated (local) environment [env']. *)
   let array_upd id idx v = 
-    match List.assoc id env, Eval.eval env idx, v with
-    | Expr.Val_array vs, Expr.Val_int i, _ -> Expr.Val_array (Expr.array_update id vs i v), i
-    | _, _, _ -> raise (IllegalAction (f,act)) in
+    match List.assoc id env, Eval.eval env idx with
+    | Expr.Val_array vs, Expr.Val_int i -> Expr.Val_array (Expr.array_update id vs i v), i
+    | _, _ -> raise (IllegalAction (f,act)) in
+  let record_upd id fd v = 
+    match List.assoc id env with
+    | Expr.Val_record r -> Expr.Val_record { r with rv_val = (Expr.record_update id r.rv_val fd v) }
+    | _ -> raise (IllegalAction (f,act)) in
   let set_bits id idx1 idx2 v = 
     match List.assoc id env, Eval.eval env idx1, Eval.eval env idx2, v with
     | Expr.Val_int x, Expr.Val_int hi, Expr.Val_int lo, Expr.Val_int b -> Expr.Val_int (Intbits.set_bits hi lo x b)
@@ -486,6 +498,12 @@ let do_action (f,resps,resps',env) act =
               resps @ [Var0 (Ident.Local (f.f_name, id)), v'],
               resps',
               ListExt.replace_assoc id v' env
+           | Action.Var3 (id, fd) ->
+              let v' = record_upd id fd v in
+              { f with f_vars = replace_assoc' id v' f.f_vars },
+              resps @ [Var0 (Ident.Local (f.f_name, id)), v'],
+              resps',
+              ListExt.replace_assoc id v' env
            end
         | Synchronous ->
           (* In the synchronous interpretation, updates of local variables are not performed immediately
@@ -510,6 +528,12 @@ let do_action (f,resps,resps',env) act =
               resps,
               resps' @ [Var0 (Ident.Local (f.f_name, id)), v'],
               env
+           | Action.Var3 (id, fd) ->
+              let v' = record_upd id fd v in
+              f,
+              resps,
+              resps' @ [Var3 (Ident.Local (f.f_name, id), fd), v'],
+              env
            end
         end
       else  (* Global IO or shared value. Updates are never performed immediately *)
@@ -521,8 +545,9 @@ let do_action (f,resps,resps',env) act =
            resps',
            env
         | Action.Var1 (id, _)
-        | Action.Var2 (id, _, _) ->
-           failwith "Fsm.do_action: not implemented: global IO or shared value with array/bitset type"
+        | Action.Var2 (id, _, _)
+        | Action.Var3 (id, _) ->
+           raise (Nonatomic_IO_write (f,act))
         end
   | Action.Emit id ->
      f,
@@ -531,7 +556,7 @@ let do_action (f,resps,resps',env) act =
      env
   | Action.StateMove (id,s,s') ->
      { f with f_state = s' },
-     resps @ [Var0 (Ident.Local (f.f_name, "state")), Expr.Val_enum s'],
+     resps @ [Var0 (Ident.Local (f.f_name, "state")), Expr.Val_enum {ev_typ=""; ev_val=s'}],
      resps',
      env
 

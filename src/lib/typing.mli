@@ -14,6 +14,7 @@
 type tenv =   (** Typing environment *)
   { te_vars: (string * Types.typ) list;
     te_ctors: (string * Types.typ) list;
+    te_rfields: (string * Types.typ) list;
     te_defns: (string * Types.typ) list;
     te_prims: (string * Types.typ_scheme) list; }
 
@@ -27,6 +28,7 @@ exception Type_error of string * string * Types.typ * Types.typ (** what, where,
 exception Internal_error of string (** where *)
 exception Illegal_cast of Expr.t
 exception Unbound_type_ctor of string
+exception Invalid_record_access of Expr.t
 
 (** {2 Typing} *)
 
@@ -36,6 +38,9 @@ val type_of_type_expr : tenv -> Type_expr.t -> Types.typ
 val type_expression : tenv -> Expr.t -> Types.typ
   (** [type_expression env e] returns the type of expression [e] in environment [env], performing
       all required type checks. *)
+
+val type_of_value : tenv -> Expr.e_val -> Types.typ
+  (** [type_of_value env e] returns the best approximation of type of value [v] in environment [env] *)
 
 (** {2 Printers} *)
 

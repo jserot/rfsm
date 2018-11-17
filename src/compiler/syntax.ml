@@ -36,7 +36,10 @@ type type_declaration = {
 
 and type_decl =
   TD_Enum of string * string list  (* Name, constructors *)
+| TD_Record of string * record_field list (* Name, field descrs *)
 | TD_Alias of string * Type_expr.t   (* Name, abbreviated type expr *)
+
+and record_field = string * Type_expr.t 
 
 (* Function declarations *)
 
@@ -166,11 +169,15 @@ let string_of_io_tag = function Types.IO_In -> "in" | Types.IO_Out -> "out" | Ty
                                                                             
 let string_of_io (tag,(id,ty)) = string_of_io_tag tag ^ " " ^ id ^ ": " ^ string_of_type_expression ty
 
+and string_of_field (n,ty) = n ^ ":" ^ Type_expr.string_of_type_expr ty
+
 let dump_type_decl oc { td_desc=d } = match d with
     TD_Alias (name,te) ->
      Printf.printf "TYPE %s = %s\n" name (Type_expr.string_of_type_expr te)
   | TD_Enum (name, cs) ->
      Printf.printf "TYPE %s = { %s }\n" name (ListExt.to_string (function c -> c) "," cs)
+  | TD_Record (name, fs) ->
+     Printf.printf "TYPE %s = { %s }\n" name (ListExt.to_string string_of_field "," fs)
 
 let string_of_fn_arg (id,ty) = id ^ ":" ^ string_of_type_expression ty
 

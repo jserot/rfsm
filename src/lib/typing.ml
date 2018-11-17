@@ -16,10 +16,12 @@ exception Typing_error of Expr.t * Types.typ * Types.typ
 exception Type_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
 exception Internal_error of string (** where *)
 exception Illegal_cast of Expr.t
+exception Invalid_record_access of Expr.t
 
 type tenv =
   { te_vars: (string * typ) list;
     te_ctors: (string * typ) list;
+    te_rfields: (string * typ) list;
     te_defns: (string * typ) list;
     te_prims: (string * typ_scheme) list; }
 
@@ -118,6 +120,16 @@ let rec type_expression tenv expr =
      unify ty_idx2 (type_int []);
      unify ty_arg (type_int []);
      type_int []
+  | Expr.ERecord (a,f) ->
+     begin
+       match lookup_type "record" tenv.te_vars a with
+       | TyRecord (_,fs) ->
+          begin
+            try List.assoc f fs
+            with Not_found -> raise (Invalid_record_access expr)
+          end
+       | _ -> raise (Invalid_record_access expr)
+     end 
   | Expr.ECast (e,te) ->
       let ty_e = type_expression tenv e in
       let ty_t = type_of_type_expr tenv te in
@@ -146,6 +158,30 @@ and type_cast e t1 t2 = match t1, t2 with
   | TyFloat, TyFloat
   | TyFloat, TyInt _ -> t2
   | _, _ -> raise (Illegal_cast e)
+
+(* Typing values *)
+
+let rec type_of_value tenv v =
+  let lookup v env = 
+       try List.assoc v env
+       with Not_found -> failwith "Typing.type_of_value: cannot recover type from value" in
+  match v with
+  | Expr.Val_int _ -> Types.TyInt (Types.new_size_var())
+  | Expr.Val_float _ -> Types.TyFloat
+  | Expr.Val_bool _ -> Types.TyBool
+  | Expr.Val_enum c -> lookup c.ev_val tenv.te_ctors
+  | Expr.Val_fn (args,body) -> Types.TyArrow (Types.TyProduct (List.map (function arg -> Types.TyBool) args),Types.TyBool) (* TO FIX ! *)
+  | Expr.Val_unknown -> Types.new_type_var ()
+  | Expr.Val_none -> Types.TyEvent
+  | Expr.Val_array vs ->
+     begin
+       match Array.length vs with
+       | 0 -> failwith "Typing.type_of_value"
+       | n -> TyArray(TiConst n, type_of_value tenv vs.(0))
+     end
+  | Expr.Val_record {rv_val=((f,_)::_)} -> lookup f tenv.te_rfields
+  | _ -> failwith "Typing.type_of_value"
+
           
 (* Typing environment *)
                            
@@ -155,6 +191,7 @@ let builtin_tenv = {
    "True", TyBool;
    "False", TyBool
    ];
+  te_rfields = [];
   te_defns = [];
   te_prims = List.map (function (id,(ty,_)) -> id, ty) Builtins.env
   }

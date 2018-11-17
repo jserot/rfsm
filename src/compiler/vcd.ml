@@ -80,6 +80,11 @@ let array_cell_id id i =
   | Ident.Local (f, id') -> Ident.Local (f, id' ^ "." ^ string_of_int i)
   | _ -> failwith "Vcd.array_cell_id"
 
+let record_field_id id fd =
+  match id with
+  | Ident.Local (f, id') -> Ident.Local (f, id' ^ "." ^ fd)
+  | Ident.Global id' -> Ident.Global (id' ^ "." ^ fd)
+
 let register_fsm_var acc ((id,ty) as s) =
    match ty with
   | TyArray (Types.Index.TiConst sz, ty') ->
@@ -89,11 +94,16 @@ let register_fsm_var acc ((id,ty) as s) =
        (ListExt.range (array_cell_id id) 0 (sz-1))
   | TyArray (_, _) ->
      failwith "Vcd.register_fsm_var"
+  | TyRecord (_,fs) ->
+     List.fold_left
+       (fun acc (fd,ty') -> register_signal acc (record_field_id id fd, ty'))
+       acc 
+       fs
   | _ ->
      register_signal acc s
  
 let register_fsm acc f =
-  let sigs = (Ident.Local (f.f_name, "state"), TyEnum (states_of f))
+  let sigs = (Ident.Local (f.f_name, "state"), TyEnum ("", states_of f))
              :: List.map (function (id,(ty,_)) -> Ident.Local (f.f_name,id),ty) f.f_vars in
   List.fold_left register_fsm_var acc sigs
 
@@ -104,7 +114,12 @@ let register_io gls acc (id,_) =
     try fst (List.assoc id gls)
     with Not_found -> Error.fatal_error "Vcd.register_io" (* should not happen *) in
   match ty with
-  | TyArray (sz,ty') -> failwith "Vcd.register_io: array type"
+  | TyArray (sz,ty') -> failwith "Vcd.register_io: array type" (* TO FIX *)
+  | TyRecord (_,fs) ->
+     List.fold_left
+       (fun acc (fd,ty') -> register_signal acc (record_field_id (Ident.Global id) fd, ty'))
+       acc 
+       fs
   | _ -> register_signal acc (Ident.Global id, ty)
   
 let mk_evbuf_name id = id ^ ".val"
@@ -128,22 +143,30 @@ let register_evs evs l = List.fold_left register_event l evs
 exception Error of string
 
 let dump_reaction oc signals (t,evs) =
-  let dump_event (lhs,value) =
+  let dump_scalar_event (lhs,value) = 
     let name = match lhs with
       | Var0 id -> id
-      | Var1 (id,k) -> array_cell_id id k in
+      | _ -> failwith "Vcd.dump_scalar_event: non scalar LHS" (* should not happen *) in
     let (id,ty) =
       try List.assoc name signals
       with Not_found -> raise (Error ("unknown signal: " ^ Ident.to_string name)) in
     match ty, value with
         TyEvent, _ -> fprintf oc "1%c\n" id          (* Instantaneous event *)
-      | TyEnum _, Expr.Val_enum s -> fprintf oc "s%s %c\n" s id
+      | TyEnum _, Expr.Val_enum e -> fprintf oc "s%s %c\n" e.ev_val id
       | TyBool, Expr.Val_bool b -> fprintf oc "b%d %c\n" (if b then 1 else 0) id
       | TyBool, Expr.Val_int n -> fprintf oc "b%d %c\n" (if n > 0 then 1 else 0) id
       | TyInt r, Expr.Val_int n -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
       | TyInt r, Expr.Val_bool b -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) (if b then 1 else 0)) id
       | TyFloat, Expr.Val_float n -> fprintf oc "r%.*f %c\n" cfg.float_precision n id
       | _, _-> () in
+  let dump_event (lhs,value) =
+    match lhs, value with
+    | Var0 id, Expr.Val_record r ->
+       List.iter
+         (fun (n,v) -> dump_scalar_event (Var0 (record_field_id id n), v))
+         r.rv_val
+    (* TODO: handle arrays here *)
+    | _ -> dump_scalar_event (lhs, value) in
   fprintf oc "#%d\n" t;
   List.iter dump_event evs
 
@@ -156,6 +179,12 @@ let dump_signal oc (name,(id,ty)) =
      done
   | TyArray (_, _) ->
      failwith "Vcd.register_fsm_var"
+  | TyRecord (_,fs) ->
+     List.iter
+       (fun (fd,ty') ->
+         let kind, size =  vcd_kind_of ty'  in
+         fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string (record_field_id name fd)))
+       fs
   | _ ->
      let kind, size =  vcd_kind_of ty in
      fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string name)
