@@ -74,7 +74,7 @@ try
   | Some Options.Vhdl ->
        Vhdl.check_allowed m;
        check_dir !Options.target_dir;
-       if m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] then Vhdl.dump_globals ~dir:!Options.target_dir m;
+       if Vhdl.need_globals m then Vhdl.dump_globals ~dir:!Options.target_dir m;
        Vhdl.dump_model ~dir:!Options.target_dir m;
        Vhdl.dump_testbench ~dir:!Options.target_dir m;
        Vhdl.dump_makefile ~dir:!Options.target_dir m
