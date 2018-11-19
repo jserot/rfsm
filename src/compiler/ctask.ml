@@ -20,14 +20,18 @@ open Cmodel
 type ctsk_config = {
   state_var_name: string;
   recvd_ev_name: string;
+  globals_name: string;
   }
 
 let cfg = {
   state_var_name = "state";
   recvd_ev_name = "received";
+  globals_name = "globals";
   }
 
 exception Ctask_error of string * string  (* where, msg *)
+
+let need_globals m = m.Sysm.m_types <> [] || m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] 
 
 let string_of_type t = match t with 
   | TyEvent -> "event"
@@ -207,22 +211,72 @@ let dump_fsm ?(prefix="") ?(dir="./ctask") m f =
   let prefix = match prefix with "" -> f.f_name | p -> p in
   dump_module_impl m (dir ^ "/" ^ prefix ^ ".c") f
 
-let dump_fn oc (id,(ty,gd)) = match gd, ty with
+(* Dumping global type declarations, functions and constants *)
+
+let dump_record_type_defn oc name fields = 
+  let mk f sep fs = ListExt.to_string f sep fs in
+  fprintf oc "typedef struct { %s } %s;\n"
+    (mk (function (n,t) -> string_of_type t ^ " " ^ n ^ ";") " " fields)
+    name
+
+let dump_enum_type_defn oc name vs = 
+  fprintf oc "typedef enum { %s } %s;\n"
+    (ListExt.to_string Misc.id "," vs)
+    name
+
+let dump_global_type_defn oc (name,ty) = match ty with
+  | TyEnum (nm,cs) -> dump_enum_type_defn oc (Types.string_of_name nm) cs
+  | TyRecord (nm,fs) -> dump_record_type_defn oc (Types.string_of_name nm) fs
+  | _ -> ()
+
+let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MConst _, TyArray(sz,ty') ->
+     fprintf oc "extern %s %s[%s];\n" (string_of_type ty') id (string_of_array_size sz)
+| Sysm.MConst _, _ ->
+     fprintf oc "%s %s;\n" (string_of_type ty) id 
+| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+    fprintf oc "%s %s (%s);\n"
+      (string_of_type tr)
+      id 
+      (ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
+| _ -> ()
+
+let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
+| Sysm.MConst v, TyArray(sz,ty') ->
+     fprintf oc "%s %s[%s] = %s;\n" (string_of_type ty') id (string_of_array_size sz) (string_of_value v)
+| Sysm.MConst v, _ -> 
+    fprintf oc "%s %s = %s;\n" (string_of_type ty) id (string_of_value v)
 | Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
     fprintf oc "%s %s (%s) { return %s; }\n"
       (string_of_type tr)
       id 
-      (ListExt.to_string (function (a,t) -> a ^ ":" ^ string_of_type t) ";" (List.combine args ts)) 
+      (ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
       (string_of_expr body)
 | _ -> ()
 
-let dump_fns ?(prefix="") ?(dir="./ctask") m =
-  let prefix = match prefix with "" -> "global_fns" | p -> p in
-  let fname = dir ^ "/" ^ prefix ^ ".c" in
+let dump_globals_intf dir prefix m =
+  let fname = dir ^ "/" ^ prefix ^ ".h" in
   let oc = open_out fname in
-  List.iter (dump_fn oc) m.Sysm.m_fns;
+  Printf.fprintf oc "#ifndef _%s_h\n" cfg.globals_name;
+  Printf.fprintf oc "#define _%s_h\n\n" cfg.globals_name;
+  List.iter (dump_global_type_defn oc) m.Sysm.m_types; 
+  List.iter (dump_global_fn_intf oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
+  Printf.fprintf oc "\n#endif\n";
   Logfile.write fname;
   close_out oc
+
+let dump_globals_impl dir prefix m =
+  let fname = dir ^ "/" ^ prefix ^ ".c" in
+  let oc = open_out fname in
+  Printf.fprintf oc "#include \"%s.h\"\n\n" prefix;
+  List.iter (dump_global_fn_impl oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
+  Logfile.write fname;
+  close_out oc
+
+let dump_globals ?(name="") ?(dir="./ctask") m =
+  let prefix = match name with "" -> cfg.globals_name | p -> p in
+  dump_globals_intf dir prefix m;
+  if m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] then dump_globals_impl dir prefix m
 
 (* Check whether a model can be translated *)
 

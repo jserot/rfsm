@@ -62,7 +62,7 @@ try
   | Some Options.CTask ->
        Ctask.check_allowed m;
        check_dir !Options.target_dir;
-       if m.Sysm.m_fns <> [] then Ctask.dump_fns ~dir:!Options.target_dir m;
+       if Ctask.need_globals m then Ctask.dump_globals ~dir:!Options.target_dir m;
        List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Sysm.m_fsms
   | Some Options.SystemC ->
        Systemc.check_allowed m;
