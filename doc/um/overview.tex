@@ -231,25 +231,44 @@ range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
 
 
 \medskip
-\textbf{User defined types} are either \emph{type abbreviations} or \emph{enumerations}.
+\textbf{User defined types} are either \emph{type abbreviations}, \emph{enumerations} or
+\emph{records}.
 
 \step Type abbreviations are introduced with the following declaration
 \begin{center}
   \framebox{\lstinline[language=Rfsm]{type typename = type_expression}}
 \end{center}
 Each occurrence of the defined type in the program is actually substituted by the corresponding type
-expression. Type expressions in type abbreviations are currently limited to builtin types.
+expression.
+% Type expressions in type abbreviations are currently limited to builtin types.
 An example of type abbreviation has been given in the program of Listing~\ref{lst:rfsm-gensig}. 
 
 \medskip
 \step Enumerated types  are introduced with the following declaration
 \begin{center}
-  \framebox{\lstinline[language=Rfsm]|type typename = \{ C1, ..., Cn \}|}
+  \framebox{\lstinline[language=Rfsm]|type typename = enum \{ C1, ..., Cn \}|}
 \end{center}
 where \verb|C1|, \ldots, \verb|Cn| are the enumerated values, each being denoted by an identifier
 starting with an uppercase letter. For example : 
 \begin{center}
   \example{\lstinline[language=Rfsm]|type color = \{ Red, Green, Orange \}|}
+\end{center}
+
+\medskip
+\step Record types are introduced with the following declaration
+\begin{center}
+  \framebox{\lstinline[language=Rfsm]|type typename = record \{ fid1: ty1, ..., fidn: tyn \}|}
+\end{center}
+where \verb|fid1|, \ldots, \verb|fidn| and \verb|ty1|, \ldots, \verb|tyn| are respectively the name
+and type of each record field For example : 
+\begin{center}
+  \example{\lstinline[language=Rfsm]|type coord = record \{ x: int, y: int\}|}
+\end{center}
+
+Individual fields of a value with a record type can be accessed using the classical ``dot''
+notation. For example, with a variable \verb|c| having type \verb|record| as defined above :
+\begin{center}
+  \example{\lstinline[language=Rfsm]|c.x := c.x+1|}
 \end{center}
 
 
