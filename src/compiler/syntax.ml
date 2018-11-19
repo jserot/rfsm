@@ -65,7 +65,7 @@ type cst_declaration = {
 and cst_decl = {
   cc_name: string;
   cc_typ: type_expression;
-  cc_val: Expr.e_val;
+  cc_val: Expr.value;
   }
             
 (* FSM declarations *)
@@ -105,7 +105,7 @@ type stimuli = {
 and stim_desc = 
   Periodic of int * int * int             (* Period, start time, end time *)
 | Sporadic of int list                    (* Dates *)
-| ValueChange of (int * Expr.e_val) list  (* (Date,value)s *)
+| ValueChange of (int * Expr.value) list  (* (Date,value)s *)
 
 (* Global (IOs and channels) declarations *)
               
@@ -135,7 +135,7 @@ type fsm_inst = {
 and fsm_inst_desc = {
   fi_name: string;
   fi_model: string;
-  fi_params: Expr.e_val list;
+  fi_params: Expr.value list;
   fi_args: string list;
   }
 

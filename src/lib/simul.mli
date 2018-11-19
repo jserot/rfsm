@@ -19,20 +19,20 @@ type config = {
 
 val cfg : config
 
-type stimulus = Fsm.lhs * Expr.e_val
-type response = Fsm.lhs * Expr.e_val 
+type stimulus = Fsm.lhs * Expr.value
+type response = Fsm.lhs * Expr.value 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
-type context = {  (** The simulator state *)
+type context = {  (* The simulator state *)
   c_date: Types.date;
-  c_inputs: (string * (Types.typ * Expr.e_val)) list;   (** Global inputs *)
-  c_outputs: (string * (Types.typ * Expr.e_val)) list;  (** Globals outputs *)
-  c_fns: (string * (Types.typ * Expr.e_val)) list;      (* Global functions *)
-  c_csts: (string * (Types.typ * Expr.e_val)) list;     (* Global constants *)
-  c_vars: (string * (Types.typ * Expr.e_val)) list;     (** Shared variables *)
-  c_evs: (string * (Types.typ * Expr.e_val)) list;      (** Shared events *)
-  c_fsms: Fsm.inst list * Fsm.inst list;                (** FSMs, partitioned into active and inactive subsets *)
+  c_inputs: (string * (Types.typ * Expr.value)) list;   (* Global inputs *)
+  c_outputs: (string * (Types.typ * Expr.value)) list;  (* Global outputs *)
+  c_fns: (string * (Types.typ * Expr.value)) list;      (* Global functions *)
+  c_csts: (string * (Types.typ * Expr.value)) list;     (* Global constants *)
+  c_vars: (string * (Types.typ * Expr.value)) list;     (* Shared variables *)
+  c_evs: (string * (Types.typ * Expr.value)) list;      (* Shared events *)
+  c_fsms: Fsm.inst list * Fsm.inst list;                (* FSMs, partitioned into active and inactive subsets *)
   }
 
 exception OverReaction of Types.date
@@ -53,4 +53,4 @@ val run : Sysm.t -> context * (Types.date * response list) list
 (** {2 Printers} *)
 
 val dump_context : context -> unit
-val dump_reaction : int * (Fsm.lhs * Expr.e_val) list -> unit
+val dump_reaction : int * (Fsm.lhs * Expr.value) list -> unit

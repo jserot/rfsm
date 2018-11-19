@@ -77,19 +77,19 @@ type model = {
 
 (** Model for FSM instances *)
            
-type inst = {
-  f_name : string;                                             (** name *)
-  f_model : model;                                             (** bound model *)
-  f_params : (string * (Types.typ * Expr.e_val)) list;         (** actual parameters *)
-  f_inps : (string * (Types.typ * global)) list;               (** inputs, with bounded global *)
-  f_outps : (string * (Types.typ * global)) list;              (** outputs, with bounded global *)
-  f_inouts : (string * (Types.typ * global)) list;             (** in/outs, with bounded global *)
-  f_vars : (string * (Types.typ * Expr.e_val)) list;           (** internal variable, with value ([Val_unknown] if not initialized) *)
-  f_repr : Repr.t;                                             (** underlying LTS *)
-  f_l2g : string -> string;                                    (** local to global name conversion function *)
-  f_state : string;                                            (** current state *)
-  f_has_reacted: bool;                                         (** true when implied in the last reaction *)
-}
+type inst = { 
+  f_name: string;
+  f_model: model;
+  f_params: (string * (Types.typ * Expr.value)) list;       (** name, type, actual value *)
+  f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
+  f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
+  f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
+  f_vars: (string * (Types.typ * Expr.value)) list;         (** name, (type, value) *)
+  f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
+  f_l2g: string -> string;                                  (** local -> global name *)
+  f_state: string;                                          (** current state *)
+  f_has_reacted: bool;                                      (** true when implied in the last reaction *)
+  }
 
 (** Global IOs *)
 
@@ -101,7 +101,7 @@ and global =
 and stim_desc = 
   Periodic of int * int * int             (** Period, start time, end time *)
 | Sporadic of int list                    (** Dates *)
-| ValueChange of (int * Expr.e_val) list  (** (Date,value)s *)
+| ValueChange of (int * Expr.value) list  (** (Date,value)s *)
 
 (** {2 Accessors} *)
 
@@ -129,7 +129,7 @@ val build_instance :
   tenv:Typing.tenv ->
   name:string ->
   model:model ->
-  params:(string * Expr.e_val) list ->
+  params:(string * Expr.value) list ->
   ios:global list ->
   inst
 
@@ -146,16 +146,16 @@ exception Nonatomic_IO_write of inst * Action.t
 
 (** {2 Dynamic behavior} *)
 
-type lenv = (string * Expr.e_val) list
+type lenv = (string * Expr.value) list
 type genv = {
-  fe_inputs: (string * (Types.typ * Expr.e_val)) list;   (** Global inputs *)
-  fe_csts: (string * (Types.typ * Expr.e_val)) list;     (** Global constants *)
-  fe_fns: (string * (Types.typ * Expr.e_val)) list;      (** Global functions *)
-  fe_vars: (string * (Types.typ * Expr.e_val)) list;     (** Shared variables *)
-  fe_evs: (string * (Types.typ * Expr.e_val)) list;      (** Shared events *)
+  fe_inputs: (string * (Types.typ * Expr.value)) list;   (** Global inputs *)
+  fe_csts: (string * (Types.typ * Expr.value)) list;     (** Global constants *)
+  fe_fns: (string * (Types.typ * Expr.value)) list;      (** Global functions *)
+  fe_vars: (string * (Types.typ * Expr.value)) list;     (** Shared variables *)
+  fe_evs: (string * (Types.typ * Expr.value)) list;      (** Shared events *)
   }
 
-type response = lhs * Expr.e_val
+type response = lhs * Expr.value
 
 and lhs =
   | Var0 of Ident.t         (* Scalar *)

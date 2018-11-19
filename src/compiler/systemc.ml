@@ -59,13 +59,14 @@ let need_globals m = m.Sysm.m_types <> [] || m.Sysm.m_fns <> [] || m.Sysm.m_cons
 let rec string_of_type t = match t with 
   | TyEvent -> "bool"
   | TyBool -> "bool"
-  | TyEnum ("", cs) -> "enum {" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
-  | TyEnum (n, _) -> n
+  | TyEnum (nm, _) when Types.is_lit_name nm -> Types.string_of_name nm
+  | TyEnum (_, cs) -> "enum {" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
   | TyInt (SzExpr1 (TiConst sz)) -> "sc_uint<" ^ string_of_int sz ^ "> "
   | TyInt (SzExpr2  _) -> "int"  (* range annotations ignored here *)
   | TyInt _ -> "int"
   | TyFloat -> if cfg.sc_double_float then "double" else "float"
-  | TyRecord (n, fs) -> n
+  | TyRecord (nm, _) when Types.is_lit_name nm -> Types.string_of_name nm
+  | TyRecord (_, fs) -> raise (Error ("string_of_type", "anonymous record"))
   | _ -> raise (Error ("string_of_type", "unsupported type"))
 
 let string_of_array_size sz = match sz with
@@ -78,19 +79,21 @@ let string_of_typed_item ?(scope="") (id,ty) =
   | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id' ^ "[" ^ string_of_array_size sz ^ "]"
   | _ -> string_of_type ty ^ " " ^ id'
 
-let string_of_enum_value tyname v = "_enum<" ^ tyname ^ "::" ^ v ^ ">()"
+let rec string_of_value v = match v.Expr.v_desc, Types.real_type v.Expr.v_typ with
+  Expr.Val_int i, _ -> string_of_int i
+| Expr.Val_float i, _-> string_of_float i
+| Expr.Val_bool i, _ -> string_of_bool i
+| Expr.Val_enum c, Types.TyEnum (name, _) -> string_of_enum_value (Types.string_of_name name) c
+| Expr.Val_fn _, _ -> "<fun>"
+| Expr.Val_unknown, _ -> "<unknown>"
+| Expr.Val_none, _ -> "<none>"
+| Expr.Val_array vs, _ -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
+| Expr.Val_record fs, Types.TyRecord (name, _) -> string_of_record_value (Types.string_of_name name) fs
+| _, _ -> failwith "Systemc.string_of_value"
 
-let rec string_of_value v = match v with
-  Expr.Val_int i -> string_of_int i
-| Expr.Val_float i-> string_of_float i
-| Expr.Val_bool i -> string_of_bool i
-| Expr.Val_enum e -> string_of_enum_value e.ev_typ e.ev_val
-| Expr.Val_fn _ -> "<fun>"
-| Expr.Val_unknown -> "<unknown>"
-| Expr.Val_none -> "<none>"
-| Expr.Val_array vs -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
-| Expr.Val_record r ->
-   r.rv_typ ^ "(" ^ ListExt.to_string string_of_value "," (List.map snd r.rv_val) ^ ")" (* Use class contructor *)
+and string_of_enum_value tyname c = "_enum<" ^ tyname ^ "::" ^ c ^ ">()"
+
+and string_of_record_value tyname fs = tyname ^ "(" ^ ListExt.to_string string_of_value "," (List.map snd fs) ^ ")"
 
 let string_of_op = function
     "=" -> "=="
@@ -111,7 +114,7 @@ let string_of_expr m e =
       Expr.EInt c, _ -> string_of_int c
     | Expr.EFloat c, _ -> string_of_float c
     | Expr.EBool c, _ -> string_of_bool c
-    | Expr.EEnum c, Types.TyEnum (n, _) -> string_of_enum_value n c
+    | Expr.EEnum c, Types.TyEnum (n, _) -> string_of_enum_value (Types.string_of_name n) c
     | Expr.EEnum c, _ -> failwith "Systemc.string_of_expr"
     | Expr.EVar n, _ -> access n
     | Expr.EBinop (op,e1,e2), _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
@@ -245,11 +248,13 @@ let dump_module_impl g fname m =
 let dump_module_intf g fname m = 
   let oc = open_out fname in
   let modname = String.capitalize_ascii m.c_name in
-  let string_of_ival = function
-    | Expr.Val_unknown -> ""
-    | Expr.Val_array vs when List.for_all (function Expr.Val_unknown -> true | _ -> false) (Array.to_list vs) -> ""
-    | Expr.Val_record r when List.for_all (function Expr.Val_unknown -> true | _ -> false) (List.map snd r.rv_val) -> ""
-    | v -> " = " ^ string_of_value v in
+  let string_of_ival v =
+    let open Expr in
+    match v.v_desc with
+    | Val_unknown -> ""
+    | Val_array vs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (Array.to_list vs) -> ""
+    | Val_record fs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (List.map snd fs) -> ""
+    | _ -> " = " ^ string_of_value v in
   fprintf oc "#include \"systemc.h\"\n";
   if need_globals g then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
@@ -448,8 +453,8 @@ let dump_enum_type_defn oc name vs =
   fprintf oc "inline void sc_trace(sc_trace_file *tf, const %s& v, const std::string& n) { /* TOFIX */ }\n" name
 
 let dump_global_type_defn oc (name,ty) = match ty with
-  | TyEnum (id,cs) -> dump_enum_type_defn oc id cs
-  | TyRecord (id,fs) -> dump_record_type_defn oc id fs
+  | TyEnum (nm,cs) -> dump_enum_type_defn oc (Types.string_of_name nm) cs
+  | TyRecord (nm,fs) -> dump_record_type_defn oc (Types.string_of_name nm) fs
   | _ -> ()
 
 let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with

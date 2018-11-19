@@ -33,22 +33,25 @@ module Index : sig
 end
 
 type typ =
-  | TyUnknown
   | TyEvent
   | TyBool
-  | TyEnum of string * string list              (** Name, list of values *)
+  | TyEnum of name * string list              (** Name, list of values *)
   | TyInt of siz                
   | TyFloat
-  | TyArray of Index.t * typ                    (** size, subtype *)
-  | TyVar of typ var                            (** Internal use only *)
-  | TyArrow of typ * typ                        (** Internal use only *)
-  | TyProduct of typ list                       (** Internal use only *)
-  | TyRecord of string * (string * typ) list    (** Name, fields *)
+  | TyArray of Index.t * typ                        (** size, subtype *)
+  | TyVar of typ var                                (** Internal use only *)
+  | TyArrow of typ * typ                            (** Internal use only *)
+  | TyProduct of typ list                           (** Internal use only *)
+  | TyRecord of name * (string * typ) list    (** Name, fields *)
 
 and siz =
   | SzExpr1 of Index.t                  (* For ints: bit width, for arrays: dimension *)
   | SzExpr2 of Index.t * Index.t        (* For ints: range, for arrays: dimensions *)
   | SzVar of siz var   
+
+and name =
+  | NmLit of string
+  | NmVar of name var   
 
 and 'a var =
   { stamp: string;             (* for debug only *)
@@ -63,13 +66,14 @@ type typ_scheme =
     ts_sparams: (siz var) list;
     ts_body: typ }
 
-val mk_type_var: unit -> typ var
+val mk_var: unit -> 'a var
 val new_type_var: unit -> typ
-val mk_size_var: unit -> siz var
 val new_size_var: unit -> siz
+val new_name_var: unit -> name
 
 val real_type: typ -> typ
 val real_size: siz -> siz
+val real_name: name -> name
 
 val type_int: int list -> typ
   
@@ -95,6 +99,9 @@ val size_of : typ -> int
 val subtype_of: typ -> typ
   (** [subtype (TyArray (sz,ty')] returns the [ty'], ... *)
 
+val is_lit_name: name -> bool
+  (** [is_lit_name n] returns [true] iff [n=NmLit _] *)
+
 (** {2 Typing} *)
   
 val subst_indexes : Index.env -> typ -> typ
@@ -117,3 +124,5 @@ val type_instance: typ_scheme -> typ
 val string_of_type_scheme : typ_scheme -> string
 
 val string_of_type : ?szvars:bool -> typ -> string
+
+val string_of_name : name -> string

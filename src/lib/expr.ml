@@ -31,39 +31,49 @@ and e_desc =
   | ERecord of string * string (** v.name when v is a record *)
   | ECast of t * Type_expr.t
 
+type value = {
+  mutable v_desc: e_val;
+  mutable v_typ: Types.typ;
+  }
+
 and e_val = 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool
-  | Val_enum of enum_value
+  | Val_enum of string
   | Val_fn of string list * t   (** args, body *)
   | Val_unknown
   | Val_none                    (** used for pure events *)
-  | Val_array of e_val array
-  | Val_record of record_value
+  | Val_array of value array
+  | Val_record of (string * value) list  (** (Field name, value) list *)
 
-and enum_value = {
-    ev_typ: string; (** Type name *)
-    ev_val: string;
-  }
-
-and record_value = {
-    rv_typ: string; (** Record type name *)
-    rv_val: (string * e_val) list  (** (Field name, value) list *)
-  }
-
-let of_value = function
+let of_value v = match v.v_desc with
     Val_int v -> EInt v
   | Val_float f -> EFloat f
   | Val_bool b -> EBool b
-  | Val_enum c -> EEnum c.ev_val
+  | Val_enum c -> EEnum c
   | Val_fn _ -> failwith "Expr.of_value"
   | Val_unknown -> failwith "Expr.of_value"
   | Val_none -> failwith "Expr.of_value"
   | _ -> failwith "Expr.of_value"
 
 exception Out_of_bound of string * int
-                        
+
+let mk_val ty v = { v_desc=v; v_typ=ty }
+
+let mk_array vs =
+  let ty = match vs with v::_ -> v.v_typ | _ -> failwith "Expr.mk_array" in
+  { v_desc=Val_array (Array.of_list vs);
+    v_typ=TyArray (TiConst (List.length vs), ty) }
+
+let mk_record name fds = 
+  { v_desc = Val_record (List.map (function (n,ty,v) -> n, v) fds);
+    v_typ = TyRecord (name, List.map (function (n,ty,v) -> n,ty) fds); }
+
+let mk_int v = mk_val (Types.type_int []) (Val_int v)
+let mk_float v = mk_val Types.TyFloat (Val_float v)
+let mk_bool v = mk_val Types.TyBool (Val_bool v)
+             
 let array_update id a i v =
   if i >= 0 && i < Array.length a
   then let a' = Array.copy a in Array.set a' i v; a'
@@ -71,8 +81,8 @@ let array_update id a i v =
 
 let record_update id r f v = ListExt.replace_assoc f v r 
 
-let unset_event = Val_bool false
-let set_event = Val_bool true
+let unset_event = { v_desc=Val_bool false; v_typ=TyEvent }
+let set_event = { v_desc=Val_bool true; v_typ=TyEvent }
 
 module VarSet = Set.Make(struct type t = string let compare = Pervasives.compare end)
                  
@@ -98,17 +108,19 @@ let rec rename f expr = match expr.e_desc with
        
 (* Printing *)
 
-let rec string_of_value v = match v with
+let rec string_of_val v = match v with
   Val_int i -> string_of_int i
 | Val_float b -> string_of_float b
 | Val_bool b -> if b then "1" else "0"
-| Val_enum s -> s.ev_val
+| Val_enum s -> s
 | Val_fn _ -> "<fun>"
 | Val_unknown -> "<unknown>"
 | Val_none -> "<none>"
 | Val_array vs -> "[" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "]"
-| Val_record r -> "{" ^ ListExt.to_string string_of_field_value "," r.rv_val ^ "}"
+| Val_record r -> "{" ^ ListExt.to_string string_of_field_value "," r ^ "}"
 
+and string_of_value v = string_of_val v.v_desc
+                      
 and string_of_field_value (n,v) = n ^ "=" ^ string_of_value v
 
 let string_of_opt_value = function

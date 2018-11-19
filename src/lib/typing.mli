@@ -39,8 +39,8 @@ val type_expression : tenv -> Expr.t -> Types.typ
   (** [type_expression env e] returns the type of expression [e] in environment [env], performing
       all required type checks. *)
 
-val type_of_value : tenv -> Expr.e_val -> Types.typ
-  (** [type_of_value env e] returns the best approximation of type of value [v] in environment [env] *)
+(* val type_of_value : tenv -> Expr.e_val -> Types.typ
+ *   (\** [type_of_value env e] returns the best approximation of type of value [v] in environment [env] *\) *)
 
 (** {2 Printers} *)
 

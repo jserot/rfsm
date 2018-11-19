@@ -23,20 +23,20 @@ let cfg = {
   max_micro_reactions = 32;
   }
 
-type stimulus = Fsm.lhs * Expr.e_val
+type stimulus = Fsm.lhs * Expr.value
 
-type response = Fsm.lhs * Expr.e_val 
+type response = Fsm.lhs * Expr.value 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
 type context = {  (* The simulator state *)
   c_date: Types.date;
-  c_inputs: (string * (Types.typ * Expr.e_val)) list;   (* Global inputs *)
-  c_outputs: (string * (Types.typ * Expr.e_val)) list;  (* Global outputs *)
-  c_fns: (string * (Types.typ * Expr.e_val)) list;      (* Global functions *)
-  c_csts: (string * (Types.typ * Expr.e_val)) list;     (* Global constants *)
-  c_vars: (string * (Types.typ * Expr.e_val)) list;     (* Shared variables *)
-  c_evs: (string * (Types.typ * Expr.e_val)) list;      (* Shared events *)
+  c_inputs: (string * (Types.typ * Expr.value)) list;   (* Global inputs *)
+  c_outputs: (string * (Types.typ * Expr.value)) list;  (* Global outputs *)
+  c_fns: (string * (Types.typ * Expr.value)) list;      (* Global functions *)
+  c_csts: (string * (Types.typ * Expr.value)) list;     (* Global constants *)
+  c_vars: (string * (Types.typ * Expr.value)) list;     (* Shared variables *)
+  c_evs: (string * (Types.typ * Expr.value)) list;      (* Shared events *)
   c_fsms: Fsm.inst list * Fsm.inst list;                (* FSMs, partitioned into active and inactive subsets *)
   }
 
@@ -52,8 +52,10 @@ let update_ctx ctx = function
        c_evs = List.map update_ev ctx.c_evs; }
   | Fsm.Var0 (Ident.Local _), _ ->
      ctx
-  | Fsm.Var1 (_,_), _ ->
-     ctx  (* All context values are supposed to be _scalar_ *)
+  | Fsm.Var1 (_,_), _
+  | Fsm.Var3 (_,_), _ ->
+     failwith "Simul.update_ctx: non scalar value in context"
+     (* ctx  *)
 
 let string_of_context c = 
   let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_value v in
@@ -100,12 +102,13 @@ let rec react t ctx stimuli =
     | Fsm.Var0 (Ident.Global n), v -> 
        begin
          match List.mem_assoc n ctx.c_evs, List.mem_assoc n ctx.c_vars, v with
-         true, _, Expr.Val_bool true -> true   (* shared event, currently set *)
-       | false, true, _ -> true                (* shared variable, regardless of its value *)
+         true, _, { Expr.v_desc=Expr.Val_bool true } -> true   (* shared event, currently set *)
+       | false, true, _ -> true                                (* shared variable, regardless of its value *)
        | _, _, _ -> false
        end
     | Fsm.Var0 (Ident.Local _), _ -> false
-    | Fsm.Var1 _, _ -> false in
+    | Fsm.Var1 _, _ 
+    | Fsm.Var3 _, _ -> failwith "Simul.react: non scalar value" (* false *) in
   let still_active f = not f.Fsm.f_has_reacted in
   let micro_react ctx stimuli =
     let ctx' = List.fold_left update_ctx ctx stimuli in 
@@ -146,7 +149,7 @@ let run m =
   let open Sysm in
   let extract_shared (vars,evs) (name,(ty,desc)) = match desc, ty with
     | MShared _, Types.TyEvent -> vars, (name,(ty,Expr.unset_event))::evs  (* Initially not set *)
-    | MShared _, _ -> (name, (ty,Expr.Val_unknown))::vars, evs (* Uninitialized *)
+    | MShared _, _ -> (name, (ty, Expr.mk_val ty Expr.Val_unknown))::vars, evs (* Uninitialized *)
     | _, _ -> vars, evs in
   let rec step (ctx,resps) stims =
     match stims with
@@ -165,9 +168,9 @@ let run m =
         end;
         step (ctx', (t, evs @ resps') :: resps) stims' in
           (* The events [evs] causing the reaction are included in the responses [resps] for tracing facilities .. *)
-  let mk_ival (id,(ty,desc)) = id, (ty, Expr.Val_unknown) in
+  let mk_ival (id,(ty,desc)) = id, (ty, Expr.mk_val ty Expr.Val_unknown) in
   let mk_gfun (id,(ty,desc)) = match desc with
-      MFun (args,body) -> id, (ty, Expr.Val_fn (args, body))
+      MFun (args,body) -> id, (ty, Expr.mk_val ty (Expr.Val_fn (args, body)))
     | _ -> failwith "Simul.run: cannot build global function description" in
   let mk_gcst (id,(ty,desc)) = match desc with
       MConst v -> id, (ty, v)
@@ -199,7 +202,10 @@ let run m =
 let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_value v
 
 let string_of_fsm f = (* short version for context printing *)
-  let string_of_val = function Expr.Val_none -> "<none>" | Expr.Val_unknown -> "<unknown>" | v -> Expr.string_of_value v in
+  let string_of_val v = match v.Expr.v_desc with
+      Expr.Val_none -> "<none>"
+    | Expr.Val_unknown -> "<unknown>"
+    | _ -> Expr.string_of_value v in
   let string_of_var (id,(ty,v)) = id  ^ "=" ^ string_of_val v in
   let open Fsm in
   match f.f_vars with

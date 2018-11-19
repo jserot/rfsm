@@ -70,22 +70,25 @@ module Index = struct
 end
 
 type typ =
-  | TyUnknown
   | TyEvent
   | TyBool
-  | TyEnum of string * string list              (** Name, list of values *)
+  | TyEnum of name * string list              (** Name, list of values *)
   | TyInt of siz                
   | TyFloat
-  | TyArray of Index.t * typ                    (** size, subtype *)
-  | TyVar of typ var                            (** Internal use only *)
-  | TyArrow of typ * typ                        (** Internal use only *)
-  | TyProduct of typ list                       (** Internal use only *)
-  | TyRecord of string * (string * typ) list    (** Name, fields *)
+  | TyArray of Index.t * typ                        (** size, subtype *)
+  | TyVar of typ var                                (** Internal use only *)
+  | TyArrow of typ * typ                            (** Internal use only *)
+  | TyProduct of typ list                           (** Internal use only *)
+  | TyRecord of name * (string * typ) list    (** Name, fields *)
 
 and siz =
   | SzExpr1 of Index.t                  (* For ints: bit width, for arrays: dimension *)
   | SzExpr2 of Index.t * Index.t        (* For ints: range, for arrays: dimensions *)
   | SzVar of siz var   
+
+and name =
+  | NmLit of string
+  | NmVar of name var   
 
 and 'a var =
   { stamp: string;             (* for debug only *)
@@ -105,11 +108,11 @@ type typ_scheme =
 let new_stamp =
   let var_cnt = ref 0 in
   function () -> incr var_cnt; "_" ^ string_of_int !var_cnt
-let mk_type_var () = { value = Unknown; stamp=new_stamp () }
-let new_type_var () = TyVar (mk_type_var ())
 
-let mk_size_var () = { value = Unknown; stamp=new_stamp () }
-let new_size_var () = SzVar (mk_size_var ())
+let mk_var () = { value = Unknown; stamp=new_stamp () }
+let new_type_var () = TyVar (mk_var ())
+let new_size_var () = SzVar (mk_var ())
+let new_name_var () = NmVar (mk_var ())
 
 (* Builders *)
 
@@ -133,6 +136,13 @@ let rec size_repr = function
       sz
   | sz -> sz
 
+let rec name_repr = function
+  | NmVar ({value = Known nm1} as var) ->
+      let nm = name_repr nm1 in
+      var.value <- Known nm;
+      nm
+  | nm -> nm
+
 (* Real type : path compression + unabbreviation *)
 
 let rec real_type ty = 
@@ -142,12 +152,19 @@ let rec real_type ty =
   | TyArray (sz, ty') -> TyArray (sz, real_type ty')
   | TyVar { value=Known ty'} -> ty'
   | TyInt sz -> TyInt (real_size sz)
+  | TyEnum (name, desc) -> TyEnum (real_name name, desc)
+  | TyRecord (name, fds) -> TyRecord (real_name name, List.map (function (n,ty') -> n, real_type ty') fds)
   | ty -> ty
 
 and real_size sz = 
   match size_repr sz with
   | SzVar { value=Known sz'} -> sz'
   | sz -> sz
+
+and real_name nm = 
+  match name_repr nm with
+  | NmVar { value=Known nm'} -> nm'
+  | nm -> nm
 
 let rec copy_type tvbs svbs ty =
   let rec copy ty = 
@@ -159,13 +176,17 @@ let rec copy_type tvbs svbs ty =
             ty
         end
     | TyArrow (ty1, ty2) ->
-        TyArrow (copy ty1, copy ty2)
+       TyArrow (copy ty1, copy ty2)
     | TyProduct ts ->
-        TyProduct (List.map copy ts)
+       TyProduct (List.map copy ts)
     | TyArray (sz, ty') ->
-         TyArray (sz, copy ty')
+       TyArray (sz, copy ty')
     | TyInt sz ->
-         TyInt (copy_size ty svbs sz)
+       TyInt (copy_size ty svbs sz)
+    | TyEnum (nm, desc) ->
+       TyEnum (nm, desc)
+    | TyRecord (nm, fds) ->
+       TyRecord(nm, List.map (function (n,t) -> n, copy t) fds)
     | ty -> ty in
   copy ty
 
@@ -216,9 +237,18 @@ let rec unify ty1 ty2 =
      unify_size (val1,val2) sz1 sz2
   | TyBool, TyBool -> ()
   | TyEvent, TyEvent  -> ()
-  | TyEnum ("",cs1), TyEnum ("",cs2) when cs1=cs2 -> ()
-  | TyEnum (n1,_), TyEnum (n2,_) when n1=n2 -> ()
-  | TyRecord (n1,_), TyEnum (n2,_) when n1=n2 -> ()
+  | TyEnum (nm1,cs1), TyEnum (nm2,cs2) ->
+     if List.sort compare cs1 = List.sort compare cs2
+     then unify_name (val1,val2) nm1 nm2
+     else raise (TypeConflict(val1, val2))
+  | TyRecord (nm1,fds1), TyRecord (nm2,fds2) ->
+     List.iter2
+       (fun (n1,t1) (n2,t2) ->
+         if n1 = n2
+         then unify t1 t2
+         else raise (TypeConflict(val1, val2)))
+       fds1 fds2;
+     unify_name (val1,val2) nm1 nm2
   | _, _ ->
       raise (TypeConflict(val1, val2))
 
@@ -241,6 +271,20 @@ and unify_size (ty1,ty2) sz1 sz2 =
         ()
     | SzExpr2 (TiConst lo1, TiConst hi1), SzExpr2 (TiConst lo2, TiConst hi2) when lo1 = lo2 && hi1 = hi2 ->
         ()
+    | _, _ ->
+        raise (TypeConflict(ty1, ty2))
+
+and unify_name (ty1,ty2) nm1 nm2 =
+  let val1 = real_name nm1
+  and val2 = real_name nm2 in
+  if val1 == val2 then
+    ()
+  else
+  match (val1, val2) with
+    | NmLit s1, NmLit s2 when s1 = s2 -> ()
+    | NmVar var1, NmVar var2 when var1 == var2 -> () (* This is hack *)
+    | NmVar var, nm -> var.value <- Known nm
+    | nm, NmVar var -> var.value <- Known nm
     | _, _ ->
         raise (TypeConflict(ty1, ty2))
 
@@ -289,11 +333,11 @@ let rec type_equal ~strict t1 t2 =
   | TyEvent, TyEvent -> true
   | TyInt sz1, TyInt sz2 -> size_equal ~strict:strict sz1 sz2
   | TyFloat, TyFloat -> true
-  | TyEnum ("",cs1), TyEnum ("",cs2) -> (* Anomynous enum *)
-     if strict then List.sort compare cs1 = List.sort compare cs2
-     else List.for_all (function c -> List.mem c cs1) cs2
+  | TyEnum (nm1,cs1), TyEnum (nm2,cs2) ->
+     name_equal ~strict nm1 nm2 && 
+     (if strict then List.sort compare cs1 = List.sort compare cs2
+     else List.for_all (function c -> List.mem c cs1) cs2)
         (* so that, for ex, [type_equal ~strict:false {On,Off} {On} = true] *)
-  | TyEnum (n1,_), TyEnum (n2,_) -> n1=n2 (* Named enum *)
   | TyVar { stamp=s1; value=Unknown }, TyVar { stamp=s2; value=Unknown } -> s1 = s2
   | TyArrow (ty1, ty1'), TyArrow (ty2, ty2') ->
       type_equal ~strict ty1 ty2 && type_equal ~strict ty1' ty2'
@@ -301,6 +345,8 @@ let rec type_equal ~strict t1 t2 =
       List.for_all2 (type_equal ~strict) ts ts'
   | TyArray (sz1, ty1), TyArray (sz2, ty2) -> 
      sz1 = sz2 && type_equal ~strict ty1 ty2
+  | TyRecord (nm1, fds1), TyRecord (nm2, fds2) ->
+     name_equal ~strict nm1 nm2 && List.for_all2 (fun (n1,t1) (n2,t2) -> type_equal ~strict t1 t2) fds1 fds2
   | _, _ -> false
 
 and size_equal ~strict s1 s2 =
@@ -308,6 +354,12 @@ and size_equal ~strict s1 s2 =
   | SzExpr1 w1, SzExpr1 w2 -> w1 = w2
   | SzExpr2 (lo1,hi1), SzExpr2 (lo2,hi2) -> lo1 = lo2 && hi1 = hi2
   | SzVar v1, SzVar v2 -> v1 == v2
+  | _, _ -> false
+
+and name_equal ~strict nm1 nm2 =
+  match real_name nm1, real_name nm2 with
+  | NmLit s1, NmLit s2 -> s1 = s2
+  | NmVar v1, NmVar v2 -> v1 == v2
   | _, _ -> false
     
 (* Accessors *)
@@ -325,23 +377,33 @@ let subtype_of = function
   | TyArray (_,t) -> t
   | _ -> failwith "Types.subtype_of"
        
+let is_lit_name nm = match real_name nm with
+  | NmLit _ -> true
+  | _ -> false
+       
 (* Printing *)
 
 let string_of_range (lo,hi) = Index.to_string lo ^ ":" ^ Index.to_string hi
 
 let rec string_of_type ?(szvars=false) t = match t with 
-  | TyUnknown -> "<unknown>"
   | TyEvent -> "event"
   | TyBool -> "bool"
-  | TyEnum ("", cs) -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
-  | TyEnum (n, _) -> n
+  | TyEnum (nm, cs) ->
+     begin match real_name nm with
+       NmLit s -> s
+     | _ -> "{" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
+     end
   | TyInt sz -> "int" ^ string_of_size ~szvars sz
   | TyFloat -> "float"
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 
   | TyArray (sz,ty') -> string_of_type ty' ^ " array[" ^ Index.to_string sz ^ "]"
-  | TyRecord (n,fs) -> n
+  | TyRecord (nm,fs) -> 
+     begin match real_name nm with
+       NmLit s -> s
+     | _ -> "{" ^ Utils.ListExt.to_string string_of_field "," fs ^ "}"
+     end
 
 and string_of_size ?(szvars=false) sz =
   let s = match size_repr sz with
@@ -351,6 +413,10 @@ and string_of_size ?(szvars=false) sz =
   match s with
   | "" -> ""
   | _ -> "<" ^ s ^ ">"
+
+and string_of_name nm = match name_repr nm with
+    | NmLit s -> s
+    | NmVar v -> v.stamp 
 
 and string_of_field (n,ty) = n ^ ":" ^ string_of_type ty
 

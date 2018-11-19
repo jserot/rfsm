@@ -32,7 +32,7 @@ and mg_desc =
   | MInp of istim_desc * string list     (** stimuli desc, reader(s) *)
   | MOutp of string list                 (** writer(s) *)
   | MFun of string list * Expr.t         (** args, body *)
-  | MConst of Expr.e_val                 (** value *)
+  | MConst of Expr.value                 (** value *)
   | MShared of string list * string list (** writer(s), reader(s) *)
 
 and istim_desc = {

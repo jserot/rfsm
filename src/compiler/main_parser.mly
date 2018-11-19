@@ -87,9 +87,9 @@ let mk_global_decl p desc = { Syntax.g_desc = desc; Syntax.g_loc = mk_location p
 let mk_fsm_decl p desc = { Syntax.fsm_desc = desc; Syntax.fsm_loc = mk_location p }
 let mk_stim_decl p desc = { Syntax.stim_desc = desc; Syntax.stim_loc = mk_location p }
 let mk_fsm_inst p desc = { Syntax.fi_desc = desc; Syntax.fi_loc = mk_location p }
-let mk_type_expr desc = { Type_expr.te_desc = desc; Type_expr.te_typ = TyUnknown }
+let mk_type_expr desc = { Type_expr.te_desc = desc; Type_expr.te_typ = Types.new_type_var () }
 let mk_type_expression p desc = { Syntax.te_desc = desc; Syntax.te_loc = mk_location p }
-let mk_expr desc = { Expr.e_desc = desc; Expr.e_typ = TyUnknown }
+let mk_expr desc = { Expr.e_desc = desc; Expr.e_typ = Types.new_type_var () }
 let mk_expression p desc = { Syntax.e_desc = desc; Syntax.e_loc = mk_location p }
 let mk_condition p desc = { Syntax.cond_desc = desc; Syntax.cond_loc = mk_location p }
 let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p }
@@ -340,13 +340,13 @@ opt_inst_params:
   |  LT params=separated_nonempty_list(COMMA, inst_param_value) GT { params }
 
 inst_param_value:  
-  | v=int_const { Expr.Val_int v }
-  | v=float_const { Expr.Val_float v }
+  | v=int_const { Expr.mk_int v }
+  | v=float_const { Expr.mk_float v }
   (* | v=bool { Expr.Val_bool v } *)
-  | v=array_val { Expr.Val_array v }
+  | v=array_val { Expr.mk_array v }
 
 array_val:
-  | LBRACKET vs = separated_nonempty_list(COMMA,inst_param_value) RBRACKET { Array.of_list vs }
+  | LBRACKET vs = separated_nonempty_list(COMMA,inst_param_value) RBRACKET { vs }
                    
 (* TYPE EXPRESSIONs *)
 
@@ -475,19 +475,21 @@ const:
   | c = record_const { c }
 
 array_const:
-  | LBRACKET vs = separated_nonempty_list(COMMA,scalar_const) RBRACKET { Expr.Val_array (Array.of_list vs) }
+  | LBRACKET vs = separated_nonempty_list(COMMA,scalar_const) RBRACKET
+      { Expr.mk_array vs }
 
 record_const:
-  | LBRACE vs = separated_nonempty_list(COMMA,record_field_const) RBRACE { Expr.Val_record { rv_typ=""; rv_val=vs } }
+  | LBRACE vs = separated_nonempty_list(COMMA,record_field_const) RBRACE
+      { Expr.mk_record (Types.new_name_var()) (List.map (function (n,v) -> (n, Types.new_type_var(), v)) vs) }
 
 record_field_const:
   | id = LID EQUAL v = scalar_const { (id, v) }
                          
 scalar_const:
-  | v = int_const { Expr.Val_int v }
-  | v = float_const { Expr.Val_float v }
+  | v = int_const { Expr.mk_int v }
+  | v = float_const { Expr.mk_float v }
   (* | v = bool { Expr.Val_bool v } *)
-  | c = UID { Expr.Val_enum { ev_typ=""; ev_val=c } }
+  | c = UID { Expr.mk_val (Types.new_type_var ()) (Expr.Val_enum c) }
 
 int_const:
   | v = INT { v }

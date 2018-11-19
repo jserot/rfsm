@@ -89,9 +89,9 @@ let mk_fsm_inst tenv models globals { fi_desc=f; fi_loc=loc } =
       ~params:params
       ~ios:(List.map mk_global f.fi_args)
 
-let mk_bool_val v = match v with
-    | Expr.Val_int 0 -> Expr.Val_bool false
-    | Expr.Val_int 1 -> Expr.Val_bool true
+let mk_bool_val v = match v.Expr.v_desc with
+    | Expr.Val_int 0 -> Expr.mk_bool false
+    | Expr.Val_int 1 -> Expr.mk_bool true
     | _ -> v
 
 let pp_value_change ty (t,v) = match ty with
@@ -116,11 +116,11 @@ let mk_type_defn tenv { td_desc = d; td_loc = loc } =
   | TD_Alias (id, te) ->
      { tenv with te_defns = (id, type_of_type_expr tenv te) :: tenv.te_defns }
   | TD_Enum (id, cs) ->
-     let ty = Types.TyEnum (id,cs) in
+     let ty = Types.TyEnum (Types.NmLit id,cs) in
      { tenv with te_defns = (id, ty) :: tenv.te_defns;
                  te_ctors = List.map (function c -> c, ty) cs @ tenv.te_ctors }
   | TD_Record (id, fs) ->
-     let ty = Types.TyRecord (id, List.map (function (n,te) -> (n, type_of_type_expr tenv te)) fs) in
+     let ty = Types.TyRecord (Types.NmLit id, List.map (function (n,te) -> (n, type_of_type_expr tenv te)) fs) in
      { tenv with te_defns = (id, ty) :: tenv.te_defns;
                  te_rfields = List.map (function (n,_) -> n, ty) fs @ tenv.te_rfields }
 
@@ -138,12 +138,41 @@ let type_of_function tenv fd =
 let type_of_constant tenv cd =
   try
     let ty = type_of_type_expression tenv cd.cc_typ in
-    let ty' = Typing.type_of_value Typing.builtin_tenv cd.cc_val in
+    let ty' = cd.cc_val.Expr.v_typ in
     Types.unify ty ty';
     ty
   with
   | Typing.Typing_error (_,t,t') 
   | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("expression", "constant \"" ^ cd.cc_name ^ "\"", t, t'))
+
+let rec retype_value ty v =
+  let open Expr in
+  match v.v_desc, ty with
+  | Val_int _, Types.TyBool -> (* Special case *)
+     ()
+  | Val_array vs, Types.TyArray (_, ty') -> 
+     Array.iter (retype_value ty') vs;
+     Types.unify ty v.v_typ
+  | Val_record vs, Types.TyRecord (_, fs) -> 
+     List.iter2 (fun (_,v') (_,ty') -> retype_value ty' v') vs fs;
+     Types.unify ty v.v_typ
+  | _, _ ->
+     Types.unify ty v.v_typ
+          
+let type_of_input tenv gd =
+  let ty = type_of_type_expression tenv gd.gd_type in
+  begin
+    match gd.gd_desc with
+      GInp { stim_desc = ValueChange vcs } -> 
+       begin
+         try List.iter (fun (_,v) -> retype_value ty v) vcs;
+         with
+         | Typing.Typing_error (_,t,t') 
+         | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("stimulus", "input \"" ^ gd.gd_name ^ "\"", t, t'))
+       end
+    |  _ -> ()
+  end;
+  ty
 
 let mk_cst_defn tenv { cst_desc = cd } =
   { tenv with Typing.te_vars = (cd.cc_name, type_of_constant tenv cd) :: tenv.te_vars }
@@ -160,17 +189,24 @@ let mk_global_cst tenv { cst_desc = cd } =
     cd.cc_name, (ty, Sysm.MConst cd.cc_val)
                       
 let is_global_type_defn (_,ty) = match ty with
-  | Types.TyEnum (name, cs) when name <> "" -> true
+  | Types.TyEnum (name, cs) when Types.is_lit_name name -> true
   | Types.TyRecord (name, fs) -> true
   | _ -> false
 
+let mk_inp_defn tenv { g_desc = gd } = match gd.gd_desc with
+  | GInp _ -> { tenv with Typing.te_vars = (gd.gd_name, type_of_input tenv gd) :: tenv.te_vars }
+  | _ -> tenv
+  
 let build_system name p = 
   let tenv =
        Typing.builtin_tenv
     |> Misc.left_fold mk_type_defn p.p_type_decls
     |> Misc.left_fold mk_cst_defn p.p_cst_decls
     |> Misc.left_fold mk_fn_defn p.p_fn_decls in
-  (* let _ = Typing.dump_tenv tenv in *)
+  let _ = tenv
+    |> Misc.left_fold mk_inp_defn p.p_globals in
+  (* let _ = Typing.dump_tenv stdout tenv in *)
+  (* let _ = Typing.dump_tenv stdout tenv' in *)
   let models = List.map (mk_fsm_model tenv) p.p_fsm_models in
   let globals = List.map (mk_global tenv) p.p_globals in
   let gtyps = List.rev (List.filter is_global_type_defn tenv.te_defns) in 

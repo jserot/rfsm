@@ -20,8 +20,8 @@ exception Invalid_array_access of string * int (* array name, index value *)
 exception Illegal_record_access of Expr.t
 exception Non_static_expr of Expr.t * Expr.t
 
-type env = (string * Expr.e_val) list
+type env = (string * Expr.value) list
 
-val subst : (string * Expr.e_val) list -> Expr.t -> Expr.t
+val subst : (string * Expr.value) list -> Expr.t -> Expr.t
 
-val eval : (string * Expr.e_val) list -> Expr.t -> Expr.e_val
+val eval : (string * Expr.value) list -> Expr.t -> Expr.value

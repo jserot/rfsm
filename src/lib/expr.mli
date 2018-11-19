@@ -31,38 +31,39 @@ and e_desc =
   | ERecord of string * string (** v.name when v is a record *)
   | ECast of t * Type_expr.t
 
+type value = {
+  mutable v_desc: e_val;
+  mutable v_typ: Types.typ;
+  }
+
 and e_val = 
   | Val_int of int
   | Val_float of float
   | Val_bool of bool
-  | Val_enum of enum_value
+  | Val_enum of string
   | Val_fn of string list * t   (** args, body *)
   | Val_unknown
   | Val_none                    (** used for pure events *)
-  | Val_array of e_val array
-  | Val_record of record_value
-
-and enum_value = {
-    ev_typ: string; (** Type name *)
-    ev_val: string;
-  }
-
-and record_value = {
-    rv_typ: string; (** Record type name *)
-    rv_val: (string * e_val) list  (** (Field name, value) list *)
-  }
+  | Val_array of value array
+  | Val_record of (string * value) list  (** (Field name, value) list *)
 
 module VarSet : Set.S with type elt = string
 
 exception Out_of_bound of string * int  (** array name, index value *)
                         
-val array_update : string -> e_val array -> int -> e_val -> e_val array
-val record_update : string -> (string * e_val) list -> string -> e_val -> (string * e_val) list
+val mk_val : Types.typ -> e_val -> value
+val mk_array : value list -> value
+val mk_record : Types.name -> (string * Types.typ * value) list -> value
+val mk_int : int -> value
+val mk_float : float -> value
+val mk_bool : bool -> value
+val array_update : string -> value array -> int -> value -> value array
+val record_update : string -> (string * value) list -> string -> value -> (string * value) list
   
-val of_value : e_val -> e_desc
+val of_value : value -> e_desc
 
-val unset_event : e_val
-val set_event : e_val
+val unset_event : value
+val set_event : value
 
 val vars_of : t -> VarSet.t
 val rename : (string -> string) -> t -> t
@@ -71,5 +72,6 @@ val rename : (string -> string) -> t -> t
 
 val string_of_expr : e_desc -> string
 val to_string : t -> string
-val string_of_value : e_val -> string
-val string_of_opt_value : e_val option -> string
+val string_of_val : e_val -> string
+val string_of_value : value -> string
+val string_of_opt_value : value option -> string

@@ -13,15 +13,15 @@ open Types
 open Expr
 
 let type_arithm2 () = 
-  let sz = Types.mk_size_var () in
+  let sz = Types.mk_var () in
   { ts_tparams=[]; ts_sparams=[sz]; ts_body=TyArrow (TyProduct [TyInt (SzVar sz); TyInt (SzVar sz)], TyInt (SzVar sz)) }
 
 let type_arithm1 () = 
-  let sz = Types.mk_size_var () in
+  let sz = Types.mk_var () in
   { ts_tparams=[]; ts_sparams=[sz]; ts_body=TyArrow (TyProduct [TyInt (SzVar sz)], TyInt (SzVar sz)) }
 
 let type_compar () = 
-  let tv = Types.mk_type_var () in
+  let tv = Types.mk_var () in
   { ts_tparams = [tv]; ts_sparams=[]; ts_body=TyArrow (TyProduct [TyVar tv; TyVar tv], TyBool) }
 
 let type_farithm2 () = 

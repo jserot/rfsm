@@ -96,7 +96,7 @@ let rec vhdl_type_of t = match Types.real_type t with
         Integer (Some (lo,hi))
   | TyInt _ -> Integer None
   | TyArray (Types.Index.TiConst sz,t') -> Array (sz, vhdl_type_of t')
-  | _ -> failwith "Vhdl.vhdl_type_of: TyUnknown"
+  | _ -> failwith "Vhdl.vhdl_type_of"
 
 type type_mark = TM_Full | TM_Abbr | TM_None
                                    
@@ -140,7 +140,7 @@ let vhdl_string_of_bool b = match cfg.vhdl_bool_as_bool, b with
   | false, true -> "'1'"
   | false, false -> "'0'"
   
-let rec string_of_value ?(ty=None) v = match v, ty with
+let rec string_of_value ?(ty=None) v = match v.Expr.v_desc, ty with
   Expr.Val_int i, Some (Unsigned n) -> Printf.sprintf "to_unsigned(%d,%d)" i n
 | Expr.Val_int i, Some (Signed n) -> Printf.sprintf "to_signed(%d,%d)" i n
 | Expr.Val_int i, Some Std_logic -> Printf.sprintf "'%d'" i

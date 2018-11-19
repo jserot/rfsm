@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-type env = (string * Expr.e_val) list
+type env = (string * Expr.value) list
 
 open Expr
 
@@ -58,7 +58,7 @@ let rec subst vs expr = match expr.e_desc with
      if List.mem_assoc a vs then
        begin
          match List.assoc a vs, eval_index idx with
-         | Val_array vs, Val_int i when i >= 0 && i < Array.length vs ->
+         | { v_desc=Val_array vs}, {v_desc=Val_int i} when i >= 0 && i < Array.length vs ->
             { expr with e_desc = Expr.of_value (vs.(i)) }
          | _, _ ->
             { expr with e_desc = EArr (a, subst vs idx) }
@@ -68,74 +68,76 @@ let rec subst vs expr = match expr.e_desc with
   | _ -> expr
                
 and eval env exp = 
-  let r = match exp.e_desc, exp.e_typ with
-    EInt v, _ -> Val_int v
-  | EFloat v, _ -> Val_float v
-  | EBool v, _ -> Val_bool v
-  | EEnum c, Types.TyEnum (n, _) -> Val_enum { ev_typ=n; ev_val=c }
-  | EEnum c, _ -> failwith "Eval.eval"
-  | EVar id, _ -> lookup env id 
-  | EBinop (op, exp1, exp2), _ ->
+  let mk v = { v_desc=v; v_typ=exp.e_typ } in
+  let r = match exp.e_desc with
+    EInt v -> mk (Val_int v)
+  | EFloat v -> mk (Val_float v)
+  | EBool v -> mk (Val_bool v)
+  | EEnum c -> mk (Val_enum c)
+  | EVar id -> lookup env id
+  | EBinop (op, exp1, exp2) ->
      let f = Builtins.lookup_val op in
-     f [eval env exp1; eval env exp2]
-  | ECond (e1, e2, e3), _ ->
+     mk (f [(eval env exp1).v_desc; (eval env exp2).v_desc])
+  | ECond (e1, e2, e3) ->
      begin match eval env e1 with
-       Val_bool true -> eval env e2
-     | Val_bool false -> eval env e3
+       { v_desc=Val_bool true } -> eval env e2
+     | { v_desc=Val_bool false } -> eval env e3
      | _ -> raise (Illegal_expr exp)
      end
-  | EFapp (f, exps), _ ->
+   | EFapp (f, exps) ->
      begin match lookup env f with
-     | Val_fn (args, body) -> 
+     | { v_desc=Val_fn (args, body) } -> 
         let env' = List.map2 (fun arg exp -> arg, eval env exp) args exps in
         eval (env'@env) body
      | _ -> raise (Illegal_application exp)
      end
-  | EArr (a,idx), _ ->
+   | EArr (a,idx) ->
      begin
        match lookup env a, eval env idx with
-       | Val_array vs, Val_int i -> 
+       | { v_desc=Val_array vs }, { v_desc=Val_int i } -> 
           if i >= 0 && i < Array.length vs then vs.(i)
           else raise (Invalid_array_access (a,i))
        | _ -> raise (Illegal_array_access exp)
      end
-  | EBit (a,idx), _ ->
+   | EBit (a,idx) ->
      begin
        match lookup env a, eval env idx with
-       | Val_int x, Val_int i -> 
-          Val_int (Intbits.get_bits i i x)
+       | { v_desc=Val_int x }, { v_desc=Val_int i } -> 
+          mk (Val_int (Intbits.get_bits i i x))
        | _ -> raise (Illegal_bit_range_access exp)
      end
-  | EBitrange (a,idx1,idx2), _ ->
+  | EBitrange (a,idx1,idx2) ->
      begin
        match lookup env a, eval env idx1, eval env idx2 with
-       | Val_int x, Val_int hi, Val_int lo -> 
-          Val_int (Intbits.get_bits hi lo x)
+       | { v_desc=Val_int x}, { v_desc=Val_int hi }, { v_desc=Val_int lo } -> 
+          mk (Val_int (Intbits.get_bits hi lo x))
        | _ -> raise (Illegal_bit_range_access exp)
      end
-  | ERecord (a,f), _ ->
+  | ERecord (a,f) ->
      begin
        match lookup env a with
-       | Val_record { rv_val=vs } -> 
+       | { v_desc=Val_record vs } -> 
           begin
             try List.assoc f vs
             with Not_found -> raise (Illegal_record_access exp)
           end
        | _ -> raise (Illegal_record_access exp)
      end
-  | ECast (e,te), _ ->
+  | ECast (e,te) ->
      let v = eval env e in
      eval_cast te.te_typ v
   in
   (* Printf.printf "Eval.eval [%s] (%s) -> %s\n" (string_of_env env) (Expr.to_string exp) (string_of_value r); *)
   r
 
-and eval_cast ty v = match v, ty with
+and eval_cast ty v =
+  let mk v = { v_desc=v; v_typ=ty } in
+  match v.v_desc, ty with
   | Val_int _, Types.TyInt _ -> v
-  | Val_int x, Types.TyBool -> Val_bool (x <> 0)
-  | Val_int x, Types.TyFloat -> Val_float (float_of_int x)
+  | Val_int x, Types.TyBool -> mk (Val_bool (x <> 0))
+  | Val_int x, Types.TyFloat -> mk (Val_float (float_of_int x))
   | Val_bool _, Types.TyBool -> v
-  | Val_bool b, Types.TyInt _ -> Val_int (if b then 1 else 0)
+  | Val_bool b, Types.TyInt _ -> mk (Val_int (if b then 1 else 0))
   | Val_float _, Types.TyFloat -> v
-  | Val_float x, Types.TyInt _ -> Val_int (int_of_float x)
+  | Val_float x, Types.TyInt _ -> mk (Val_int (int_of_float x))
   | _, _ -> failwith "Eval.eval_cast" (* should not happen *)

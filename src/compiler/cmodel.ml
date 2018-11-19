@@ -18,11 +18,11 @@ type c_model = {
   c_name: string;
   c_states: string list;
   c_types: (string * c_type_defn) list;
-  c_consts: (string * (Types.typ * Expr.e_val)) list;
+  c_consts: (string * (Types.typ * Expr.value)) list;
   c_inps: (string * Types.typ) list;
   c_outps: (string * Types.typ) list;
   c_inouts: (string * Types.typ) list;
-  c_vars: (string * (Types.typ * Expr.e_val)) list;  
+  c_vars: (string * (Types.typ * Expr.value)) list;  
   c_init: Fsm.state * Action.t list;
   c_body: c_state_case list;
      (* c_body = [case_1;...;case_n]

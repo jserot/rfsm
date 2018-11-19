@@ -91,11 +91,11 @@ type model = {
 type inst = { 
   f_name: string;
   f_model: model;
-  f_params: (string * (Types.typ * Expr.e_val)) list;       (** name, type, actual value *)
+  f_params: (string * (Types.typ * Expr.value)) list;       (** name, type, actual value *)
   f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
   f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
   f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
-  f_vars: (string * (Types.typ * Expr.e_val)) list;         (** name, (type, value) *)
+  f_vars: (string * (Types.typ * Expr.value)) list;         (** name, (type, value) *)
   f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
   f_l2g: string -> string;                                  (** local -> global name *)
   f_state: string;                                          (** current state *)
@@ -110,7 +110,7 @@ and global =
 and stim_desc = 
   Periodic of int * int * int             (** Period, start time, end time *)
 | Sporadic of int list                    (** Dates *)
-| ValueChange of (int * Expr.e_val) list  (** (Date,value)s *)
+| ValueChange of (int * Expr.value) list  (** (Date,value)s *)
 
 (* Inspectors *)
 
@@ -188,7 +188,7 @@ let type_check_stim tenv fsm id ty st = match st with
   | ValueChange vcs ->
      List.iter
        (type_check ~strict:false "stimuli" ("input \"" ^ id ^ "\"") ty) 
-       (List.map (function (_,v) -> Typing.type_of_value tenv v) vcs)
+       (List.map (function (_,v) -> v.Expr.v_typ) vcs)
   | _ ->
      ()
 
@@ -338,7 +338,7 @@ let sanity_check tenv f =
 let build_instance ~tenv ~name ~model ~params ~ios =
     (* Builds an FSM instance from a model *)
     let bind_param vs (p,ty) =
-      let rec compat ty v = match ty, v with
+      let rec compat ty v = match ty, v.Expr.v_desc with
         Types.TyInt _, Expr.Val_int _ -> true
       | Types.TyFloat, Expr.Val_float _ -> true
       | Types.TyBool, Expr.Val_bool _ -> true
@@ -355,7 +355,7 @@ let build_instance ~tenv ~name ~model ~params ~ios =
     let bound_params = List.map (bind_param params) model.fm_params in
     let ienv = 
       List.fold_left
-        (fun acc (id,(ty,v)) -> match v with
+        (fun acc (id,(ty,v)) -> match v.Expr.v_desc with
          | Expr.Val_int x -> (id,x) :: acc  (* Only int parameters can be used as indices *)
          | _ -> acc)
       []
@@ -392,10 +392,12 @@ let build_instance ~tenv ~name ~model ~params ~ios =
       |> List.filter (function (_,_,k,_,_) -> k=kind)
       |> List.map (function (lid,_,_,ty,gl) -> lid, (ty,gl)) in
     let rec mk_ival ty = match ty with
-      | Types.TyArray(TiConst sz, _) -> Expr.Val_array (Array.make sz Expr.Val_unknown)
+      | Types.TyArray(TiConst sz, ty') ->
+         Expr.mk_array (ListExt.range (function i -> Expr.mk_val ty' Expr.Val_unknown) 1 sz)
       | Types.TyArray(_, _) -> failwith "Fsm.build_instance.mk_ival"
-      | Types.TyRecord (n,fs) -> Expr.Val_record { rv_typ=n; rv_val=List.map (function (n,t) -> n, mk_ival t) fs }
-      | _ -> Expr.Val_unknown in
+      | Types.TyRecord (n,fs) -> 
+         Expr.mk_record n (List.map (function (n,ty) -> n, ty, Expr.mk_val ty Expr.Val_unknown) fs)
+      | _ -> Expr.mk_val ty Expr.Val_unknown in
     let mk_var (id,ty) =
       let ty' = Types.subst_indexes ienv ty in
       id, (ty',mk_ival ty') in
@@ -427,19 +429,19 @@ exception IllegalTrans of inst * string
 exception Undeterminate of inst * string * Types.date
 exception NonDetTrans of inst * transition list * Types.date
 
-type lenv = (string * Expr.e_val) list
-(* type genv = (Ident.t * Expr.e_val) list *)
+type lenv = (string * Expr.value) list
+(* type genv = (Ident.t * Expr.value) list *)
 
 type genv = {
-  fe_inputs: (string * (Types.typ * Expr.e_val)) list;   (** Global inputs *)
-  fe_csts: (string * (Types.typ * Expr.e_val)) list;     (** Global constants *)
-  fe_fns: (string * (Types.typ * Expr.e_val)) list;      (** Global functions *)
-  fe_vars: (string * (Types.typ * Expr.e_val)) list;     (** Shared variables *)
-  fe_evs: (string * (Types.typ * Expr.e_val)) list;      (** Shared events *)
+  fe_inputs: (string * (Types.typ * Expr.value)) list;   (** Global inputs *)
+  fe_csts: (string * (Types.typ * Expr.value)) list;     (** Global constants *)
+  fe_fns: (string * (Types.typ * Expr.value)) list;      (** Global functions *)
+  fe_vars: (string * (Types.typ * Expr.value)) list;     (** Shared variables *)
+  fe_evs: (string * (Types.typ * Expr.value)) list;      (** Shared events *)
   }
 
-(* type response = Ident.t * Expr.e_val *)
-type response = lhs * Expr.e_val
+(* type response = Ident.t * Expr.value *)
+type response = lhs * Expr.value
 
 and lhs =
   | Var0 of Ident.t         (* Scalar *)
@@ -458,17 +460,19 @@ exception IllegalAction of inst * Action.t
 let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],
      a list of responses [resps], and an updated (local) environment [env']. *)
+  let open Expr in
   let array_upd id idx v = 
     match List.assoc id env, Eval.eval env idx with
-    | Expr.Val_array vs, Expr.Val_int i -> Expr.Val_array (Expr.array_update id vs i v), i
+    | { v_desc=Val_array vs} as a, { v_desc=Val_int i } -> { a with v_desc = Val_array (array_update id vs i v) }, i
     | _, _ -> raise (IllegalAction (f,act)) in
   let record_upd id fd v = 
     match List.assoc id env with
-    | Expr.Val_record r -> Expr.Val_record { r with rv_val = (Expr.record_update id r.rv_val fd v) }
+    | { v_desc=Val_record vs } as r -> { r with v_desc = Val_record (record_update id vs fd v) }
     | _ -> raise (IllegalAction (f,act)) in
   let set_bits id idx1 idx2 v = 
     match List.assoc id env, Eval.eval env idx1, Eval.eval env idx2, v with
-    | Expr.Val_int x, Expr.Val_int hi, Expr.Val_int lo, Expr.Val_int b -> Expr.Val_int (Intbits.set_bits hi lo x b)
+    | { v_desc=Val_int x } as u, { v_desc=Val_int hi }, { v_desc=Val_int lo }, { v_desc=Val_int b } ->
+       { u with v_desc = Val_int (Intbits.set_bits hi lo x b) }
     | _, _, _, _ -> raise (IllegalAction (f,act)) in
   match act with
     Action.Assign (lhs, expr) ->
@@ -556,17 +560,18 @@ let do_action (f,resps,resps',env) act =
      env
   | Action.StateMove (id,s,s') ->
      { f with f_state = s' },
-     resps @ [Var0 (Ident.Local (f.f_name, "state")), Expr.Val_enum {ev_typ=""; ev_val=s'}],
+     resps @ [Var0 (Ident.Local (f.f_name, "state")), { v_desc=Val_enum s'; v_typ=TyEnum (Types.new_name_var(),[]) }],
      resps',
      env
 
 let perform_delayed_action (f,env) (lhs,v) = 
+  let open Expr in
   let id, v' = match lhs with 
     | Var0 (Ident.Local (_, id)) -> id, v
     | Var1 (Ident.Local (_, id), i) ->
        id,
        begin match List.assoc id env with
-       | Expr.Val_array vs -> Expr.Val_array (Expr.array_update id vs i v)
+       | { v_desc=Val_array vs } as a -> { a with v_desc = Val_array (array_update id vs i v) }
        | _ -> raise (Internal_error "Fsm.perform_delayed_action") (* should not happen *)
        end
     | _ ->
@@ -639,7 +644,7 @@ and check_cond f env (evs,guards) =
   List.for_all (is_event_set env) evs && Condition.eval_guards env guards
 
 and is_event_set env e = match List.assoc e env with
-    Val_bool true -> true
+    { Expr.v_desc=Val_bool true } -> true
   | _ -> false
   | exception Not_found -> false
 

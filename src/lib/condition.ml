@@ -31,13 +31,13 @@ let to_string' (evs,gs) = Utils.ListExt.to_string Utils.Misc.id "." evs ^ string
 
 let to_string c = to_string' c
 
-type env = (string * Expr.e_val) list
+type env = (string * Expr.value) list
 
 exception Illegal_guard_expr of Expr.t
                               
 let eval_guard env exp =
   match Eval.eval env exp with
-    Val_bool b -> b
+    { v_desc=Val_bool b } -> b
   | _ -> raise (Illegal_guard_expr exp)
 
 let eval_guards env gs = List.for_all (eval_guard env) gs (* Conjonctive semantics *)

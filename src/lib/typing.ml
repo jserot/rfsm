@@ -161,26 +161,26 @@ and type_cast e t1 t2 = match t1, t2 with
 
 (* Typing values *)
 
-let rec type_of_value tenv v =
-  let lookup v env = 
-       try List.assoc v env
-       with Not_found -> failwith "Typing.type_of_value: cannot recover type from value" in
-  match v with
-  | Expr.Val_int _ -> Types.TyInt (Types.new_size_var())
-  | Expr.Val_float _ -> Types.TyFloat
-  | Expr.Val_bool _ -> Types.TyBool
-  | Expr.Val_enum c -> lookup c.ev_val tenv.te_ctors
-  | Expr.Val_fn (args,body) -> Types.TyArrow (Types.TyProduct (List.map (function arg -> Types.TyBool) args),Types.TyBool) (* TO FIX ! *)
-  | Expr.Val_unknown -> Types.new_type_var ()
-  | Expr.Val_none -> Types.TyEvent
-  | Expr.Val_array vs ->
-     begin
-       match Array.length vs with
-       | 0 -> failwith "Typing.type_of_value"
-       | n -> TyArray(TiConst n, type_of_value tenv vs.(0))
-     end
-  | Expr.Val_record {rv_val=((f,_)::_)} -> lookup f tenv.te_rfields
-  | _ -> failwith "Typing.type_of_value"
+(* let rec type_of_value tenv v =
+ *   let lookup v env = 
+ *        try List.assoc v env
+ *        with Not_found -> failwith "Typing.type_of_value: cannot recover type from value" in
+ *   match v with
+ *   | Expr.Val_int _ -> Types.TyInt (Types.new_size_var())
+ *   | Expr.Val_float _ -> Types.TyFloat
+ *   | Expr.Val_bool _ -> Types.TyBool
+ *   | Expr.Val_enum c -> lookup c tenv.te_ctors
+ *   | Expr.Val_fn (args,body) -> Types.TyArrow (Types.TyProduct (List.map (function arg -> Types.TyBool) args),Types.TyBool) (\* TO FIX ! *\)
+ *   | Expr.Val_unknown -> Types.new_type_var ()
+ *   | Expr.Val_none -> Types.TyEvent
+ *   | Expr.Val_array vs ->
+ *      begin
+ *        match Array.length vs with
+ *        | 0 -> failwith "Typing.type_of_value"
+ *        | n -> TyArray(TiConst n, type_of_value tenv vs.(0))
+ *      end
+ *   | Expr.Val_record ((f,_)::_) -> lookup f tenv.te_rfields
+ *   | _ -> failwith "Typing.type_of_value" *)
 
           
 (* Typing environment *)

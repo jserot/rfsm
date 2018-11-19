@@ -32,12 +32,12 @@ exception Ctask_error of string * string  (* where, msg *)
 let string_of_type t = match t with 
   | TyEvent -> "event"
   | TyBool -> "bool"
-  | TyEnum ("", cs) -> "enum {" ^ ListExt.to_string (function c -> c) "," cs ^ "}"
-  | TyEnum (n, _) -> n
+  | TyEnum (nm, _) when Types.is_lit_name nm -> Types.string_of_name nm
+  | TyEnum (_, cs) -> "enum {" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
   | TyInt _ -> "int"
   | TyFloat -> "float"
-  | TyRecord ("",fs) -> "struct {" ^ ListExt.to_string (function (f,t) -> f ^ ":" ^ string_of_type t) ";" fs ^ "}"
-  | TyRecord (n,_) -> n
+  | TyRecord (nm, _) when Types.is_lit_name nm ->  Types.string_of_name nm
+  | TyRecord (_, fs) -> "struct {" ^ ListExt.to_string (function (f,t) -> f ^ ":" ^ string_of_type t) ";" fs ^ "}"
   | _ -> Error.fatal_error "Ctask.string_of_type"
 
 let string_of_array_size sz = match sz with
@@ -48,16 +48,16 @@ let string_of_typed_item (id,ty) = match ty with
   | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id ^ "[" ^ string_of_array_size sz ^ "]"
   | _ -> string_of_type ty ^ " " ^ id
 
-let rec string_of_value v = match v with
+let rec string_of_value v = match v.Expr.v_desc with
   Expr.Val_int i -> string_of_int i
 | Expr.Val_float b -> string_of_float b
 | Expr.Val_bool b -> string_of_bool b
-| Expr.Val_enum e -> e.ev_val
+| Expr.Val_enum e -> e
 | Expr.Val_fn _ -> "<fun>"
 | Expr.Val_unknown -> "<unknown>"
 | Expr.Val_none -> "<none>"
 | Expr.Val_array vs -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
-| Expr.Val_record r -> "{" ^ ListExt.to_string string_of_field "," r.rv_val ^ "}"
+| Expr.Val_record fs -> "{" ^ ListExt.to_string string_of_field "," fs ^ "}"
 
 and string_of_field (n,v) = string_of_value v
 
@@ -167,10 +167,13 @@ let dump_module_impl m fname fsm =
   let m = Cmodel.c_model_of_fsm m fsm in
   let oc = open_out fname in
   let modname = String.capitalize_ascii fsm.f_name in
-  let string_of_ival = function
-    | Expr.Val_none -> ""
-    | Expr.Val_array vs when List.for_all (function Expr.Val_unknown -> true | _ -> false) (Array.to_list vs) -> ""
-    | v -> " = " ^ string_of_value v in
+  let string_of_ival v =
+    let open Expr in
+    match v.v_desc with
+    | Val_unknown -> ""
+    | Val_array vs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (Array.to_list vs) -> ""
+    | Val_record fs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (List.map snd fs) -> ""
+    | _ -> " = " ^ string_of_value v in
   fprintf oc "task %s(\n" modname;
   List.iter (fun (id,ty) -> fprintf oc "  in %s;\n" (string_of_typed_item (id,ty))) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc " out %s;\n" (string_of_typed_item (id,ty))) m.c_outps;
@@ -179,7 +182,10 @@ let dump_module_impl m fname fsm =
   fprintf oc "{\n";
   List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s%s;\n" (string_of_typed_item (id,ty)) (string_of_ival iv)) m.c_vars;
   if List.length m.c_states > 1 then 
-    fprintf oc "  %s %s = %s;\n" (string_of_type (Types.TyEnum ("",m.c_states))) cfg.state_var_name (fst m.c_init);
+    fprintf oc "  %s %s = %s;\n"
+      (string_of_type (Types.TyEnum (Types.new_name_var(),m.c_states)))
+      cfg.state_var_name
+      (fst m.c_init);
   if List.exists (function c -> List.length c.st_sensibility_list > 1) m.c_body then
       fprintf oc "  event %s;\n" cfg.recvd_ev_name;
   List.iter (dump_action oc "  ") (snd m.c_init);

@@ -103,7 +103,7 @@ let register_fsm_var acc ((id,ty) as s) =
      register_signal acc s
  
 let register_fsm acc f =
-  let sigs = (Ident.Local (f.f_name, "state"), TyEnum ("", states_of f))
+  let sigs = (Ident.Local (f.f_name, "state"), TyEnum (Types.new_name_var(), states_of f))
              :: List.map (function (id,(ty,_)) -> Ident.Local (f.f_name,id),ty) f.f_vars in
   List.fold_left register_fsm_var acc sigs
 
@@ -150,9 +150,9 @@ let dump_reaction oc signals (t,evs) =
     let (id,ty) =
       try List.assoc name signals
       with Not_found -> raise (Error ("unknown signal: " ^ Ident.to_string name)) in
-    match ty, value with
+    match ty, value.Expr.v_desc with
         TyEvent, _ -> fprintf oc "1%c\n" id          (* Instantaneous event *)
-      | TyEnum _, Expr.Val_enum e -> fprintf oc "s%s %c\n" e.ev_val id
+      | TyEnum _, Expr.Val_enum e -> fprintf oc "s%s %c\n" e id
       | TyBool, Expr.Val_bool b -> fprintf oc "b%d %c\n" (if b then 1 else 0) id
       | TyBool, Expr.Val_int n -> fprintf oc "b%d %c\n" (if n > 0 then 1 else 0) id
       | TyInt r, Expr.Val_int n -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
@@ -160,11 +160,11 @@ let dump_reaction oc signals (t,evs) =
       | TyFloat, Expr.Val_float n -> fprintf oc "r%.*f %c\n" cfg.float_precision n id
       | _, _-> () in
   let dump_event (lhs,value) =
-    match lhs, value with
-    | Var0 id, Expr.Val_record r ->
+    match lhs, value.Expr.v_desc with
+    | Var0 id, Expr.Val_record fs ->
        List.iter
          (fun (n,v) -> dump_scalar_event (Var0 (record_field_id id n), v))
-         r.rv_val
+         fs
     (* TODO: handle arrays here *)
     | _ -> dump_scalar_event (lhs, value) in
   fprintf oc "#%d\n" t;

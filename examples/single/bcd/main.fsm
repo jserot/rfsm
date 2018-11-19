@@ -1,16 +1,16 @@
 type digit = int<0:9>
 
-type number = record { d2: digit, d1: digit, d0: digit }
+type bcd3 = record { d2: digit, d1: digit, d0: digit }
 
 fsm model Convert(
   in h: event, 
   in start: bool,
   in inp: int<8>,
   out rdy: bool,
-  out n: number)
+  out n: bcd3)
  {
   states: Idle, Convert;
-  vars: r:int<20>, i:int<0:8>, m:number;
+  vars: r:int<20>, i:int<0:8>, m:bcd3;
   trans:
     Idle -- h.start=1 | r:=inp::int<20>; i:=0; rdy:=0 -> Convert,
     Convert -- h.i<8 | r[11:8] := r[11:8]>4?r[11:8]+3:r[11:8];
@@ -26,6 +26,6 @@ input h : event = periodic (10,10,160)
 input n : int<8> = value_changes (5:243)
 input start : bool = value_changes (0:0, 25:1, 35:0)
 output rdy : bool
-output r: number
+output r: bcd3
 
 fsm conv = Convert(h,start,n,rdy,r)
