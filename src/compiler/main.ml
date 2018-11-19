@@ -154,6 +154,10 @@ with
    eprintf "Error when executing action \"%s\" within FSM \"%s\" (check for undefined values...)\n"
      (Action.to_string a) m.Fsm.f_name;
    flush stderr; exit 7
+| Intern.Incomplete_record (where,v,ty) ->
+   eprintf "Found incomplete record value in %s: value %s does not have (full) type %s\n"
+     where (Expr.string_of_value v) (Types.string_of_type ty);
+   flush stderr; exit 7
 | Simul.OverReaction t ->
     eprintf "Simulation loops (over-reaction) at t=%d\n" t; flush stderr; exit 5
 | Cmodel.Error (m,msg) ->

@@ -145,6 +145,8 @@ let type_of_constant tenv cd =
   | Typing.Typing_error (_,t,t') 
   | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("expression", "constant \"" ^ cd.cc_name ^ "\"", t, t'))
 
+exception Incomplete_record of string * Expr.value * Types.typ 
+                             
 let rec retype_value ty v =
   let open Expr in
   match v.v_desc, ty with
@@ -154,7 +156,9 @@ let rec retype_value ty v =
      Array.iter (retype_value ty') vs;
      Types.unify ty v.v_typ
   | Val_record vs, Types.TyRecord (_, fs) -> 
-     List.iter2 (fun (_,v') (_,ty') -> retype_value ty' v') vs fs;
+     if List.length vs = List.length fs
+     then List.iter2 (fun (_,v') (_,ty') -> retype_value ty' v') vs fs
+     else raise (Incomplete_record ("",v,ty));
      Types.unify ty v.v_typ
   | _, _ ->
      Types.unify ty v.v_typ
@@ -169,6 +173,7 @@ let type_of_input tenv gd =
          with
          | Typing.Typing_error (_,t,t') 
          | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("stimulus", "input \"" ^ gd.gd_name ^ "\"", t, t'))
+         | Incomplete_record (_,v,ty) -> raise (Incomplete_record ("input \"" ^ gd.gd_name ^ "\"", v, ty))
        end
     |  _ -> ()
   end;
