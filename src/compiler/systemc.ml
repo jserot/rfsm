@@ -91,7 +91,7 @@ let rec string_of_value v = match v.Expr.v_desc, Types.real_type v.Expr.v_typ wi
 | Expr.Val_record fs, Types.TyRecord (name, _) -> string_of_record_value (Types.string_of_name name) fs
 | _, _ -> failwith "Systemc.string_of_value"
 
-and string_of_enum_value tyname c = "_enum<" ^ tyname ^ "::" ^ c ^ ">()"
+and string_of_enum_value tyname c = tyname ^ "::" ^ c
 
 and string_of_record_value tyname fs = tyname ^ "(" ^ ListExt.to_string string_of_value "," (List.map snd fs) ^ ")"
 
@@ -398,59 +398,45 @@ let dump_record_type_defn oc name fields =
   fprintf oc "public:\n";
   fprintf oc "  struct { %s } repr;\n"
     (mk (function (n,t) -> string_of_type t ^ " " ^ n ^ ";") " " fields);
-  fprintf oc "  ~%s() { };\n" name;
   fprintf oc "  %s() { };\n" name;
   fprintf oc "  %s(%s) { %s };\n"
     name
     (mk (function (n,t) -> string_of_type t ^ " " ^ n) ", " fields)
     (mk (function (n,_) -> "repr." ^ n ^ "=" ^ n ^ ";") " " fields);
-  fprintf oc "  inline %s& operator = (const %s& v) { repr = v.repr; return *this; }\n" name name;
-  fprintf oc "  inline friend bool operator == ( const %s& v1, const %s& v2)\n" name name;
-  fprintf oc "    { return %s; }\n"
+  fprintf oc "  inline bool friend operator == ( const %s& v1, const %s& v2) { return %s; }\n" name name
     (mk (function (n,_) -> "v1.repr." ^ n ^ "==v2.repr." ^ n) " && " fields);
+  fprintf oc "  inline %s& operator = (const %s& v) { repr = v.repr; return *this; }\n" name name;
   fprintf oc "  inline friend ::std::ostream& operator << ( ::std::ostream& os, const %s& v) {\n" name;
   fprintf oc "    os << \"{\" << %s << \"} \";\n"
     (mk (function (n,_) -> "\"" ^ n ^ "=\"" ^ " << v.repr." ^ n) " << \",\" << " fields); 
   fprintf oc "    return os;\n";
   fprintf oc "    }\n";
-  fprintf oc "  inline friend ::std::istream& operator >> ( ::std::istream& is, %s& v) {\n" name;
-  fprintf oc "    is >> %s;\n"
-    (mk (function (n,_) -> "v.repr." ^ n) " >> " fields); 
-  fprintf oc "    return is;\n";
+  fprintf oc "  inline friend void sc_trace(sc_trace_file *tf, const %s& v, const std::string& n) {\n" name;
+  List.iter
+    (function (n,_) -> fprintf oc "    sc_trace(tf,v.repr.%s, n+\".%s\");\n" n n)
+    fields;
   fprintf oc "  }\n";
-  fprintf oc "};\n";
-  fprintf oc "\n\n";
-  fprintf oc "inline void sc_trace(sc_trace_file *tf, const %s& v, const std::string& n) { /* TOFIX */ }\n" name
+  fprintf oc "};\n"
 
 let dump_enum_type_defn oc name vs = 
-  fprintf oc "#include \"enumid.h\"\n\n";
   fprintf oc "class %s {\n" name;
   fprintf oc "public:\n";
-  fprintf oc "  enum { %s } repr;\n" (ListExt.to_string Misc.id "," vs);
-  fprintf oc "  ~%s() { };\n" name;
+  fprintf oc "  enum values { %s };\n"
+    (ListExt.to_string (function (v,i) -> v ^ "=" ^ string_of_int i) "," (List.mapi (fun i v -> v,i) vs));
+  fprintf oc "  int repr; // SystemC 2.3 does not allow tracing of enumerated values :(\n";
+  fprintf oc "  static const char* names[%d];\n" (List.length vs);
   fprintf oc "  %s() { };\n" name;
-  List.iter
-    (function v -> fprintf oc "  %s(_enum<%s>) { repr = %s; };\n" name v v)
-    vs;
-  fprintf oc "  inline %s& operator = (const %s& v) { repr = v.repr; return *this; }\n" name name;
+  fprintf oc "  %s(int r) { repr=r; };\n" name;
   fprintf oc "  inline friend bool operator == ( const %s& v1, const %s& v2) { return v1.repr == v2.repr; }\n" name name;
+  fprintf oc "  inline %s& operator = (const %s& v) { repr = v.repr; return *this; }\n" name name;
   fprintf oc "  inline friend ::std::ostream& operator << ( ::std::ostream& os, const %s& v) {\n" name;
-  fprintf oc "    switch ( v.repr ) {\n";
-  List.iter
-    (function v -> fprintf oc "      case %s: os << \"%s \"; return os;\n" v v)
-    vs;
-  fprintf oc "      }\n";
-  fprintf oc "    }\n";
-  fprintf oc "  inline friend ::std::istream& operator >> ( ::std::istream& is, %s& v) {\n" name;
-  fprintf oc "    char tmp[64];\n";
-  fprintf oc "    is >> tmp;\n";
-  List.iter
-    (function v -> fprintf oc "    if ( !strcmp(tmp,\"%s\") ) { v.repr=%s; return is;}\n" v v)
-    vs;
-  fprintf oc "    return is;\n";
-  fprintf oc "  }\n";
-  fprintf oc "};\n\n";
-  fprintf oc "inline void sc_trace(sc_trace_file *tf, const %s& v, const std::string& n) { /* TOFIX */ }\n" name
+  fprintf oc "     os << names[v.repr];\n";
+  fprintf oc "     return os;\n";
+  fprintf oc "     }\n";
+  fprintf oc "  inline friend void sc_trace(sc_trace_file *tf, const %s& v, const std::string& n) {\n" name;
+  fprintf oc "     sc_trace(tf, v.repr, n);\n";
+  fprintf oc "     }\n";
+  fprintf oc "};\n\n"
 
 let dump_global_type_defn oc (name,ty) = match ty with
   | TyEnum (nm,cs) -> dump_enum_type_defn oc (Types.string_of_name nm) cs
@@ -488,19 +474,26 @@ let dump_globals_intf dir prefix m =
   Printf.fprintf oc "#ifndef _%s_h\n" cfg.sc_globals_name;
   Printf.fprintf oc "#define _%s_h\n\n" cfg.sc_globals_name;
   Printf.fprintf oc "#include \"systemc.h\"\n\n";
-  if List.exists (function (_,Types.TyEnum _) -> true | _ -> false) m.Sysm.m_types then
-    Printf.fprintf oc "#include \"enumid.h\"\n\n";
   List.iter (dump_global_type_defn oc) m.Sysm.m_types; 
   List.iter (dump_global_fn_intf oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
   Printf.fprintf oc "\n#endif\n";
   Logfile.write fname;
   close_out oc
 
+let dump_enum_type_names oc = function
+  | _ , Types.TyEnum (nm,cs) ->
+     fprintf oc "const char* %s::names[%d] = { %s };\n" 
+       (Types.string_of_name nm)
+       (List.length cs)
+       (ListExt.to_string (function c -> "\"" ^ c ^ "\"") ", " cs)
+  | _ -> ()
+
 let dump_globals_impl dir prefix m =
   let fname = dir ^ "/" ^ prefix ^ ".cpp" in
   let oc = open_out fname in
   Printf.fprintf oc "#include \"%s.h\"\n\n" prefix;
   List.iter (dump_global_fn_impl oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
+  List.iter (dump_enum_type_names oc) m.Sysm.m_types;
   Logfile.write fname;
   close_out oc
 
@@ -519,6 +512,7 @@ let dump_testbench_impl fname m =
   let oc = open_out fname in
   let open Sysm in
   let modname n = String.capitalize_ascii n in
+  let comment = sprintf "Generated by RFSM v%s from model %s.fsm" Version.version m.m_name in
   fprintf oc "#include \"systemc.h\"\n";
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
   List.iter (function (id,_) -> fprintf oc "#include \"%s%s.h\"\n" cfg.sc_inpmod_prefix id) m.m_inputs;
@@ -544,6 +538,7 @@ let dump_testbench_impl fname m =
   (* Trace file *)
   fprintf oc "  sc_trace_file *trace_file;\n";
   fprintf oc "  trace_file = sc_create_vcd_trace_file (\"%s\");\n" cfg.sc_tb_name;
+  fprintf oc "  sc_write_comment(trace_file, \"%s\");\n" comment;
   List.iter
    (function (id,(ty,_)) -> fprintf oc "  sc_trace(trace_file, %s, \"%s\");\n" id id)
    (m.m_inputs @ m.m_outputs @ m.m_shared);
