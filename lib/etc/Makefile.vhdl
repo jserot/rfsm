@@ -5,10 +5,12 @@ GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 all: run
 
 run: tb
-	$(GHDL) -r $(GHDLOPTS) tb --vcd=tb.vcd
+#	$(GHDL) -r $(GHDLOPTS) tb --vcd=tb.vcd
+	$(GHDL) -r $(GHDLOPTS) tb --wave=tb.ghw
 
 view: run
-	$(GTKWAVE) -f tb.vcd -a tb.sav > /tmp/gtkwave.log 2>&1; echo $$?
+#	$(GTKWAVE) -f tb.vcd -a tb.sav > /tmp/gtkwave.log 2>&1; echo $$?
+	$(GTKWAVE) -f tb.ghw -a tb.sav > /tmp/gtkwave.log 2>&1; echo $$?
 
 clean:
 	\rm -f work*.cf

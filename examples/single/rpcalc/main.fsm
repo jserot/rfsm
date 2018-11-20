@@ -33,7 +33,7 @@ fsm model rpcalc(
   itrans: | l:=0 -> Idle;
   }
 
-input h : event = periodic (10,10,200)
+input h : event = periodic (10,10,120)
 
 # Scenario 1: "1 ^ 2 + 4 * => 3, 12"
 input inp : token_t = value_changes(

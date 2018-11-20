@@ -2,6 +2,7 @@ COMPILER
 
 - bug using an undeclared id within a transition should not raise an exception in Intern.mk_fsm_model but
   should be detected before (at the TC level) 
+- refactor code in three layers : typing, static elab, dynamic sim
 - fix bug in rfsm_mode.el; should not inherit from C mode !
 - support for char type 
 - support for synchronous actions in CTask and SystemC
