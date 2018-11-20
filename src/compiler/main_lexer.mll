@@ -34,6 +34,7 @@ let keyword_table = [
   "int", TYINT;
   "float", TYFLOAT;
   "bool", TYBOOL;
+  "char", TYCHAR;
   "array", TYARRAY;
   (* "true", TRUE;
    * "false", FALSE; *)
@@ -55,6 +56,8 @@ rule main = parse
       { INT (int_of_string(Lexing.lexeme !Location.input_lexbuf)) }
   | ['0'-'9']+ ('.' ['0'-'9']*)? (['e' 'E'] ['+' '-']? ['0'-'9']+)?
       { FLOAT (float_of_string(Lexing.lexeme !Location.input_lexbuf)) }
+  | "'" [^ '\\' '\'' '\010' '\013'] "'"
+      { CHAR(Lexing.lexeme_char lexbuf 1) }
   | ";" { SEMICOLON }
   | "(" { LPAREN }
   | ")" { RPAREN }

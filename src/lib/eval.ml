@@ -72,6 +72,7 @@ and eval env exp =
   let r = match exp.e_desc with
     EInt v -> mk (Val_int v)
   | EFloat v -> mk (Val_float v)
+  | EChar v -> mk (Val_char v)
   | EBool v -> mk (Val_bool v)
   | EEnum c -> mk (Val_enum c)
   | EVar id -> lookup env id

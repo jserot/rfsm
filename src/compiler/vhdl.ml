@@ -74,6 +74,7 @@ type vhdl_type =
   | Integer of int_range option
   | Real
   | Boolean
+  | Char
   | Array of int * vhdl_type
   | Enum of string * string list
   | Record of string * (string * vhdl_type) list
@@ -85,6 +86,7 @@ let rec vhdl_type_of t = match Types.real_type t with
   | TyEvent -> Std_logic
   | TyBool -> if cfg.vhdl_bool_as_bool then Boolean else Std_logic
   | TyFloat -> Real
+  | TyChar -> Char
   | TyEnum (nm,cs) when Types.is_lit_name nm -> Enum (Types.string_of_name nm,cs)
   | TyInt (SzExpr1 (TiConst sz)) ->
       if cfg.vhdl_use_numeric_std then Unsigned sz
@@ -114,6 +116,7 @@ let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with
   | Integer _, _ -> "integer"
   | Real, _ -> "real"
   | Boolean, _ -> "boolean"
+  | Char, _ -> "character"
   | Array (n,t'), _ -> string_of_vhdl_array_type n t'
   | Enum (n,_), _ -> n
   | Record (n,_), _ -> n
@@ -144,6 +147,8 @@ let vhdl_string_of_bool b = match cfg.vhdl_bool_as_bool, b with
   | false, true -> "'1'"
   | false, false -> "'0'"
   
+let vhdl_string_of_char c = "'" ^ String.make 1 c ^ "'"
+
 let rec string_of_value v =
   match v.Expr.v_desc, vhdl_type_of v.Expr.v_typ with
   Expr.Val_int i, Unsigned n -> Printf.sprintf "to_unsigned(%d,%d)" i n
@@ -154,6 +159,7 @@ let rec string_of_value v =
 | Expr.Val_int i, Real -> Printf.sprintf "%d.0" i
 | Expr.Val_int i, _ -> Printf.sprintf "%d" i
 | Expr.Val_float f, _ -> vhdl_string_of_float f
+| Expr.Val_char f, _ -> vhdl_string_of_char f
 | Expr.Val_bool b, _ -> vhdl_string_of_bool b
 | Expr.Val_enum s, _ -> enum_id s
 | Expr.Val_fn _, _ -> Error.not_implemented "VHDL translation of function value"
@@ -210,6 +216,7 @@ let rec string_of_expr e =
     | Expr.EInt n, Std_logic -> vhdl_string_of_bool (n > 0)
     | Expr.EInt n, _ -> string_of_int n
     | Expr.EFloat c, _ -> vhdl_string_of_float c
+    | Expr.EChar c, _ -> vhdl_string_of_char c
     | Expr.EBool c, _ -> vhdl_string_of_bool c
     | Expr.EEnum c, _ -> enum_id c
     | Expr.EVar n, _ ->  n

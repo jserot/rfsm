@@ -57,6 +57,7 @@ let vcd_kind_of ty = match ty with
 | TyBool  -> "wire", 1
 | TyFloat -> "real", 1
 | TyEnum _ -> "real", 1
+| TyChar -> "wire", 8
 | TyInt r -> "wire", vcd_size_of_range r
   | _ -> Error.fatal_error "Vcd.vcd_kind_of"
 
@@ -158,6 +159,7 @@ let dump_reaction oc signals (t,evs) =
       | TyInt r, Expr.Val_int n -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) n) id
       | TyInt r, Expr.Val_bool b -> fprintf oc "b%s %c\n" (bits_of_int (vcd_size_of_range r) (if b then 1 else 0)) id
       | TyFloat, Expr.Val_float n -> fprintf oc "r%.*f %c\n" cfg.float_precision n id
+      | TyChar, Expr.Val_char c -> fprintf oc "b%s %c\n" (bits_of_int 8 (int_of_char c)) id
       | _, _-> () in
   let dump_event (lhs,value) =
     match lhs, value.Expr.v_desc with

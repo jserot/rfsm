@@ -59,6 +59,7 @@ let need_globals m = m.Sysm.m_types <> [] || m.Sysm.m_fns <> [] || m.Sysm.m_cons
 let rec string_of_type t = match t with 
   | TyEvent -> "bool"
   | TyBool -> "bool"
+  | TyChar -> "char"
   | TyEnum (nm, _) when Types.is_lit_name nm -> Types.string_of_name nm
   | TyEnum (_, cs) -> "enum {" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
   | TyInt (SzExpr1 (TiConst sz)) -> "sc_uint<" ^ string_of_int sz ^ "> "
@@ -79,10 +80,13 @@ let string_of_typed_item ?(scope="") (id,ty) =
   | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id' ^ "[" ^ string_of_array_size sz ^ "]"
   | _ -> string_of_type ty ^ " " ^ id'
 
+let string_of_char c = "'" ^ String.make 1 c ^ "'"
+
 let rec string_of_value v = match v.Expr.v_desc, Types.real_type v.Expr.v_typ with
   Expr.Val_int i, _ -> string_of_int i
 | Expr.Val_float i, _-> string_of_float i
 | Expr.Val_bool i, _ -> string_of_bool i
+| Expr.Val_char c, _ -> string_of_char c
 | Expr.Val_enum c, Types.TyEnum (name, _) -> string_of_enum_value (Types.string_of_name name) c
 | Expr.Val_fn _, _ -> "<fun>"
 | Expr.Val_unknown, _ -> "<unknown>"
@@ -113,6 +117,7 @@ let string_of_expr m e =
     match e.Expr.e_desc, e.Expr.e_typ with
       Expr.EInt c, _ -> string_of_int c
     | Expr.EFloat c, _ -> string_of_float c
+    | Expr.EChar c, _ -> string_of_char c
     | Expr.EBool c, _ -> string_of_bool c
     | Expr.EEnum c, Types.TyEnum (n, _) -> string_of_enum_value (Types.string_of_name n) c
     | Expr.EEnum c, _ -> failwith "Systemc.string_of_expr"

@@ -40,6 +40,7 @@ let string_of_type t = match t with
   | TyEnum (_, cs) -> "enum {" ^ Utils.ListExt.to_string (function c -> c) "," cs ^ "}"
   | TyInt _ -> "int"
   | TyFloat -> "float"
+  | TyChar -> "char"
   | TyRecord (nm, _) when Types.is_lit_name nm ->  Types.string_of_name nm
   | TyRecord (_, fs) -> "struct {" ^ ListExt.to_string (function (f,t) -> f ^ ":" ^ string_of_type t) ";" fs ^ "}"
   | _ -> Error.fatal_error "Ctask.string_of_type"
@@ -52,9 +53,12 @@ let string_of_typed_item (id,ty) = match ty with
   | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id ^ "[" ^ string_of_array_size sz ^ "]"
   | _ -> string_of_type ty ^ " " ^ id
 
+let string_of_char c = "'" ^ String.make 1 c ^ "'"
+
 let rec string_of_value v = match v.Expr.v_desc with
   Expr.Val_int i -> string_of_int i
 | Expr.Val_float b -> string_of_float b
+| Expr.Val_char b -> string_of_char b
 | Expr.Val_bool b -> string_of_bool b
 | Expr.Val_enum e -> e
 | Expr.Val_fn _ -> "<fun>"
@@ -86,6 +90,7 @@ let rec string_of_expr e =
   let rec string_of level e = match e.Expr.e_desc with
     Expr.EInt c -> string_of_int c
   | Expr.EFloat c -> string_of_float c
+  | Expr.EChar c -> string_of_char c
   | Expr.EBool c -> string_of_bool c
   | Expr.EEnum c -> c
   | Expr.EVar n -> n

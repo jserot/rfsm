@@ -19,6 +19,7 @@ type t = {
 and e_desc = 
     EInt of int
   | EFloat of float         
+  | EChar of char         
   | EBool of bool
   | EEnum of string
   | EVar of string
@@ -39,6 +40,7 @@ type value = {
 and e_val = 
   | Val_int of int
   | Val_float of float
+  | Val_char of char
   | Val_bool of bool
   | Val_enum of string
   | Val_fn of string list * t   (** args, body *)
@@ -50,6 +52,7 @@ and e_val =
 let of_value v = match v.v_desc with
     Val_int v -> EInt v
   | Val_float f -> EFloat f
+  | Val_char f -> EChar f
   | Val_bool b -> EBool b
   | Val_enum c -> EEnum c
   | Val_fn _ -> failwith "Expr.of_value"
@@ -72,6 +75,7 @@ let mk_record name fds =
 
 let mk_int v = mk_val (Types.type_int []) (Val_int v)
 let mk_float v = mk_val Types.TyFloat (Val_float v)
+let mk_char v = mk_val Types.TyChar (Val_char v)
 let mk_bool v = mk_val Types.TyBool (Val_bool v)
              
 let array_update id a i v =
@@ -108,9 +112,12 @@ let rec rename f expr = match expr.e_desc with
        
 (* Printing *)
 
+let string_of_char c = "'" ^ String.make 1 c ^"'"
+
 let rec string_of_val v = match v with
   Val_int i -> string_of_int i
 | Val_float b -> string_of_float b
+| Val_char c -> string_of_char c
 | Val_bool b -> if b then "1" else "0"
 | Val_enum s -> s
 | Val_fn _ -> "<fun>"
@@ -134,6 +141,7 @@ let string_of_op = function
 let rec string_of_expr e = match e with
     EInt c -> string_of_int c
   | EFloat b -> string_of_float b
+  | EChar c -> string_of_char c
   (* | EBool b -> string_of_bool b *)
   | EBool b -> if b then "1" else "0"
   | EEnum c -> c

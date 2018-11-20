@@ -38,6 +38,7 @@ type typ =
   | TyEnum of name * string list              (** Name, list of values *)
   | TyInt of siz                
   | TyFloat
+  | TyChar
   | TyArray of Index.t * typ                        (** size, subtype *)
   | TyVar of typ var                                (** Internal use only *)
   | TyArrow of typ * typ                            (** Internal use only *)

@@ -75,6 +75,7 @@ type typ =
   | TyEnum of name * string list              (** Name, list of values *)
   | TyInt of siz                
   | TyFloat
+  | TyChar
   | TyArray of Index.t * typ                        (** size, subtype *)
   | TyVar of typ var                                (** Internal use only *)
   | TyArrow of typ * typ                            (** Internal use only *)
@@ -237,6 +238,8 @@ let rec unify ty1 ty2 =
      unify_size (val1,val2) sz1 sz2
   | TyBool, TyBool -> ()
   | TyEvent, TyEvent  -> ()
+  | TyFloat, TyFloat  -> ()
+  | TyChar, TyChar  -> ()
   | TyEnum (nm1,cs1), TyEnum (nm2,cs2) ->
      if List.sort compare cs1 = List.sort compare cs2
      then unify_name (val1,val2) nm1 nm2
@@ -333,6 +336,7 @@ let rec type_equal ~strict t1 t2 =
   | TyEvent, TyEvent -> true
   | TyInt sz1, TyInt sz2 -> size_equal ~strict:strict sz1 sz2
   | TyFloat, TyFloat -> true
+  | TyChar, TyChar -> true
   | TyEnum (nm1,cs1), TyEnum (nm2,cs2) ->
      name_equal ~strict nm1 nm2 && 
      (if strict then List.sort compare cs1 = List.sort compare cs2
@@ -395,6 +399,7 @@ let rec string_of_type ?(szvars=false) t = match t with
      end
   | TyInt sz -> "int" ^ string_of_size ~szvars sz
   | TyFloat -> "float"
+  | TyChar -> "char"
   | TyVar v -> v.stamp
   | TyArrow (t1,t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Utils.ListExt.to_string string_of_type "*" ts 

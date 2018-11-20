@@ -20,6 +20,7 @@ and te_desc =
   | TEBool
   | TEInt of int_annot
   | TEFloat
+  | TEChar
   | TEEvent
   | TEName of string
   | TEArray of type_index_expr * t  (* size, type of elements *)
@@ -48,6 +49,7 @@ let rec string_of_type_expr t = match t.te_desc with
   | TEBool -> "bool"
   | TEInt a -> "int" ^ string_of_int_annot a
   | TEFloat -> "float"
+  | TEChar -> "char"
   | TEEvent -> "event"
   | TEName n -> n
   | TEArray (sz,t') -> string_of_type_expr t' ^ "array[" ^ string_of_type_index sz ^ "]"

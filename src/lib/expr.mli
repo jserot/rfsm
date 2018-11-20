@@ -19,6 +19,7 @@ type t = {
 and e_desc = 
     EInt of int
   | EFloat of float         
+  | EChar of char         
   | EBool of bool         
   | EEnum of string
   | EVar of string
@@ -39,6 +40,7 @@ type value = {
 and e_val = 
   | Val_int of int
   | Val_float of float
+  | Val_char of char
   | Val_bool of bool
   | Val_enum of string
   | Val_fn of string list * t   (** args, body *)
@@ -56,6 +58,7 @@ val mk_array : value list -> value
 val mk_record : Types.name -> (string * Types.typ * value) list -> value
 val mk_int : int -> value
 val mk_float : float -> value
+val mk_char : char -> value
 val mk_bool : bool -> value
 val array_update : string -> value array -> int -> value -> value array
 val record_update : string -> (string * value) list -> string -> value -> (string * value) list

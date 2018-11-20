@@ -53,6 +53,7 @@ let rec type_of_type_expr tenv texpr =
   | TEInt (TA_size sz) -> Types.TyInt (Types.SzExpr1 (type_index_of_index_expr sz))
   | TEInt (TA_range (lo,hi)) -> Types.TyInt (SzExpr2 (type_index_of_index_expr lo, type_index_of_index_expr hi))
   | TEFloat -> Types.TyFloat
+  | TEChar -> Types.TyChar
   | TEEvent -> Types.TyEvent
   | TEName n ->
      begin
@@ -76,6 +77,7 @@ let rec type_expression tenv expr =
   let type_expr expr = match expr.Expr.e_desc with
     Expr.EInt c -> type_int []
   | Expr.EFloat b -> TyFloat
+  | Expr.EChar b -> TyChar
   | Expr.EBool b -> TyBool
   | Expr.EVar id -> lookup_type "variable" tenv.te_vars id
   | Expr.EEnum c ->  lookup_type "enum value" tenv.te_ctors c

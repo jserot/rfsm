@@ -20,6 +20,7 @@ and te_desc =
   | TEBool
   | TEInt of int_annot
   | TEFloat
+  | TEChar
   | TEEvent
   | TEName of string
   | TEArray of type_index_expr * t  (* size, type of elements *)

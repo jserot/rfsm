@@ -19,9 +19,11 @@
 %token ITRANS
 %token <int> INT
 %token <float> FLOAT
+%token <char> CHAR
 %token TYBOOL
 %token TYINT
 %token TYFLOAT
+%token TYCHAR
 %token TYEVENT
 %token TYARRAY
 %token ENUM
@@ -354,6 +356,7 @@ type_expr:
   | TYEVENT { mk_type_expr (Type_expr.TEEvent) }
   | TYINT a=int_annot { mk_type_expr (Type_expr.TEInt a) }
   | TYFLOAT { mk_type_expr (Type_expr.TEFloat) }
+  | TYCHAR { mk_type_expr (Type_expr.TEChar) }
   | TYBOOL { mk_type_expr (Type_expr.TEBool) }
   | i=LID { mk_type_expr (Type_expr.TEName i) }
   | t=type_expr TYARRAY LBRACKET s=array_size RBRACKET { mk_type_expr (Type_expr.TEArray (s,t)) }
@@ -462,6 +465,8 @@ constant:
       { Expr.EInt c }
   | c = FLOAT
       { Expr.EFloat c }
+  | c = CHAR
+      { Expr.EChar c }
   (* | c = bool
    *     { Expr.EBool c } *)
 
@@ -488,6 +493,7 @@ record_field_const:
 scalar_const:
   | v = int_const { Expr.mk_int v }
   | v = float_const { Expr.mk_float v }
+  | c = char_const { Expr.mk_char c }
   (* | v = bool { Expr.Val_bool v } *)
   | c = UID { Expr.mk_val (Types.new_type_var ()) (Expr.Val_enum c) }
 
@@ -498,6 +504,9 @@ int_const:
 float_const:
   | v = FLOAT { v }
   | MINUS v = FLOAT { -.v }
+
+char_const:
+  | v = CHAR { v }
 
 (* bool:
  *   | TRUE { true }
