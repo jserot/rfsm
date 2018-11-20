@@ -4,7 +4,6 @@ COMPILER
   should be detected before (at the TC level) 
 - refactor code in three layers : typing, static elab, dynamic sim
 - fix bug in rfsm_mode.el; should not inherit from C mode !
-- support for char type 
 - support for synchronous actions in CTask and SystemC
 - bound check for ranged integers
 - check for coherency in reaction responses (see src/lib/simul.ml)

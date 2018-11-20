@@ -181,10 +181,23 @@ be found in Appendix~A.
 There are two categories of types~: builtin types and user defined types.
 
 \medskip
-\textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float}, \texttt{event} and
+\textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float}, \texttt{char}, \texttt{event} and
 \texttt{array}s.
 
 \step Objects of type \texttt{bool} can have only two values : \texttt{0} (false) and \texttt{1} (true).
+
+\step Values of type \texttt{char} are
+denoted using single quotes. For example, for a variable \verb|c| having type \verb|char| :
+\begin{center}
+  \example{\lstinline[language=Rfsm]|c := 'A'|}
+\end{center}
+They can be converted from/to they internal representation as integers using the \verb|::| \emph{cast}
+operator. For example, if \verb|c| has type \verb|char| and \verb|n| type \verb|int|, then 
+\begin{center}
+  \example{\lstinline[language=Rfsm]|n := 'A'::int; c:=(n+1)::char|}
+\end{center}
+assigns value 65 to \verb|n| (ASCII code) and, then, value \verb|'B'| to \verb|c|.
+
 
 \step The type \texttt{int} can be refined using a \emph{size} or a \emph{range annotation}. The
 type \verb|int<sz>|, where \verb|sz| is an integer, is the type of integers which can be encoded using
@@ -197,10 +210,10 @@ can be constants or expressions whose value can be computed as compile time
 If \verb|n| is an integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]|
 designates the value represented by the bits \verb|hi|...\verb|lo| in the binary representation of
 \verb|n|. Bit ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The
-syntax \verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|. The \emph{resize}
+syntax \verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|. The \emph{cast}
 operator (\verb|::|) can be used to combine integers with different sizes (for example, if \verb|n|
 has type \verb|int<16>| and \verb|m| has type \verb|int<8>|, writing \verb|n:=n+m| is not allowed
-and mus be written, instead, \verb|n:=n+m::16|. The resize factor must be a constant. Note that the
+and mus be written, instead, \verb|n:=n+m::int<16>|. Note that the
 logical ``or'' operator is denoted ``\verb+||+'' because the single ``\verb+|+'' is already used in
 the syntax.
 
@@ -219,10 +232,10 @@ the syntax.
 \end{center}
 \end{table}
 
-
 \step The operations on values of type \texttt{float} are : "\verb|+.|", "\verb|-.|", "\verb|*.|" and
 "\verb|/.|" (the dot suffix is required to distinguish them from the corresponding operations on
 \texttt{int}s).
+
 
 \step Arrays are 1D, fixed-size collections of \verb|int|s, \verb|bool|s or \verb|float|s. Indices
 range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
