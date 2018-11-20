@@ -203,6 +203,10 @@ let string_of_cast t_exp t_ty e = match t_exp, t_ty with
   | Signed _, Boolean -> sprintf "to_bool(%s)" e
   | Signed _, Integer _ -> sprintf "to_integer(%s)" e
   | Integer _, Integer _ -> e
+  | Integer _, Char -> sprintf "to_char(%s)" e
+  | Unsigned _, Char -> sprintf "to_char(%s)" e
+  | Char, Integer _ -> sprintf "to_integer(%s)" e
+  | Char, Unsigned n -> sprintf "conv_unsigned(%s,%d)" e n
   | t, t' when t=t' -> e
   | _, _ -> failwith "Vhdl.string_of_cast" (* should  not happen *)
 
@@ -669,7 +673,7 @@ and dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
       (string_of_type ~type_marks:TM_None tr) ;
     fprintf oc "  begin\n";
     fprintf oc "    return %s;\n" (string_of_expr body);
-    fprintf oc "  end %s;\n" id
+    fprintf oc "  end function;\n\n"
 | _ -> ()
 
 (* Dumping Makefile *)

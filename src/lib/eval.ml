@@ -137,8 +137,10 @@ and eval_cast ty v =
   | Val_int _, Types.TyInt _ -> v
   | Val_int x, Types.TyBool -> mk (Val_bool (x <> 0))
   | Val_int x, Types.TyFloat -> mk (Val_float (float_of_int x))
+  | Val_int x, Types.TyChar -> mk (Val_char (char_of_int x))
   | Val_bool _, Types.TyBool -> v
   | Val_bool b, Types.TyInt _ -> mk (Val_int (if b then 1 else 0))
   | Val_float _, Types.TyFloat -> v
   | Val_float x, Types.TyInt _ -> mk (Val_int (int_of_float x))
+  | Val_char x, Types.TyInt _ -> mk (Val_int (int_of_char x))
   | _, _ -> failwith "Eval.eval_cast" (* should not happen *)

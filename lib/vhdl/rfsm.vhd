@@ -31,9 +31,12 @@ package core is
   function to_bool(e: unsigned) return boolean;
   function to_bool(e: signed) return boolean;
   function to_bool(e: std_logic_vector) return boolean;
+  function to_char(e: integer) return character;
+  function to_char(e: unsigned) return character;
   function conv_unsigned(e: unsigned; s: natural) return unsigned;
   function conv_unsigned(e: signed; s: natural) return unsigned;
   function conv_unsigned(e: boolean; s: natural) return unsigned;
+  function conv_unsigned(e: character; s: natural) return unsigned;
   function conv_unsigned(e: integer; s: natural) return unsigned;
   function conv_signed(e: signed; s: natural) return signed;
   function conv_signed(e: unsigned; s: natural) return signed;
@@ -41,6 +44,7 @@ package core is
   function conv_signed(e: integer; s: natural) return signed;
   function to_integer(e: integer) return integer;
   function to_integer(e: boolean) return integer;
+  function to_integer(e: character) return integer;
 
   procedure notify_ev(signal s: out std_logic; duration: time);
   
@@ -236,6 +240,16 @@ package body core is
   begin
     if e = (e'range=>'0') then return false; else return true; end if;
   end;
+
+  function to_char(e: integer) return character is
+  begin
+      return character'val(e+character'pos('0'));
+  end;
+
+  function to_char(e: unsigned) return character is
+  begin
+      return to_char(to_integer(e));
+  end;
                                       
   function conv_unsigned(e: unsigned; s: natural) return unsigned is
   begin
@@ -255,6 +269,11 @@ package body core is
   function conv_unsigned(e: integer; s: natural) return unsigned is
   begin
     return to_unsigned(e,s);
+  end;
+
+  function conv_unsigned(e: character; s: natural) return unsigned is
+  begin
+    return to_unsigned(to_integer(e),s);
   end;
   
   function conv_signed(e: signed; s: natural) return signed is
@@ -285,6 +304,11 @@ package body core is
   function to_integer(e: boolean) return integer is
   begin
     if ( e ) then return 1; else return 0; end if;
+  end;
+
+  function to_integer(e: character) return integer is
+  begin
+      return character'pos(e)-character'pos('0');
   end;
 
   procedure notify_ev(signal s: out std_logic; duration: time) is
