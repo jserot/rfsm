@@ -135,16 +135,6 @@ let type_of_function tenv fd =
   with Types.TypeConflict _ -> raise (Typing.Type_error ("result", "function \"" ^ fd.ff_name ^ "\"", ty_body, ty_result)) end;
   Types.TyArrow (Types.TyProduct (List.map snd ty_args), ty_result)
 
-let type_of_constant tenv cd =
-  try
-    let ty = type_of_type_expression tenv cd.cc_typ in
-    let ty' = cd.cc_val.Expr.v_typ in
-    Types.unify ty ty';
-    ty
-  with
-  | Typing.Typing_error (_,t,t') 
-  | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("expression", "constant \"" ^ cd.cc_name ^ "\"", t, t'))
-
 exception Incomplete_record of string * Expr.value * Types.typ 
                              
 let rec retype_value ty v =
@@ -162,6 +152,17 @@ let rec retype_value ty v =
      Types.unify ty v.v_typ
   | _, _ ->
      Types.unify ty v.v_typ
+
+let type_of_constant tenv cd =
+  try
+    let ty = type_of_type_expression tenv cd.cc_typ in
+    Types.unify ty cd.cc_val.Expr.v_typ;
+    retype_value ty cd.cc_val; 
+    ty
+  with
+  | Typing.Typing_error (_,t,t') 
+  | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("expression", "constant \"" ^ cd.cc_name ^ "\"", t, t'))
+
           
 let type_of_input tenv gd =
   let ty = type_of_type_expression tenv gd.gd_type in

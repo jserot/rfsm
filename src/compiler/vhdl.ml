@@ -304,6 +304,7 @@ let dump_sync_transitions oc src after clk m ts =
 let dump_state oc clk m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   match tss with
     [ev,ts] -> dump_sync_transitions oc q false clk m ts
+  | [] -> failwith ("VHDL: state " ^ q ^ " has no output transition")
   | _ -> Error.not_implemented "VHDL: transitions involving multiple events"
 
 let dump_state_case oc clk m c =
@@ -618,9 +619,16 @@ let dump_record_type_defn oc name fields =
 let dump_enum_type_defn oc name vs = 
   fprintf oc "  type %s is (%s);\n" name (ListExt.to_string enum_id "," vs)
 
-let dump_global_type_defn oc (name,ty) = match ty with
-  | TyEnum (nm,cs) -> dump_enum_type_defn oc (Types.string_of_name nm) cs
-  | TyRecord (nm,fs) -> dump_record_type_defn oc (Types.string_of_name nm) fs
+let dump_global_type_defn oc (name,ty) =
+  let dump_cond_fn_decl oc name =
+    fprintf oc "  function cond(e1: boolean; e2: %s; e3: %s) return %s;\n" name name name in
+  match ty with
+  | TyEnum (nm,cs) ->
+     dump_enum_type_defn oc (Types.string_of_name nm) cs;
+     dump_cond_fn_decl oc (Types.string_of_name nm)
+  | TyRecord (nm,fs) ->
+     dump_record_type_defn oc (Types.string_of_name nm) fs;
+     dump_cond_fn_decl oc (Types.string_of_name nm)
   | _ -> ()
 
 let rec dump_globals ?(name="") ?(dir="./vhdl") m =
@@ -662,6 +670,7 @@ and string_of_fn_arg (id,ty) = id ^ ":" ^ (string_of_type ty)
 
 and dump_globals_impl oc package_name m =
   fprintf oc "package body %s is\n" package_name;
+  List.iter (dump_global_type_fns oc) m.Sysm.m_types;
   List.iter (dump_global_fn_impl oc) m.Sysm.m_fns;
   fprintf oc "end %s;\n" package_name
 
@@ -673,8 +682,20 @@ and dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
       (string_of_type ~type_marks:TM_None tr) ;
     fprintf oc "  begin\n";
     fprintf oc "    return %s;\n" (string_of_expr body);
-    fprintf oc "  end function;\n\n"
+    fprintf oc "  end;\n\n"
 | _ -> ()
+
+and dump_global_type_fns oc (name,ty) =
+  match ty with
+  | TyEnum (nm,_) 
+  | TyRecord (nm,_) ->
+      let name = Types.string_of_name nm in
+      fprintf oc "function cond(e1: boolean; e2: %s; e3: %s) return %s is\n" name name name;
+      fprintf oc "  begin\n";
+      fprintf oc "    if e1 then return e2; else return e3; end if;\n";
+      fprintf oc "  end;\n"
+  | _ -> ()
+
 
 (* Dumping Makefile *)
 
@@ -713,7 +734,7 @@ let check_allowed m =
   let valid_shared (id, (ty, desc)) = match desc with
       MShared ([_], _) ->
        begin match ty with
-       | TyInt _ | TyBool | TyFloat -> ()
+       | TyInt _ | TyBool | TyFloat | TyChar | TyRecord _ -> ()
        | _ ->  Error.not_implemented ("Vhdl: " ^ id ^ ": shared signal with type=" ^ Types.string_of_type ty)
        end
     | MShared (_,_)  -> Error.not_implemented ("Vhdl: " ^ id ^ ": shared signal with more than one writer")

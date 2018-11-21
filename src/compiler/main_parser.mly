@@ -344,6 +344,7 @@ opt_inst_params:
 inst_param_value:  
   | v=int_const { Expr.mk_int v }
   | v=float_const { Expr.mk_float v }
+  | v=char_const { Expr.mk_char v }
   (* | v=bool { Expr.Val_bool v } *)
   | v=array_val { Expr.mk_array v }
 
@@ -480,7 +481,7 @@ const:
   | c = record_const { c }
 
 array_const:
-  | LBRACKET vs = separated_nonempty_list(COMMA,scalar_const) RBRACKET
+  | LBRACKET vs = separated_nonempty_list(COMMA,const) RBRACKET
       { Expr.mk_array vs }
 
 record_const:

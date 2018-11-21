@@ -10,6 +10,7 @@ package core is
   function cond(e1: boolean; e2: std_logic_vector; e3: std_logic_vector) return std_logic_vector;
   function cond(e1: boolean; e2: integer; e3: integer) return integer;
   function cond(e1: boolean; e2: real; e3: real) return real;
+  function cond(e1: boolean; e2: character; e3: character) return character;
   function eq(e1: signed; e2: signed) return unsigned;
   function eq(e1: unsigned; e2: unsigned) return unsigned;
   function eq(e1: integer; e2: integer) return unsigned;
@@ -87,6 +88,11 @@ package body core is
   end;
 
   function cond(e1: boolean; e2: real; e3: real) return real is
+  begin
+    if e1 then return e2; else return e3; end if;
+  end;
+
+  function cond(e1: boolean; e2: character; e3: character) return character is
   begin
     if e1 then return e2; else return e3; end if;
   end;
@@ -243,7 +249,7 @@ package body core is
 
   function to_char(e: integer) return character is
   begin
-      return character'val(e+character'pos('0'));
+      return character'val(e);
   end;
 
   function to_char(e: unsigned) return character is
@@ -308,7 +314,7 @@ package body core is
 
   function to_integer(e: character) return integer is
   begin
-      return character'pos(e)-character'pos('0');
+      return character'pos(e);
   end;
 
   procedure notify_ev(signal s: out std_logic; duration: time) is
