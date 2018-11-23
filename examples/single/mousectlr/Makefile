@@ -1,3 +1,4 @@
+SRCS=ctlr.fsm
 APP=ctlr
 DOT_OPTS=-dot_fsm_models
 SIM_OPTS=

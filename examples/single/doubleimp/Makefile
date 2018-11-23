@@ -1,4 +1,5 @@
 APP=main
+SRCS=main.fsm
 DOT_OPTS=-dump_model
 SIM_OPTS=
 SYSTEMC_OPTS=-sc_time_unit "SC_NS" -stop_time 280 -sc_trace

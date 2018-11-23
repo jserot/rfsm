@@ -1,3 +1,4 @@
+SRCS=main.fsm
 APP=main
 DOT_OPTS=-dot_actions_nl #-dot_fsm_models
 SIM_OPTS=

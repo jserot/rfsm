@@ -1,3 +1,4 @@
+SRCS=txd.fsm
 APP=txd
 DOT_OPTS=#-dot_fsm_models
 SIM_OPTS=

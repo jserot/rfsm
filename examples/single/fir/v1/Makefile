@@ -1,5 +1,6 @@
 RFSM=/Users/jserot/Dev/ml/rfsm/working
 
+SRCS=fir.fsm
 APP=fir
 DOT_OPTS=
 SIM_OPTS=
