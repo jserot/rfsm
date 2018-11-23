@@ -85,7 +85,7 @@ let mk_location (p1,p2) = Loc (!input_name, p1, p2)
 let mk_type_decl p desc = { Syntax.td_desc = desc; Syntax.td_loc = mk_location p }
 let mk_fn_decl p desc = { Syntax.fd_desc = desc; Syntax.fd_loc = mk_location p }
 let mk_cst_decl p desc = { Syntax.cst_desc = desc; Syntax.cst_loc = mk_location p }
-let mk_global_decl p desc = { Syntax.g_desc = desc; Syntax.g_loc = mk_location p }
+let mk_global_decl p desc = { Syntax.mg_dsc = desc; Syntax.mg_loc = mk_location p }
 let mk_fsm_decl p desc = { Syntax.fsm_desc = desc; Syntax.fsm_loc = mk_location p }
 let mk_stim_decl p desc = { Syntax.stim_desc = desc; Syntax.stim_loc = mk_location p }
 let mk_fsm_inst p desc = { Syntax.fi_desc = desc; Syntax.fi_loc = mk_location p }
@@ -102,6 +102,22 @@ let mkuminus name exp =
   | "-", EInt n -> { exp with e_desc = EInt (-n) }
   | ("-."|"-"), EFloat n -> { exp with e_desc = EFloat (-.n) }
   | _ -> { exp with e_desc = EFapp ("~"^name, [exp]) }
+
+let is_type_decl = function Syntax.TypeDecl _ -> true | _ ->  false
+let is_cst_decl = function Syntax.CstDecl _ -> true | _ -> false
+let is_fn_decl = function Syntax.FnDecl _ -> true | _ -> false
+let is_fsm_model_decl = function Syntax.FsmModelDecl _ -> true | _ -> false
+let is_fsm_inst_decl = function Syntax.FsmInstDecl _ -> true | d -> false
+let is_global_decl = function Syntax.GlobalDecl _ -> true | _ -> false
+
+let type_decl_of = function Syntax.TypeDecl d -> d | _ -> failwith "Main_parser.type_decl_of"
+let cst_decl_of = function Syntax.CstDecl d -> d  | _ -> failwith "Main_parser.type_decl_of"
+let fn_decl_of = function Syntax.FnDecl d -> d  | _ -> failwith "Main_parser.type_decl_of"
+let fsm_model_decl_of = function Syntax.FsmModelDecl d -> d | _ -> failwith "Main_parser.type_decl_of"
+let fsm_inst_decl_of = function Syntax.FsmInstDecl d -> d | _ -> failwith "Main_parser.type_decl_of"
+let globals_decl_of = function Syntax.GlobalDecl
+    d -> Syntax.split_global_mdecl d
+  | _ -> failwith "Main_parser.type_decl_of"
 %}
 
 %%
@@ -140,22 +156,28 @@ let mkuminus name exp =
 | x = my_separated_nonempty_list(separator, X)
     { x }
 
+(* PROGRAM *)
+
 program:
-  | tydecls=my_list(type_decl)
-    cstdecls=my_list(cst_decl)
-    fndecls=my_list(fn_decl)
-    models=my_nonempty_list(fsm_model)
-    globals=my_nonempty_list(global)
-    fsms=my_nonempty_list(fsm_inst)
-    EOF
-    { { Syntax.p_type_decls = tydecls;
-        Syntax.p_cst_decls = cstdecls;
-        Syntax.p_fn_decls = fndecls;
-        Syntax.p_fsm_models = models;
-        Syntax.p_globals = List.flatten globals;
-        Syntax.p_fsm_insts = fsms; }
+  | decls = my_list(decl) EOF
+    { { Syntax.p_type_decls = decls |> List.filter is_type_decl |> List.map type_decl_of;
+        Syntax.p_cst_decls = decls |> List.filter is_cst_decl |> List.map cst_decl_of;
+        Syntax.p_fn_decls = decls |> List.filter is_fn_decl |> List.map fn_decl_of;
+        Syntax.p_fsm_models = decls |> List.filter is_fsm_model_decl |> List.map fsm_model_decl_of;
+        Syntax.p_fsm_insts = decls |> List.filter is_fsm_inst_decl |> List.map fsm_inst_decl_of;
+        Syntax.p_globals = decls |> List.filter is_global_decl |> List.map globals_decl_of |> List.flatten }
       }
   
+(* DECLARATIONS *)
+
+decl:
+  | d = type_decl { TypeDecl d }
+  | d = cst_decl { CstDecl d }
+  | d = fn_decl { FnDecl d }
+  | d = fsm_model { FsmModelDecl d }
+  | d = fsm_inst { FsmInstDecl d }
+  | d = global { GlobalDecl d }
+
 (* TYPE DECLARATION *)
 
 type_decl:
@@ -172,21 +194,12 @@ record_field:
 (* CONSTANT DECLARATION *)
 
 cst_decl:
-  (* | CONSTANT name=LID COLON ty=fres EQUAL v=const_val *)
   | CONSTANT name=LID COLON ty=fres EQUAL v=const
      { mk_cst_decl
          ($symbolstartofs,$endofs)
          { Syntax.cc_name=name;
            Syntax.cc_typ=ty;
            Syntax.cc_val=v; } }
-
-(* const_val:  
- *   | v=int_const { Expr.Val_int v }
- *   | v=float_const { Expr.Val_float v }
- *   | v=const_array_val { Expr.Val_array v } *)
-
-(* const_array_val:
- *   | LBRACKET vs = separated_nonempty_list(COMMA,const_val) RBRACKET { Array.of_list vs } *)
 
 (* FUNCTION DECLARATION *)
 
@@ -293,27 +306,23 @@ lhs:
 
 global:
   | INPUT id=id COLON ty=type_expr EQUAL st=stimuli
-      { [mk_global_decl
+      { mk_global_decl
          ($symbolstartofs,$endofs)
-         { Syntax.gd_name = id;
-           Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
-           Syntax.gd_desc = Syntax.GInp st }] }
+         { Syntax.mg_names = [id];
+           Syntax.mg_type = mk_type_expression ($symbolstartofs,$endofs) ty;
+           Syntax.mg_desc = Syntax.GInp st } }
   | OUTPUT ids=my_separated_nonempty_list(COMMA,id) COLON ty=type_expr
-      { List.map (function id ->
-          mk_global_decl
+      { mk_global_decl
             ($symbolstartofs,$endofs)
-            { Syntax.gd_name = id;
-              Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
-              Syntax.gd_desc = Syntax.GOutp })
-          ids }
+            { Syntax.mg_names = ids;
+              Syntax.mg_type = mk_type_expression ($symbolstartofs,$endofs) ty;
+              Syntax.mg_desc = Syntax.GOutp } }
   | SHARED ids=my_separated_nonempty_list(COMMA,id) COLON ty=type_expr
-      { List.map (function id ->
-          mk_global_decl
+      { mk_global_decl
          ($symbolstartofs,$endofs)
-         { Syntax.gd_name = id;
-           Syntax.gd_type = mk_type_expression ($symbolstartofs,$endofs) ty;
-           Syntax.gd_desc = Syntax.GShared })
-          ids }
+         { Syntax.mg_names = ids;
+           Syntax.mg_type = mk_type_expression ($symbolstartofs,$endofs) ty;
+           Syntax.mg_desc = Syntax.GShared } }
 
 stimuli:
   | PERIODIC LPAREN p=INT COMMA s=INT COMMA d=INT RPAREN

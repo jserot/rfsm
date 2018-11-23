@@ -7,7 +7,6 @@ COMPILER
 - support for synchronous actions in CTask and SystemC
 - bound check for ranged integers
 - multi-file input (ex: rfsmc <options> m1.fsm m2.fsm ...)
-- ... also with allow declarations (fns, csts, fsms, ...) to appear in any order (provided that dependencies are respected) ?
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - var and output attr on states (Moore-style)
 - clarify mechanism for delta-waits insertion in SystemC backend

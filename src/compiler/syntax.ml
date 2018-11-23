@@ -109,6 +109,22 @@ and stim_desc =
 
 (* Global (IOs and channels) declarations *)
               
+type global_mdecl = {
+  mg_dsc: mg_dsc;
+  mg_loc: Location.location;
+  }
+
+and mg_dsc = {
+    mg_names: string list;
+    mg_type: type_expression;
+    mg_desc: gd_desc
+  }
+
+and gd_desc =
+  | GInp of stimuli
+  | GOutp
+  | GShared 
+    
 type global_decl = {
   g_desc: g_desc;
   g_loc: Location.location;
@@ -120,11 +136,13 @@ and g_desc = {
     gd_desc: gd_desc
   }
       
-and gd_desc =
-  | GInp of stimuli
-  | GOutp
-  | GShared 
-    
+let split_global_mdecl (md:global_mdecl) = 
+  List.map 
+    (function id ->
+       { g_desc = { gd_name=id; gd_type=md.mg_dsc.mg_type; gd_desc=md.mg_dsc.mg_desc };
+         g_loc = md.mg_loc })
+    md.mg_dsc.mg_names
+  
 (* FSM instanciations *)
                
 type fsm_inst = {
@@ -139,6 +157,16 @@ and fsm_inst_desc = {
   fi_args: string list;
   }
 
+(* Declaration *)
+
+type decl =
+  | TypeDecl of type_declaration
+  | FnDecl of fn_declaration
+  | CstDecl of cst_declaration
+  | FsmModelDecl of fsm_model
+  | FsmInstDecl of fsm_inst
+  | GlobalDecl of global_mdecl
+              
 (* Programs *)
 
 type program = {
