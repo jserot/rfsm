@@ -4,6 +4,8 @@
 * Size and range annotations for int type (ex: "int<8>" and "int<0:255>")
 * Bitwise and shift operators for int values (see [examples/single/[rt]xd] for ex.)
 * Bit range expressions for ints (ex: "v[2]", "v[6:2]") (see [examples/single/bcd] for ex.)
+* Declarations (types, constants, fsm models, etc) can now appear in any order in source file(s)
+* The [rfsmc] compiler now accepts a list of .fsm files (to improve source level reuse)
 * Support for global constants 
 * Support for group declarations (ex: "vars i,j: int" or "output o1,o2,o3: bool")
 * Support for enum and record types (see [examples/single/rpcalc] for ex)

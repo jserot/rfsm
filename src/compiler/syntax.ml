@@ -178,7 +178,16 @@ type program = {
   p_fsm_insts: fsm_inst list
   }
 
-let empty={ p_type_decls=[]; p_fn_decls=[]; p_cst_decls=[]; p_fsm_models=[]; p_globals=[]; p_fsm_insts=[] }
+let empty_program = { p_type_decls=[]; p_fn_decls=[]; p_cst_decls=[]; p_fsm_models=[]; p_globals=[]; p_fsm_insts=[] }
+
+let add_program p1 p2 = { (* TODO : Flag redefinitions ? *)
+    p_type_decls= p1.p_type_decls @ p2.p_type_decls;
+    p_fn_decls= p1.p_fn_decls @ p2.p_fn_decls;
+    p_cst_decls= p1.p_cst_decls @ p2.p_cst_decls;
+    p_fsm_models= p1.p_fsm_models @ p2.p_fsm_models;
+    p_fsm_insts= p1.p_fsm_insts @ p2.p_fsm_insts;
+    p_globals= p1.p_globals @ p2.p_globals;
+  }
 
 (* Printing *)
 

@@ -6,7 +6,6 @@ COMPILER
 - fix bug in rfsm_mode.el; should not inherit from C mode !
 - support for synchronous actions in CTask and SystemC
 - bound check for ranged integers
-- multi-file input (ex: rfsmc <options> m1.fsm m2.fsm ...)
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - var and output attr on states (Moore-style)
 - clarify mechanism for delta-waits insertion in SystemC backend

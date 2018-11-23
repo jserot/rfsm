@@ -1,3 +1,4 @@
+SRCS=main.fsm
 APP=main
 SIM_OPTS=#-trace 1
 SYSTEMC_OPTS=-sc_time_unit "SC_NS" -sc_trace

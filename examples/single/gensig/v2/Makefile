@@ -1,3 +1,4 @@
+SRCS=gensig.fsm
 APP=gensig
 DOT_OPTS=-dot_fsm_models
 SIM_OPTS=

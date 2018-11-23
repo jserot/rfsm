@@ -1,3 +1,4 @@
+SRCS=mul8.fsm
 APP=mul8
 DOT_OPTS=
 SIM_OPTS=

@@ -1,3 +1,4 @@
+SRCS=ctrmod8.fsm
 APP=ctrmod8
 DOT_OPTS=
 SIM_OPTS=
