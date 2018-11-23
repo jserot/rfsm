@@ -14,6 +14,7 @@ type target = Dot | Sim | CTask | SystemC | Vhdl
 let target = ref None
            
 let target_dir = ref "."
+let main_name = ref ""
 let vcd_file = ref "run.vcd"
 let print_version = ref false
 let do_run = ref false
@@ -34,6 +35,7 @@ let set_lib_dir d =
   Systemc.cfg.Systemc.sc_lib_dir <- d;
   Vhdl.cfg.Vhdl.vhdl_lib_dir <- d
 let set_target_dir name = target_dir := name
+let set_main_name name = main_name := name
 
 let set_systemc_time_unit u = Systemc.cfg.Systemc.sc_time_unit <- u
 

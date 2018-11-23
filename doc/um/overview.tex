@@ -563,8 +563,8 @@ is provided by the output of another one (see Section~\ref{sec:fsm-instances}).
 \subsection{Instances and system}
 \label{sec:fsm-instances}
 
-The last section of an RFSM program constructs the description of the system by instanciating
--- and, possibly, inter-connecting -- the previously FSM models.
+The description of the system is carried out by instanciating
+-- and, possibly, inter-connecting -- previously defined FSM models.
 
 \medskip
 Instanciating a model creates a ``copy'' of the corresponding FSM for which
@@ -665,12 +665,11 @@ fsm C2 = cntmod2(R1,S2,R2)
 \subsection{Functions}
 \label{sec:functions}
 
-Conditions and actions associated to FSM transitions can use globally defined functions. These
-functions must be defined before the FSM models (\emph{i.e.} as an optional second section of the
-program). An example is given in listing~\ref{lst:rfsm-heron}\footnote{This example can be found in
-  directory \texttt{examples/heron/v2} in the distribution.}. The FSM described here computes an
-approximation of its input \verb|u| using Heron's classical algorithm. Successive approximations are
-computed in state \verb|Iter| and the end of computation is detected when the square of the current
+Conditions and actions associated to FSM transitions can use globally defined functions. An example
+is given in listing~\ref{lst:rfsm-heron}\footnote{This example can be found in directory
+  \texttt{examples/heron/v2} in the distribution.}. The FSM described here computes an approximation
+of its input \verb|u| using Heron's classical algorithm. Successive approximations are computed in
+state \verb|Iter| and the end of computation is detected when the square of the current
 approximation \verb|x| differs from the argument (\verb|a|) from less than a given threshold
 \verb|eps|. For this, the model uses the global function \verb|f_abs| defined at the beginning of
 the program. This function computes the absolute value of its argument and is used twice in the
@@ -740,9 +739,6 @@ where
 
 Global constants, just like global functions, have a global scope and hence can be used in any FSM
 model or instance.
-
-The definitions of constants must be placed in a separate section just before the definitions of
-global functions or the FSM models (when there's no global functions).
 
 \subsection{Semantic issues}
 \label{sec:semantic-issues}

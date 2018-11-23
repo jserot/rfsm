@@ -7,6 +7,7 @@ noide;general;-ctask;Arg.Unit;set_ctask;generate CTask code
 noide;general;-systemc;Arg.Unit;set_systemc;generate SystemC code
 noide;general;-vhdl;Arg.Unit;set_vhdl;generate VHDL code
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
+noide;general;-main;Arg.String;set_main_name;set main model name (default: name of the last given input file)
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
 ide;dot;-dot_fsm_insts;Arg.Unit;set_dot_fsm_insts;generate .dot representation of all FSM instances
 ide;dot;-dot_fsm_models;Arg.Unit;set_dot_fsm_models;generate .dot representation of all FSM models

@@ -14,9 +14,9 @@ open Location
 
 let usage = "usage: rfsmc [options...] files"
 
-let source_file = ref ""
+let source_files = ref ([] : string list)
 
-let anonymous fname = source_file := fname
+let anonymous fname = source_files := !source_files @ [fname]
 
 let print_banner () = 
   Printf.printf "-------------------------------------------------------------------------------------------------\n";
@@ -45,8 +45,13 @@ try
   Arg.parse Options_spec.options_spec anonymous usage;
   print_banner ();
   if !Options.print_version then exit 0;
-  let p = parse Main_lexer.main Main_parser.program !source_file in
-  let name = Filename.chop_extension (Filename.basename !source_file) in
+  let ps = List.map (parse Main_lexer.main Main_parser.program) !source_files in
+  let p = List.fold_left Syntax.add_program Syntax.empty_program ps in
+  let name =
+    begin match !Options.main_name with
+    | "" -> Filename.chop_extension (Filename.basename (List.hd (List.rev !source_files)))
+    | n -> n
+    end in
   let m = Intern.build_system name p in
   if !Options.dump_model then Sysm.dump stdout m;
   Logfile.start ();
