@@ -239,6 +239,7 @@ let rec string_of_expr e =
     | Expr.ECond (e1,e2,e3), _ -> sprintf "cond(%s,%s,%s)" (string_of level e1) (string_of level e2) (string_of level e3)
     | Expr.EFapp (("~-"|"~-."),[e]), _ -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es), _ -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
+    | Expr.EArrExt es, _ -> "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
     | Expr.EArr (a,idx), _ -> a ^ "(" ^ string_of level idx ^ ")"
     | Expr.EBit (a,idx), _ -> string_of_range a idx idx
     | Expr.EBitrange (a,hi,lo), _ -> string_of_range a hi lo

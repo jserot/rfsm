@@ -126,6 +126,7 @@ let string_of_expr m e =
     | Expr.ECond (e1,e2,e3), _ -> paren level (string_of (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
     | Expr.EFapp (("~-"|"~-."),[e]), _ -> "-" ^ "(" ^ string_of level e ^ ")"
     | Expr.EFapp (f,es), _ -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
+    | Expr.EArrExt es, _ -> "{" ^ ListExt.to_string (string_of level) "," es ^ "}"
     | Expr.EArr (a,idx), _ -> a ^ "[" ^ string_of level idx ^ "]" (* [a] is always a local var *)
     | Expr.ERecord (n,f), _ -> access n ^ record_access f
     | Expr.EBit (a,idx), _ -> let i = string_of level idx in string_of_int_range (access a) i i

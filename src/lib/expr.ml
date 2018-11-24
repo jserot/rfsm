@@ -26,6 +26,7 @@ and e_desc =
   | EBinop of string * t * t
   | ECond of t * t * t        (** e1 ? e2 : e3 *)
   | EFapp of string * t list  (** f(arg1,...,argn) *)
+  | EArrExt of t list         (** [e1,...,e2] *)
   | EArr of string * t        (** t[i] when t is an array *)
   | EBit of string * t        (** t[i] when t is an int *)
   | EBitrange of string * t * t   (** t[hi:lo] when t is an int *)
@@ -149,6 +150,7 @@ let rec string_of_expr e = match e with
   | EBinop (op,e1,e2) -> to_string e1 ^ string_of_op op ^ to_string e2 (* TODO : add parens *)
   | ECond (e1,e2,e3) -> to_string e1 ^ "?" ^ to_string e2 ^ ":" ^ to_string e3 (* TODO : add parens *)
   | EFapp (f,args) -> f ^ "(" ^ ListExt.to_string to_string "," args ^ ")"
+  | EArrExt es -> "[" ^ ListExt.to_string to_string "," es ^ "]"
   | EArr (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBit (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBitrange (a,e1,e2) -> a ^ "[" ^ to_string e1 ^ ":" ^ to_string e2 ^ "]"

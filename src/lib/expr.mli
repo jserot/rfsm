@@ -26,6 +26,7 @@ and e_desc =
   | EBinop of string * t * t  (** e1 op e2 *)
   | ECond of t * t * t        (** e1 ? e2 : e3 *)
   | EFapp of string * t list  (** f(arg1,...,argn) *)
+  | EArrExt of t list         (** [e1,...,e2] *)
   | EArr of string * t        (** t[i] when t is an array *)
   | EBit of string * t        (** t[i] when t is an int *)
   | EBitrange of string * t * t   (** t[hi:lo] when t is an int *)

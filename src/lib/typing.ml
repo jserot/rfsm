@@ -95,6 +95,11 @@ let rec type_expression tenv expr =
       unify ty_e1 TyBool;
       unify ty_e2 ty_e3;
       ty_e2
+  | Expr.EArrExt [] -> failwith "Typing.type_expression: empty array" (* should not happen *)
+  | Expr.EArrExt ((e1::es) as exps) -> 
+      let ty_e1 = type_expression tenv e1 in
+      List.iter (function e -> unify ty_e1 (type_expression tenv e)) es;
+      TyArray (TiConst (List.length exps), ty_e1)
   | Expr.EArr (a,idx) ->
      let ty_arg = lookup_type "array or int" tenv.te_vars a in
      let ty_idx = type_expression tenv idx in

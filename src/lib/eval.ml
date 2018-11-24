@@ -92,6 +92,8 @@ and eval env exp =
         eval (env'@env) body
      | _ -> raise (Illegal_application exp)
      end
+   | EArrExt exps ->
+      mk (Val_array (Array.of_list (List.map (eval env) exps)))
    | EArr (a,idx) ->
      begin
        match lookup env a, eval env idx with

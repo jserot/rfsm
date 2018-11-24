@@ -5,6 +5,8 @@ COMPILER
 - refactor code in three layers : typing, static elab, dynamic sim
 - fix bug in rfsm_mode.el; should not inherit from C mode !
 - support for synchronous actions in CTask and SystemC
+- allow arrays as parameters (ex: [fsm model m <t: int array[4]])
+- allow _unsized_ arrays as parameters (ex: [fsm model m <t: int array[], sz: int> (...)])
 - bound check for ranged integers
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - var and output attr on states (Moore-style)

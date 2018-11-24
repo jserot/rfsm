@@ -122,7 +122,7 @@ let type_int = function
   | [w] -> TyInt (SzExpr1 (TiConst w))
   | [lo;hi] -> TyInt (SzExpr2 (TiConst lo, TiConst hi))
   | _ -> invalid_arg "Types.type_int"
-                
+
 let rec type_repr = function
   | TyVar ({value = Known ty1} as var) ->
       let ty = type_repr ty1 in

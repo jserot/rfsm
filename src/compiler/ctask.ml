@@ -98,6 +98,7 @@ let rec string_of_expr e =
   | Expr.ECond (e1,e2,e3) ->
      paren level (string_of (level+1) e1 ^ " ? " ^ string_of (level+1) e2 ^ " : " ^ string_of (level+1) e3)
   | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
+  | Expr.EArrExt es -> "{" ^ ListExt.to_string (string_of level) "," es ^ "}"
   | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
   | Expr.ERecord (a,f) -> a ^ "." ^ f
   | Expr.EBit (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
