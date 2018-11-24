@@ -72,12 +72,12 @@ let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } =
     ~trans:(List.map (function (s,cond,acts,s',p) -> s, mk_cond cond, List.map mk_act acts, s', mk_prio p) f.fd_trans)
     ~itrans:(let q0,acts = f.fd_itrans in q0, List.map mk_act acts)
 
-let mk_fsm_inst tenv models globals { fi_desc=f; fi_loc=loc } = 
+let mk_fsm_inst tenv cenv models globals { fi_desc=f; fi_loc=loc } = 
   let model =
     try List.find (function m -> m.Fsm.fm_name = f.fi_model) models
     with Not_found -> Error.unbound_fsm loc f.fi_model in  
   let params =
-    try List.map2 (fun (p,ty) v -> p, v) model.Fsm.fm_params f.fi_params
+    try List.map2 (fun (p,ty) e -> p, Eval.eval cenv e) model.Fsm.fm_params f.fi_params
     with Invalid_argument _ -> Error.fsm_mismatch "parameter(s)" loc f.fi_name in
   let mk_global id =
     try List.assoc id globals
@@ -203,6 +203,10 @@ let mk_inp_defn tenv { g_desc = gd } = match gd.gd_desc with
   | GInp _ -> { tenv with Typing.te_vars = (gd.gd_name, type_of_input tenv gd) :: tenv.te_vars }
   | _ -> tenv
   
+let mk_const_env env (id, (ty, desc)) = match desc with
+  | Sysm.MConst v -> (id,v) :: env
+  | _ -> env
+
 let build_system name p = 
   let tenv =
        Typing.builtin_tenv
@@ -217,8 +221,9 @@ let build_system name p =
   let globals = List.map (mk_global tenv) p.p_globals in
   let gtyps = List.rev (List.filter is_global_type_defn tenv.te_defns) in 
   let gcsts = List.map (mk_global_cst tenv) p.p_cst_decls in
+  let cenv = List.fold_left mk_const_env [] gcsts in
   let gfns = List.map (mk_global_fn tenv) p.p_fn_decls in
-  let fsms = List.map (mk_fsm_inst tenv models globals) p.p_fsm_insts in
+  let fsms = List.map (mk_fsm_inst tenv cenv models globals) p.p_fsm_insts in
   let m = Sysm.build name gtyps gfns gcsts fsms in
   (* let _ = Sysm.dump stdout m in *)
   m

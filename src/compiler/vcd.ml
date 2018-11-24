@@ -168,6 +168,7 @@ let dump_reaction oc signals (t,evs) =
          (fun (n,v) -> dump_scalar_event (Var0 (record_field_id id n), v))
          fs
     (* TODO: handle arrays here *)
+    | Var1 (a, idx), _  -> dump_scalar_event (Var0 (array_cell_id a idx), value)
     | _ -> dump_scalar_event (lhs, value) in
   fprintf oc "#%d\n" t;
   List.iter dump_event evs

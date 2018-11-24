@@ -50,7 +50,9 @@ let update_ctx ctx = function
        c_inputs = List.map update_io ctx.c_inputs;
        c_vars = List.map update_var ctx.c_vars;
        c_evs = List.map update_ev ctx.c_evs; }
-  | Fsm.Var0 (Ident.Local _), _ ->
+  | Fsm.Var0 (Ident.Local _), _
+  | Fsm.Var1 (Ident.Local _, _), _ 
+  | Fsm.Var3 (Ident.Local _, _), _ ->
      ctx
   | Fsm.Var1 (_,_), _
   | Fsm.Var3 (_,_), _ ->
@@ -106,7 +108,9 @@ let rec react t ctx stimuli =
        | false, true, _ -> true                                (* shared variable, regardless of its value *)
        | _, _, _ -> false
        end
-    | Fsm.Var0 (Ident.Local _), _ -> false
+    | Fsm.Var0 (Ident.Local _), _
+    | Fsm.Var1 (Ident.Local _, _), _
+    | Fsm.Var3 (Ident.Local _, _), _ -> false
     | Fsm.Var1 _, _ 
     | Fsm.Var3 _, _ -> failwith "Simul.react: non scalar value" (* false *) in
   let still_active f = not f.Fsm.f_has_reacted in

@@ -153,7 +153,7 @@ type fsm_inst = {
 and fsm_inst_desc = {
   fi_name: string;
   fi_model: string;
-  fi_params: Expr.value list;
+  fi_params: Expr.t list;
   fi_args: string list;
   }
 
@@ -257,7 +257,7 @@ let dump_fsm_inst oc {fi_desc=f} =
   Printf.fprintf oc "FSM %s = %s<%s>(%s)\n"
     f.fi_name
     f.fi_model
-    (ListExt.to_string Expr.string_of_value "," f.fi_params)
+    (ListExt.to_string Expr.to_string "," f.fi_params)
     (ListExt.to_string Misc.id "," f.fi_args)
   
 let dump_program p =   (* for debug only *)
