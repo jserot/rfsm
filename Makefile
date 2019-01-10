@@ -102,7 +102,11 @@ ifeq ($(BUILD_NATIVE),yes)
 	cp src/compiler/rfsmc.opt $(INSTALL_BINDIR)
 endif
 ifeq ($(BUILD_GUI),yes)
+ifeq ($(PLATFORM), macos)
+	cp -r src/gui/rfsm.app $(INSTALL_BINDIR)
+else
 	cp src/gui/rfsm $(INSTALL_BINDIR)/rfsm
+endif
 endif
 	mkdir -p $(INSTALL_DOCDIR)
 	cp -r doc/lib $(INSTALL_DOCDIR)
@@ -150,7 +154,7 @@ source-dist:
 	cp -r examples/{single,multi,Makefile} $(SRCDISTDIR)/examples
 	cp configure CHANGELOG.md README.md KNOWN-BUGS LICENSE VERSION INSTALL Makefile $(SRCDISTDIR)
 	@echo "** Creating archive $(SRCDISTNAME).tar.gz"
-	(cd $(SRCTMPDIR); tar -zcvf $(SRCTARBALL).gz $(SRCDISTNAME))
+	(cd $(SRCTMPDIR); tar -zcf $(SRCTARBALL).gz $(SRCDISTNAME))
 
 MACOS_DIST=/tmp/rfsm
 

@@ -2,6 +2,9 @@
 - ./configure
 - make
 
+* make source dist
+- make source-dist
+
 * make MacOS version
 - make macos-dist
 
