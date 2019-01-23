@@ -33,6 +33,8 @@ and e_desc =
   | ERecord of string * string (** v.name when v is a record *)
   | ECast of t * Type_expr.t
 
+let mk_expr e = { e_desc = e; e_typ = Types.no_type }
+              
 type value = {
   mutable v_desc: e_val;
   mutable v_typ: Types.typ;

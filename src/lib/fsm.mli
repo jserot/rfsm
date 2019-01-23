@@ -16,13 +16,15 @@ open Lascar
 type act_semantics =  (** Interpretation of actions associated to transitions *)
   | Sequential        (** sequential (ex: [x:=x+1;y:=x] with [x=1] gives [x=2,y=2]) *)
   | Synchronous       (** synchronous (ex: [x:=x+1:y=x] with [x=1] gives [x=2,y=1]) *)
-   
+  
 type fsm_config = {
-    mutable act_sem: act_semantics;  (** Default value: [Sequential] *)
     mutable act_sep: string;         (** Default value: [" "] *)
+    mutable act_sem: act_semantics;  (** Default value: [Sequential] *)
   }
 
 val cfg: fsm_config
+
+exception Internal_error of string (** where *)
 
 (** States *)
 
@@ -65,148 +67,201 @@ type itransition = TransLabel.t * State.t
 val string_of_transition: transition -> string
 val string_of_state: state -> string
   
-(** Abstract FSM model *)
-
-type model = {
-  fm_name : string;                                      (** name *)
-  fm_params : (string * Types.typ) list;                 (** generic parameters *)
-  fm_ios : (string * (Types.dir * Types.typ)) list;      (** i/os *)
-  fm_vars : (string * Types.typ) list;                   (** internal variables *)
-  fm_repr : Repr.t;                                      (** underlying LTS *)
-}
-
-(** Model for FSM instances *)
-           
-type inst = { 
-  f_name: string;
-  f_model: model;
-  f_params: (string * (Types.typ * Expr.value)) list;       (** name, type, actual value *)
-  f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
-  f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
-  f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
-  f_vars: (string * (Types.typ * Expr.value)) list;         (** name, (type, value) *)
-  f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
-  f_l2g: string -> string;                                  (** local -> global name *)
-  f_state: string;                                          (** current state *)
-  f_has_reacted: bool;                                      (** true when implied in the last reaction *)
-  }
-
-(** Global IOs *)
-
-and global =
-  GInp of string * Types.typ * stim_desc       (** Global input, with type and description of associated stimuli *)
-| GOutp of string * Types.typ                  (** Global output *)
-| GShared of string * Types.typ                (** Shared variable or event *)
-
-and stim_desc = 
-  Periodic of int * int * int             (** Period, start time, end time *)
-| Sporadic of int list                    (** Dates *)
-| ValueChange of (int * Expr.value) list  (** (Date,value)s *)
-
-(** {2 Accessors} *)
-
-val states_of : inst -> state list
-val istate_of : inst -> state option
-val transitions_of : inst -> transition list
-val itransitions_of : inst -> itransition list
-val succs : inst -> state -> (state * TransLabel.t) list
-val input_events_of : inst -> string list
-val output_events_of : inst -> string list
-
 (** {2 Static description} *)
 
-val build_model :
-  name:string ->
-  states:state list ->
-  params:(string * Types.typ) list ->
-  ios:(Types.dir * string * Types.typ) list ->
-  vars:(string * Types.typ) list ->
-  trans:(state * (Condition.event * Condition.guard list) * Action.t list * state * int) list ->
-  itrans:state * Action.t list ->
-  model
+module Static : sig
 
-val build_instance :
-  tenv:Typing.tenv ->
-  name:string ->
-  model:model ->
-  params:(string * Expr.value) list ->
-  ios:global list ->
-  inst
+  (** FSM model *)
 
-val is_rtl : inst -> bool
+  type model = {
+      fm_name : string;                                      (** name *)
+      fm_params : (string * Types.typ) list;                 (** generic parameters *)
+      fm_ios : (string * (Types.dir * Types.typ)) list;      (** i/os *)
+      fm_vars : (string * Types.typ) list;                   (** internal variables *)
+      fm_repr : Repr.t;                                      (** underlying LTS *)
+      mutable fm_typ : Types.typ;
+    }
+
+  (** FSM instance *)
+             
+  open Global
+     
+  type inst = { 
+      f_name: string;
+      f_model: model;
+      f_params: (string * (Types.typ * Expr.value)) list;       (** name, type, actual value *)
+      f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
+      f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
+      f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
+      f_vars: (string * Types.typ) list;                        (** name, type *)
+      f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
+      f_l2g: string -> string;                                  (** local -> global name *)
+    }
+
+  (** {3 Accessors} *)
+
+  val states_of : inst -> state list
+  val istate_of : inst -> state option
+  val transitions_of : inst -> transition list
+  val itransitions_of : inst -> itransition list
+  val succs : inst -> state -> (state * TransLabel.t) list
+  val input_events_of : inst -> string list
+  val output_events_of : inst -> string list
+
+  (** {3 Builders} *)
+
+  val build_model :
+    name:string ->
+    states:state list ->
+    params:(string * Types.typ) list ->
+    ios:(Types.dir * string * Types.typ) list ->
+    vars:(string * Types.typ) list ->
+    trans:(state * (Condition.event * Condition.guard list) * Action.t list * state * int) list ->
+    itrans:state * Action.t list ->
+    model
+
+  val build_instance :
+    name:string ->
+    model:model ->
+    params:(string * Expr.value) list ->
+    ios:global list ->
+    inst
+
+  (** {3 Misc} *)
+
+  val is_rtl : inst -> bool
   (** [is_rtl f] is [true] iff all [is_rtl a] for all actions [a] of [f] *)
 
-exception Undef_symbol of string * string * string (** FSM, kind, name *)
-exception Internal_error of string (** where *)
-exception Invalid_state of string * string (** FSM, id *)
-exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
-exception Invalid_parameter of string * string (** FSM, name *)
-exception IllegalAction of inst * Action.t
-exception Nonatomic_IO_write of inst * Action.t 
+  (** {3 Exceptions} *)
 
-(** {2 Dynamic behavior} *)
+  exception Undef_symbol of string * string * string (** FSM, kind, name *)
+  exception Invalid_state of string * string (** FSM, id *)
+  exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
+  exception Invalid_parameter of string * string (** FSM, name *)
 
-type lenv = (string * Expr.value) list
-type genv = {
-  fe_inputs: (string * (Types.typ * Expr.value)) list;   (** Global inputs *)
-  fe_csts: (string * (Types.typ * Expr.value)) list;     (** Global constants *)
-  fe_fns: (string * (Types.typ * Expr.value)) list;      (** Global functions *)
-  fe_vars: (string * (Types.typ * Expr.value)) list;     (** Shared variables *)
-  fe_evs: (string * (Types.typ * Expr.value)) list;      (** Shared events *)
-  }
+  (** {3 Printers} *)
 
-type response = lhs * Expr.value
+  type dot_options = OmitImplicitTransitions | GlobalNames | NoCaption
 
-and lhs =
-  | Var0 of Ident.t         (* Scalar *)
-  | Var1 of Ident.t * int   (* 1D array location *)
-  | Var3 of Ident.t * string   (* Record field *)
+  val dot_output_oc :
+    out_channel ->
+    ?dot_options:Utils.Dot.graph_style list ->
+    ?options:dot_options list ->
+    inst ->
+    unit
 
-val react :
-  Types.date ->
-  genv ->
-  inst ->
-  inst * response list
+  val dot_output :
+    ?fname:string ->
+    ?dot_options:Utils.Dot.graph_style list ->
+    ?options:dot_options list ->
+    dir:string ->
+    inst ->
+    unit
 
-exception IllegalTrans of inst * string
-exception Undeterminate of inst * string * Types.date
-exception NonDetTrans of inst * transition list * Types.date
+  val dot_output_model :
+    ?fname:string ->
+    ?dot_options:Utils.Dot.graph_style list ->
+    ?options:dot_options list ->
+    dir:string ->
+    model ->
+    unit
 
-val fireable : inst -> lenv -> Repr.transition -> bool
+  val dump_model : out_channel -> model -> unit
 
-val check_cond : inst -> lenv -> Condition.t -> bool
+  val dump_inst : out_channel -> inst -> unit
 
-val is_event_set : lenv -> Condition.event -> bool
+end (* Static *)
+     
+(** {2 Dynamic representations} *)
 
-val init_fsm : genv -> inst -> inst * response list
+(* module Dynamic : sig
+ * 
+ *   (\** FSM *\)
+ * 
+ *   type inst = { 
+ *       f_static: Static.inst;                                    (\** Static representation *\)
+ *       f_vars: (string * (Types.typ * Expr.value)) list;         (\** name, (type, value) *\)
+ *       f_state: string;                                          (\** Current state *\)
+ *       f_has_reacted: bool;                                      (\** true when implied in the last reaction *\)
+ *     }
+ *   
+ *   (\** Evaluation environment *\)
+ * 
+ *   type lenv = (string * Expr.value) list
+ *   type genv = {
+ *       fe_inputs: (string * (Types.typ * Expr.value)) list;   (\** Global inputs *\)
+ *       fe_csts: (string * (Types.typ * Expr.value)) list;     (\** Global constants *\)
+ *       fe_fns: (string * (Types.typ * Expr.value)) list;      (\** Global functions *\)
+ *       fe_vars: (string * (Types.typ * Expr.value)) list;     (\** Shared variables *\)
+ *       fe_evs: (string * (Types.typ * Expr.value)) list;      (\** Shared events *\)
+ *     }
+ * 
+ *   type response = lhs * Expr.value
+ * 
+ *   and lhs =
+ *     | LhsVar of Ident.t             (\** Scalar *\)
+ *     | LhsArrInd of Ident.t * int    (\** 1D array location *\)
+ *     | LhsRField of Ident.t * string (\** Record field *\)
+ * 
+ *   (\** {3 Exceptions} *\)
+ * 
+ *   exception IllegalTrans of inst * string
+ *   exception IllegalAction of inst * Action.t
+ *   exception Undeterminate of inst * string * Types.date
+ *   exception NonDetTrans of inst * transition list * Types.date
+ *   exception NonAtomicIoWrite of inst * Action.t 
+ * 
+ *   (\** {3 Builders} *\)
+ * 
+ *   val mk_inst : Static.inst -> inst
+ *     
+ *   (\** {3 Simulation} *\)
+ * 
+ *   val init_fsm : genv -> inst -> inst * response list
+ * 
+ *   val react :
+ *     Types.date ->
+ *     genv ->
+ *     inst ->
+ *     inst * response list
+ * 
+ *   val fireable : inst -> lenv -> Repr.transition -> bool
+ *   val check_cond : inst -> lenv -> Condition.t -> bool
+ *   val is_event_set : lenv -> Condition.event -> bool
+ * 
+ * end *)
 
-(** {2 Printers} *)
+(** {2 Toplevel functions} *)
 
-type dot_options = OmitImplicitTransitions | GlobalNames | NoCaption
+val build_model :
+    name: string ->
+    states: state list ->
+    params: (string * Types.typ) list ->
+    ios: (Types.dir * string * Types.typ) list ->
+    vars: (string * Types.typ) list ->
+    trans: (state * (Condition.event * Condition.guard list) * Action.t list * state * int) list ->
+    itrans: state * Action.t list ->
+    Static.model
 
-val dot_output_oc :
-  out_channel ->
-  ?dot_options:Utils.Dot.graph_style list ->
-  ?options:dot_options list ->
-  inst ->
-  unit
-
-val dot_output :
-  ?fname:string ->
-  ?dot_options:Utils.Dot.graph_style list ->
-  ?options:dot_options list ->
-  dir:string ->
-  inst ->
-  unit
+val build_instance :
+    name: string ->
+    model: Static.model ->
+    params: (string * Expr.value) list ->
+    ios: Global.global list ->
+    Static.inst
 
 val dot_output_model :
-  ?fname:string ->
-  ?dot_options:Utils.Dot.graph_style list ->
-  ?options:dot_options list ->
-  dir:string ->
-  model ->
-  unit
+    ?fname:string ->
+    ?dot_options:Utils.Dot.graph_style list ->
+    ?options:Static.dot_options list ->
+    dir:string ->
+    Static.model ->
+    unit
 
-val dump_model : out_channel -> model -> unit
-
-val dump_inst : out_channel -> inst -> unit
+val dot_output :
+    ?fname:string ->
+    ?dot_options:Utils.Dot.graph_style list ->
+    ?options:Static.dot_options list ->
+    dir:string ->
+    Static.inst ->
+    unit

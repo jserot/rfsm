@@ -9,8 +9,6 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Utils
-
 module DepG =
   Graph.Imperative.Digraph.AbstractLabeled
     (struct type t = string end)  (* Only abstract vertices allow imperative marking .. *)
@@ -22,7 +20,7 @@ module DepG =
 
 type t = {
   m_name: string;
-  m_fsms: Fsm.inst list;
+  m_fsms: Fsm.Static.inst list;
   m_inputs: (string * global) list; 
   m_outputs: (string * global) list; 
   m_types: (string * Types.typ) list; 
@@ -43,7 +41,7 @@ and mg_desc =
   | MShared of string list * string list (** writer(s), reader(s) *)
 
 and istim_desc = {
-  sd_comprehension: Fsm.stim_desc;
+  sd_comprehension: Global.stim_desc;
   sd_extension: Stimuli.event list
   }
 
@@ -54,15 +52,13 @@ and dependencies = {
 
 let build_stim st =
   let mk_ext = function
-    | Fsm.Periodic (per,t1,t2) -> Stimuli.mk_per_event per t1 t2
-    | Fsm.Sporadic ts -> Stimuli.mk_spor_event ts
-    | Fsm.ValueChange vs -> Stimuli.mk_val_changes vs in
+    | Global.Periodic (per,t1,t2) -> Stimuli.mk_per_event per t1 t2
+    | Global.Sporadic ts -> Stimuli.mk_spor_event ts
+    | Global.ValueChange vs -> Stimuli.mk_val_changes vs in
  { sd_comprehension = st; sd_extension = mk_ext st }
 
-let fold_left f l acc = List.fold_left f acc l
-  (* This variant allows [fold_left]s to be chained with [|>] *)
-          
 let extract_globals (inputs,outputs,shared) f =
+  let name = f.Fsm.Static.f_name in
   let add_reader (ty,mg) id = match mg with
       MInp (sd, rdrs) -> ty, MInp (sd, id::rdrs)
     | MShared (wrs, rdrs) -> ty, MShared (wrs, id::rdrs)
@@ -75,47 +71,49 @@ let extract_globals (inputs,outputs,shared) f =
     | MShared (wrs, rdrs) -> ty, MShared (id::wrs, id::rdrs)
     | m -> ty, m in
   (inputs,outputs,shared)
-  |> fold_left
+  |> Misc.fold_left
       (fun (inps,outps,shrds) (_,(_,gl)) -> match gl with
-       | Fsm.GInp (id,ty,sd) ->
+       | Global.GInp (id,ty,sd) ->
           if List.mem_assoc id inps
-          then ListExt.update_assoc add_reader id f.Fsm.f_name inps, outps, shrds
-          else (id, (ty, MInp (build_stim sd, [f.Fsm.f_name]))) :: inps, outps, shrds
-       | Fsm.GShared (id,ty) ->
+          then Utils.ListExt.update_assoc add_reader id name inps, outps, shrds
+          else (id, (ty, MInp (build_stim sd, [name]))) :: inps, outps, shrds
+       | Global.GShared (id,ty) ->
           if List.mem_assoc id shrds
-          then inps, outps, ListExt.update_assoc add_reader id f.Fsm.f_name shrds
-          else inps, outps, (id, (ty, MShared ([], [f.Fsm.f_name]))) :: shrds
+          then inps, outps, Utils.ListExt.update_assoc add_reader id name shrds
+          else inps, outps, (id, (ty, MShared ([], [name]))) :: shrds
        | _ -> inps, outps, shrds)
       f.f_inps
-  |> fold_left
+  |> Misc.fold_left
       (fun (inps,outps,shrds) (_,(_,gl)) -> match gl with
-       | Fsm.GOutp (id,ty) ->
+       | Global.GOutp (id,ty) ->
           if List.mem_assoc id outps
-          then inps, ListExt.update_assoc add_writer id f.Fsm.f_name outps, shrds
-          else inps, (id, (ty, MOutp [f.Fsm.f_name])) :: outps, shrds
-       | Fsm.GShared (id,ty) ->
+          then inps, Utils.ListExt.update_assoc add_writer id name outps, shrds
+          else inps, (id, (ty, MOutp [name])) :: outps, shrds
+       | Global.GShared (id,ty) ->
           if List.mem_assoc id shrds
-          then inps, outps, ListExt.update_assoc add_writer id f.Fsm.f_name shrds
-          else inps, outps, (id, (ty, MShared ([f.Fsm.f_name],[]))) :: shrds
+          then inps, outps, Utils.ListExt.update_assoc add_writer id name shrds
+          else inps, outps, (id, (ty, MShared ([name],[]))) :: shrds
        | _ -> inps, outps, shrds)
       f.f_outps
-  |> fold_left
+  |> Misc.fold_left
       (fun (inps,outps,shrds) (_,(_,gl)) -> match gl with
-       | Fsm.GShared (id,ty) ->
+       | Global.GShared (id,ty) ->
           if List.mem_assoc id shrds
-          then inps, outps, ListExt.update_assoc add_reader_writer id f.Fsm.f_name shrds
-          else inps, outps, (id, (ty, MShared ([f.Fsm.f_name],[]))) :: shrds
+          then inps, outps, Utils.ListExt.update_assoc add_reader_writer id name shrds
+          else inps, outps, (id, (ty, MShared ([name],[]))) :: shrds
        | _ -> inps, outps, shrds)
       f.f_inouts 
 
 let build_dependencies fsms shared =
+  let open Utils in
   let g = DepG.create () in
   let nodes = ref [] in
   let lookup n = try List.assoc n !nodes with Not_found -> failwith "Model.build_dependencies.lookup" in
   List.iter
     (function f ->
-       let v = DepG.V.create f.Fsm.f_name in
-       nodes := (f.Fsm.f_name, v) :: !nodes;
+       let name = f.Fsm.Static.f_name in
+       let v = DepG.V.create name in
+       nodes := (name, v) :: !nodes;
        DepG.add_vertex g v)
     fsms;
   List.iter   (* Compute dependency graph *)
@@ -142,14 +140,14 @@ let build_dependencies fsms shared =
 
 exception Illegal_const_expr of Expr.t
                               
-let build ~name ~gtyps ~gfns ~gcsts ~fsm_insts =
-  let inputs, outputs, shared = List.fold_left extract_globals ([],[],[]) fsm_insts in
+let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) fsms =
+  let inputs, outputs, shared = List.fold_left extract_globals ([],[],[]) fsms in
   let mk_stimuli = function
       name, (ty, MInp ({sd_extension=evs}, _)) -> List.map (Stimuli.mk_stimuli name) evs
     | _ -> failwith "Sysm.mk_stimuli" (* should not happen *) in
   let stimuli = List.map mk_stimuli inputs in
   { m_name = name;
-    m_fsms = fsm_insts;
+    m_fsms = fsms;
     m_inputs = inputs;
     m_outputs = outputs;
     m_types = gtyps;
@@ -157,7 +155,7 @@ let build ~name ~gtyps ~gfns ~gcsts ~fsm_insts =
     m_consts = gcsts;
     m_shared = shared;
     m_stimuli = Stimuli.merge_stimuli stimuli;
-    m_deps = build_dependencies fsm_insts shared;
+    m_deps = build_dependencies fsms shared;
    }
 
 (* DOT output *)
@@ -172,23 +170,24 @@ let string_of_global (name, (ty, desc)) =
   pfx ^ " " ^ name ^ ":" ^ Types.string_of_type ty
 
 let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(with_models=false) m =
+  let open Utils in
   let rankdir = if List.mem Utils.Dot.RankdirLR dot_options then "LR" else "UD" in
   let layout, mindist = if List.mem Lascar.Ltsa.Circular dot_options then "circo", 1.5 else "dot", 1.0 in
   let dump_header oc name =
      Printf.fprintf oc "digraph %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" name layout rankdir mindist in
   if with_insts then 
     List.iter
-      (Fsm.dot_output ~dot_options:dot_options ~options:(GlobalNames::fsm_options) ~dir:dir)
+      (Fsm.Static.dot_output ~dot_options:dot_options ~options:(GlobalNames::fsm_options) ~dir:dir)
       m.m_fsms;
   if with_models then 
     List.iter
-      (function f -> Fsm.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir f.Fsm.f_model)
+      (function f -> Fsm.Static.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir f.Fsm.Static.f_model)
       m.m_fsms;
   let fname = Filename.concat dir (m.m_name ^ "_top.dot") in
   let oc = open_out fname in
   dump_header oc m.m_name;
   List.iter
-    (Fsm.dot_output_oc oc ~dot_options:(Utils.Dot.SubGraph::dot_options) ~options:(GlobalNames::fsm_options))
+    (Fsm.Static.dot_output_oc oc ~dot_options:(Utils.Dot.SubGraph::dot_options) ~options:(GlobalNames::fsm_options))
     m.m_fsms;
   let caption = StringExt.concat_sep "\\r" 
             [ListExt.to_string string_of_global "\\r" m.m_inputs;
@@ -203,7 +202,9 @@ let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(wit
   
 (* Printing *)
 
-let dump_global oc (name,(ty,g_desc)) = match g_desc with
+let dump_global oc (name,(ty,g_desc)) =
+  let open Utils in
+  match g_desc with
   | MInp ({sd_extension=evs},rdrs) ->
      Printf.fprintf oc "INPUT %s : %s = %s [-> %s]\n"
        name
@@ -252,7 +253,7 @@ let dump_dependencies m =
   close_out oc
   
 let dump oc m =
-  List.iter (Fsm.dump_inst oc) m.m_fsms;
+  List.iter (Fsm.Static.dump_inst oc) m.m_fsms;
   List.iter (dump_global oc) m.m_inputs;
   List.iter (dump_global oc) m.m_outputs;
   List.iter (dump_global oc) m.m_fns;

@@ -1,12 +1,16 @@
 OCB_FLAGS=-use-ocamlfind -no-hygiene -package ocamlgraph -package lascar
-OCB = 		ocamlbuild $(OCB_FLAGS)
+OCB = ocamlbuild $(OCB_FLAGS)
 
-all: 		byte 
+all: byte 
 
 run:
 	./main.byte
+
+view.all:
 	for i in ./dot/*.dot; do open -a Graphviz $$i; done
-#	open -a Graphviz ./dot/chrono_top.dot
+
+view:
+	open -a Graphviz ./dot/chrono_top.dot
 
 .PHONY: tags
 
@@ -20,7 +24,7 @@ clean:
 clobber: clean 
 			\rm -f *~
 
-byte: 		
+byte: main.ml
 			$(OCB) main.byte
 
 debug: 

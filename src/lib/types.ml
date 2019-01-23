@@ -117,6 +117,8 @@ let new_name_var () = NmVar (mk_var ())
 
 (* Builders *)
 
+let no_type = TyProduct []
+            
 let type_int = function
     [] -> TyInt (new_size_var ())
   | [w] -> TyInt (SzExpr1 (TiConst w))

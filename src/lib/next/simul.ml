@@ -23,25 +23,27 @@ let cfg = {
   max_micro_reactions = 32;
   }
 
-type stimulus = Fsm.lhs * Expr.value
+type stimulus = Fsm.Dynamic.lhs * Expr.value
 
-type response = Fsm.lhs * Expr.value 
+type response = Fsm.Dynamic.lhs * Expr.value 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
 type context = {  (* The simulator state *)
   c_date: Types.date;
-  c_inputs: (string * (Types.typ * Expr.value)) list;   (* Global inputs *)
-  c_outputs: (string * (Types.typ * Expr.value)) list;  (* Global outputs *)
-  c_fns: (string * (Types.typ * Expr.value)) list;      (* Global functions *)
-  c_csts: (string * (Types.typ * Expr.value)) list;     (* Global constants *)
-  c_vars: (string * (Types.typ * Expr.value)) list;     (* Shared variables *)
-  c_evs: (string * (Types.typ * Expr.value)) list;      (* Shared events *)
-  c_fsms: Fsm.inst list * Fsm.inst list;                (* FSMs, partitioned into active and inactive subsets *)
+  c_inputs: (string * (Types.typ * Expr.value)) list;       (* Global inputs *)
+  c_outputs: (string * (Types.typ * Expr.value)) list;      (* Global outputs *)
+  c_fns: (string * (Types.typ * Expr.value)) list;          (* Global functions *)
+  c_csts: (string * (Types.typ * Expr.value)) list;         (* Global constants *)
+  c_vars: (string * (Types.typ * Expr.value)) list;         (* Shared variables *)
+  c_evs: (string * (Types.typ * Expr.value)) list;          (* Shared events *)
+  c_fsms: Fsm.Dynamic.inst list * Fsm.Dynamic.inst list;    (* FSMs, partitioned into active and inactive subsets *)
   }
 
-let update_ctx ctx = function
-  | Fsm.Var0 (Ident.Global id'), v' ->
+let update_ctx ctx =
+  let open Fsm.Dynamic in
+  function
+  | LhsVar (Ident.Global id'), v' ->
      let update_io ((id,(ty,v)) as x) =
        if id=id' then (id,(ty,if Types.is_event_type ty then Expr.set_event else v')) else x in
      let update_var ((id,(ty,v)) as x) = if id=id' then (id,(ty,v')) else x in
@@ -50,18 +52,19 @@ let update_ctx ctx = function
        c_inputs = List.map update_io ctx.c_inputs;
        c_vars = List.map update_var ctx.c_vars;
        c_evs = List.map update_ev ctx.c_evs; }
-  | Fsm.Var0 (Ident.Local _), _
-  | Fsm.Var1 (Ident.Local _, _), _ 
-  | Fsm.Var3 (Ident.Local _, _), _ ->
+  | LhsVar (Ident.Local _), _
+  | LhsArrInd (Ident.Local _, _), _ 
+  | LhsRField (Ident.Local _, _), _ ->
      ctx
-  | Fsm.Var1 (_,_), _
-  | Fsm.Var3 (_,_), _ ->
+  | LhsArrInd (_,_), _
+  | LhsRField (_,_), _ ->
      failwith "Simul.update_ctx: non scalar value in context"
      (* ctx  *)
 
 let string_of_context c = 
+  let open Fsm.Dynamic in
   let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_value v in
-  let string_of_fsm f = f.Fsm.f_name ^ ".st=" ^ f.Fsm.f_state in
+  let string_of_fsm f = f.f_static.f_name ^ ".st=" ^ f.f_state in
   Printf.sprintf "{fsms=[%s / %s] inps=[%s] outps=[%s] shared=[%s]}"
     (ListExt.to_string string_of_fsm "," (fst c.c_fsms))
     (ListExt.to_string string_of_fsm "," (snd c.c_fsms))
@@ -83,42 +86,45 @@ let global_updates resps =
 
 let erase_type (id,(ty,v)) = id, v
 
-let string_of_event (lhs,v) = match lhs with
-  | Fsm.Var0 id -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
-  | Fsm.Var1 (id,k) -> Ident.to_string id ^ "[" ^ string_of_int k ^ "]" ^ ":=" ^ Expr.string_of_value v
-  | Fsm.Var3 (id,f) -> Ident.to_string id ^ "." ^ f
+let string_of_event (lhs,v) =
+  let open Fsm.Dynamic in
+  match lhs with
+  | LhsVar id -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
+  | LhsArrInd (id,k) -> Ident.to_string id ^ "[" ^ string_of_int k ^ "]" ^ ":=" ^ Expr.string_of_value v
+  | LhsRField (id,f) -> Ident.to_string id ^ "." ^ f
 
 let string_of_events evs = "[" ^ ListExt.to_string string_of_event "," evs ^ "]"
 
-let mk_fsm_env ctx = {
-    Fsm.fe_inputs = ctx.c_inputs;
-    Fsm.fe_csts = ctx.c_csts;
-    Fsm.fe_fns = ctx.c_fns;
-    Fsm.fe_vars = ctx.c_vars;
-    Fsm.fe_evs = ctx.c_evs
-  }
+let mk_fsm_env ctx =
+  let open Fsm.Dynamic in
+  { fe_inputs = ctx.c_inputs;
+    fe_csts = ctx.c_csts;
+    fe_fns = ctx.c_fns;
+    fe_vars = ctx.c_vars;
+    fe_evs = ctx.c_evs }
 
 let rec react t ctx stimuli =
+  let open Fsm.Dynamic in
   let is_reentrant =     (* A reentrant stimulus is one which can trigger a micro-reaction *)
     function
-    | Fsm.Var0 (Ident.Global n), v -> 
+    | LhsVar (Ident.Global n), v -> 
        begin
          match List.mem_assoc n ctx.c_evs, List.mem_assoc n ctx.c_vars, v with
          true, _, { Expr.v_desc=Expr.Val_bool true } -> true   (* shared event, currently set *)
        | false, true, _ -> true                                (* shared variable, regardless of its value *)
        | _, _, _ -> false
        end
-    | Fsm.Var0 (Ident.Local _), _
-    | Fsm.Var1 (Ident.Local _, _), _
-    | Fsm.Var3 (Ident.Local _, _), _ -> false
-    | Fsm.Var1 _, _ 
-    | Fsm.Var3 _, _ -> failwith "Simul.react: non scalar value" (* false *) in
-  let still_active f = not f.Fsm.f_has_reacted in
+    | LhsVar (Ident.Local _), _
+    | LhsArrInd (Ident.Local _, _), _
+    | LhsRField (Ident.Local _, _), _ -> false
+    | LhsArrInd _, _ 
+    | LhsRField _, _ -> failwith "Simul.react: non scalar value" (* false *) in
+  let still_active f = not f.f_has_reacted in
   let micro_react ctx stimuli =
     let ctx' = List.fold_left update_ctx ctx stimuli in 
     let genv = mk_fsm_env ctx' in
     let fsms', resps =
-      List.split (List.map (Fsm.react t genv) (fst ctx'.c_fsms)) in (* Only active FSMs play here.. *)
+      List.split (List.map (react t genv) (fst ctx'.c_fsms)) in (* Only active FSMs play here.. *)
     (* TODO : check coherency for this set of resps (for ex that no global var is assigned diff value.. ) *)
     let resps' = List.concat resps in
     let ctx'' = List.fold_left update_ctx ctx' resps' in
@@ -189,14 +195,14 @@ let run m =
           c_csts = List.map mk_gcst m.m_consts; 
           c_vars = shared_vars;
           c_evs = shared_evs;
-          c_fsms = m.m_fsms, [] } in
+          c_fsms = List.map Fsm.Dynamic.mk_inst m.m_fsms, [] } in
       let init_env = mk_fsm_env init_ctx in
       let fsms', resps =
-        List.split (List.map (Fsm.init_fsm init_env) (fst init_ctx.c_fsms)) in 
+        List.split (List.map (Fsm.Dynamic.init_fsm init_env) (fst init_ctx.c_fsms)) in 
       let resps' = List.concat resps in
       let ctx' = List.fold_left update_ctx init_ctx resps' in
       {ctx' with c_fsms=fsms',[]}, [0, resps' (*@ resps''*)] in
-  let mk_stimuli (t,evs) =  t, List.map (function (id,v) -> Fsm.Var0 id, v) evs in
+  let mk_stimuli (t,evs) =  t, List.map (function (id,v) -> Fsm.Dynamic.LhsVar id, v) evs in
   let ctx, resps = step (ctx0,resps0) (List.map mk_stimuli m.m_stimuli) in
   (* TODO: post-processing ? *)
   ctx, resps
@@ -211,10 +217,11 @@ let string_of_fsm f = (* short version for context printing *)
     | Expr.Val_unknown -> "<unknown>"
     | _ -> Expr.string_of_value v in
   let string_of_var (id,(ty,v)) = id  ^ "=" ^ string_of_val v in
-  let open Fsm in
+  let open Fsm.Dynamic in
+  let sf = f.f_static in
   match f.f_vars with
-    [] -> f.f_name ^ ".st=" ^ f.f_state
-  | vs -> f.f_name ^ "={st=" ^ f.f_state ^ ";vars=" ^ ListExt.to_string string_of_var "," f.f_vars ^ "}"
+    [] -> sf.f_name ^ ".st=" ^ f.f_state
+  | vs -> sf.f_name ^ "={st=" ^ f.f_state ^ ";vars=" ^ ListExt.to_string string_of_var "," f.f_vars ^ "}"
 
 let dump_context c = 
   Printf.printf "t=%4d: active_fsms=[%s] inactive_fsms=[%s] inps=[%s] outps=[%s] csts=[%s] fns=[%s] shared_vars=[%s] shared_evs=[%s]\n" 

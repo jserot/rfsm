@@ -37,7 +37,7 @@ let parse lexer parser fname =
 let check_dir path = 
   if not (Sys.is_directory path) then raise (Sys_error ("file " ^ " is not a directory"))
 
-exception Unbound_fsm of string
+(* exception Unbound_fsm of string *)
 
 let main () =
 try
@@ -45,51 +45,60 @@ try
   Arg.parse Options_spec.options_spec anonymous usage;
   print_banner ();
   if !Options.print_version then exit 0;
-  let ps = List.map (parse Main_lexer.main Main_parser.program) !source_files in
-  let p = List.fold_left Syntax.add_program Syntax.empty_program ps in
   let name =
-    begin match !Options.main_name with
-    | "" -> Filename.chop_extension (Filename.basename (List.hd (List.rev !source_files)))
-    | n -> n
+    begin match !Options.main_name, !source_files with
+    | "", [] -> eprintf "No input file(s)\n"; flush stderr; exit 1
+    | "",  srcs -> Filename.chop_extension (Filename.basename (List.hd (List.rev srcs)))
+    | n, _ -> n
     end in
-  let m = Intern.build_system name p in
-  if !Options.dump_model then Sysm.dump stdout m;
-  Logfile.start ();
-  begin match !Options.target with
-  | Some Options.Dot ->
-       check_dir !Options.target_dir;
-       Sysm.dot_output
-         ~fsm_options:(if !Options.dot_captions then [] else [Fsm.NoCaption])
-         ~with_insts:!Options.dot_fsm_insts
-         ~with_models:!Options.dot_fsm_models
-         !Options.target_dir
-         m;
-  | Some Options.CTask ->
-       Ctask.check_allowed m;
-       check_dir !Options.target_dir;
-       if Ctask.need_globals m then Ctask.dump_globals ~dir:!Options.target_dir m;
-       List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Sysm.m_fsms
-  | Some Options.SystemC ->
-       Systemc.check_allowed m;
-       check_dir !Options.target_dir;
-       if Systemc.need_globals m then Systemc.dump_globals ~dir:!Options.target_dir m;
-       Systemc.dump_model ~dir:!Options.target_dir m;
-       Systemc.dump_testbench ~dir:!Options.target_dir m;
-       Systemc.dump_makefile ~dir:!Options.target_dir m
-  | Some Options.Vhdl ->
-       Vhdl.check_allowed m;
-       check_dir !Options.target_dir;
-       if Vhdl.need_globals m then Vhdl.dump_globals ~dir:!Options.target_dir m;
-       Vhdl.dump_model ~dir:!Options.target_dir m;
-       Vhdl.dump_testbench ~dir:!Options.target_dir m;
-       Vhdl.dump_makefile ~dir:!Options.target_dir m
-  | Some Options.Sim ->
-       let ctx, reacts = Simul.run m in
-       Vcd.output m ctx !Options.vcd_file reacts
-  | None ->
-     ()
-  end;
-  Logfile.stop ()
+  let p =
+    List.fold_left
+      (fun p f -> Syntax.add_program p (parse Main_lexer.main Main_parser.program f))
+      Syntax.empty_program
+      !source_files in
+  Syntax.dump_program p
+  (* let tp = Typing.type_program p in
+   * if !Options.dump_typed stdout tp;
+   * let sp = Static.elab_model tp in
+   * if !Options.dump_static stdout sp;
+   * (\* let m = Intern.build_system name p in
+   *  * if !Options.dump_model then Sysm.dump stdout m; *\)
+   * Logfile.start ();
+   * begin match !Options.target with
+   * | Some Options.Dot ->
+   *      check_dir !Options.target_dir;
+   *      Sysm.dot_output
+   *        ~fsm_options:(if !Options.dot_captions then [] else [Fsm.NoCaption])
+   *        ~with_insts:!Options.dot_fsm_insts
+   *        ~with_models:!Options.dot_fsm_models
+   *        !Options.target_dir
+   *        m;
+   * | Some Options.CTask ->
+   *      Ctask.check_allowed m;
+   *      check_dir !Options.target_dir;
+   *      if Ctask.need_globals m then Ctask.dump_globals ~dir:!Options.target_dir m;
+   *      List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Sysm.m_fsms
+   * | Some Options.SystemC ->
+   *      Systemc.check_allowed m;
+   *      check_dir !Options.target_dir;
+   *      if Systemc.need_globals m then Systemc.dump_globals ~dir:!Options.target_dir m;
+   *      Systemc.dump_model ~dir:!Options.target_dir m;
+   *      Systemc.dump_testbench ~dir:!Options.target_dir m;
+   *      Systemc.dump_makefile ~dir:!Options.target_dir m
+   * | Some Options.Vhdl ->
+   *      Vhdl.check_allowed m;
+   *      check_dir !Options.target_dir;
+   *      if Vhdl.need_globals m then Vhdl.dump_globals ~dir:!Options.target_dir m;
+   *      Vhdl.dump_model ~dir:!Options.target_dir m;
+   *      Vhdl.dump_testbench ~dir:!Options.target_dir m;
+   *      Vhdl.dump_makefile ~dir:!Options.target_dir m
+   * (\* | Some Options.Sim ->
+   *  *      let ctx, reacts = Simul.run m in
+   *  *      Vcd.output m ctx !Options.vcd_file reacts *\)
+   * | None ->
+   *    ()
+   * end;
+   * Logfile.stop () *)
 with
 | Main_parser.Error ->
     let pos1 = Lexing.lexeme_start !Location.input_lexbuf in
@@ -104,7 +113,7 @@ with
     eprintf "Unbound type index: %s\n" v; flush stderr; exit 2
 | Types.Index.Illegal_op op -> 
     eprintf "Illegal operation on type index: %s\n" op; flush stderr; exit 2
-| Typing.Unbound_id (what,id) -> 
+| Typing.Undef_symbol (where, what,id) -> 
     eprintf "Cannot retrieve type for %s \"%s\"\n" what id; flush stderr; exit 2
 | Typing.Unbound_type_ctor c -> 
     eprintf "Unbound type constructor: %s\n" c; flush stderr; exit 2
@@ -129,52 +138,52 @@ with
     eprintf "Illegal bit_range access: %s\n" (Expr.to_string e); flush stderr; exit 3
 | Eval.Invalid_array_access (a,i) -> 
     eprintf "Array access out of bound: %s[%d]\n" a i; flush stderr; exit 3
-| Fsm.Undef_symbol (fsm, what, id) ->
+| Fsm.Static.Undef_symbol (fsm, what, id) ->
     eprintf "Undefined %s in FSM %s:  %s\n" what fsm id; flush stderr; exit 4
-| Fsm.Invalid_state (fsm, id) ->
+| Fsm.Static.Invalid_state (fsm, id) ->
     eprintf "Invalid state in FSM %s:  %s\n" fsm id; flush stderr; exit 4
-| Fsm.Binding_mismatch (fsm, what, "") ->
+| Fsm.Static.Binding_mismatch (fsm, what, "") ->
     eprintf "Error when binding %s for FSM %s\n" what fsm; flush stderr; exit 4
-| Fsm.Binding_mismatch (fsm, what, id) ->
+| Fsm.Static.Binding_mismatch (fsm, what, id) ->
     eprintf "Error when binding %s for FSM %s:  %s\n" what fsm id; flush stderr; exit 4
-| Fsm.Invalid_parameter (fsm, id) ->
+| Fsm.Static.Invalid_parameter (fsm, id) ->
     eprintf "Invalid parameter value for FSM %s:  %s\n" fsm id; flush stderr; exit 4
-| Typing.Type_error (what, where, ty, ty') ->
+| Typing.Typing_error (what, where, ty, ty') ->
    eprintf "Error when typing %s in %s: types %s and %s are not compatible\n"
      what where (Types.string_of_type ty) (Types.string_of_type ty');
    flush stderr; exit 4
-| Fsm.NonDetTrans (m,ts,t) ->
-    eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Fsm.f_name t;
-    List.iter (function t -> eprintf "\t- %s\n" (Fsm.string_of_transition t)) ts;
-    flush stderr; exit 7
-| Fsm.IllegalTrans (m,msg) ->
-    eprintf "Error when simulating FSM %s: %s\n" m.Fsm.f_name msg; flush stderr; exit 7
-| Fsm.Undeterminate (m,id,t) ->
-    eprintf "Error when simulating FSM %s: unknown value for identifier %s at t=%d\n" m.Fsm.f_name id t;
-    flush stderr; exit 7
-| Fsm.Nonatomic_IO_write(m,a) ->
-   eprintf "Illegal action \"%s\" within FSM \"%s\": non atomic write(s) are forbidden for global IOs and shared objects\n"
-     (Action.to_string a) m.Fsm.f_name;
-| Fsm.IllegalAction(m,a) ->
-   eprintf "Error when executing action \"%s\" within FSM \"%s\" (check for undefined values...)\n"
-     (Action.to_string a) m.Fsm.f_name;
-   flush stderr; exit 7
-| Intern.Incomplete_record (where,v,ty) ->
-   eprintf "Found incomplete record value in %s: value %s does not have (full) type %s\n"
-     where (Expr.string_of_value v) (Types.string_of_type ty);
-   flush stderr; exit 7
-| Simul.OverReaction t ->
-    eprintf "Simulation loops (over-reaction) at t=%d\n" t; flush stderr; exit 5
-| Cmodel.Error (m,msg) ->
-    eprintf "Error when translating FSM <%s> to C model: %s\n" m.Fsm.f_name msg; flush stderr; exit 6
-| Systemc.Error (where,msg) ->
-    eprintf "Error when generating SystemC code (%s): %s\n" where msg; flush stderr; exit 7
-| Vhdl.Vhdl_error ("",msg) ->
-    eprintf "Error when generating VDHL: %s\n" msg; flush stderr; exit 8
-| Vhdl.Vhdl_error (m,msg) ->
-    eprintf "Error when generating VDHL for FSM %s: %s\n" m msg; flush stderr; exit 8
-| Vcd.Error msg ->
-    eprintf "Error when generating VCD file: %s\n" msg; flush stderr; exit 9
+(* | Fsm.NonDetTrans (m,ts,t) ->
+ *     eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Fsm.f_name t;
+ *     List.iter (function t -> eprintf "\t- %s\n" (Fsm.string_of_transition t)) ts;
+ *     flush stderr; exit 7
+ * | Fsm.IllegalTrans (m,msg) ->
+ *     eprintf "Error when simulating FSM %s: %s\n" m.Fsm.f_name msg; flush stderr; exit 7
+ * | Fsm.Undeterminate (m,id,t) ->
+ *     eprintf "Error when simulating FSM %s: unknown value for identifier %s at t=%d\n" m.Fsm.f_name id t;
+ *     flush stderr; exit 7 *)
+(* | Fsm.Nonatomic_IO_write(m,a) ->
+ *    eprintf "Illegal action \"%s\" within FSM \"%s\": non atomic write(s) are forbidden for global IOs and shared objects\n"
+ *      (Action.to_string a) m.Fsm.f_name; *)
+(* | Fsm.IllegalAction(m,a) ->
+ *    eprintf "Error when executing action \"%s\" within FSM \"%s\" (check for undefined values...)\n"
+ *      (Action.to_string a) m.Fsm.f_name;
+ *    flush stderr; exit 7 *)
+(* | Intern.Incomplete_record (where,v,ty) ->
+ *    eprintf "Found incomplete record value in %s: value %s does not have (full) type %s\n"
+ *      where (Expr.string_of_value v) (Types.string_of_type ty);
+ *    flush stderr; exit 7 *)
+(* | Simul.OverReaction t ->
+ *     eprintf "Simulation loops (over-reaction) at t=%d\n" t; flush stderr; exit 5 *)
+(* | Cmodel.Error (m,msg) ->
+ *     eprintf "Error when translating FSM <%s> to C model: %s\n" m.Fsm.f_name msg; flush stderr; exit 6
+ * | Systemc.Error (where,msg) ->
+ *     eprintf "Error when generating SystemC code (%s): %s\n" where msg; flush stderr; exit 7
+ * | Vhdl.Vhdl_error ("",msg) ->
+ *     eprintf "Error when generating VDHL: %s\n" msg; flush stderr; exit 8
+ * | Vhdl.Vhdl_error (m,msg) ->
+ *     eprintf "Error when generating VDHL for FSM %s: %s\n" m msg; flush stderr; exit 8 *)
+(* | Vcd.Error msg ->
+ *     eprintf "Error when generating VCD file: %s\n" msg; flush stderr; exit 9 *)
 | Sys.Break -> flush stderr; exit 20
 | Sys_error msg ->
     eprintf "Input/output error: %s.\n" msg; flush stderr; exit 21
@@ -183,7 +192,6 @@ with
 | Error.Model_error ->
   ()
 | Error.Internal_error msg
-| Typing.Internal_error msg
 | Fsm.Internal_error msg ->
     eprintf "Internal error: %s.\n" msg; flush stderr; exit 23
 | End_of_file -> exit 0

@@ -1,6 +1,3 @@
-ide;general;-dot_external_viewer;Arg.Unit;;use DOTVIEWER external program for viewing .dot files
-ide;general;-txt_external_viewer;Arg.Unit;;use TXTVIEWER external program for viewing .{c,h,cpp,vhd} files
-ide;dot;-dot_options;Arg.String;;options for calling the DOT program (ex: -Grankdir=LR)
 noide;general;-lib;Arg.String;set_lib_dir;set location of the support library (default: /usr/local/rfsm/lib)
 noide;general;-dump_model;Arg.Unit;set_dump_model;dump model in text format to stdout
 noide;general;-target_dir;Arg.String;set_target_dir;set target directory (default: .)

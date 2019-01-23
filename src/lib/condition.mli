@@ -18,12 +18,16 @@ and event = string  (** event name *)
 
 and guard = Expr.t
 
-val vars_of : t -> Expr.VarSet.t
-val events_of : t -> Expr.VarSet.t
-
 type env = (string * Expr.value) list
 
 exception Illegal_guard_expr of Expr.t
+
+(** {2 Accessors} *)
+
+val vars_of : t -> Expr.VarSet.t
+val events_of : t -> Expr.VarSet.t
+
+(** {2 Operations} *)
 
 val eval_guard : env -> guard -> bool
 

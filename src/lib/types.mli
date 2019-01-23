@@ -39,15 +39,15 @@ type typ =
   | TyInt of siz                
   | TyFloat
   | TyChar
-  | TyArray of Index.t * typ                        (** size, subtype *)
-  | TyVar of typ var                                (** Internal use only *)
-  | TyArrow of typ * typ                            (** Internal use only *)
-  | TyProduct of typ list                           (** Internal use only *)
+  | TyArray of Index.t * typ                  (** size, subtype *)
+  | TyVar of typ var                          (** Internal use only *)
+  | TyArrow of typ * typ                      (** Internal use only *)
+  | TyProduct of typ list                     (** Internal use only *)
   | TyRecord of name * (string * typ) list    (** Name, fields *)
 
 and siz =
-  | SzExpr1 of Index.t                  (* For ints: bit width, for arrays: dimension *)
-  | SzExpr2 of Index.t * Index.t        (* For ints: range, for arrays: dimensions *)
+  | SzExpr1 of Index.t                  (** For ints: bit width, for arrays: dimension *)
+  | SzExpr2 of Index.t * Index.t        (** For ints: range, for arrays: dimensions *)
   | SzVar of siz var   
 
 and name =
@@ -76,6 +76,7 @@ val real_type: typ -> typ
 val real_size: siz -> siz
 val real_name: name -> name
 
+val no_type: typ
 val type_int: int list -> typ
   
 (** {2 Exceptions} *)

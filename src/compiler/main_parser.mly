@@ -82,17 +82,17 @@ open Location
 
 let mk_location (p1,p2) = Loc (!input_name, p1, p2)
 
-let mk_type_decl p desc = { Syntax.td_desc = desc; Syntax.td_loc = mk_location p }
-let mk_fn_decl p desc = { Syntax.fd_desc = desc; Syntax.fd_loc = mk_location p }
+let mk_type_decl p desc = { Syntax.td_desc = desc; Syntax.td_loc = mk_location p; Syntax.td_typ = Types.no_type }
+let mk_fn_decl p desc = { Syntax.fd_desc = desc; Syntax.fd_loc = mk_location p; Syntax.fd_typ = Types.no_type }
 let mk_cst_decl p desc = { Syntax.cst_desc = desc; Syntax.cst_loc = mk_location p }
 let mk_global_decl p desc = { Syntax.mg_dsc = desc; Syntax.mg_loc = mk_location p }
 let mk_fsm_decl p desc = { Syntax.fsm_desc = desc; Syntax.fsm_loc = mk_location p }
 let mk_stim_decl p desc = { Syntax.stim_desc = desc; Syntax.stim_loc = mk_location p }
 let mk_fsm_inst p desc = { Syntax.fi_desc = desc; Syntax.fi_loc = mk_location p }
 let mk_type_expr desc = { Type_expr.te_desc = desc; Type_expr.te_typ = Types.new_type_var () }
-let mk_type_expression p desc = { Syntax.te_desc = desc; Syntax.te_loc = mk_location p }
+let mk_type_expression p desc = { Syntax.te_desc = desc; Syntax.te_loc = mk_location p; Syntax.te_typ = Types.no_type }
 let mk_expr desc = { Expr.e_desc = desc; Expr.e_typ = Types.new_type_var () }
-let mk_expression p desc = { Syntax.e_desc = desc; Syntax.e_loc = mk_location p }
+let mk_expression p desc = { Syntax.e_desc = desc; Syntax.e_loc = mk_location p; Syntax.e_typ = Types.no_type }
 let mk_condition p desc = { Syntax.cond_desc = desc; Syntax.cond_loc = mk_location p }
 let mk_action p desc = { Syntax.act_desc = desc; Syntax.act_loc = mk_location p }
 
@@ -297,10 +297,10 @@ action:
   | l=lhs COLEQ e=expr  { mk_action ($symbolstartofs,$endofs) (Action.Assign ({l_desc=l},e)) }
 
 lhs:
-  | v=LID { Action.Var0 v }
-  | a=LID LBRACKET i=expr RBRACKET { Action.Var1 (a, i) }
-  | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { Action.Var2 (a,hi,lo) }
-  | a=LID DOT f=LID { Action.Var3 (a, f) }
+  | v=LID { Action.LhsVar v }
+  | a=LID LBRACKET i=expr RBRACKET { Action.LhsArrInd (a, i) }
+  | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { Action.LhsArrRange (a,hi,lo) }
+  | a=LID DOT f=LID { Action.LhsRField (a, f) }
 
 (* GLOBALS *)
 

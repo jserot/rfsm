@@ -18,7 +18,6 @@ open Utils
 type type_expression = {
   te_desc: Type_expr.t;
   te_loc: Location.location;
-  te_typ: Types.typ;
   }
 
 (* Expressions *)
@@ -26,7 +25,6 @@ type type_expression = {
 type expression = {
   e_desc: Expr.t;
   e_loc: Location.location;
-  e_typ: Types.typ;
   }
 
 (* Type declarations *)
@@ -34,7 +32,6 @@ type expression = {
 type type_declaration = {
   td_desc: type_decl;
   td_loc: Location.location;
-  td_typ: Types.typ;
   }
 
 and type_decl =
@@ -49,7 +46,6 @@ and record_field = string * Type_expr.t
 type fn_declaration = {
   fd_desc: fn_decl;
   fd_loc: Location.location;
-  fd_typ: Types.typ;
   }
 
 and fn_decl = {

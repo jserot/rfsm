@@ -10,33 +10,44 @@ let chrono = Fsm.build_model
   ~ios:[
     IO_In, "h", TyEvent;
     IO_In, "startstop", TyEvent;
-    IO_Out, "aff", TyInt None
+    IO_Out, "aff", type_int []
     ]
-  ~vars:["ctr", TyInt None]
+  ~vars:["ctr", type_int []]
   ~trans:[
-    ("Stopped", ("startstop",[]), [Assign ("ctr",EConst 0); Assign ("aff",EConst 0)], "Running", 0);
-    ("Running", ("h",[]), [Assign ("ctr",EBinop("+",EVar "ctr",EConst 1)); Assign ("aff",EVar "ctr")], "Running", 0);
+    ("Stopped", ("startstop",[]),
+     [Assign (mk_lhs "ctr", mk_expr (EInt 0));
+      (* Assign (mk_lhs "aff", mk_expr(EBool false))], (\* err *\) *)
+      Assign (mk_lhs "aff", mk_expr(EInt 0))],
+     "Running",
+     0);
+    ("Running", ("h",[]),
+     [Assign (mk_lhs "ctr", mk_expr(EBinop("+", mk_expr(EVar "ctr"), mk_expr(EInt 1))));
+      Assign (mk_lhs "aff", mk_expr(EVar "ctr"))],
+     "Running",
+     0);
     ("Running", ("startstop",[]), [], "Stopped", 0)
     ]
   ~itrans:("Stopped",[])
 
-(* let _ = Fsm.dump_model stdout chrono *)
-(* let _ = Fsm.dot_output_model "./dot" chrono *)
+let t = Typing.type_fsm_model Typing.builtin_tenv chrono
+let _ = Printf.printf "type(chrono)=%s\n" (Types.string_of_type t)
+      
+let _ = Fsm.dot_output_model "./dot" chrono
 
-let h = Fsm.GInp ("H", TyEvent, Periodic (10,10,110))
-let startstop = Fsm.GInp ("StartStop", TyEvent, Sporadic [25; 75])
-let aff = Fsm.GOutp ("Aff", TyInt None)
+let h = Global.GInp ("H", TyEvent, Periodic (10,10,110))
+let startstop = Global.GInp ("StartStop", TyEvent, Sporadic [25; 75])
+let aff = Global.GOutp ("Aff", type_int [])
 
 let c1 = Fsm.build_instance ~name:"c1" ~model:chrono ~params:[] ~ios:[h;startstop;aff]
+let t1 = Typing.type_fsm_inst Typing.builtin_tenv c1
+let _ = Printf.printf "type(chrono)=%s\n" (Types.string_of_type t1)
 
-(* let _ = Fsm.dump_inst stdout c1 *)
-(* let _ = Fsm.dot_output "./dot" c1 *)
+let _ = Fsm.dot_output "./dot" c1
 
-let p = Comp.build_composite "chrono" [c1]
+let s = Sysm.build ~name:"chrono" [c1]
 
-(* let _ = Comp.dump stdout p *)
-let _ = Comp.dot_output ~with_insts:true ~with_models:true "./dot" p
+let _ = Sysm.dot_output ~with_insts:true ~with_models:true "./dot" s
 
-let c, rs = Simul.run p
-let _ = List.iter Simul.dump_reaction rs
+(* let c, rs = Simul.run s
+ * let _ = List.iter Simul.dump_reaction rs *)
 

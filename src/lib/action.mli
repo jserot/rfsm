@@ -19,15 +19,23 @@ type t =
 and lhs = { mutable l_desc: lhs_desc }
 
 and lhs_desc = 
-  | Var0 of string                      (** v := ... *)
-  | Var1 of string * Expr.t             (** v[i] := ... when v is an array *)
-  | Var2 of string * Expr.t * Expr.t    (** v[hi:lo] := ... when v is an int *)
-  | Var3 of string * string             (** v.field_name when v has a record type *)
+  | LhsVar of string                         (** v := ... *)
+  | LhsArrInd of string * Expr.t             (** v[i] := ... when v is an array *)
+  | LhsArrRange of string * Expr.t * Expr.t  (** v[hi:lo] := ... when v is an int *)
+  | LhsRField of string * string             (** v.field_name when v has a record type *)
+
+(** {2 Builders} *)
+
+val mk_lhs : string -> lhs
+  
+(** {2 Accessors} *)
 
 val lhs_name : lhs -> string
   
 val vars_of : t -> Expr.VarSet.t * Expr.VarSet.t
   (** [vars_of a] returns the name of the variables read (resp. written) by action  [a] *)
+
+(** {2 Operations} *)
 
 val rename : (string -> string) -> t -> t
   (** [rename f a] renames [f v] each variable [v] occurring in [a] *)

@@ -9,13 +9,13 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** System description as a composition of FSM instances *)
+(** System description as a composition of FSM instances and global objects *)
 
 module DepG : Graph.Sig.IM with type V.label = string and type E.label = string
 
 type t = {
   m_name : string;
-  m_fsms : Fsm.inst list;
+  m_fsms : Fsm.Static.inst list;
   m_inputs : (string * global) list;
   m_outputs : (string * global) list;
   m_types: (string * Types.typ) list; 
@@ -36,7 +36,7 @@ and mg_desc =
   | MShared of string list * string list (** writer(s), reader(s) *)
 
 and istim_desc = {
-  sd_comprehension : Fsm.stim_desc;
+  sd_comprehension : Global.stim_desc;
   sd_extension : Stimuli.event list;
 }
 
@@ -52,12 +52,12 @@ exception Illegal_const_expr of Expr.t
 (** {2 Builders} *)
 
 val build : name:string
-            -> gtyps:(string * Types.typ) list
-            -> gfns:(string * global) list
-            -> gcsts:(string * global) list
-            -> fsm_insts:Fsm.inst list
+            -> ?gtyps:(string * Types.typ) list
+            -> ?gfns:(string * global) list
+            -> ?gcsts:(string * global) list
+            -> Fsm.Static.inst list
             -> t
-  (** [build name gfns fsms] builds a system description from a list of global type, function
+  (** [build name gtyps gfns gcsts fsms] builds a system description from a list of global types, function
       and constant declarations and FSM instances *)
 
 (** {2 Printers} *)
@@ -65,7 +65,7 @@ val build : name:string
 val dot_output :
   string ->
   ?dot_options:Utils.Dot.graph_style list ->
-  ?fsm_options:Fsm.dot_options list ->
+  ?fsm_options:Fsm.Static.dot_options list ->
   ?with_insts:bool ->
   ?with_models:bool ->
   t ->
