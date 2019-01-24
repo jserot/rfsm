@@ -27,35 +27,36 @@ type t = {
   m_fns: (string * global) list; 
   m_consts: (string * global) list; 
   m_shared: (string * global) list; 
-  m_stimuli: Stimuli.stimuli list;
+  (* m_stimuli: Stimuli.stimuli list; *)
   m_deps: dependencies;
   }
 
 and global = Types.typ * mg_desc 
       
 and mg_desc =
-  | MInp of istim_desc * string list     (** stimuli desc, reader(s) *)
+  (* | MInp of istim_desc * string list     (\** stimuli desc, reader(s) *\) *)
+  | MInp of Global.stim_desc * string list     (** stimuli desc, reader(s) *)
   | MOutp of string list                 (** writer(s) *)
   | MFun of string list * Expr.t         (** args, body *)
   | MConst of Expr.value                 (** value *)
   | MShared of string list * string list (** writer(s), reader(s) *)
 
-and istim_desc = {
-  sd_comprehension: Global.stim_desc;
-  sd_extension: Stimuli.event list
-  }
+(* and istim_desc = {
+ *   sd_comprehension: Global.stim_desc;
+ *   sd_extension: Stimuli.event list
+ *   } *)
 
 and dependencies = {
     md_graph: DepG.t;
     md_node: string -> DepG.V.t;
     }
 
-let build_stim st =
-  let mk_ext = function
-    | Global.Periodic (per,t1,t2) -> Stimuli.mk_per_event per t1 t2
-    | Global.Sporadic ts -> Stimuli.mk_spor_event ts
-    | Global.ValueChange vs -> Stimuli.mk_val_changes vs in
- { sd_comprehension = st; sd_extension = mk_ext st }
+(* let build_stim st =
+ *   let mk_ext = function
+ *     | Global.Periodic (per,t1,t2) -> Stimuli.mk_per_event per t1 t2
+ *     | Global.Sporadic ts -> Stimuli.mk_spor_event ts
+ *     | Global.ValueChange vs -> Stimuli.mk_val_changes vs in
+ *  { sd_comprehension = st; sd_extension = mk_ext st } *)
 
 let extract_globals (inputs,outputs,shared) f =
   let name = f.Fsm.Static.f_name in
@@ -76,7 +77,8 @@ let extract_globals (inputs,outputs,shared) f =
        | Global.GInp (id,ty,sd) ->
           if List.mem_assoc id inps
           then Utils.ListExt.update_assoc add_reader id name inps, outps, shrds
-          else (id, (ty, MInp (build_stim sd, [name]))) :: inps, outps, shrds
+          (* else (id, (ty, MInp (build_stim sd, [name]))) :: inps, outps, shrds *)
+          else (id, (ty, MInp (sd, [name]))) :: inps, outps, shrds
        | Global.GShared (id,ty) ->
           if List.mem_assoc id shrds
           then inps, outps, Utils.ListExt.update_assoc add_reader id name shrds
@@ -105,10 +107,9 @@ let extract_globals (inputs,outputs,shared) f =
       f.f_inouts 
 
 let build_dependencies fsms shared =
-  let open Utils in
   let g = DepG.create () in
   let nodes = ref [] in
-  let lookup n = try List.assoc n !nodes with Not_found -> failwith "Model.build_dependencies.lookup" in
+  let lookup n = try List.assoc n !nodes with Not_found -> Misc.fatal_error "Sysm.build_dependencie.lookup" in
   List.iter
     (function f ->
        let name = f.Fsm.Static.f_name in
@@ -123,8 +124,8 @@ let build_dependencies fsms shared =
            (function (s,d) ->
               if s <> d then let e = DepG.E.create (lookup s) id (lookup d) in DepG.add_edge_e g e)
            (* Self-dependencies are deliberately not taken into account *)
-           (ListExt.cart_prod2 wrs rrs)
-     | _ -> failwith "Model.build_dependencies" (* should not happen *))
+           (Utils.ListExt.cart_prod2 wrs rrs)
+     | _ -> Misc.fatal_error "Sysm.build_dependencies" (* should not happen *))
   shared;
   let update_dep_depth n =
     match DepG.pred g n with
@@ -136,16 +137,46 @@ let build_dependencies fsms shared =
   DepG.Mark.clear g;
   T.iter update_dep_depth g; (* Set dependency depths *)
   { md_graph = g;
-    md_node = function n -> try List.assoc n !nodes with Not_found -> failwith "Model.md_node " }
+    md_node = function n -> try List.assoc n !nodes with Not_found -> Misc.fatal_error "Sysm.build_dependencies.md_node " }
 
 exception Illegal_const_expr of Expr.t
-                              
+
+let add_global_type tenv (name,ty) = 
+  let open Typing in
+  match ty with
+  | Types.TyEnum (_, cs) ->
+     { tenv with te_defns = (name, ty) :: tenv.te_defns;
+                 te_ctors = List.map (function c -> c, ty) cs @ tenv.te_ctors }
+  | Types.TyRecord (_, fs) ->
+     { tenv with te_defns = (name, ty) :: tenv.te_defns;
+                 te_rfields = List.map (function (n,_) -> n, ty) fs @ tenv.te_rfields }
+  | _ ->
+     { tenv with te_defns = (name, ty) :: tenv.te_defns }
+
+let add_global_value tenv (name, (ty, d)) =
+  let open Typing in
+  match d with 
+  | MConst _
+  | MFun _ -> { tenv with te_vars = (name, ty) :: tenv.te_vars }
+  | _ -> tenv
+
 let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) fsms =
+  let tenv =
+       Typing.builtin_tenv
+    |> Misc.fold_left add_global_type gtyps
+    |> Misc.fold_left add_global_value (gcsts @ gfns) in
   let inputs, outputs, shared = List.fold_left extract_globals ([],[],[]) fsms in
-  let mk_stimuli = function
-      name, (ty, MInp ({sd_extension=evs}, _)) -> List.map (Stimuli.mk_stimuli name) evs
-    | _ -> failwith "Sysm.mk_stimuli" (* should not happen *) in
-  let stimuli = List.map mk_stimuli inputs in
+  (* Type check FSMs *)
+  List.iter (Typing.type_fsm_inst tenv) fsms;
+  (* Type check inputs *)
+  List.iter (function
+    | name, (ty, MInp (sd, _)) -> Typing.type_check_stim tenv name ty sd
+    | _, _ -> ())
+    inputs;
+  (* let mk_stimuli = function
+   *     name, (ty, MInp ({sd_extension=evs}, _)) -> List.map (Stimuli.mk_stimuli name) evs
+   *   | _ -> Misc.fatal_error "Sysm.build" (\* should not happen *\) in
+   * let stimuli = List.map mk_stimuli inputs in *)
   { m_name = name;
     m_fsms = fsms;
     m_inputs = inputs;
@@ -154,7 +185,7 @@ let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) fsms =
     m_fns = gfns;
     m_consts = gcsts;
     m_shared = shared;
-    m_stimuli = Stimuli.merge_stimuli stimuli;
+    (* m_stimuli = Stimuli.merge_stimuli stimuli; *)
     m_deps = build_dependencies fsms shared;
    }
 
@@ -205,11 +236,17 @@ let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(wit
 let dump_global oc (name,(ty,g_desc)) =
   let open Utils in
   match g_desc with
-  | MInp ({sd_extension=evs},rdrs) ->
+  (* | MInp ({sd_extension=evs},rdrs) ->
+   *    Printf.fprintf oc "INPUT %s : %s = %s [-> %s]\n"
+   *      name
+   *      (Types.string_of_type ty)
+   *      (Stimuli.string_of_events evs)
+   *      (ListExt.to_string Misc.id "," rdrs) *)
+  | MInp (sd,rdrs) ->
      Printf.fprintf oc "INPUT %s : %s = %s [-> %s]\n"
        name
        (Types.string_of_type ty)
-       (Stimuli.string_of_events evs)
+       (Global.string_of_stim sd)
        (ListExt.to_string Misc.id "," rdrs)
   | MOutp wrs ->
      Printf.fprintf oc "OUTPUT %s : %s [<- %s]\n"
@@ -231,8 +268,8 @@ let dump_global oc (name,(ty,g_desc)) =
        (ListExt.to_string Misc.id "," wrs)
        (ListExt.to_string Misc.id "," rrs)
 
-let dump_stimuli oc st =
-  Printf.fprintf oc "%s\n" (Stimuli.string_of_stimuli st)
+(* let dump_stimuli oc st =
+ *   Printf.fprintf oc "%s\n" (Stimuli.string_of_stimuli st) *)
 
 let dump_dependencies m =
   let module G = struct
@@ -258,6 +295,6 @@ let dump oc m =
   List.iter (dump_global oc) m.m_outputs;
   List.iter (dump_global oc) m.m_fns;
   List.iter (dump_global oc) m.m_shared;
-  List.iter (dump_stimuli oc) m.m_stimuli;
+  (* List.iter (dump_stimuli oc) m.m_stimuli; *)
   dump_dependencies m
   

@@ -102,14 +102,14 @@ and action = {
 (* STIMULI *)
 
 type stimuli = {
-  stim_desc: stim_desc;
+  stim_desc: Global.stim_desc;
   stim_loc: Location.location;
   }
 
-and stim_desc = 
-  Periodic of int * int * int             (* Period, start time, end time *)
-| Sporadic of int list                    (* Dates *)
-| ValueChange of (int * Expr.value) list  (* (Date,value)s *)
+(* and stim_desc = 
+ *   Periodic of int * int * int             (\* Period, start time, end time *\)
+ * | Sporadic of int list                    (\* Dates *\)
+ * | ValueChange of (int * Expr.value) list  (\* (Date,value)s *\) *)
 
 (* Global (IOs and channels) declarations *)
               
@@ -195,14 +195,14 @@ let add_program p1 p2 = { (* TODO : Flag redefinitions ? *)
 
 (* Printing *)
 
-let string_of_value_change (t,v) = string_of_int t ^ ":" ^ Expr.string_of_value v
+(* let string_of_value_change (t,v) = string_of_int t ^ ":" ^ Expr.string_of_value v
+ * 
+ * let string_of_stim = function
+ *  | Periodic (x,y,z) -> "Periodic(" ^ ListExt.to_string string_of_int "," [x;y;z] ^ ")"
+ *  | Sporadic ts -> "Sporadic(" ^ ListExt.to_string string_of_int "," ts ^ ")"
+ *  | ValueChange vs -> "ValueChange(" ^ ListExt.to_string string_of_value_change "," vs ^ ")" *)
 
-let string_of_stim = function
- | Periodic (x,y,z) -> "Periodic(" ^ ListExt.to_string string_of_int "," [x;y;z] ^ ")"
- | Sporadic ts -> "Sporadic(" ^ ListExt.to_string string_of_int "," ts ^ ")"
- | ValueChange vs -> "ValueChange(" ^ ListExt.to_string string_of_value_change "," vs ^ ")"
-
-let string_of_stimuli st = string_of_stim st.stim_desc
+let string_of_stimuli st = Global.string_of_stim st.stim_desc
    
 let string_of_type_expression t = Type_expr.string_of_type_expr t.te_desc
 

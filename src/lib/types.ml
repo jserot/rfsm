@@ -110,10 +110,10 @@ let new_stamp =
   let var_cnt = ref 0 in
   function () -> incr var_cnt; "_" ^ string_of_int !var_cnt
 
-let mk_var () = { value = Unknown; stamp=new_stamp () }
-let new_type_var () = TyVar (mk_var ())
-let new_size_var () = SzVar (mk_var ())
-let new_name_var () = NmVar (mk_var ())
+let make_var () = { value = Unknown; stamp=new_stamp () }
+let new_type_var () = TyVar (make_var ())
+let new_size_var () = SzVar (make_var ())
+let new_name_var () = NmVar (make_var ())
 
 (* Builders *)
 
@@ -381,7 +381,7 @@ let size_of ty = match ty with
 
 let subtype_of = function
   | TyArray (_,t) -> t
-  | _ -> failwith "Types.subtype_of"
+  | _ -> Misc.fatal_error "Types.subtype_of"
        
 let is_lit_name nm = match real_name nm with
   | NmLit _ -> true

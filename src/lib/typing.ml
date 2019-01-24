@@ -64,6 +64,29 @@ let rec type_of_type_expr tenv texpr =
   texpr.te_typ <- ty;
   ty
   
+(* (\* Typing values *\)
+ * 
+ * let type_value tenv v = 
+ *   let lookup_typ = lookup_type ("value \"" ^ Expr.string_of_value v ^ "\"") in
+ *   match v with
+ *   | Expr.Val_int _ -> type_int []
+ *   | Expr.Val_float _ -> TyFloat
+ *   | Expr.Val_char _ -> TyChar
+ *   | Expr.Val_bool _ -> TyBool
+ *   | Expr.Val_enum c -> lookup_typ "enum value" tenv.te_ctors c
+ *   | Expr.Val_array vs when Array.length vs > 0 -> 
+ *       let ty1 = type_value tenv vs.(0) in
+ *       for i=1 to Array.length vs - 1 do
+ *         unify ty1 (type_value tenv vs.(i))
+ *       done;
+ *       TyArray (TiConst (List.length vs'), ty1)
+ *   | Expr.Val_record ((f1::fs) as fs') ->
+ *       let lookup f = lookup_typ "record field" tenv.te_rfields f in
+ *       let ty1 = lookup f1 in
+ *       List.iter (fun v -> unify ty1 (lookup f)) fs;
+ *       ty1
+ *   | _ -> Misc.fatal_error ("Typing.type_value (" ^ Expr.string_of_value v ^ ")") *)
+                                    
 (* Typing expressions *)
                                     
 let rec type_expression tenv expr =
@@ -96,7 +119,7 @@ let rec type_expression tenv expr =
       unify ty_e1 TyBool;
       unify ty_e2 ty_e3;
       ty_e2
-  | Expr.EArrExt [] -> failwith "Typing.type_expression: empty array" (* should not happen *)
+  | Expr.EArrExt [] -> Misc.fatal_error "Typing.type_expression: empty array" (* should not happen *)
   | Expr.EArrExt ((e1::es) as exps) -> 
       let ty_e1 = type_expression tenv e1 in
       List.iter (function e -> unify ty_e1 (type_expression tenv e)) es;
@@ -169,13 +192,18 @@ and type_cast e t1 t2 = match t1, t2 with
   | TyFloat, TyInt _ -> t2
   | _, _ -> raise (Illegal_cast e)
 
-let type_check ~strict what where ty ty'  =
-  (* if not (Types.type_equal ~strict ty ty') 
-   * then raise (Typing.Typing_error (what, where, ty, ty')) *)
+let type_check what where ty ty'  =
   try
     Types.unify ty ty'
   with
     Types.TypeConflict _ -> raise (Typing_error (what, where, ty, ty'))
+
+(* (\* Typing input stimuli *\)
+ * 
+ * let type_stimuli tenv sd = match sd with
+ *   | ValueChange (vc1::vcs) ->
+ *      List.iter (type_check "input stimuli" (Expr.
+ *   | _ -> () *)
 
 (* Typing FSM models *)
 
@@ -185,22 +213,22 @@ let type_of_list = function
 
 let types_of_fsm_model f = 
   (* Computes the "local" typing environment associated to an FSM model, containing
-     - the types of parameters, inputs, outputs and local variables
-     - the type constructors introduced by the [state] declaration *)
+     the types of parameters, inputs, outputs and local variables *)
   let open Fsm.Static in
   let vars =
       f.fm_params
     @ f.fm_vars
     @ List.map (function (id, (_, ty)) -> id, ty) f.fm_ios  in
-  let ctors =
-    Misc.collect_assoc
-      (fun (id,ty) -> Types.enums_of ty)
-      vars in
-  { te_vars=vars; te_ctors=ctors; te_rfields=[]; te_defns=[]; te_prims=[] }
+  (* let ctors =
+   *   Misc.collect_assoc
+   *     (fun (id,ty) -> Types.enums_of ty)
+   *     vars in
+   * { te_vars=vars; te_ctors=ctors; te_rfields=[]; te_defns=[]; te_prims=[] } *)
+  vars
 
 let type_check_index_expression name tenv exp =
   try type_check
-        ~strict:false ("index expression \"" ^ (Expr.to_string exp) ^ "\"") ("FSM \"" ^ name ^ "\"")
+        ("index expression \"" ^ (Expr.to_string exp) ^ "\"") ("FSM \"" ^ name ^ "\"")
         (type_expression tenv exp) (Types.type_int [])
   with
   | Type_error (expr, ty, ty') ->
@@ -247,10 +275,8 @@ let type_check_fsm_action name tenv act = match act with
          raise (Typing_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ name ^ "\"", ty, ty')) in
      begin
        try type_check
-             ~strict:false
              ("action \"" ^ Action.to_string act ^ "\"")
              ("FSM \"" ^ name ^ "\"")
-             (* [strict=false] here to accept actions like [v:=1] where [v:int<lo..hi>] or [v:bool] *)
              t' t
        with
        | Type_error (expr, ty, ty') ->
@@ -258,12 +284,12 @@ let type_check_fsm_action name tenv act = match act with
      end
   | Action.Emit s ->
      let t = lookup_type name "event" tenv.te_vars s in
-     type_check ~strict:true ("action \"" ^ Action.to_string act ^ "\"") ("FSM \"" ^ name ^ "\"") t TyEvent
+     type_check ("action \"" ^ Action.to_string act ^ "\"") ("FSM \"" ^ name ^ "\"") t TyEvent
   | _ -> ()
 
 let type_check_fsm_event name tenv ev =
     try type_check
-          ~strict:true ("event \"" ^ ev ^ "\"") ("FSM \"" ^ name ^ "\"")
+          ("event \"" ^ ev ^ "\"") ("FSM \"" ^ name ^ "\"")
           (lookup_type name "event" tenv.te_vars ev) Types.TyEvent
     with
     | Type_error (expr, ty, ty') ->
@@ -271,7 +297,7 @@ let type_check_fsm_event name tenv ev =
 
 let type_check_fsm_guard name tenv gexp =
     try type_check
-          ~strict:true ("guard \"" ^ (Condition.string_of_guard gexp) ^ "\"") ("FSM \"" ^ name ^ "\"")
+          ("guard \"" ^ (Condition.string_of_guard gexp) ^ "\"") ("FSM \"" ^ name ^ "\"")
           (type_expression tenv gexp) Types.TyBool
     with
     | Type_error (expr, ty, ty') ->
@@ -285,179 +311,109 @@ let type_check_fsm_condition name tenv (evs,gs) =
   end;
   List.iter (type_check_fsm_guard name tenv) gs
 
-let type_check_fsm_transition name tenv (_,(cond,acts,_,_),_) =
+let type_check_fsm_state name r s =
+  if not (List.mem s (Fsm.Repr.states' r))
+   then raise (Fsm.Invalid_state (s,name))
+                                
+let type_check_fsm_transition name repr tenv (s,(cond,acts,_,_),s') =
+  (* For each transition [s -> cond / acts -> s'] check that
+     - [s] are [s'] are listed as states if [f] declaration
+     - [cond] has form [e.[guard1]...[guardn]] where [e] has type [event] and each [guardi] type [bool]
+     - for each [act]=[lhs:=rhs] in [acts], [type(rhs)=type(lhs)] *)
+  type_check_fsm_state name repr s;
+  type_check_fsm_state name repr s';
   type_check_fsm_condition name tenv cond;
   List.iter (type_check_fsm_action name tenv) acts
 
-let type_check_fsm_itransition name tenv ((_,acts,_,_),_) =
+let type_check_fsm_itransition name repr tenv ((_,acts,_,_),s) =
+  (* For the initial transitio [/ acts -> s'] check that
+     - [s'] is listed as state if [f] declaration
+     - for each [act]=[lhs:=rhs] in [acts], [type(rhs)=type(lhs)] *)
+  type_check_fsm_state name repr s;
   List.iter (type_check_fsm_action name tenv) acts
           
 let type_check_fsm_model tenv f =
-  (* For each transition [s -> cond / acts -> s'] check that
-     - [s] are [s'] have enum type [tau] and that [tau] is defined in [f]
-     - [cond] has form [e.[guard1]...[guardn]] where [e] has type [event] and each [guardi] type [bool]
-     - for each [act]=[lhs:=rhs] in [acts], [type(rhs)=type(lhs)] *)
   let open Fsm.Static in
-  List.iter (type_check_fsm_transition f.fm_name tenv) (Fsm.Repr.transitions f.fm_repr);
-  List.iter (type_check_fsm_itransition f.fm_name tenv) (Fsm.Repr.itransitions f.fm_repr)
+  List.iter (type_check_fsm_transition f.fm_name f.fm_repr tenv) (Fsm.Repr.transitions f.fm_repr);
+  List.iter (type_check_fsm_itransition f.fm_name f.fm_repr tenv) (Fsm.Repr.itransitions f.fm_repr)
 
-let type_of_fsm_model f = 
-  (* Returns the "type" of a FSM model, i.e. : 
-     - [ti_1 * ... * ti_m -> to_1 * ... * to_n] for parameter-less models
-     - [tp_1 * ... * tp_p -> ti_1 * ... * ti_m -> to_1 * ... * to_n] for parameterized models *)
-  let open Fsm.Static in
-  let ty_ins, ty_outs, ty_inouts =
-    List.fold_left
-      (fun (ins,outs,inouts) (id,(dir,ty)) ->
-        match dir with
-        | Types.IO_In -> ty::ins, outs, inouts
-        | Types.IO_Out -> ins, ty::outs, inouts
-        | Types.IO_Inout -> ins, outs, ty::inouts)
-      ([],[],[])
-      f.fm_ios in
-  let ty_params = List.map snd f.fm_params in
-  let ty_ios = TyArrow (type_of_list (ty_ins @ ty_inouts), type_of_list (ty_outs @ ty_inouts)) in
-  let ty = match ty_params with
-  | [] -> ty_ios
-  | _ -> TyArrow (type_of_list ty_params, ty_ios) in
-  f.fm_typ <- ty;
-  ty
+(* let type_of_fsm_model f = 
+ *   (\* Returns the "type" of a FSM model, i.e. : 
+ *      - [ti_1 * ... * ti_m -> to_1 * ... * to_n] for parameter-less models
+ *      - [tp_1 * ... * tp_p -> ti_1 * ... * ti_m -> to_1 * ... * to_n] for parameterized models *\)
+ *   let open Fsm.Static in
+ *   let ty_ins, ty_outs, ty_inouts =
+ *     List.fold_left
+ *       (fun (ins,outs,inouts) (id,(dir,ty)) ->
+ *         match dir with
+ *         | Types.IO_In -> ty::ins, outs, inouts
+ *         | Types.IO_Out -> ins, ty::outs, inouts
+ *         | Types.IO_Inout -> ins, outs, ty::inouts)
+ *       ([],[],[])
+ *       f.fm_ios in
+ *   let ty_params = List.map snd f.fm_params in
+ *   let ty_ios = TyArrow (type_of_list (ty_ins @ ty_inouts), type_of_list (ty_outs @ ty_inouts)) in
+ *   let ty = match ty_params with
+ *   | [] -> ty_ios
+ *   | _ -> TyArrow (type_of_list ty_params, ty_ios) in
+ *   f.fm_typ <- ty;
+ *   ty *)
 
 let type_fsm_model tenv f =
-  (* Type checks an FSM model and returns the associated type *)
+  (* Type checks an FSM model *)
   let open Fsm.Static in
-  let local_tenv = types_of_fsm_model f in
-  let tenv = 
-    { tenv with
-      te_vars = tenv.te_vars @ local_tenv.te_vars;
-      te_ctors = tenv.te_ctors @ local_tenv.te_ctors } in
-  type_check_fsm_model tenv f;
-  type_of_fsm_model f
-
-(* Typing FSM instances *)
-  
-let type_fsm_inst tenv f =
-  let open Fsm.Static in
-  f.f_model.fm_typ
-  (* Q: what do have to (re)check wrt. the (uninstanciated) model ?
-     - indexes ? 
-     - types of bounded params and ios ? *)
-  (* let local_types = 
-   *   List.map (function (id, (ty,_)) -> id, ty) f.f_params
-   *   @ List.map (function (id, (ty,_)) -> id, ty) (f.f_inps @ f.f_outps @ f.f_inouts)
-   *   @ List.map (function (id, ty) -> id, ty) f.f_vars in
-   * let local_ctors = 
-   *   let add acc cs =
-   *     List.fold_left
-   *       (fun acc (c,ty) -> if List.mem_assoc c acc then acc else (c,ty)::acc)
-   *       acc
-   *       cs in
-   *   List.fold_left
-   *     (fun acc (_,ty) -> add acc (Types.enums_of ty))
-   *     []
-   *     local_types in
+  (* let local_tenv = types_of_fsm_model f in
    * let tenv = 
    *   { tenv with
-   *     te_vars = tenv.te_vars @ local_types;
-   *     te_ctors = tenv.te_ctors @ local_ctors } in
-   * let type_check_guard gexp =
-   *   try type_check
-   *         ~strict:true ("guard \"" ^ (Condition.string_of_guard gexp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
-   *         (type_expression tenv gexp) Types.TyBool
-   *   with
-   *   | Type_error (expr, ty, ty') ->
-   *      raise (Typing_error ("guard expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
-   * let type_check_index_expression exp =
-   *   try type_check
-   *         ~strict:false ("index expression \"" ^ (Expr.to_string exp) ^ "\"") ("FSM \"" ^ f.f_name ^ "\"")
-   *         (type_expression tenv exp) (Types.type_int [])
-   *   with
-   *   | Type_error (expr, ty, ty') ->
-   *      raise (Typing_error ("index expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
-   * let type_check_condition (_,gs) = List.iter type_check_guard gs in
-   * let type_check_action act = match act with 
-   *   | Action.Assign (lhs, exp) -> 
-   *      let t =
-   *        begin match lhs.l_desc with
-   *        | LhsVar v -> List.assoc v tenv.te_vars
-   *        | LhsArrInd (a,i) ->
-   *           type_check_index_expression i;
-   *           begin match List.assoc a tenv.te_vars with
-   *           | TyInt _ -> (\* Special case *\)
-   *              lhs.l_desc <- LhsArrRange (a,i,i);  (\* This is a hack *\)
-   *              Types.type_int [1]
-   *           | ty ->  (\* Should be an array *\)
-   *              Types.subtype_of ty
-   *           end
-   *        | LhsArrRange (a,i1,i2) ->
-   *           type_check_index_expression i1;
-   *           type_check_index_expression i2;
-   *           begin match List.assoc a tenv.te_vars, i1.e_desc, i2.e_desc with
-   *           | TyInt (Types.SzExpr1 (Types.Index.TiConst sz)), Expr.EInt hi, Expr.EInt lo when hi >= lo ->
-   *              Types.type_int [hi-lo+1]  (\* If x::int<n>, then x[hi:lo]::int<hi-lo+1> *\)
-   *           | TyInt _, _, _ ->           (\* Cannot infer size otherwise  *\)
-   *              Types.type_int []
-   *           | ty, _, _ -> 
-   *              raise (Typing_error ("action \"" ^ Action.to_string act ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, Types.type_int []))
-   *           end
-   *        | LhsRField (a,f) ->
-   *           begin match List.assoc a tenv.te_vars with
-   *           | TyRecord (_,fs) -> List.assoc f fs 
-   *           | _ -> Misc.fatal_error "Fsm.type_check_action"
-   *           end
-   *        | exception _ -> Misc.fatal_error "Fsm.type_check_action"
-   *        end in
-   *      let t' =
-   *        try type_expression tenv exp
-   *        with Type_error (expr, ty, ty') ->
-   *          raise (Typing_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty')) in
-   *      begin
-   *        try type_check
-   *              ~strict:false
-   *              ("action \"" ^ Action.to_string act ^ "\"")
-   *              ("FSM \"" ^ f.f_name ^ "\"")
-   *              (\* [strict=false] here to accept actions like [v:=1] where [v:int<lo..hi>] or [v:bool] *\)
-   *              t' t
-   *        with
-   *        | Type_error (expr, ty, ty') ->
-   *           raise (Typing_error ("action \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
-   *      end
-   *   | Action.Emit s ->
-   *      let t = try List.assoc s tenv.te_vars with Not_found -> Misc.fatal_error "Fsm.type_check_action" in
-   *      type_check ~strict:true ("action \"" ^ Action.to_string act ^ "\"") ("FSM \"" ^ f.f_name ^ "\"") t TyEvent
-   *   | _ -> () in
-   * let type_check_transition (_,(cond,acts,_,_),_) =
-   *   type_check_condition cond;
-   *   List.iter type_check_action acts in
-   * let type_check_itransition ((_,acts,_,_),_) =
-   *   List.iter type_check_action acts in
-   * (\* Check that all type indexes have been instanciated for IOs and local vars *\)
-   * let check_type kind (id,ty) = 
-   *   match Types.ivars_of ty with
-   *   | [] -> ()
-   *   | vs -> raise (Uninstanciated_type_vars (f.f_name, kind, id, vs)) in
-   * List.iter (check_type "input") (List.map (function (id, (ty,_)) -> id,ty) f.f_inps);
-   * List.iter (check_type "output") (List.map (function (id, (ty,_)) -> id,ty) f.f_outps);
-   * List.iter (check_type "inout") (List.map (function (id, (ty,_)) -> id,ty) f.f_inouts);
-   * List.iter (check_type "variable") (List.map (function (id, ty) -> id,ty) f.f_vars);
-   * (\* Type check conditions and actions on transitions *\)
-   * List.iter type_check_transition (Repr.transitions f.f_repr);
-   * List.iter type_check_itransition (Repr.itransitions f.f_repr) *)
+   *     te_vars = local_tenv.te_vars @ tenv.te_vars;
+   *     te_ctors = local_tenv.te_ctors @ tenv.te_ctors } in *)
+  let tenv = { tenv with te_vars = types_of_fsm_model f @ tenv.te_vars } in
+  type_check_fsm_model tenv f
+  (* type_of_fsm_model f *)
+
+(* Typing FSM instances *)
+
+let types_of_fsm_inst f = 
+  (* Computes the "local" typing environment associated to an FSM instance, containing
+     the types of parameters, inputs, outputs and local variables *)
+  let open Fsm.Static in
+  let mk (id,(ty,_)) = id, ty in
+    List.map mk f.f_params
+  @ f.f_vars
+  @ List.map mk (f.f_inps @ f.f_inouts @ f.f_outps)
+  
+let type_fsm_inst tenv f =
+  (* Type checks an FSM instance *)
+  let open Fsm.Static in
+  (* Check that all type indexes have been instanciated for IOs and local vars *)
+   let check_type kind (id,ty) = 
+     match Types.ivars_of ty with
+     | [] -> ()
+     | vs -> raise (Fsm.Static.Uninstanciated_type_vars (f.f_name, kind, id, vs)) in
+   let type_of (id,(ty,_)) = id, ty in
+   List.iter (check_type "input") (List.map type_of f.f_inps);
+   List.iter (check_type "output") (List.map type_of f.f_outps);
+   List.iter (check_type "inout") (List.map type_of f.f_inouts);
+   List.iter (check_type "variable") f.f_vars;
+   (* Type check conditions and actions on transitions *)
+   let tenv = { tenv with te_vars = types_of_fsm_inst f @ tenv.te_vars } in
+   List.iter (type_check_fsm_transition f.f_name f.f_repr tenv) (Fsm.Repr.transitions f.f_repr);
+   List.iter (type_check_fsm_itransition f.f_name f.f_repr tenv) (Fsm.Repr.itransitions f.f_repr)
 
 (* Typing globals *)
   
-let type_check_stim tenv fsm id ty st = match st with
+let type_check_stim tenv id ty st = match st with
   | Global.ValueChange vcs ->
      List.iter
-       (type_check ~strict:false "stimuli" ("input \"" ^ id ^ "\"") ty) 
+       (type_check "stimuli" ("input \"" ^ id ^ "\"") ty) 
        (List.map (function (_,v) -> v.Expr.v_typ) vcs)
   | _ ->
      ()
 
 (* Typing systems *)
 
-let type_system tenv m =
-  ()
+(* let type_system tenv m =
+ *   () *)
 
 (* Typing environment *)
                            

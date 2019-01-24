@@ -22,7 +22,8 @@ type c_model = {
   c_inps: (string * Types.typ) list;
   c_outps: (string * Types.typ) list;
   c_inouts: (string * Types.typ) list;
-  c_vars: (string * (Types.typ * Expr.value)) list;  
+  (* c_vars: (string * (Types.typ * Expr.value)) list;   *)
+  c_vars: (string * Types.typ) list;  
   c_init: Fsm.state * Action.t list;
   c_body: c_state_case list;
      (* c_body = [case_1;...;case_n]
@@ -39,7 +40,7 @@ and c_state_case = {
 
 and c_transition = Fsm.state * Fsm.TransLabel.t  (* destination state, transition label *)
 
-exception Error of Fsm.inst * string   (* where, message *)
+exception Error of Fsm.Static.inst * string   (* where, message *)
 
 let update_assoc k v l =
   (* If key [k] does not belong to assoc list [l], add it, with associated value [[v]].
@@ -51,13 +52,13 @@ let update_assoc k v l =
 
 let mk_state_case m q = 
   let module EventSet = Set.Make(String) in
-  let ts = Fsm.succs m q in 
+  let ts = Fsm.Static.succs m q in 
   let tss = List.fold_left
     (fun acc ((_,((evs,_),_,_,_)) as t) -> 
       match evs with
         [] -> acc
       | [ev] -> update_assoc ev t acc
-      | _ -> Error.not_implemented "Cmodel: transitions with multiple triggering events")
+      | _ -> Misc.not_implemented "Cmodel: transitions with multiple triggering events")
     []
     ts in
   { st_src = q;
@@ -65,17 +66,17 @@ let mk_state_case m q =
     st_transitions = tss }
 
 let mk_init m =
-  match Fsm.itransitions_of m with
+  match Fsm.Static.itransitions_of m with
       [] -> raise (Error (m, "No initial transition"))
     | [(([],[]),acts,_,_),q] -> q, acts
-    | [_] -> Error.fatal_error ("Cmodel.mk_init: illegal initial transition for FSM " ^ m.Fsm.f_name) (* should not happen *)
+    | [_] -> Misc.fatal_error ("Cmodel.mk_init: illegal initial transition for FSM " ^ m.Fsm.Static.f_name) (* should not happen *)
     | _ -> raise (Error (m, "Multiple initial transitions"))
 
 let c_model_of_fsm m f = 
-  let states = Fsm.states_of f in
+  let states = Fsm.Static.states_of f in
   let open Sysm in
   let open Fsm in
-  { c_name = f.Fsm.f_name;
+  { c_name = f.Fsm.Static.f_name;
     c_states = states;
     c_types = [];
     c_consts = f.f_params;

@@ -2,6 +2,10 @@ open Rfsm
 open Expr
 open Types
 open Action
+
+let mk_binop (op,e1,e2) = mk_expr (EBinop(op, e1, e2))
+let mk_asn (v,e) = Assign (mk_lhs v, e)
+let mk_int n = mk_expr (EInt n)
   
 let chrono = Fsm.build_model
   ~name:"chrono"
@@ -14,24 +18,19 @@ let chrono = Fsm.build_model
     ]
   ~vars:["ctr", type_int []]
   ~trans:[
-    ("Stopped", ("startstop",[]),
-     [Assign (mk_lhs "ctr", mk_expr (EInt 0));
-      (* Assign (mk_lhs "aff", mk_expr(EBool false))], (\* err *\) *)
-      Assign (mk_lhs "aff", mk_expr(EInt 0))],
-     "Running",
-     0);
-    ("Running", ("h",[]),
-     [Assign (mk_lhs "ctr", mk_expr(EBinop("+", mk_expr(EVar "ctr"), mk_expr(EInt 1))));
-      Assign (mk_lhs "aff", mk_expr(EVar "ctr"))],
-     "Running",
-     0);
+    ("Stopped",
+     ("startstop",[]),
+     [mk_asn ("ctr", mk_int 0); mk_asn ("aff", mk_int 0)],
+     "Running", 0);
+    ("Running",
+     ("h",[]),
+     [mk_asn ("ctr", mk_binop("+", mk_var "ctr", mk_int 1)); mk_asn ("aff", mk_var "ctr")],
+     "Running", 0);
     ("Running", ("startstop",[]), [], "Stopped", 0)
     ]
   ~itrans:("Stopped",[])
 
-let t = Typing.type_fsm_model Typing.builtin_tenv chrono
-let _ = Printf.printf "type(chrono)=%s\n" (Types.string_of_type t)
-      
+let _ = Typing.type_fsm_model Typing.builtin_tenv chrono
 let _ = Fsm.dot_output_model "./dot" chrono
 
 let h = Global.GInp ("H", TyEvent, Periodic (10,10,110))
@@ -39,8 +38,7 @@ let startstop = Global.GInp ("StartStop", TyEvent, Sporadic [25; 75])
 let aff = Global.GOutp ("Aff", type_int [])
 
 let c1 = Fsm.build_instance ~name:"c1" ~model:chrono ~params:[] ~ios:[h;startstop;aff]
-let t1 = Typing.type_fsm_inst Typing.builtin_tenv c1
-let _ = Printf.printf "type(chrono)=%s\n" (Types.string_of_type t1)
+let _ = Typing.type_fsm_inst Typing.builtin_tenv c1
 
 let _ = Fsm.dot_output "./dot" c1
 

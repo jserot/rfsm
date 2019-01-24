@@ -11,7 +11,6 @@
 
 (* SystemC backend *)
 
-open Utils
 open Types
 open Printf
 open Cmodel
@@ -72,7 +71,7 @@ let rec string_of_type t = match t with
 
 let string_of_array_size sz = match sz with
   | Types.Index.TiConst n -> string_of_int n
-  | _ -> failwith "Systemc.string_of_array_size"
+  | _ -> Misc.fatal_error "Systemc.string_of_array_size"
                                   
 let string_of_typed_item ?(scope="") (id,ty) =
   let id' = if scope = "" then id else scope ^ "::" ^ id in
@@ -91,13 +90,13 @@ let rec string_of_value v = match v.Expr.v_desc, Types.real_type v.Expr.v_typ wi
 | Expr.Val_fn _, _ -> "<fun>"
 | Expr.Val_unknown, _ -> "<unknown>"
 | Expr.Val_none, _ -> "<none>"
-| Expr.Val_array vs, _ -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
+| Expr.Val_array vs, _ -> "{" ^ Utils.ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
 | Expr.Val_record fs, Types.TyRecord (name, _) -> string_of_record_value (Types.string_of_name name) fs
-| _, _ -> failwith "Systemc.string_of_value"
+| _, _ -> Misc.fatal_error "Systemc.string_of_value"
 
 and string_of_enum_value tyname c = tyname ^ "::" ^ c
 
-and string_of_record_value tyname fs = tyname ^ "(" ^ ListExt.to_string string_of_value "," (List.map snd fs) ^ ")"
+and string_of_record_value tyname fs = tyname ^ "(" ^ Utils.ListExt.to_string string_of_value "," (List.map snd fs) ^ ")"
 
 let string_of_op = function
     "=" -> "=="
@@ -120,13 +119,13 @@ let string_of_expr m e =
     | Expr.EChar c, _ -> string_of_char c
     | Expr.EBool c, _ -> string_of_bool c
     | Expr.EEnum c, Types.TyEnum (n, _) -> string_of_enum_value (Types.string_of_name n) c
-    | Expr.EEnum c, _ -> failwith "Systemc.string_of_expr"
+    | Expr.EEnum c, _ -> Misc.fatal_error "Systemc.string_of_expr"
     | Expr.EVar n, _ -> access n
     | Expr.EBinop (op,e1,e2), _ -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
     | Expr.ECond (e1,e2,e3), _ -> paren level (string_of (level+1) e1 ^ "?" ^ string_of (level+1) e2 ^ ":" ^ string_of (level+1) e3)
     | Expr.EFapp (("~-"|"~-."),[e]), _ -> "-" ^ "(" ^ string_of level e ^ ")"
-    | Expr.EFapp (f,es), _ -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
-    | Expr.EArrExt es, _ -> "{" ^ ListExt.to_string (string_of level) "," es ^ "}"
+    | Expr.EFapp (f,es), _ -> f ^ "(" ^ Utils.ListExt.to_string (string_of level) "," es ^ ")"
+    | Expr.EArrExt es, _ -> "{" ^ Utils.ListExt.to_string (string_of level) "," es ^ "}"
     | Expr.EArr (a,idx), _ -> a ^ "[" ^ string_of level idx ^ "]" (* [a] is always a local var *)
     | Expr.ERecord (n,f), _ -> access n ^ record_access f
     | Expr.EBit (a,idx), _ -> let i = string_of level idx in string_of_int_range (access a) i i
@@ -138,24 +137,24 @@ let string_of_expr m e =
 let string_of_guard m e = string_of_expr m e
 
 let string_of_action m a = match a with
-  | Action.Assign ({l_desc=Action.Var0 id}, expr) ->
+  | Action.Assign ({l_desc=Action.LhsVar id}, expr) ->
      if List.mem_assoc id m.c_outps
      then id ^ ".write(" ^ string_of_expr m expr ^ ")"
      else id ^ "=" ^ string_of_expr m expr
-  | Action.Assign ({l_desc=Action.Var1 (id,idx)}, expr) ->
+  | Action.Assign ({l_desc=Action.LhsArrInd (id,idx)}, expr) ->
      if List.mem_assoc id m.c_outps
-     then failwith "Systemc.string_of_action: assignation of a non-scalar output"
+     then Misc.fatal_error "Systemc.string_of_action: assignation of a non-scalar output"
      else id ^ "[" ^ string_of_expr m idx ^ "]" ^ "=" ^ string_of_expr m expr
-  | Action.Assign ({l_desc=Action.Var2 (id,idx1,idx2)}, expr) ->
+  | Action.Assign ({l_desc=Action.LhsArrRange (id,idx1,idx2)}, expr) ->
      if List.mem_assoc id m.c_outps
-     then failwith "Systemc.string_of_action: assignation of a non-scalar output"
+     then Misc.fatal_error "Systemc.string_of_action: assignation of a non-scalar output"
      else
        let hi = string_of_expr m idx1 in 
        let lo = string_of_expr m idx2 in 
        string_of_int_range id hi lo ^ "=" ^ string_of_expr m expr
-  | Action.Assign ({l_desc=Action.Var3 (id,f)}, expr) ->
+  | Action.Assign ({l_desc=Action.LhsRField (id,f)}, expr) ->
      if List.mem_assoc id m.c_outps
-     then failwith "Systemc.string_of_action: assignation of a non-scalar output"
+     then Misc.fatal_error "Systemc.string_of_action: assignation of a non-scalar output"
      else id ^ record_access f ^ "=" ^ string_of_expr m expr
   | Action.Emit id -> "notify_ev(" ^ id ^ ",\"" ^ id ^ "\")"
   | Action.StateMove (id,s,s') -> "" (* should not happen *)
@@ -174,16 +173,16 @@ let dump_transition oc tab is_first src m (q',(cond,acts,_,_)) =
        fprintf oc "%s%sif ( %s ) {\n"
         tab
         (if is_first then "" else "else ")
-        (ListExt.to_string (string_of_guard m) " && " guards);
+        (Utils.ListExt.to_string (string_of_guard m) " && " guards);
        List.iter (dump_action oc (tab^"  ") m) acts;
        if q' <> src then fprintf oc "%s  %s = %s;\n" tab cfg.sc_state_var q';
        fprintf oc "%s  }\n" tab
   | _, _ ->
-       failwith "Systemc.dump_transition"
+       Misc.fatal_error "Systemc.dump_transition"
 
 let dump_ev_transition oc tab is_first src m (ev,ts) = 
   fprintf oc "%s%sif ( %s.read() ) {\n" tab (if is_first then "" else "else ") ev;
-  ListExt.iter_fst (fun is_first t -> dump_transition oc (tab^"  ") is_first src m t) ts;
+  Utils.ListExt.iter_fst (fun is_first t -> dump_transition oc (tab^"  ") is_first src m t) ts;
   fprintf oc "%s  }\n" tab
 
 let sysc_event e = e ^ ".posedge_event()" 
@@ -200,10 +199,10 @@ let dump_transitions oc g src after evs m tss =
        for i=0 to m.c_ddepth-1 do 
          fprintf oc "%swait(SC_ZERO_TIME);\n" tab
        done;
-       ListExt.iter_fst (fun is_first t -> dump_transition oc tab is_first src m t) ts;
+       Utils.ListExt.iter_fst (fun is_first t -> dump_transition oc tab is_first src m t) ts;
     | _ ->
-       fprintf oc "%swait(%s);\n" tab (ListExt.to_string sysc_event " | " evs);
-       ListExt.iter_fst (fun is_first t -> dump_ev_transition oc tab is_first src m t) tss
+       fprintf oc "%swait(%s);\n" tab (Utils.ListExt.to_string sysc_event " | " evs);
+       Utils.ListExt.iter_fst (fun is_first t -> dump_ev_transition oc tab is_first src m t) tss
    end;
    fprintf oc "%swait(SC_ZERO_TIME);\n" tab;
        (* Waiting at least one delta cycle so that 
@@ -254,13 +253,13 @@ let dump_module_impl g fname m =
 let dump_module_intf g fname m = 
   let oc = open_out fname in
   let modname = String.capitalize_ascii m.c_name in
-  let string_of_ival v =
-    let open Expr in
-    match v.v_desc with
-    | Val_unknown -> ""
-    | Val_array vs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (Array.to_list vs) -> ""
-    | Val_record fs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (List.map snd fs) -> ""
-    | _ -> " = " ^ string_of_value v in
+  (* let string_of_ival v =
+   *   let open Expr in
+   *   match v.v_desc with
+   *   | Val_unknown -> ""
+   *   | Val_array vs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (Array.to_list vs) -> ""
+   *   | Val_record fs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (List.map snd fs) -> ""
+   *   | _ -> " = " ^ string_of_value v in *)
   fprintf oc "#include \"systemc.h\"\n";
   if need_globals g then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
@@ -268,7 +267,7 @@ let dump_module_intf g fname m =
   fprintf oc "{\n";
   fprintf oc "  // Types\n";
   (* if List.length m.c_states > 1 then  *)
-  fprintf oc "  typedef enum { %s } t_%s;\n" (ListExt.to_string (function s -> s) ", " m.c_states) cfg.sc_state_var;
+  fprintf oc "  typedef enum { %s } t_%s;\n" (Utils.ListExt.to_string (function s -> s) ", " m.c_states) cfg.sc_state_var;
   fprintf oc "  // IOs\n";
   List.iter (fun (id,ty) -> fprintf oc "  sc_in<%s> %s;\n" (string_of_type ty) id) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc "  sc_out<%s> %s;\n" (string_of_type ty) id) m.c_outps;
@@ -278,14 +277,15 @@ let dump_module_intf g fname m =
   List.iter (fun (id,(ty,v)) -> fprintf oc "  static const %s;\n" (string_of_typed_item (id,ty))) m.c_consts;
   fprintf oc "  // Local variables\n";
   fprintf oc "  t_%s %s;\n" cfg.sc_state_var cfg.sc_state_var;
-  List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s%s;\n" (string_of_typed_item (id,ty)) (string_of_ival iv)) m.c_vars;
+  (* List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s%s;\n" (string_of_typed_item (id,ty)) (string_of_ival iv)) m.c_vars; *)
+  List.iter (fun (id,ty) -> fprintf oc "  %s;\n" (string_of_typed_item (id,ty))) m.c_vars;
   fprintf oc "\n";
   fprintf oc "  void %s();\n" cfg.sc_proc_name;
   fprintf oc "\n";
   fprintf oc "  SC_CTOR(%s) {\n" modname;
   fprintf oc "    SC_THREAD(%s);\n" cfg.sc_proc_name;
   (* let inp_events = List.filter (function (_, TyEvent) -> true | _ -> false) m.c_inps in *)
-  (* fprintf oc "    sensitive %s;\n" (ListExt.to_string (function (e,_) -> (" << " ^ e ^ ".pos()")) "" inp_events); *)
+  (* fprintf oc "    sensitive %s;\n" (Utils.ListExt.to_string (function (e,_) -> (" << " ^ e ^ ".pos()")) "" inp_events); *)
   fprintf oc "    }\n";
   fprintf oc "};\n";
   Logfile.write fname;
@@ -300,26 +300,31 @@ let dump_inp_module_impl g fname (id,(ty,desc)) =
   fprintf oc "\n";
   let open Sysm in
   begin match desc with
-    | MInp ({sd_comprehension=Sporadic ts}, _) ->
-       fprintf oc "static int _dates[%d] = { %s };\n" (List.length ts) (ListExt.to_string string_of_int ", " ts)
-    | MInp ({sd_comprehension=Periodic (p,t1,t2)}, _) ->
+    (* | MInp ({sd_comprehension=Sporadic ts}, _) -> *)
+    | MInp (Sporadic ts, _) ->
+       fprintf oc "static int _dates[%d] = { %s };\n" (List.length ts) (Utils.ListExt.to_string string_of_int ", " ts)
+    (* | MInp ({sd_comprehension=Periodic (p,t1,t2)}, _) -> *)
+    | MInp (Periodic (p,t1,t2), _) ->
        fprintf oc "typedef struct { int period; int t1; int t2; } _periodic_t;\n\n";
        fprintf oc "static _periodic_t _clk = { %d, %d, %d };\n" p t1 t2
-    | MInp ({sd_comprehension=ValueChange []}, _) ->
+    (* | MInp ({sd_comprehension=ValueChange []}, _) -> *)
+    | MInp (ValueChange [], _) ->
        ()
-    | MInp ({sd_comprehension=ValueChange vcs}, _) ->
+    (* | MInp ({sd_comprehension=ValueChange vcs}, _) -> *)
+    | MInp (ValueChange vcs, _) ->
        (* let ty =
         *   try type_of_value (snd (List.hd vcs))
         *   with Type_of_value -> Error.not_implemented "SystemC input generator with non-int values" in *)
        let string_of_vc (t,v) = "{" ^ string_of_int t ^ "," ^ string_of_value v ^ "}" in
        fprintf oc "typedef struct { int date; %s val; } _vc_t;\n" (string_of_type ty);
-       fprintf oc "static _vc_t _vcs[%d] = { %s };\n" (List.length vcs) (ListExt.to_string string_of_vc ", " vcs)
+       fprintf oc "static _vc_t _vcs[%d] = { %s };\n" (List.length vcs) (Utils.ListExt.to_string string_of_vc ", " vcs)
     | _ ->
-       failwith "Systemc.dump_inp_module_impl" (* should not happen *)
+       Misc.fatal_error "Systemc.dump_inp_module_impl" (* should not happen *)
   end;
   fprintf oc "\n";
   begin match desc with
-    | MInp ({sd_comprehension=Sporadic ts}, _) ->
+    (* | MInp ({sd_comprehension=Sporadic ts}, _) -> *)
+    | MInp (Sporadic ts, _) ->
        fprintf oc "void %s::%s()\n" modname cfg.sc_inp_proc_name;
        fprintf oc "{\n";
        fprintf oc "  int _i=0, _t=0;\n";
@@ -330,7 +335,8 @@ let dump_inp_module_impl g fname (id,(ty,desc)) =
        fprintf oc "    _i++;\n";
        fprintf oc "    }\n";
        fprintf oc "};\n";
-    | MInp ({sd_comprehension=Periodic (p,t1,t2)}, _) ->
+    (* | MInp ({sd_comprehension=Periodic (p,t1,t2)}, _) -> *)
+    | MInp (Periodic (p,t1,t2), _) ->
        fprintf oc "void %s::%s(void)\n" modname cfg.sc_inp_proc_name;
        fprintf oc "{\n";
        fprintf oc "  t=0;\n";
@@ -349,9 +355,11 @@ let dump_inp_module_impl g fname (id,(ty,desc)) =
        fprintf oc "  wait(_clk.period/2, SC_NS);\n";
        fprintf oc "  t += _clk.period;\n";
        fprintf oc "};\n"
-    | MInp ({sd_comprehension=ValueChange []}, _) ->
+    (* | MInp ({sd_comprehension=ValueChange []}, _) -> *)
+    | MInp (ValueChange [], _) ->
        ()
-    | MInp ({sd_comprehension=ValueChange vcs}, _) ->
+    (* | MInp ({sd_comprehension=ValueChange vcs}, _) -> *)
+    | MInp (ValueChange vcs, _) ->
        fprintf oc "void %s::%s()\n" modname cfg.sc_inp_proc_name;
        fprintf oc "{\n";
        fprintf oc "  int _i=0, _t=0;\n";
@@ -365,7 +373,7 @@ let dump_inp_module_impl g fname (id,(ty,desc)) =
        fprintf oc "    }\n";
        fprintf oc "};\n";
     | _ ->
-       failwith "Systemc.dump_inp_module_impl" (* should not happen *)
+       Misc.fatal_error "Systemc.dump_inp_module_impl" (* should not happen *)
   end;
   Logfile.write fname;
   close_out oc
@@ -382,7 +390,8 @@ let dump_inp_module_intf g fname (id,(ty,desc)) =
   fprintf oc "  sc_out<%s> %s;\n" (string_of_type ty) id;
   fprintf oc "\n";
   begin match desc with
-  | Sysm.MInp ({sd_comprehension=Periodic _}, _) -> (* For clock processes *)
+  (* | Sysm.MInp ({sd_comprehension=Periodic _}, _) -> (\* For clock processes *\) *)
+  | Sysm.MInp (Periodic _, _) -> (* For clock processes *)
      fprintf oc "  void %s();\n" cfg.sc_clk_step_proc_name;
      fprintf oc "  int t;\n"
   | _ -> ()
@@ -399,7 +408,7 @@ let dump_inp_module_intf g fname (id,(ty,desc)) =
 (* Dumping global type declarations, functions and constants *)
 
 let dump_record_type_defn oc name fields = 
-  let mk f sep fs = ListExt.to_string f sep fs in
+  let mk f sep fs = Utils.ListExt.to_string f sep fs in
   fprintf oc "class %s {\n" name;
   fprintf oc "public:\n";
   fprintf oc "  struct { %s } repr;\n"
@@ -428,7 +437,7 @@ let dump_enum_type_defn oc name vs =
   fprintf oc "class %s {\n" name;
   fprintf oc "public:\n";
   fprintf oc "  enum values { %s };\n"
-    (ListExt.to_string (function (v,i) -> v ^ "=" ^ string_of_int i) "," (List.mapi (fun i v -> v,i) vs));
+    (Utils.ListExt.to_string (function (v,i) -> v ^ "=" ^ string_of_int i) "," (List.mapi (fun i v -> v,i) vs));
   fprintf oc "  int repr; // SystemC 2.3 does not allow tracing of enumerated values :(\n";
   fprintf oc "  static const char* names[%d];\n" (List.length vs);
   fprintf oc "  %s() { };\n" name;
@@ -458,7 +467,7 @@ let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
     fprintf oc "%s %s (%s);\n"
       (string_of_type tr)
       id 
-      (ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
+      (Utils.ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
 | _ -> ()
 
 let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
@@ -470,7 +479,7 @@ let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
     fprintf oc "%s %s (%s) { return %s; }\n"
       (string_of_type tr)
       id 
-      (ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
+      (Utils.ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
       (string_of_expr Cmodel.empty body)
 | _ -> ()
 
@@ -491,7 +500,7 @@ let dump_enum_type_names oc = function
      fprintf oc "const char* %s::names[%d] = { %s };\n" 
        (Types.string_of_name nm)
        (List.length cs)
-       (ListExt.to_string (function c -> "\"" ^ c ^ "\"") ", " cs)
+       (Utils.ListExt.to_string (function c -> "\"" ^ c ^ "\"") ", " cs)
   | _ -> ()
 
 let dump_globals_impl dir prefix m =
@@ -522,7 +531,7 @@ let dump_testbench_impl fname m =
   fprintf oc "#include \"systemc.h\"\n";
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
   List.iter (function (id,_) -> fprintf oc "#include \"%s%s.h\"\n" cfg.sc_inpmod_prefix id) m.m_inputs;
-  List.iter (function f -> fprintf oc "#include \"%s.h\"\n" f.Fsm.f_name) m.m_fsms;
+  List.iter (function f -> fprintf oc "#include \"%s.h\"\n" f.Fsm.Static.f_name) m.m_fsms;
   fprintf oc "\n";
   fprintf oc "int sc_main(int argc, char *argv[])\n";
   fprintf oc "{\n";
@@ -539,7 +548,7 @@ let dump_testbench_impl fname m =
    m.m_shared;
   if cfg.sc_trace then
     List.iter
-      (function f -> fprintf oc "  sc_signal<int> %s;\n" (f.Fsm.f_name ^ "_state"))
+      (function f -> fprintf oc "  sc_signal<int> %s;\n" (f.Fsm.Static.f_name ^ "_state"))
       m.m_fsms;  
   (* Trace file *)
   fprintf oc "  sc_trace_file *trace_file;\n";
@@ -550,7 +559,7 @@ let dump_testbench_impl fname m =
    (m.m_inputs @ m.m_outputs @ m.m_shared);
   if cfg.sc_trace then
     List.iter
-      (function f -> let id = f.Fsm.f_name ^ "_state" in fprintf oc "  sc_trace(trace_file, %s, \"%s\");\n" id id)
+      (function f -> let id = f.Fsm.Static.f_name ^ "_state" in fprintf oc "  sc_trace(trace_file, %s, \"%s\");\n" id id)
       m.m_fsms;  
   fprintf oc "\n";
   (* Input modules *)
@@ -569,7 +578,7 @@ let dump_testbench_impl fname m =
       fprintf oc "  %s %s(\"%s\");\n" (modname f.f_name) f.f_name f.f_name;
       fprintf oc "  %s(%s%s);\n"
               f.f_name
-              (ListExt.to_string actual_name "," (m.c_inps @ m.c_outps @ m.c_inouts))
+              (Utils.ListExt.to_string actual_name "," (m.c_inps @ m.c_outps @ m.c_inouts))
               (if cfg.sc_trace then "," ^ f.f_name ^ "_state" else ""))
     m.m_fsms;
   fprintf oc "\n";
@@ -588,28 +597,28 @@ let dump_testbench_impl fname m =
 let dump_makefile ?(dir="./systemc") m =
   let fname = dir ^ "/" ^ "Makefile" in
   let oc = open_out fname in
-  let modname suff f = f.Fsm.f_name ^ suff in
+  let modname suff f = f.Fsm.Static.f_name ^ suff in
   let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
   let open Sysm in
   fprintf oc "include %s/etc/Makefile.systemc\n\n" cfg.sc_lib_dir;
   let globals suffix = if need_globals m then cfg.sc_globals_name ^ suffix else "" in
   (* fprintf oc "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
   List.iter
-    (function f -> fprintf oc "%s.o: %s.h %s.cpp %s\n" f.Fsm.f_name f.Fsm.f_name f.Fsm.f_name (globals ".h"))
+    (function f -> fprintf oc "%s.o: %s.h %s.cpp %s\n" f.Fsm.Static.f_name f.Fsm.Static.f_name f.Fsm.Static.f_name (globals ".h"))
     m.m_fsms;
   List.iter
     (function inp -> let name = imodname "" inp in fprintf oc "%s.o: %s.h %s.cpp\n" name name name)
     m.m_inputs;
   fprintf oc "%s.o: %s %s %s.cpp\n"
           cfg.sc_tb_name
-          (ListExt.to_string (modname ".h")  " " m.m_fsms)
-          (ListExt.to_string (imodname ".h")  " " m.m_inputs)
+          (Utils.ListExt.to_string (modname ".h")  " " m.m_fsms)
+          (Utils.ListExt.to_string (imodname ".h")  " " m.m_inputs)
           cfg.sc_tb_name;
   let objs = sprintf "%s.o %s %s %s %s.o"
             (cfg.sc_lib_name |> Filename.concat "systemc" |> Filename.concat cfg.sc_lib_dir)
             (globals ".o")
-            (ListExt.to_string (modname ".o")  " " m.m_fsms)
-            (ListExt.to_string (imodname ".o")  " " m.m_inputs)
+            (Utils.ListExt.to_string (modname ".o")  " " m.m_fsms)
+            (Utils.ListExt.to_string (imodname ".o")  " " m.m_inputs)
             cfg.sc_tb_name in
   fprintf oc "%s: %s\n" cfg.sc_tb_name  objs;
   fprintf oc "\t$(LD) $(LDFLAGS) -o %s %s -lsystemc  2>&1 | c++filt\n" cfg.sc_tb_name objs;
@@ -651,7 +660,7 @@ let dump_makefile ?(dir="./systemc") m =
 
 let dump_fsm m ?(prefix="") ?(dir="./systemc") fsm =
   let f = Cmodel.c_model_of_fsm m fsm in
-  let prefix = match prefix with "" -> fsm.Fsm.f_name | p -> p in
+  let prefix = match prefix with "" -> fsm.Fsm.Static.f_name | p -> p in
   dump_module_intf m (dir ^ "/" ^ prefix ^ ".h") f;
   dump_module_impl m (dir ^ "/" ^ prefix ^ ".cpp") f
 
@@ -673,7 +682,7 @@ let dump_testbench ?(name="") ?(dir="./systemc") m =
 let check_allowed m =
   match Fsm.cfg.Fsm.act_sem with
   | Fsm.Sequential -> ()
-  | Fsm.Synchronous -> Error.not_implemented "SystemC: synchronous actions"
+  | Fsm.Synchronous -> Misc.not_implemented "SystemC: synchronous actions"
 
 (* let dump_lib dir = *)
 (*   dump_lib_intf (dir ^ "/" ^ cfg.sc_lib_name ^ ".h"); *)

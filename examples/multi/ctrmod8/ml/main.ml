@@ -2,8 +2,10 @@ open Rfsm
 open Expr
 open Types
 open Action
-  
+
 let t_bit = type_int [0; 1]
+let mk_asn (v,e) = Assign (mk_lhs v, e)
+let mk_int n = mk_expr (EInt n)
           
 let ctrmod2 = Fsm.build_model
   ~name:"ctrmod2"
@@ -16,10 +18,10 @@ let ctrmod2 = Fsm.build_model
     ]
   ~vars:[]
   ~trans:[
-    ("E0", ("h",[]), [Assign (mk_lhs "s", mk_expr (EInt 1))], "E1", 0);
-    ("E1", ("h",[]), [Emit "r"; Assign (mk_lhs "s", mk_expr (EInt 0))], "E0", 0);
+    ("E0", ("h",[]), [mk_asn ("s", mk_int 1)], "E1", 0);
+    ("E1", ("h",[]), [Emit "r"; mk_asn ("s", mk_int 0)], "E0", 0);
     ]
-  ~itrans:("E0",[Assign (mk_lhs "s", mk_expr (EInt 0))])
+  ~itrans:("E0",[mk_asn ("s", mk_int 0)])
 
 let rec pow2 n = if n=0 then 1 else 2 * pow2 (n-1)
            
@@ -33,12 +35,12 @@ let build_counter n =
                      ~model:ctrmod2
                      ~params:[]
                      ~ios:[if i=0 then h else r.(i-1); s.(i); r.(i)]) in
-  Sysm.build ~name:("ctrmod" ^ string_of_int (pow2 n)) ~fsms:(Array.to_list c)
+  Sysm.build ~name:("ctrmod" ^ string_of_int (pow2 n)) (Array.to_list c)
 
 let p = build_counter 3
 
 let _ = Sysm.dot_output "./dot" p
 
-let c, rs = Simul.run p
-let _ = List.iter Simul.dump_reaction rs
+(* let c, rs = Simul.run p
+ * let _ = List.iter Simul.dump_reaction rs *)
 

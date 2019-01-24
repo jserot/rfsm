@@ -1,6 +1,10 @@
-noide;general;-dump_model;Arg.Unit;set_dump_model;dump model in text format to stdout
+noide;general;-lib;Arg.String;set_lib_dir;set location of the support library (default: /usr/local/rfsm/lib)
+noide;general;-dump_static;Arg.Unit;set_dump_static;dump static representation of program to stdout
 noide;general;-target_dir;Arg.String;set_target_dir;set target directory (default: .)
 noide;general;-dot;Arg.Unit;set_dot;generate top-level .dot representation(s)
+noide;general;-ctask;Arg.Unit;set_ctask;generate CTask code
+noide;general;-systemc;Arg.Unit;set_systemc;generate SystemC code
+noide;general;-vhdl;Arg.Unit;set_vhdl;generate VHDL code
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
 noide;general;-main;Arg.String;set_main_name;set main model name (default: name of the last given input file)
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
@@ -8,3 +12,13 @@ ide;dot;-dot_fsm_insts;Arg.Unit;set_dot_fsm_insts;generate .dot representation o
 ide;dot;-dot_fsm_models;Arg.Unit;set_dot_fsm_models;generate .dot representation of all FSM models
 ide;dot;-dot_actions_nl;Arg.Unit;set_dot_actions_nl;write actions with with a separating newline
 ide;general;-synchronous_actions;Arg.Unit;set_synchronous_actions;interpret actions synchronously
+ide;systemc;-sc_time_unit;Arg.String;set_systemc_time_unit;set time unit for the SystemC test-bench (default: SC_NS)
+ide;systemc;-sc_trace;Arg.Unit;set_sc_trace;set trace mode for SystemC backend (default: false)
+ide;systemc;-stop_time;Arg.Int;set_stop_time;set stop time for the SystemC and VHDL test-bench (default: 100)
+ide;systemc;-sc_double_float;Arg.Unit;set_sc_double_float;implement float type as C++ double instead of float (default: false)
+ide;vhdl;-vhdl_trace;Arg.Unit;set_vhdl_trace;set trace mode for VHDL backend (default: false)
+ide;vhdl;-vhdl_time_unit;Arg.String;set_vhdl_time_unit;set time unit for the VHDL test-bench
+ide;vhdl;-vhdl_ev_duration;Arg.Int;set_vhdl_ev_duration;set duration of event signals (default: 1 ns)
+ide;vhdl;-vhdl_rst_duration;Arg.Int;set_vhdl_ev_duration;set duration of reset signals (default: 1 ns)
+ide;vhdl;-vhdl_numeric_std;Arg.Unit;set_vhdl_use_numeric_std;translate integers as numeric_std [un]signed (default: false)
+ide;vhdl;-vhdl_bool_as_bool;Arg.Unit;set_vhdl_bool_as_bool;translate all booleans as boolean (default: false)

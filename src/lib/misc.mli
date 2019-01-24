@@ -12,8 +12,11 @@
 (** Misc *)
 
 exception Internal_error of string
+exception Not_implemented of string
 
-val fatal_error: string -> 'a
+val fatal_error : string -> 'a
+val not_implemented : string -> 'a
+val warning : string -> unit
 
 val add_assoc: ('k * 'v) list -> 'k * 'v -> ('k * 'v) list
   (** [add_assoc (k,v) l] returns the assocation list obtained by adding pair [(k,v)] to [l] when key [k]

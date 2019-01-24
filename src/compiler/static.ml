@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(* Abstract syntax -> internal models *)
+type program = Sysm.t
 
 open Syntax
 
@@ -24,26 +24,26 @@ let rec mk_bool_expr e = match e.Expr.e_desc with
 let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } = 
   let mk_typed what (id,te) =
     if List.mem_assoc id tenv.Typing.te_ctors
-    then Error.warning (Printf.sprintf "declaration of %s %s in FSM model %s shadows enum value" what id f.fd_name);
+    then Misc.warning (Printf.sprintf "declaration of %s %s in FSM model %s shadows enum value" what id f.fd_name);
     id, type_of_type_expression tenv te in 
   let local_types =
       List.map (function (dir,(id,te)) -> (id, type_of_type_expression tenv te)) f.fd_ios
     @ List.map (function (id,te) -> id, type_of_type_expression tenv te) f.fd_vars in
   let type_of id =
     try List.assoc id local_types
-    with Not_found -> failwith ("Intern.mk_fsm_model: cannot retrieve type for identifier " ^ id) in
+    with Not_found -> Misc.fatal_error ("Static.mk_fsm_model: cannot retrieve type for identifier " ^ id) in
   let pp_action a = match a with
     (* Replace all assignations [v:=0/1], where [v:bool] by [v:=false/true] *)
-    | Action.Assign ({l_desc=Var0 v}, e) ->
+    | Action.Assign ({l_desc=LhsVar v}, e) ->
        begin
          match type_of v with
-         | Types.TyBool -> Action.Assign ({l_desc=Var0 v}, mk_bool_expr e)
+         | Types.TyBool -> Action.Assign ({l_desc=LhsVar v}, mk_bool_expr e)
          | _ -> a
        end
-    | Action.Assign ({l_desc=Var1 (v,i)}, e) ->
+    | Action.Assign ({l_desc=LhsArrInd (v,i)}, e) ->
        begin
          match type_of v with
-         | Types.TyArray (_, Types.TyBool) -> Action.Assign ({l_desc=Var1 (v,i)}, mk_bool_expr e)
+         | Types.TyArray (_, Types.TyBool) -> Action.Assign ({l_desc=LhsArrInd (v,i)}, mk_bool_expr e)
          | _ -> a
        end
     | _ -> a in
@@ -60,34 +60,41 @@ let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } =
     | _ -> e in
   let mk_cond c = match c.cond_desc with
       [ev],guards -> ev, List.map pp_expr guards
-    | _ -> Error.fatal_error "Intern.mk_fsm_model" in
+    | _ -> Misc.fatal_error "Intern.mk_fsm_model" in
   let mk_prio p = if p then 1 else 0 in
   let mk_act a = pp_action a.act_desc in
-  Fsm.build_model
+  let m = Fsm.build_model
     ~name:f.fd_name
     ~states:f.fd_states
     ~params:(List.map (mk_typed "parameter") f.fd_params)
     ~ios:(List.map (function (dir,desc) -> let id,ty = mk_typed "input/output" desc in dir,id,ty) f.fd_ios)
     ~vars:(List.map (mk_typed "variable") f.fd_vars)
     ~trans:(List.map (function (s,cond,acts,s',p) -> s, mk_cond cond, List.map mk_act acts, s', mk_prio p) f.fd_trans)
-    ~itrans:(let q0,acts = f.fd_itrans in q0, List.map mk_act acts)
+    ~itrans:(let q0,acts = f.fd_itrans in q0, List.map mk_act acts) in
+  Typing.type_fsm_model tenv m;
+  m
+
+exception Unbound_fsm of Location.location * string
+exception Unbound_global of Location.location * string
+exception Fsm_mismatch of string * Location.location * string
 
 let mk_fsm_inst tenv cenv models globals { fi_desc=f; fi_loc=loc } = 
   let model =
-    try List.find (function m -> m.Fsm.fm_name = f.fi_model) models
-    with Not_found -> Error.unbound_fsm loc f.fi_model in  
+    try List.find (function m -> m.Fsm.Static.fm_name = f.fi_model) models
+    with Not_found -> raise (Unbound_fsm (loc,f.fi_model)) in  
   let params =
-    try List.map2 (fun (p,ty) e -> p, Eval.eval cenv e) model.Fsm.fm_params f.fi_params
-    with Invalid_argument _ -> Error.fsm_mismatch "parameter(s)" loc f.fi_name in
+    try List.map2 (fun (p,ty) e -> p, Eval.eval cenv e) model.Fsm.Static.fm_params f.fi_params
+    with Invalid_argument _ -> raise (Fsm_mismatch ("parameter(s)",loc,f.fi_name)) in
   let mk_global id =
     try List.assoc id globals
-    with Not_found -> Error.unbound_global loc id in
-  Fsm.build_instance
-      ~tenv:tenv
+    with Not_found -> raise (Unbound_global (loc,id)) in
+  let m = Fsm.Static.build_instance
       ~name:f.fi_name
       ~model:model
       ~params:params
-      ~ios:(List.map mk_global f.fi_args)
+      ~ios:(List.map mk_global f.fi_args) in
+  Typing.type_fsm_inst tenv m;
+  m
 
 let mk_bool_val v = match v.Expr.v_desc with
     | Expr.Val_int 0 -> Expr.mk_bool false
@@ -98,17 +105,16 @@ let pp_value_change ty (t,v) = match ty with
   | Types.TyBool -> t, mk_bool_val v
   | _ -> t, v
 
-let mk_stim_desc ty = function
-  | Periodic (p,t1,t2) -> Fsm.Periodic (p,t1,t2)
-  | Sporadic ts -> Fsm.Sporadic ts
-  | ValueChange vcs -> Fsm.ValueChange (List.map (pp_value_change ty) vcs)
+let mk_stim_desc ty sd = match sd with
+  | Global.ValueChange vcs -> Global.ValueChange (List.map (pp_value_change ty) vcs)
+  | _ -> sd
                      
 let mk_global tenv { g_desc = g; g_loc = loc } = 
   let ty = type_of_type_expression tenv g.gd_type in
   match g.gd_desc with
-  | GInp stim -> g.gd_name, Fsm.GInp (g.gd_name, ty, mk_stim_desc ty stim.stim_desc)
-  | GOutp -> g.gd_name, Fsm.GOutp (g.gd_name, ty)
-  | GShared -> g.gd_name, Fsm.GShared (g.gd_name, ty)
+  | GInp stim -> g.gd_name, Global.GInp (g.gd_name, ty, mk_stim_desc ty stim.stim_desc)
+  | GOutp -> g.gd_name, Global.GOutp (g.gd_name, ty)
+  | GShared -> g.gd_name, Global.GShared (g.gd_name, ty)
 
 let mk_type_defn tenv { td_desc = d; td_loc = loc } =
   let open Typing in
@@ -129,10 +135,10 @@ let type_of_function tenv fd =
   let tenv' = { tenv with te_vars = ty_args @ tenv.te_vars } in
   let ty_body =
     try Typing.type_expression tenv' fd.ff_body.e_desc
-    with Typing.Typing_error (_,t,t') -> raise (Typing.Type_error ("body", "function \"" ^ fd.ff_name ^ "\"", t, t')) in
+    with Typing.Typing_error (_,_,t,t') -> raise (Typing.Typing_error ("body", "function \"" ^ fd.ff_name ^ "\"", t, t')) in
   let ty_result = type_of_type_expression tenv fd.ff_res in
   begin try Types.unify ty_body ty_result
-  with Types.TypeConflict _ -> raise (Typing.Type_error ("result", "function \"" ^ fd.ff_name ^ "\"", ty_body, ty_result)) end;
+  with Types.TypeConflict _ -> raise (Typing.Typing_error ("result", "function \"" ^ fd.ff_name ^ "\"", ty_body, ty_result)) end;
   Types.TyArrow (Types.TyProduct (List.map snd ty_args), ty_result)
 
 exception Incomplete_record of string * Expr.value * Types.typ 
@@ -160,8 +166,8 @@ let type_of_constant tenv cd =
     retype_value ty cd.cc_val; 
     ty
   with
-  | Typing.Typing_error (_,t,t') 
-  | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("expression", "constant \"" ^ cd.cc_name ^ "\"", t, t'))
+  | Typing.Typing_error (_,_,t,t') 
+  | Types.TypeConflict (t,t') -> raise (Typing.Typing_error ("expression", "constant \"" ^ cd.cc_name ^ "\"", t, t'))
 
           
 let type_of_input tenv gd =
@@ -172,8 +178,8 @@ let type_of_input tenv gd =
        begin
          try List.iter (fun (_,v) -> retype_value ty v) vcs;
          with
-         | Typing.Typing_error (_,t,t') 
-         | Types.TypeConflict (t,t') -> raise (Typing.Type_error ("stimulus", "input \"" ^ gd.gd_name ^ "\"", t, t'))
+         | Typing.Typing_error (_,_,t,t') 
+         | Types.TypeConflict (t,t') -> raise (Typing.Typing_error ("stimulus", "input \"" ^ gd.gd_name ^ "\"", t, t'))
          | Incomplete_record (_,v,ty) -> raise (Incomplete_record ("input \"" ^ gd.gd_name ^ "\"", v, ty))
        end
     |  _ -> ()
@@ -206,17 +212,15 @@ let mk_inp_defn tenv { g_desc = gd } = match gd.gd_desc with
 let mk_const_env env (id, (ty, desc)) = match desc with
   | Sysm.MConst v -> (id,v) :: env
   | _ -> env
-
-let build_system name p = 
+             
+let elaborate name p = 
   let tenv =
        Typing.builtin_tenv
-    |> Misc.left_fold mk_type_defn p.p_type_decls
-    |> Misc.left_fold mk_cst_defn p.p_cst_decls
-    |> Misc.left_fold mk_fn_defn p.p_fn_decls in
+    |> Misc.fold_left mk_type_defn p.p_type_decls
+    |> Misc.fold_left mk_cst_defn p.p_cst_decls
+    |> Misc.fold_left mk_fn_defn p.p_fn_decls in
   let _ = tenv
-    |> Misc.left_fold mk_inp_defn p.p_globals in
-  (* let _ = Typing.dump_tenv stdout tenv in *)
-  (* let _ = Typing.dump_tenv stdout tenv' in *)
+    |> Misc.fold_left mk_inp_defn p.p_globals in
   let models = List.map (mk_fsm_model tenv) p.p_fsm_models in
   let globals = List.map (mk_global tenv) p.p_globals in
   let gtyps = List.rev (List.filter is_global_type_defn tenv.te_defns) in 
@@ -224,6 +228,9 @@ let build_system name p =
   let cenv = List.fold_left mk_const_env [] gcsts in
   let gfns = List.map (mk_global_fn tenv) p.p_fn_decls in
   let fsms = List.map (mk_fsm_inst tenv cenv models globals) p.p_fsm_insts in
-  let m = Sysm.build name gtyps gfns gcsts fsms in
-  (* let _ = Sysm.dump stdout m in *)
+  let m = Sysm.build ~name ~gtyps ~gfns ~gcsts fsms in
   m
+
+let dot_output = Sysm.dot_output
+
+let dump = Sysm.dump

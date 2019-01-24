@@ -145,4 +145,4 @@ and eval_cast ty v =
   | Val_float _, Types.TyFloat -> v
   | Val_float x, Types.TyInt _ -> mk (Val_int (int_of_float x))
   | Val_char x, Types.TyInt _ -> mk (Val_int (int_of_char x))
-  | _, _ -> failwith "Eval.eval_cast" (* should not happen *)
+  | _, _ -> Misc.fatal_error "Eval.eval_cast" (* should not happen *)

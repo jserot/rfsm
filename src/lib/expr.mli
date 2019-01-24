@@ -55,6 +55,7 @@ module VarSet : Set.S with type elt = string
 exception Out_of_bound of string * int  (** array name, index value *)
                         
 val mk_expr : e_desc -> t
+val mk_var : string -> t
   
 val mk_val : Types.typ -> e_val -> value
 val mk_array : value list -> value

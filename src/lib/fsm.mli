@@ -24,7 +24,9 @@ type fsm_config = {
 
 val cfg: fsm_config
 
-exception Internal_error of string (** where *)
+exception Undef_symbol of string * string * string (** FSM, kind, name *)
+exception Invalid_state of string * string (** FSM, id *)
+exception Typing_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
 
 (** States *)
 
@@ -79,7 +81,7 @@ module Static : sig
       fm_ios : (string * (Types.dir * Types.typ)) list;      (** i/os *)
       fm_vars : (string * Types.typ) list;                   (** internal variables *)
       fm_repr : Repr.t;                                      (** underlying LTS *)
-      mutable fm_typ : Types.typ;
+      (* mutable fm_typ : Types.typ; *)
     }
 
   (** FSM instance *)
@@ -134,10 +136,9 @@ module Static : sig
 
   (** {3 Exceptions} *)
 
-  exception Undef_symbol of string * string * string (** FSM, kind, name *)
-  exception Invalid_state of string * string (** FSM, id *)
   exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
   exception Invalid_parameter of string * string (** FSM, name *)
+  exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
 
   (** {3 Printers} *)
 

@@ -110,14 +110,14 @@ let is_fsm_model_decl = function Syntax.FsmModelDecl _ -> true | _ -> false
 let is_fsm_inst_decl = function Syntax.FsmInstDecl _ -> true | d -> false
 let is_global_decl = function Syntax.GlobalDecl _ -> true | _ -> false
 
-let type_decl_of = function Syntax.TypeDecl d -> d | _ -> failwith "Main_parser.type_decl_of"
-let cst_decl_of = function Syntax.CstDecl d -> d  | _ -> failwith "Main_parser.type_decl_of"
-let fn_decl_of = function Syntax.FnDecl d -> d  | _ -> failwith "Main_parser.type_decl_of"
-let fsm_model_decl_of = function Syntax.FsmModelDecl d -> d | _ -> failwith "Main_parser.type_decl_of"
-let fsm_inst_decl_of = function Syntax.FsmInstDecl d -> d | _ -> failwith "Main_parser.type_decl_of"
+let type_decl_of = function Syntax.TypeDecl d -> d | _ -> Misc.fatal_error "Main_parser.type_decl_of"
+let cst_decl_of = function Syntax.CstDecl d -> d  | _ -> Misc.fatal_error "Main_parser.type_decl_of"
+let fn_decl_of = function Syntax.FnDecl d -> d  | _ -> Misc.fatal_error "Main_parser.type_decl_of"
+let fsm_model_decl_of = function Syntax.FsmModelDecl d -> d | _ -> Misc.fatal_error "Main_parser.type_decl_of"
+let fsm_inst_decl_of = function Syntax.FsmInstDecl d -> d | _ -> Misc.fatal_error "Main_parser.type_decl_of"
 let globals_decl_of = function Syntax.GlobalDecl
     d -> Syntax.split_global_mdecl d
-  | _ -> failwith "Main_parser.type_decl_of"
+  | _ -> Misc.fatal_error "Main_parser.type_decl_of"
 %}
 
 %%
@@ -326,11 +326,11 @@ global:
 
 stimuli:
   | PERIODIC LPAREN p=INT COMMA s=INT COMMA d=INT RPAREN
-      { mk_stim_decl ($symbolstartofs,$endofs) (Syntax.Periodic(p,s,d)) }
+      { mk_stim_decl ($symbolstartofs,$endofs) (Global.Periodic(p,s,d)) }
   | SPORADIC ts=paren(separated_list(COMMA,INT))
-      { mk_stim_decl ($symbolstartofs,$endofs) (Syntax.Sporadic(ts)) }
+      { mk_stim_decl ($symbolstartofs,$endofs) (Global.Sporadic(ts)) }
   | VALUE_CHANGES vcs=paren(separated_list(COMMA,value_change))
-      { mk_stim_decl ($symbolstartofs,$endofs) (Syntax.ValueChange(vcs)) }
+      { mk_stim_decl ($symbolstartofs,$endofs) (Global.ValueChange(vcs)) }
   
 value_change:
   | t=INT COLON v=const { (t,v) }

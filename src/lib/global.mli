@@ -26,3 +26,7 @@ and stim_desc =
 and fn_desc = string list * Expr.t          (** Args, body *)
 
 val global_id: global -> string
+
+(** {2 Printers} *)
+
+val string_of_stim: stim_desc -> string

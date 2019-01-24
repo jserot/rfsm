@@ -9,7 +9,6 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Utils
 open Lascar
 
 type act_semantics =  (** Interpretation of actions associated to transitions *)
@@ -26,7 +25,9 @@ let cfg = {
     act_sem = Sequential;
     }
 
-exception Internal_error of string (** where *)
+exception Undef_symbol of string * string * string (** FSM, kind, name *)
+exception Invalid_state of string * string (** FSM, id *)
+exception Typing_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
 
 module TransLabel = struct
   type t = Condition.t * Action.t list * int * bool
@@ -40,11 +41,11 @@ module TransLabel = struct
       | Sequential -> ";" ^ cfg.act_sep 
       | Synchronous -> "," ^ cfg.act_sep in
     let length_of a = String.length (Action.to_string a) in
-    let s2 = ListExt.to_string Action.to_string sep acts in
+    let s2 = Utils.ListExt.to_string Action.to_string sep acts in
     let l2 = match cfg.act_sep, acts with
       | "\\n", a::rest -> List.fold_left (fun acc a -> max acc (length_of a)) (length_of a) rest
       | _, _ -> String.length s2 in
-    let l = String.make (Misc.max (String.length s1) l2) '_' in
+    let l = String.make (Utils.Misc.max (String.length s1) l2) '_' in
     if s2 <> ""
     then Printf.sprintf "%s\\n%s\\n%s" s1 l s2 
     else Printf.sprintf "%s" s1
@@ -78,7 +79,7 @@ let string_of_state s = State.to_string s
 let string_of_transition (s,(cond,acts,prio,_),s') =
   let lbl = 
     let s1 = Condition.to_string cond in
-    let s2 = ListExt.to_string Action.to_string "; " acts in
+    let s2 = Utils.ListExt.to_string Action.to_string "; " acts in
     if s2 <> ""
     then s1 ^ "|" ^ s2 
     else s1 in
@@ -92,7 +93,7 @@ module Static = struct
       fm_ios : (string * (Types.dir * Types.typ)) list;          (** i/os *)
       fm_vars: (string * Types.typ) list;                        (** name, type *)
       fm_repr: Repr.t;                                           (** Static representation as a LTS *)
-      mutable fm_typ : Types.typ;
+      (* mutable fm_typ : Types.typ; *)
     }
 
   type inst = { 
@@ -136,33 +137,13 @@ module Static = struct
   let mk_bindings ~local_names:ls ~global_names:gs =
     let l2g  =
       try List.combine ls gs
-      with Invalid_argument _ -> raise (Internal_error "Fsm.Static.mk_bindings") (* should not happen *) in
+      with Invalid_argument _ -> Misc.fatal_error ("Fsm.Static.mk_bindings") (* should not happen *) in
     (function id -> try List.assoc id l2g with Not_found -> id)
 
-  let build_model ~name ~states ~params ~ios ~vars ~trans ~itrans = 
-    (* Build a FSM model from a syntax level description.
-     No type checking here. It will be performed after instanciation *)
-    let mk_trans (s,(ev,gds),acts,s',p) = s, (([ev],gds),acts,p,false), s' in
-    let r = {
-        fm_name = name;
-        fm_params = params;
-        fm_ios = List.map (function (dir,id,ty) -> (id, (dir,ty))) ios;
-        fm_vars = vars;
-        fm_repr =
-          begin
-            try Repr.create
-                  ~states:states
-                  ~trans:(List.map mk_trans trans)
-                  ~itrans:(let q0,iacts = itrans in [(([],[]),iacts,0,false),q0])
-            with
-              Repr.Invalid_state s -> raise (Invalid_state (name, s))
-          end;
-        fm_typ = Types.no_type; (* unknown *)
-        (* fm_resolve = None; (\* TO FIX *\) *)
-      } in
-    r
-
-  let sanity_check (*tenv*) f =
+  let sanity_check_model consts f =
+    (* Check that
+       - each input symbol occuring in transition rules is declared as input, local variable, parameter or global const
+       - each output symbol occuring in transition rules is declared as output or local variable *)
     let isymbols, osymbols =
       List.fold_left
         (fun (ivs,ovs) (_,(cond,acts,_,_),_) ->
@@ -180,26 +161,44 @@ module Static = struct
         (function s -> if not (List.mem_assoc s ss') then raise (Undef_symbol(f.f_name,kind,s)))
         ss in
     let get l = List.map (function (id,(ty,_)) -> id, ty) l in
-    (* let global_consts =
-     *   List.fold_left  
-     *     (fun acc (id,ty) ->
-     *       match ty with
-     *       | Types.TyInt _ | Types.TyFloat | TyArray (_,_) -> (id,ty) :: acc
-     *       | _ -> acc)
-     *     []
-     *     tenv.Typing.te_vars in *)
-    (* Check that each input symbol occuring in transition rules is declared as input, local variable or global constant *)
-    (* check_symbols "input or local variable"
-     *   isymbols
-     *   (get f.f_inps @ get f.f_inouts @ f.f_vars @ get f.f_params @ global_consts); *)
-    (* Check that each output symbol occuring in transition rules is declared as output or local variable *)
+    check_symbols "input or local variable"
+      isymbols
+      (get f.f_inps @ get f.f_inouts @ f.f_vars @ get f.f_params @ consts);
     check_symbols "output or local variable"
       osymbols
       (get f.f_outps @ get f.f_inouts @ f.f_vars)
 
+  let build_model ~name ~states ~params ~ios ~vars ~trans ~itrans = 
+    (* Build a FSM model from a syntax level description. *)
+    let mk_trans (s,(ev,gds),acts,s',p) = s, (([ev],gds),acts,p,false), s' in
+    let m = {
+        fm_name = name;
+        fm_params = params;
+        fm_ios = List.map (function (dir,id,ty) -> (id, (dir,ty))) ios;
+        fm_vars = vars;
+        fm_repr =
+          begin
+            try Repr.create
+                  ~states:states
+                  ~trans:(List.map mk_trans trans)
+                  ~itrans:(let q0,iacts = itrans in [(([],[]),iacts,0,false),q0])
+            with
+              Repr.Invalid_state s -> raise (Invalid_state (name, s))
+          end;
+        (* fm_typ = Types.no_type; (\* unknown *\) *)
+      } in
+    (* sanity_check_model [] m; *)
+    m
+
+
+  let type_check what where ty ty'  =
+    try
+      Types.unify ty ty'
+    with
+      Types.TypeConflict _ -> raise (Typing_error (what, where, ty, ty'))
+
   let build_instance (*~tenv*) ~name ~model ~params ~ios =
     (* Builds an FSM instance from a model *)
-    (* Q: Should we perform type checking here or in a separate step ? *)
     let bind_param vs (p,ty) =
       let rec compat ty v = match ty, v.Expr.v_desc with
           Types.TyInt _, Expr.Val_int _ -> true
@@ -230,22 +229,21 @@ module Static = struct
       let ty' = Types.subst_indexes ienv lty in
       match dir, gl with 
       | Types.IO_In, GInp (gid,ty,st) ->
-         (* type_check_stim tenv name gid ty st;
-          * type_check ~strict:true ("input " ^ gid) ("FSM " ^ name) ty ty'; *)
+         type_check ("input " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_In,ty,gl)
       | Types.IO_In, GShared (gid,ty) ->
-         (* type_check ~strict:true ("input " ^ gid) ("FSM " ^ name) ty ty'; *)
+         type_check ("input " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_In,ty,gl)
       | Types.IO_In, _ ->
          raise (Binding_mismatch (name, "input", lid))
       | Types.IO_Out, GOutp (gid,ty)
         | Types.IO_Out, GShared (gid,ty) ->
-         (* type_check ~strict:true ("output " ^ gid) ("FSM " ^ name) ty ty'; *)
+         type_check ("output " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_Out,ty,gl)
       | Types.IO_Out, _ ->
          raise (Binding_mismatch (name, "output", lid))
       | Types.IO_Inout, GShared (gid,ty) ->
-         (* type_check ~strict:true ("inout " ^ gid) ("FSM " ^ name) ty ty'; *)
+         type_check ("inout " ^ gid) ("FSM " ^ name) ty ty';
          (lid,gid,Types.IO_Inout,ty,gl)
       | Types.IO_Inout, _ ->
          raise (Binding_mismatch (name, "inout", lid)) in
@@ -273,8 +271,6 @@ module Static = struct
             ~local_names:(List.map (function (lid,_,_,_,_) -> lid) bound_ios)
             ~global_names:(List.map (function (_,gid,_,_,_) -> gid) bound_ios);
       } in
-    sanity_check (*tenv*) r;
-    (* type_check_instance tenv r; *)
     r
 
   (* DOT OUTPUT *)
@@ -291,11 +287,11 @@ module Static = struct
   let dot_output_oc oc ?(dot_options=[]) ?(options=[]) f =
     let string_of_var (id,ty) = "var " ^ id  ^ ":" ^ Types.string_of_type ty in
     (* let caption = StringExt.concat_sep "\\r" 
-     *    [ListExt.to_string (string_of_io "inp") "\\r" f.f_inps;
-     *     ListExt.to_string (string_of_io "out") "\\r" f.f_outps;
-     *     ListExt.to_string (string_of_io "inout") "\\r" f.f_inouts;
-     *     ListExt.to_string string_of_var "\\r" f.f_vars] in *)
-    let caption = ListExt.to_string string_of_var "\\r" f.f_vars in
+     *    [Utils.ListExt.to_string (string_of_io "inp") "\\r" f.f_inps;
+     *     Utils.ListExt.to_string (string_of_io "out") "\\r" f.f_outps;
+     *     Utils.ListExt.to_string (string_of_io "inout") "\\r" f.f_inouts;
+     *     Utils.ListExt.to_string string_of_var "\\r" f.f_vars] in *)
+    let caption = Utils.ListExt.to_string string_of_var "\\r" f.f_vars in
     let caption_style = {Utils.Dot.node_shape="rect"; Utils.Dot.node_style="rounded"} in
     let impl_ts f opts =
       if List.mem OmitImplicitTransitions opts
@@ -320,7 +316,7 @@ module Static = struct
     let string_of_var (id,ty) = "var " ^ id  ^ ":" ^ Types.string_of_type ty in
     let fname = if fname = "" then Filename.concat dir (f.fm_name ^ ".dot") else fname in
     let oc = open_out fname in
-    let caption = ListExt.to_string string_of_var "\\r" f.fm_vars in
+    let caption = Utils.ListExt.to_string string_of_var "\\r" f.fm_vars in
     let caption_style = {Utils.Dot.node_shape="rect"; Utils.Dot.node_style="rounded"} in
     let impl_ts f opts =
       if List.mem OmitImplicitTransitions opts
@@ -343,10 +339,10 @@ module Static = struct
   let inouts_of m = List.filter (function (_,(Types.IO_Inout,_)) -> true | _ -> false) m.fm_ios
 
   let dump_model oc f =
-    let of_list f xs = ListExt.to_string f ", " xs in
+    let of_list f xs = Utils.ListExt.to_string f ", " xs in
     let string_of_io (id,(_,ty)) = id  ^ ":" ^ Types.string_of_type ty in
     let string_of_var (id,ty) = id  ^ ":" ^ Types.string_of_type ty in
-    let string_of_acts = ListExt.to_string Action.to_string "; " in
+    let string_of_acts = Utils.ListExt.to_string Action.to_string "; " in
     Printf.fprintf oc "FSM MODEL %s{\n" f.fm_name;
     if f.fm_params <> []  then
       Printf.fprintf oc "  PARAMS = { %s }\n" (of_list string_of_var f.fm_params);
@@ -366,8 +362,8 @@ module Static = struct
     Printf.fprintf oc "  }\n"
 
   let dump_inst oc f =
-    let of_list f xs = ListExt.to_string f ", " xs in
-    let string_of_acts = ListExt.to_string Action.to_string "; " in
+    let of_list f xs = Utils.ListExt.to_string f ", " xs in
+    let string_of_acts = Utils.ListExt.to_string Action.to_string "; " in
     Printf.fprintf oc "FSM %s{\n" f.f_name;
     Printf.fprintf oc "  MODEL = %s\n" f.f_model.fm_name;
     if f.f_params <> []  then
@@ -425,8 +421,8 @@ end
  * 
  *   let rec mk_ival ty = match ty with
  *     | Types.TyArray(TiConst sz, ty') ->
- *        Expr.mk_array (ListExt.range (function i -> Expr.mk_val ty' Expr.Val_unknown) 1 sz)
- *     | Types.TyArray(_, _) -> failwith "Fsm.Dynamic.mk_ival"
+ *        Expr.mk_array (Utils.ListExt.range (function i -> Expr.mk_val ty' Expr.Val_unknown) 1 sz)
+ *     | Types.TyArray(_, _) -> Error.fatal_error "Fsm.Dynamic.mk_ival"
  *     | Types.TyRecord (n,fs) -> 
  *        Expr.mk_record n (List.map (function (n,ty) -> n, ty, Expr.mk_val ty Expr.Val_unknown) fs)
  *     | _ -> Expr.mk_val ty Expr.Val_unknown
@@ -441,7 +437,7 @@ end
  *     }
  * 
  *   let rec replace_assoc' k v env =
- *     (\* This is a variation on [ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *\)
+ *     (\* This is a variation on [Utils.ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *\)
  *     let rec repl = function
  *         [] -> []
  *       | (k',(x,v'))::rest -> if k=k' then (k,(x,v)) :: repl rest else (k',(x,v')) :: repl rest in
@@ -482,25 +478,25 @@ end
  *                { f with f_vars = replace_assoc' id v' f.f_vars },
  *                resps @ [LhsVar (Ident.Local (s.f_name, id)), v'],
  *                resps',
- *                ListExt.replace_assoc id v' env
+ *                Utils.ListExt.replace_assoc id v' env
  *             | Action.LhsArrInd (id, idx) ->
  *                let v', i = array_upd id idx v in
  *                { f with f_vars = replace_assoc' id v' f.f_vars },
  *                resps @ [LhsArrInd (Ident.Local (s.f_name, id), i), v],
  *                resps',
- *                ListExt.replace_assoc id v' env
+ *                Utils.ListExt.replace_assoc id v' env
  *             | Action.LhsArrRange (id,idx1,idx2) ->
  *                let v' = set_bits id idx1 idx2 v in
  *                { f with f_vars = replace_assoc' id v' f.f_vars },
  *                resps @ [LhsVar (Ident.Local (s.f_name, id)), v'],
  *                resps',
- *                ListExt.replace_assoc id v' env
+ *                Utils.ListExt.replace_assoc id v' env
  *             | Action.LhsRField (id, fd) ->
  *                let v' = record_upd id fd v in
  *                { f with f_vars = replace_assoc' id v' f.f_vars },
  *                resps @ [LhsVar (Ident.Local (s.f_name, id)), v'],
  *                resps',
- *                ListExt.replace_assoc id v' env
+ *                Utils.ListExt.replace_assoc id v' env
  *             end
  *          | Synchronous ->
  *             (\* In the synchronous interpretation, updates of local variables are not performed immediately
@@ -570,9 +566,9 @@ end
  *       | _ ->
  *          raise (Internal_error "Fsm.Dynamic.perform_delayed_action") (\* should not happen *\) in
  *     { f with f_vars = replace_assoc' id v' f.f_vars },
- *     ListExt.replace_assoc id v' env
+ *     Utils.ListExt.replace_assoc id v' env
  *     
- *   let string_of_actions resps = ListExt.to_string (function (id,v) -> Ident.to_string id ^ ":=" ^ (Expr.string_of_opt_value v)) "," resps
+ *   let string_of_actions resps = Utils.ListExt.to_string (function (id,v) -> Ident.to_string id ^ ":=" ^ (Expr.string_of_opt_value v)) "," resps
  * 
  *   let do_actions env f acts = 
  *     let f', resps', resps'', env' = List.fold_left do_action (f,[],[],env) acts in
@@ -624,7 +620,7 @@ end
  *               Printf.printf "Non deterministic transitions found for FSM %s at t=%d: {%s}; chose %s\n"
  *                 sf.f_name
  *                 t
- *                 (ListExt.to_string string_of_transition "," ts)
+ *                 (Utils.ListExt.to_string string_of_transition "," ts)
  *                 (string_of_transition t1);
  *               cross_transition t1
  *             end

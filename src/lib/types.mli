@@ -67,7 +67,7 @@ type typ_scheme =
     ts_sparams: (siz var) list;
     ts_body: typ }
 
-val mk_var: unit -> 'a var
+val make_var: unit -> 'a var
 val new_type_var: unit -> typ
 val new_size_var: unit -> siz
 val new_name_var: unit -> name

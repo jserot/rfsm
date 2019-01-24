@@ -11,7 +11,6 @@
 
 (* CTask backend *)
 
-open Utils
 open Fsm
 open Types
 open Printf
@@ -42,12 +41,12 @@ let string_of_type t = match t with
   | TyFloat -> "float"
   | TyChar -> "char"
   | TyRecord (nm, _) when Types.is_lit_name nm ->  Types.string_of_name nm
-  | TyRecord (_, fs) -> "struct {" ^ ListExt.to_string (function (f,t) -> f ^ ":" ^ string_of_type t) ";" fs ^ "}"
-  | _ -> Error.fatal_error "Ctask.string_of_type"
+  | TyRecord (_, fs) -> "struct {" ^ Utils.ListExt.to_string (function (f,t) -> f ^ ":" ^ string_of_type t) ";" fs ^ "}"
+  | _ -> Misc.fatal_error "Ctask.string_of_type"
 
 let string_of_array_size sz = match sz with
   | Types.Index.TiConst n -> string_of_int n
-  | _ -> failwith "Systemc.string_of_array_size"
+  | _ -> Misc.fatal_error "Systemc.string_of_array_size"
 
 let string_of_typed_item (id,ty) = match ty with 
   | TyArray (sz,ty') -> string_of_type ty' ^ " " ^ id ^ "[" ^ string_of_array_size sz ^ "]"
@@ -64,8 +63,8 @@ let rec string_of_value v = match v.Expr.v_desc with
 | Expr.Val_fn _ -> "<fun>"
 | Expr.Val_unknown -> "<unknown>"
 | Expr.Val_none -> "<none>"
-| Expr.Val_array vs -> "{" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
-| Expr.Val_record fs -> "{" ^ ListExt.to_string string_of_field "," fs ^ "}"
+| Expr.Val_array vs -> "{" ^ Utils.ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
+| Expr.Val_record fs -> "{" ^ Utils.ListExt.to_string string_of_field "," fs ^ "}"
 
 and string_of_field (n,v) = string_of_value v
 
@@ -97,8 +96,8 @@ let rec string_of_expr e =
   | Expr.EBinop (op,e1,e2) -> paren level (string_of (level+1) e1 ^ string_of_op op ^ string_of (level+1) e2)
   | Expr.ECond (e1,e2,e3) ->
      paren level (string_of (level+1) e1 ^ " ? " ^ string_of (level+1) e2 ^ " : " ^ string_of (level+1) e3)
-  | Expr.EFapp (f,es) -> f ^ "(" ^ ListExt.to_string (string_of level) "," es ^ ")"
-  | Expr.EArrExt es -> "{" ^ ListExt.to_string (string_of level) "," es ^ "}"
+  | Expr.EFapp (f,es) -> f ^ "(" ^ Utils.ListExt.to_string (string_of level) "," es ^ ")"
+  | Expr.EArrExt es -> "{" ^ Utils.ListExt.to_string (string_of level) "," es ^ "}"
   | Expr.EArr (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
   | Expr.ERecord (a,f) -> a ^ "." ^ f
   | Expr.EBit (a,idx) -> a ^ "[" ^ string_of level idx ^ "]"
@@ -118,10 +117,10 @@ and string_of_op = function
 let string_of_guard exp = string_of_expr exp
 
 let string_of_lhs l = match l.Action.l_desc with
-  | Action.Var0 id -> id
-  | Action.Var1 (id,idx) -> id ^ "[" ^ string_of_expr idx ^ "]"
-  | Action.Var2 (id,hi,lo) -> id ^ "[" ^ string_of_expr hi ^ ":" ^ string_of_expr lo ^ "]"
-  | Action.Var3 (id,f) -> id ^ "." ^ f
+  | Action.LhsVar id -> id
+  | Action.LhsArrInd (id,idx) -> id ^ "[" ^ string_of_expr idx ^ "]"
+  | Action.LhsArrRange (id,hi,lo) -> id ^ "[" ^ string_of_expr hi ^ ":" ^ string_of_expr lo ^ "]"
+  | Action.LhsRField (id,f) -> id ^ "." ^ f
                           
 let string_of_action a = match a with
     | Action.Assign (lhs, expr) -> string_of_lhs lhs ^ "=" ^ string_of_expr expr
@@ -139,14 +138,14 @@ let dump_transition oc tab is_first src (q',((evs,guards),acts,_,_)) =
        fprintf oc "%s%sif ( %s ) {\n"
         tab
         (if is_first then "" else "else ")
-        (ListExt.to_string string_of_guard " && " guards);
+        (Utils.ListExt.to_string string_of_guard " && " guards);
        List.iter (dump_action oc (tab ^ "  ")) acts;
        if q' <> src then fprintf oc "%s  %s = %s;\n" tab cfg.state_var_name q';
        fprintf oc "%s  }\n" tab
 
 let dump_ev_transition oc tab src (ev,ts) = 
   fprintf oc "%scase %s:\n" tab ev;
-  ListExt.iter_fst (fun is_first t -> dump_transition oc (tab^"  ") is_first src t) ts;
+  Utils.ListExt.iter_fst (fun is_first t -> dump_transition oc (tab^"  ") is_first src t) ts;
   fprintf oc "%s  break;\n" tab
 
 let dump_transitions oc src after evs tss =
@@ -156,9 +155,9 @@ let dump_transitions oc src after evs tss =
       [] -> ()  (* no wait in this case *)
     | [ev,ts] ->
        fprintf oc "%swait_ev(%s);\n" tab ev;
-       ListExt.iter_fst (fun is_first t -> dump_transition oc tab is_first src t) ts;
+       Utils.ListExt.iter_fst (fun is_first t -> dump_transition oc tab is_first src t) ts;
     | _ ->
-       fprintf oc "%s%s = wait_evs(%s);\n" tab cfg.recvd_ev_name (ListExt.to_string (function id -> id) "," evs);
+       fprintf oc "%s%s = wait_evs(%s);\n" tab cfg.recvd_ev_name (Utils.ListExt.to_string (function id -> id) "," evs);
        fprintf oc "%sswitch ( %s ) {\n" tab cfg.recvd_ev_name;
        List.iter (dump_ev_transition oc (tab^"  ") src) tss;
        fprintf oc "%s  }\n" tab
@@ -177,20 +176,21 @@ let dump_module_impl m fname fsm =
   let m = Cmodel.c_model_of_fsm m fsm in
   let oc = open_out fname in
   let modname = String.capitalize_ascii fsm.f_name in
-  let string_of_ival v =
-    let open Expr in
-    match v.v_desc with
-    | Val_unknown -> ""
-    | Val_array vs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (Array.to_list vs) -> ""
-    | Val_record fs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (List.map snd fs) -> ""
-    | _ -> " = " ^ string_of_value v in
+  (* let string_of_ival v =
+   *   let open Expr in
+   *   match v.v_desc with
+   *   | Val_unknown -> ""
+   *   | Val_array vs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (Array.to_list vs) -> ""
+   *   | Val_record fs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (List.map snd fs) -> ""
+   *   | _ -> " = " ^ string_of_value v in *)
   fprintf oc "task %s(\n" modname;
   List.iter (fun (id,ty) -> fprintf oc "  in %s;\n" (string_of_typed_item (id,ty))) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc " out %s;\n" (string_of_typed_item (id,ty))) m.c_outps;
   List.iter (fun (id,ty) -> fprintf oc " inout %s;\n" (string_of_typed_item (id,ty))) m.c_inouts;
   fprintf oc "  )\n";
   fprintf oc "{\n";
-  List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s%s;\n" (string_of_typed_item (id,ty)) (string_of_ival iv)) m.c_vars;
+  (* List.iter (fun (id,(ty,iv)) -> fprintf oc "  %s%s;\n" (string_of_typed_item (id,ty)) (string_of_ival iv)) m.c_vars; *)
+  List.iter (fun (id,ty) -> fprintf oc "  %s;\n" (string_of_typed_item (id,ty))) m.c_vars;
   if List.length m.c_states > 1 then 
     fprintf oc "  %s %s = %s;\n"
       (string_of_type (Types.TyEnum (Types.new_name_var(),m.c_states)))
@@ -214,20 +214,20 @@ let dump_module_impl m fname fsm =
   close_out oc
 
 let dump_fsm ?(prefix="") ?(dir="./ctask") m f =
-  let prefix = match prefix with "" -> f.f_name | p -> p in
+  let prefix = match prefix with "" -> f.Fsm.Static.f_name | p -> p in
   dump_module_impl m (dir ^ "/" ^ prefix ^ ".c") f
 
 (* Dumping global type declarations, functions and constants *)
 
 let dump_record_type_defn oc name fields = 
-  let mk f sep fs = ListExt.to_string f sep fs in
+  let mk f sep fs = Utils.ListExt.to_string f sep fs in
   fprintf oc "typedef struct { %s } %s;\n"
     (mk (function (n,t) -> string_of_type t ^ " " ^ n ^ ";") " " fields)
     name
 
 let dump_enum_type_defn oc name vs = 
   fprintf oc "typedef enum { %s } %s;\n"
-    (ListExt.to_string Misc.id "," vs)
+    (Utils.ListExt.to_string Misc.id "," vs)
     name
 
 let dump_global_type_defn oc (name,ty) = match ty with
@@ -244,7 +244,7 @@ let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
     fprintf oc "%s %s (%s);\n"
       (string_of_type tr)
       id 
-      (ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
+      (Utils.ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
 | _ -> ()
 
 let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
@@ -256,7 +256,7 @@ let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
     fprintf oc "%s %s (%s) { return %s; }\n"
       (string_of_type tr)
       id 
-      (ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
+      (Utils.ListExt.to_string (function (a,t) -> string_of_type t ^ " " ^ a) "," (List.combine args ts)) 
       (string_of_expr body)
 | _ -> ()
 
@@ -289,4 +289,4 @@ let dump_globals ?(name="") ?(dir="./ctask") m =
 let check_allowed m =
   match Fsm.cfg.Fsm.act_sem with
   | Fsm.Sequential -> ()
-  | Fsm.Synchronous -> Error.not_implemented "CTask: synchronous actions"
+  | Fsm.Synchronous -> Misc.not_implemented "CTask: synchronous actions"

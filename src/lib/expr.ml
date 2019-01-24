@@ -9,8 +9,6 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Utils
-
 type t = {
     mutable e_desc: e_desc;
     mutable e_typ: Types.typ;
@@ -34,6 +32,7 @@ and e_desc =
   | ECast of t * Type_expr.t
 
 let mk_expr e = { e_desc = e; e_typ = Types.no_type }
+let mk_var v = mk_expr (EVar v)
               
 type value = {
   mutable v_desc: e_val;
@@ -58,17 +57,14 @@ let of_value v = match v.v_desc with
   | Val_char f -> EChar f
   | Val_bool b -> EBool b
   | Val_enum c -> EEnum c
-  | Val_fn _ -> failwith "Expr.of_value"
-  | Val_unknown -> failwith "Expr.of_value"
-  | Val_none -> failwith "Expr.of_value"
-  | _ -> failwith "Expr.of_value"
+  | _ -> Misc.fatal_error "Expr.of_value"
 
 exception Out_of_bound of string * int
 
 let mk_val ty v = { v_desc=v; v_typ=ty }
 
 let mk_array vs =
-  let ty = match vs with v::_ -> v.v_typ | _ -> failwith "Expr.mk_array" in
+  let ty = match vs with v::_ -> v.v_typ | _ -> Misc.fatal_error "Expr.mk_array" in
   { v_desc=Val_array (Array.of_list vs);
     v_typ=TyArray (TiConst (List.length vs), ty) }
 
@@ -86,7 +82,7 @@ let array_update id a i v =
   then let a' = Array.copy a in Array.set a' i v; a'
   else raise (Out_of_bound (id,i))
 
-let record_update id r f v = ListExt.replace_assoc f v r 
+let record_update id r f v = Utils.ListExt.replace_assoc f v r 
 
 let unset_event = { v_desc=Val_bool false; v_typ=TyEvent }
 let set_event = { v_desc=Val_bool true; v_typ=TyEvent }
@@ -126,8 +122,8 @@ let rec string_of_val v = match v with
 | Val_fn _ -> "<fun>"
 | Val_unknown -> "<unknown>"
 | Val_none -> "<none>"
-| Val_array vs -> "[" ^ ListExt.to_string string_of_value "," (Array.to_list vs) ^ "]"
-| Val_record r -> "{" ^ ListExt.to_string string_of_field_value "," r ^ "}"
+| Val_array vs -> "[" ^ Utils.ListExt.to_string string_of_value "," (Array.to_list vs) ^ "]"
+| Val_record r -> "{" ^ Utils.ListExt.to_string string_of_field_value "," r ^ "}"
 
 and string_of_value v = string_of_val v.v_desc
                       
@@ -151,8 +147,8 @@ let rec string_of_expr e = match e with
   | EVar n -> n
   | EBinop (op,e1,e2) -> to_string e1 ^ string_of_op op ^ to_string e2 (* TODO : add parens *)
   | ECond (e1,e2,e3) -> to_string e1 ^ "?" ^ to_string e2 ^ ":" ^ to_string e3 (* TODO : add parens *)
-  | EFapp (f,args) -> f ^ "(" ^ ListExt.to_string to_string "," args ^ ")"
-  | EArrExt es -> "[" ^ ListExt.to_string to_string "," es ^ "]"
+  | EFapp (f,args) -> f ^ "(" ^ Utils.ListExt.to_string to_string "," args ^ ")"
+  | EArrExt es -> "[" ^ Utils.ListExt.to_string to_string "," es ^ "]"
   | EArr (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBit (a,e') -> a ^ "[" ^ to_string e' ^ "]"
   | EBitrange (a,e1,e2) -> a ^ "[" ^ to_string e1 ^ ":" ^ to_string e2 ^ "]"
