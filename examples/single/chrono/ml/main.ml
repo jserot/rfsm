@@ -30,15 +30,11 @@ let chrono = Fsm.build_model
     ]
   ~itrans:("Stopped",[])
 
-let _ = Typing.type_fsm_model Typing.builtin_tenv chrono
-let _ = Fsm.dot_output_model "./dot" chrono
-
 let h = Global.GInp ("H", TyEvent, Periodic (10,10,110))
 let startstop = Global.GInp ("StartStop", TyEvent, Sporadic [25; 75])
 let aff = Global.GOutp ("Aff", type_int [])
 
 let c1 = Fsm.build_instance ~name:"c1" ~model:chrono ~params:[] ~ios:[h;startstop;aff]
-let _ = Typing.type_fsm_inst Typing.builtin_tenv c1
 
 let _ = Fsm.dot_output "./dot" c1
 
