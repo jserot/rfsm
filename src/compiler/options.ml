@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-type target = Dot | (*Sim |*) CTask | SystemC | Vhdl
+type target = Dot | Sim | CTask | SystemC | Vhdl
                                           
 let target = ref None
            
@@ -23,7 +23,7 @@ let dot_captions = ref true
 let dot_fsm_insts = ref false
 let dot_fsm_models = ref false
 
-(* let set_sim () = target := Some Sim *)
+let set_sim () = target := Some Sim
 let set_dot () = target := Some Dot
 let set_ctask () = target := Some CTask
 let set_systemc () = target := Some SystemC
@@ -51,7 +51,7 @@ let set_stop_time d =
 
 let set_synchronous_actions () = Fsm.cfg.Fsm.act_sem <- Fsm.Synchronous
 let set_sequential_actions () = Fsm.cfg.Fsm.act_sem <- Fsm.Sequential
-(* let set_trace level = Trace.level := level *)
+let set_trace level = Trace.level := level
 let set_sc_trace () = Systemc.cfg.Systemc.sc_trace <- true
 let set_sc_double_float () = Systemc.cfg.Systemc.sc_double_float <- true
 let set_vhdl_trace () = Vhdl.cfg.Vhdl.vhdl_trace <- true

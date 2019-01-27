@@ -69,9 +69,9 @@ type itransition = TransLabel.t * State.t
 val string_of_transition: transition -> string
 val string_of_state: state -> string
   
-(** {2 Static description} *)
-
-module Static : sig
+(* (\** {2 Static description} *\)
+ * 
+ * module Static : sig *)
 
   (** FSM model *)
 
@@ -171,8 +171,6 @@ module Static : sig
 
   val dump_inst : out_channel -> inst -> unit
 
-end (* Static *)
-     
 (** {2 Dynamic representations} *)
 
 (* module Dynamic : sig
@@ -242,27 +240,27 @@ val build_model :
     vars: (string * Types.typ) list ->
     trans: (state * (Condition.event * Condition.guard list) * Action.t list * state * int) list ->
     itrans: state * Action.t list ->
-    Static.model
+    model
 
 val build_instance :
     name: string ->
-    model: Static.model ->
+    model: model ->
     params: (string * Expr.value) list ->
     ios: Global.global list ->
-    Static.inst
+    inst
 
 val dot_output_model :
     ?fname:string ->
     ?dot_options:Utils.Dot.graph_style list ->
-    ?options:Static.dot_options list ->
+    ?options:dot_options list ->
     dir:string ->
-    Static.model ->
+    model ->
     unit
 
 val dot_output :
     ?fname:string ->
     ?dot_options:Utils.Dot.graph_style list ->
-    ?options:Static.dot_options list ->
+    ?options:dot_options list ->
     dir:string ->
-    Static.inst ->
+    inst ->
     unit

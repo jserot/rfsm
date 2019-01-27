@@ -214,7 +214,7 @@ let type_of_list = function
 let types_of_fsm_model f = 
   (* Computes the "local" typing environment associated to an FSM model, containing
      the types of parameters, inputs, outputs and local variables *)
-  let open Fsm.Static in
+  let open Fsm in
   let vars =
       f.fm_params
     @ f.fm_vars
@@ -333,7 +333,7 @@ let type_check_fsm_itransition name repr tenv ((_,acts,_,_),s) =
   List.iter (type_check_fsm_action name tenv) acts
           
 let type_check_fsm_model tenv f =
-  let open Fsm.Static in
+  let open Fsm in
   List.iter (type_check_fsm_transition f.fm_name f.fm_repr tenv) (Fsm.Repr.transitions f.fm_repr);
   List.iter (type_check_fsm_itransition f.fm_name f.fm_repr tenv) (Fsm.Repr.itransitions f.fm_repr)
 
@@ -361,7 +361,7 @@ let type_check_fsm_model tenv f =
 
 let type_fsm_model tenv f =
   (* Type checks an FSM model *)
-  let open Fsm.Static in
+  let open Fsm in
   (* let local_tenv = types_of_fsm_model f in
    * let tenv = 
    *   { tenv with
@@ -376,7 +376,7 @@ let type_fsm_model tenv f =
 let types_of_fsm_inst f = 
   (* Computes the "local" typing environment associated to an FSM instance, containing
      the types of parameters, inputs, outputs and local variables *)
-  let open Fsm.Static in
+  let open Fsm in
   let mk (id,(ty,_)) = id, ty in
     List.map mk f.f_params
   @ f.f_vars
@@ -384,12 +384,12 @@ let types_of_fsm_inst f =
   
 let type_fsm_inst tenv f =
   (* Type checks an FSM instance *)
-  let open Fsm.Static in
+  let open Fsm in
   (* Check that all type indexes have been instanciated for IOs and local vars *)
    let check_type kind (id,ty) = 
      match Types.ivars_of ty with
      | [] -> ()
-     | vs -> raise (Fsm.Static.Uninstanciated_type_vars (f.f_name, kind, id, vs)) in
+     | vs -> raise (Fsm.Uninstanciated_type_vars (f.f_name, kind, id, vs)) in
    let type_of (id,(ty,_)) = id, ty in
    List.iter (check_type "input") (List.map type_of f.f_inps);
    List.iter (check_type "output") (List.map type_of f.f_outps);

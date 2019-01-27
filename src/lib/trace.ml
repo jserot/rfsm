@@ -9,23 +9,13 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(* Static elaboration *)
+open Printf
 
-exception Unbound_fsm of Location.location * string
-exception Unbound_global of Location.location * string
-exception Fsm_mismatch of string * Location.location * string
+let level = ref 0
 
-type program = Sysm.t
-             
-val elaborate: string -> Syntax.program -> program
-
-val dot_output :
-  string ->
-  ?dot_options:Utils.Dot.graph_style list ->
-  ?fsm_options:Fsm.dot_options list ->
-  ?with_insts:bool ->
-  ?with_models:bool ->
-  program ->
-  unit
-
-val dump: out_channel -> program -> unit                              
+let print_tab l = printf "%s" (String.make (max ((l-1)*2) 0) ' ')
+                
+let msg0 l m = if !level >= l then begin print_tab l; printf m; flush stdout end
+let msg1 l m x = if !level >= l then begin print_tab l; printf m x; flush stdout end
+let msg2 l m x y = if !level >= l then begin print_tab l; printf m x y; flush stdout end
+let msg3 l m x y z = if !level >= l then begin print_tab l; printf m x y z; flush stdout end

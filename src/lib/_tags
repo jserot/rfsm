@@ -1,4 +1,4 @@
 true:   annot, explain, debug
-<{version,misc,ident,intbits,logfile,types,type_expr,expr,builtins,typing,eval,stimuli,condition,action,global,fsm,sysm}.{cmo,cmx}>: for-pack(Rfsm)
+<{version,misc,ident,intbits,logfile,types,type_expr,expr,builtins,typing,eval,condition,action,global,fsm,sysm,fsm_dyn,stimuli,trace,simul}.{cmo,cmx}>: for-pack(Rfsm)
 
 

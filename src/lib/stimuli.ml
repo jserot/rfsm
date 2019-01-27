@@ -49,6 +49,11 @@ let merge_stimuli (lss: stimuli list list) =
     [] -> invalid_arg "Stimuli.merge_events"
   | l::ls -> List.fold_left merge l ls
 
+let events_of sd = match sd with
+    | Global.Periodic (per,t1,t2) -> mk_per_event per t1 t2
+    | Global.Sporadic ts -> mk_spor_event ts
+    | Global.ValueChange vs -> mk_val_changes vs 
+
 (* Printing *)
 
 let string_of_event (t,v) = match v.Expr.v_desc with

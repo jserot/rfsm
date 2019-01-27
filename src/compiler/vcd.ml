@@ -9,7 +9,6 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Utils
 open Printf
 open Types
 open Fsm
@@ -25,7 +24,7 @@ let cfg = {
   float_precision = 8;
   }
 
-let bits_for_range min max = Misc.log2 (max-min) +1 
+let bits_for_range min max = Utils.Misc.log2 (max-min) +1 
 
 let bits_of_uint s n = 
   let b = Bytes.make s '0' in
@@ -59,7 +58,7 @@ let vcd_kind_of ty = match ty with
 | TyEnum _ -> "real", 1
 | TyChar -> "wire", 8
 | TyInt r -> "wire", vcd_size_of_range r
-  | _ -> Error.fatal_error "Vcd.vcd_kind_of"
+  | _ -> Misc.fatal_error "Vcd.vcd_kind_of"
 
 let start_symbol = 33 
 
@@ -92,7 +91,7 @@ let register_fsm_var acc ((id,ty) as s) =
      List.fold_left
        (fun acc n -> register_signal acc (n,ty'))
        acc 
-       (ListExt.range (array_cell_id id) 0 (sz-1))
+       (Utils.ListExt.range (array_cell_id id) 0 (sz-1))
   | TyArray (_, _) ->
      failwith "Vcd.register_fsm_var"
   | TyRecord (_,fs) ->
@@ -104,8 +103,9 @@ let register_fsm_var acc ((id,ty) as s) =
      register_signal acc s
  
 let register_fsm acc f =
-  let sigs = (Ident.Local (f.f_name, "state"), TyEnum (Types.new_name_var(), states_of f))
-             :: List.map (function (id,(ty,_)) -> Ident.Local (f.f_name,id),ty) f.f_vars in
+  let f' = f.Fsm_dyn.f_static in
+  let sigs = (Ident.Local (f'.f_name, "state"), TyEnum (Types.new_name_var(), states_of f'))
+             :: List.map (function (id,ty) -> Ident.Local (f'.f_name,id),ty) f'.f_vars in
   List.fold_left register_fsm_var acc sigs
 
 let register_fsms fsms = List.fold_left register_fsm [] fsms
@@ -113,7 +113,7 @@ let register_fsms fsms = List.fold_left register_fsm [] fsms
 let register_io gls acc (id,_) =
   let ty =
     try fst (List.assoc id gls)
-    with Not_found -> Error.fatal_error "Vcd.register_io" (* should not happen *) in
+    with Not_found -> Misc.fatal_error "Vcd.register_io" (* should not happen *) in
   match ty with
   | TyArray (sz,ty') -> failwith "Vcd.register_io: array type" (* TO FIX *)
   | TyRecord (_,fs) ->
@@ -146,7 +146,7 @@ exception Error of string
 let dump_reaction oc signals (t,evs) =
   let dump_scalar_event (lhs,value) = 
     let name = match lhs with
-      | Var0 id -> id
+      | Fsm_dyn.LVar id -> id
       | _ -> failwith "Vcd.dump_scalar_event: non scalar LHS" (* should not happen *) in
     let (id,ty) =
       try List.assoc name signals
@@ -163,12 +163,12 @@ let dump_reaction oc signals (t,evs) =
       | _, _-> () in
   let dump_event (lhs,value) =
     match lhs, value.Expr.v_desc with
-    | Var0 id, Expr.Val_record fs ->
+    | Fsm_dyn.LVar id, Expr.Val_record fs ->
        List.iter
-         (fun (n,v) -> dump_scalar_event (Var0 (record_field_id id n), v))
+         (fun (n,v) -> dump_scalar_event (Fsm_dyn.LVar (record_field_id id n), v))
          fs
     (* TODO: handle arrays here *)
-    | Var1 (a, idx), _  -> dump_scalar_event (Var0 (array_cell_id a idx), value)
+    | Fsm_dyn.LArrInd (a, idx), _  -> dump_scalar_event (Fsm_dyn.LVar (array_cell_id a idx), value)
     | _ -> dump_scalar_event (lhs, value) in
   fprintf oc "#%d\n" t;
   List.iter dump_event evs
@@ -202,7 +202,7 @@ let output m ctx fname reacts =
      |> register_ios m.Sysm.m_shared ctx.c_vars
      |> register_evs ctx.c_evs in
   fprintf oc "$date\n";
-  fprintf oc "   %s\n" (Misc.time_of_day());
+  fprintf oc "   %s\n" (Utils.Misc.time_of_day());
   fprintf oc "$end\n";
   fprintf oc "$version\n";
   fprintf oc "   RFSM %s\n" Version.version;

@@ -19,10 +19,10 @@ let source_files = ref ([] : string list)
 let anonymous fname = source_files := !source_files @ [fname]
 
 let print_banner () = 
-  Printf.printf "-------------------------------------------------------------------------------------------------\n";
+  Printf.printf "------------------------------------------------------------------\n";
   Printf.printf "Reactive Finite State Machine compiler and simulator, version %s\n" Version.version;
-  Printf.printf "http://github.com/jserot/rfsm\n"; 
-  Printf.printf "-------------------------------------------------------------------------------------------------\n";
+  Printf.printf "For information: github.com/jserot/rfsm\n"; 
+  Printf.printf "------------------------------------------------------------------\n";
   flush stdout
 
 let parse lexer parser fname = 
@@ -61,7 +61,7 @@ try
   | Some Options.Dot ->
        check_dir !Options.target_dir;
        Static.dot_output
-         ~fsm_options:(if !Options.dot_captions then [] else [Fsm.Static.NoCaption])
+         ~fsm_options:(if !Options.dot_captions then [] else [Fsm.NoCaption])
          ~with_insts:!Options.dot_fsm_insts
          ~with_models:!Options.dot_fsm_models
          !Options.target_dir
@@ -85,9 +85,9 @@ try
        Vhdl.dump_model ~dir:!Options.target_dir m;
        Vhdl.dump_testbench ~dir:!Options.target_dir m;
        Vhdl.dump_makefile ~dir:!Options.target_dir m
-  (* | Some Options.Sim ->
-   *      let ctx, reacts = Simul.run m in
-   *      Vcd.output m ctx !Options.vcd_file reacts *)
+  | Some Options.Sim ->
+       let ctx, reacts = Simul.run m in
+       Vcd.output m ctx !Options.vcd_file reacts
   | None ->
      ()
   end;
@@ -95,5 +95,4 @@ try
 with
 | e -> Error.handle e
 
-    
 let _ = Printexc.print main ()

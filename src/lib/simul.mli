@@ -19,8 +19,8 @@ type config = {
 
 val cfg : config
 
-type stimulus = Fsm.Dynamic.lhs * Expr.value
-type response = Fsm.Dynamic.lhs * Expr.value 
+type stimulus = Fsm_dyn.loc * Expr.value
+type response = Fsm_dyn.loc * Expr.value 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
@@ -32,7 +32,7 @@ type context = {  (* The simulator state *)
   c_csts: (string * (Types.typ * Expr.value)) list;        (* Global constants *)
   c_vars: (string * (Types.typ * Expr.value)) list;        (* Shared variables *)
   c_evs: (string * (Types.typ * Expr.value)) list;         (* Shared events *)
-  c_fsms: Fsm.Dynamic.inst list * Fsm.Dynamic.inst list;   (* FSMs, partitioned into active and inactive subsets *)
+  c_fsms: Fsm_dyn.t list * Fsm_dyn.t list;                 (* FSMs, partitioned into active and inactive subsets *)
   }
 
 exception OverReaction of Types.date
@@ -48,9 +48,9 @@ val react : Types.date -> context -> stimulus list -> context * response list
      any further re-entrant stimulus. *)
 
 val run : Sysm.t -> context * (Types.date * response list) list
-  (** [run m] runs a simulation of system [m], returning the final context and a list of dated responses *)
+  (** [run m] runs a simulation of system [m], returning the final context and a list of timed responses *)
 
 (** {2 Printers} *)
 
 val dump_context : context -> unit
-val dump_reaction : int * (Fsm.Dynamic.lhs * Expr.value) list -> unit
+val dump_reaction : int * Fsm_dyn.event list -> unit

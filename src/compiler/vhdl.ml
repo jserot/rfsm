@@ -483,7 +483,7 @@ let dump_toplevel_intf kind oc m =
    m.m_outputs;
   if cfg.vhdl_trace then
     List.iter
-      (function f -> fprintf oc "        %s: out integer;\n" (f.Fsm.Static.f_name ^ "_state"))
+      (function f -> fprintf oc "        %s: out integer;\n" (f.Fsm.f_name ^ "_state"))
       m.m_fsms;  
   fprintf oc "        %s: in std_logic\n" cfg.vhdl_reset_sig;
   fprintf oc "        );\n";
@@ -513,14 +513,14 @@ let dump_toplevel_impl fname m =
   List.iter
     (fun f ->
       let m = Cmodel.c_model_of_fsm m f in
-      let n = modname f.Fsm.Static.f_name in
+      let n = modname f.Fsm.f_name in
       let actual_name (id,_) = f.f_l2g id in
       fprintf oc "  U_%s: %s port map(%s%s);\n"
         (String.capitalize_ascii n)
         n
         (Utils.ListExt.to_string top_name ","
            (List.map actual_name (m.c_inps @  m.c_outps @ m.c_inouts) @ [cfg.vhdl_reset_sig]))
-        (if cfg.vhdl_trace then "," ^ f.Fsm.Static.f_name ^ "_state" else ""))
+        (if cfg.vhdl_trace then "," ^ f.Fsm.f_name ^ "_state" else ""))
     m.m_fsms;
   fprintf oc "end architecture;\n";
   Logfile.write fname;
@@ -553,7 +553,7 @@ let dump_testbench_impl fname m =
   fprintf oc "signal %s: std_logic;\n" (tb_name cfg.vhdl_reset_sig);
   if cfg.vhdl_trace then
     List.iter
-      (function f -> fprintf oc "signal %s: integer;\n" (f.Fsm.Static.f_name ^ "_state"))
+      (function f -> fprintf oc "signal %s: integer;\n" (f.Fsm.f_name ^ "_state"))
       m.m_fsms;  
   fprintf oc "\n";
   fprintf oc "begin\n";
@@ -575,7 +575,7 @@ let dump_testbench_impl fname m =
     (String.capitalize_ascii cfg.vhdl_top_name)
     cfg.vhdl_top_name
     (Utils.ListExt.to_string tb_name "," (List.map fst (m.m_inputs @  m.m_outputs)))
-    (if cfg.vhdl_trace then "," ^ Utils.ListExt.to_string (function f -> f.Fsm.Static.f_name ^ "_state") "," m.m_fsms else "")
+    (if cfg.vhdl_trace then "," ^ Utils.ListExt.to_string (function f -> f.Fsm.f_name ^ "_state") "," m.m_fsms else "")
     cfg.vhdl_reset_sig;
   fprintf oc "\n";
   fprintf oc "end architecture;\n";
@@ -589,7 +589,7 @@ let dump_testbench ?(name="") ?(dir="./vhdl") m =
 (* Dumping model *)
 
 let dump_fsm ?(prefix="") ?(dir="./vhdl") m fsm =
-  let prefix = match prefix with "" -> fsm.Fsm.Static.f_name | p -> p in
+  let prefix = match prefix with "" -> fsm.Fsm.f_name | p -> p in
   let fname = dir ^ "/" ^ prefix ^ ".vhd" in
   let oc = open_out fname in
   fprintf oc "library ieee;\n";
@@ -705,7 +705,7 @@ and dump_global_type_fns oc (name,ty) =
 let dump_makefile ?(dir="./vhdl") m =
   let fname = dir ^ "/" ^ "Makefile" in
   let oc = open_out fname in
-  let modname suff f = f.Fsm.Static.f_name ^ suff in
+  let modname suff f = f.Fsm.f_name ^ suff in
   let open Sysm in
   fprintf oc "include %s/etc/Makefile.vhdl\n\n" cfg.vhdl_lib_dir;
   fprintf oc "%s: %s %s %s.vhd\n"
@@ -728,10 +728,10 @@ let dump_makefile ?(dir="./vhdl") m =
 
 let check_allowed m =
   let open Sysm in 
-  let is_mono_sync f = match Fsm.Static.input_events_of f with
+  let is_mono_sync f = match Fsm.input_events_of f with
     | [_] -> ()
     | _ -> Misc.not_implemented "Vhdl: FSM with more than one input event" in
-  let no_outp_event f = match Fsm.Static.output_events_of f with
+  let no_outp_event f = match Fsm.output_events_of f with
     | [] -> ()
     | _ -> Misc.not_implemented "Vhdl: FSM with output event(s)" in
   let valid_shared (id, (ty, desc)) = match desc with
@@ -745,6 +745,6 @@ let check_allowed m =
   List.iter is_mono_sync m.m_fsms;
   List.iter no_outp_event m.m_fsms;
   List.iter valid_shared m.m_shared;
-  if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous && List.exists (function f -> not (Fsm.Static.is_rtl f)) m.m_fsms then
+  if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous && List.exists (function f -> not (Fsm.is_rtl f)) m.m_fsms then
      Misc.warning "Vhdl: Some FSM(s) have non-RTL transitions. This may cause incorrect behavior when using the synchronous interpretation of actions."
    

@@ -25,6 +25,8 @@ val mk_stimuli : string -> Types.date * Expr.value -> Types.date * (Ident.t * Ex
 
 val merge_stimuli : stimuli list list -> stimuli list
 
+val events_of : Global.stim_desc -> event list
+  
 (** {2 Printers} *)
 
 val string_of_event : event -> string

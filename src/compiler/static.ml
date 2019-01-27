@@ -80,15 +80,15 @@ exception Fsm_mismatch of string * Location.location * string
 
 let mk_fsm_inst tenv cenv models globals { fi_desc=f; fi_loc=loc } = 
   let model =
-    try List.find (function m -> m.Fsm.Static.fm_name = f.fi_model) models
+    try List.find (function m -> m.Fsm.fm_name = f.fi_model) models
     with Not_found -> raise (Unbound_fsm (loc,f.fi_model)) in  
   let params =
-    try List.map2 (fun (p,ty) e -> p, Eval.eval cenv e) model.Fsm.Static.fm_params f.fi_params
+    try List.map2 (fun (p,ty) e -> p, Eval.eval cenv e) model.Fsm.fm_params f.fi_params
     with Invalid_argument _ -> raise (Fsm_mismatch ("parameter(s)",loc,f.fi_name)) in
   let mk_global id =
     try List.assoc id globals
     with Not_found -> raise (Unbound_global (loc,id)) in
-  let m = Fsm.Static.build_instance
+  let m = Fsm.build_instance
       ~name:f.fi_name
       ~model:model
       ~params:params

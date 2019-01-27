@@ -11,8 +11,6 @@
 
 (* The simulator *)
 
-open Utils
-
 exception Error of string
 
 type config = {
@@ -23,9 +21,9 @@ let cfg = {
   max_micro_reactions = 32;
   }
 
-type stimulus = Fsm.Dynamic.lhs * Expr.value
+type stimulus = Fsm_dyn.loc * Expr.value
 
-type response = Fsm.Dynamic.lhs * Expr.value 
+type response = Fsm_dyn.loc * Expr.value 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
@@ -37,13 +35,13 @@ type context = {  (* The simulator state *)
   c_csts: (string * (Types.typ * Expr.value)) list;         (* Global constants *)
   c_vars: (string * (Types.typ * Expr.value)) list;         (* Shared variables *)
   c_evs: (string * (Types.typ * Expr.value)) list;          (* Shared events *)
-  c_fsms: Fsm.Dynamic.inst list * Fsm.Dynamic.inst list;    (* FSMs, partitioned into active and inactive subsets *)
+  c_fsms: Fsm_dyn.t list * Fsm_dyn.t list;                  (* FSMs, partitioned into active and inactive subsets *)
   }
 
 let update_ctx ctx =
-  let open Fsm.Dynamic in
+  let open Fsm_dyn in
   function
-  | LhsVar (Ident.Global id'), v' ->
+  | LVar (Ident.Global id'), v' ->
      let update_io ((id,(ty,v)) as x) =
        if id=id' then (id,(ty,if Types.is_event_type ty then Expr.set_event else v')) else x in
      let update_var ((id,(ty,v)) as x) = if id=id' then (id,(ty,v')) else x in
@@ -52,25 +50,25 @@ let update_ctx ctx =
        c_inputs = List.map update_io ctx.c_inputs;
        c_vars = List.map update_var ctx.c_vars;
        c_evs = List.map update_ev ctx.c_evs; }
-  | LhsVar (Ident.Local _), _
-  | LhsArrInd (Ident.Local _, _), _ 
-  | LhsRField (Ident.Local _, _), _ ->
+  | LVar (Ident.Local _), _
+  | LArrInd (Ident.Local _, _), _ 
+  | LRField (Ident.Local _, _), _ ->
      ctx
-  | LhsArrInd (_,_), _
-  | LhsRField (_,_), _ ->
+  | LArrInd (_,_), _
+  | LRField (_,_), _ ->
      failwith "Simul.update_ctx: non scalar value in context"
      (* ctx  *)
 
 let string_of_context c = 
-  let open Fsm.Dynamic in
+  let open Fsm_dyn in
   let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_value v in
   let string_of_fsm f = f.f_static.f_name ^ ".st=" ^ f.f_state in
   Printf.sprintf "{fsms=[%s / %s] inps=[%s] outps=[%s] shared=[%s]}"
-    (ListExt.to_string string_of_fsm "," (fst c.c_fsms))
-    (ListExt.to_string string_of_fsm "," (snd c.c_fsms))
-    (ListExt.to_string string_of_comp "," c.c_inputs)
-    (ListExt.to_string string_of_comp "," c.c_outputs)
-    (ListExt.to_string string_of_comp "," (c.c_vars @ c.c_evs))
+    (Utils.ListExt.to_string string_of_fsm "," (fst c.c_fsms))
+    (Utils.ListExt.to_string string_of_fsm "," (snd c.c_fsms))
+    (Utils.ListExt.to_string string_of_comp "," c.c_inputs)
+    (Utils.ListExt.to_string string_of_comp "," c.c_outputs)
+    (Utils.ListExt.to_string string_of_comp "," (c.c_vars @ c.c_evs))
 
 exception OverReaction of Types.date
    (* Raised when the number of micro-reactions at the given instant exceeds [cfg.max_micro_reactions] *)
@@ -87,16 +85,16 @@ let global_updates resps =
 let erase_type (id,(ty,v)) = id, v
 
 let string_of_event (lhs,v) =
-  let open Fsm.Dynamic in
+  let open Fsm_dyn in
   match lhs with
-  | LhsVar id -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
-  | LhsArrInd (id,k) -> Ident.to_string id ^ "[" ^ string_of_int k ^ "]" ^ ":=" ^ Expr.string_of_value v
-  | LhsRField (id,f) -> Ident.to_string id ^ "." ^ f
+  | LVar id -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
+  | LArrInd (id,k) -> Ident.to_string id ^ "[" ^ string_of_int k ^ "]" ^ ":=" ^ Expr.string_of_value v
+  | LRField (id,f) -> Ident.to_string id ^ "." ^ f
 
-let string_of_events evs = "[" ^ ListExt.to_string string_of_event "," evs ^ "]"
+let string_of_events evs = "[" ^ Utils.ListExt.to_string string_of_event "," evs ^ "]"
 
 let mk_fsm_env ctx =
-  let open Fsm.Dynamic in
+  let open Fsm_dyn in
   { fe_inputs = ctx.c_inputs;
     fe_csts = ctx.c_csts;
     fe_fns = ctx.c_fns;
@@ -104,21 +102,21 @@ let mk_fsm_env ctx =
     fe_evs = ctx.c_evs }
 
 let rec react t ctx stimuli =
-  let open Fsm.Dynamic in
+  let open Fsm_dyn in
   let is_reentrant =     (* A reentrant stimulus is one which can trigger a micro-reaction *)
     function
-    | LhsVar (Ident.Global n), v -> 
+    | LVar (Ident.Global n), v -> 
        begin
          match List.mem_assoc n ctx.c_evs, List.mem_assoc n ctx.c_vars, v with
          true, _, { Expr.v_desc=Expr.Val_bool true } -> true   (* shared event, currently set *)
        | false, true, _ -> true                                (* shared variable, regardless of its value *)
        | _, _, _ -> false
        end
-    | LhsVar (Ident.Local _), _
-    | LhsArrInd (Ident.Local _, _), _
-    | LhsRField (Ident.Local _, _), _ -> false
-    | LhsArrInd _, _ 
-    | LhsRField _, _ -> failwith "Simul.react: non scalar value" (* false *) in
+    | LVar (Ident.Local _), _
+    | LArrInd (Ident.Local _, _), _
+    | LRField (Ident.Local _, _), _ -> false
+    | LArrInd _, _ 
+    | LRField _, _ -> failwith "Simul.react: non scalar value" (* false *) in
   let still_active f = not f.f_has_reacted in
   let micro_react ctx stimuli =
     let ctx' = List.fold_left update_ctx ctx stimuli in 
@@ -195,15 +193,19 @@ let run m =
           c_csts = List.map mk_gcst m.m_consts; 
           c_vars = shared_vars;
           c_evs = shared_evs;
-          c_fsms = List.map Fsm.Dynamic.mk_inst m.m_fsms, [] } in
+          c_fsms = List.map Fsm_dyn.create m.m_fsms, [] } in
       let init_env = mk_fsm_env init_ctx in
       let fsms', resps =
-        List.split (List.map (Fsm.Dynamic.init_fsm init_env) (fst init_ctx.c_fsms)) in 
+        List.split (List.map (Fsm_dyn.init init_env) (fst init_ctx.c_fsms)) in 
       let resps' = List.concat resps in
       let ctx' = List.fold_left update_ctx init_ctx resps' in
       {ctx' with c_fsms=fsms',[]}, [0, resps' (*@ resps''*)] in
-  let mk_stimuli (t,evs) =  t, List.map (function (id,v) -> Fsm.Dynamic.LhsVar id, v) evs in
-  let ctx, resps = step (ctx0,resps0) (List.map mk_stimuli m.m_stimuli) in
+  let inp_stimuli = function
+      name, (ty, MInp (sd, _)) -> List.map (Stimuli.mk_stimuli name) (Stimuli.events_of sd)
+    | _ -> Misc.fatal_error "Simul.run(inp_stimuli)" (* should not happen *) in
+  let stimuli = Stimuli.merge_stimuli (List.map inp_stimuli m.m_inputs) in
+  let wrap_stimuli (t,evs) =  t, List.map (function (id,v) -> Fsm_dyn.LVar id, v) evs in
+  let ctx, resps = step (ctx0,resps0) (List.map wrap_stimuli stimuli) in
   (* TODO: post-processing ? *)
   ctx, resps
 
@@ -217,24 +219,24 @@ let string_of_fsm f = (* short version for context printing *)
     | Expr.Val_unknown -> "<unknown>"
     | _ -> Expr.string_of_value v in
   let string_of_var (id,(ty,v)) = id  ^ "=" ^ string_of_val v in
-  let open Fsm.Dynamic in
+  let open Fsm_dyn in
   let sf = f.f_static in
   match f.f_vars with
     [] -> sf.f_name ^ ".st=" ^ f.f_state
-  | vs -> sf.f_name ^ "={st=" ^ f.f_state ^ ";vars=" ^ ListExt.to_string string_of_var "," f.f_vars ^ "}"
+  | vs -> sf.f_name ^ "={st=" ^ f.f_state ^ ";vars=" ^ Utils.ListExt.to_string string_of_var "," f.f_vars ^ "}"
 
 let dump_context c = 
   Printf.printf "t=%4d: active_fsms=[%s] inactive_fsms=[%s] inps=[%s] outps=[%s] csts=[%s] fns=[%s] shared_vars=[%s] shared_evs=[%s]\n" 
     c.c_date
-    (ListExt.to_string string_of_fsm " " (fst c.c_fsms))
-    (ListExt.to_string string_of_fsm " " (snd c.c_fsms))
-    (ListExt.to_string string_of_comp " " c.c_inputs)
-    (ListExt.to_string string_of_comp " " c.c_outputs)
-    (ListExt.to_string string_of_comp " " c.c_csts)
-    (ListExt.to_string string_of_comp " " c.c_fns)
-    (ListExt.to_string string_of_comp " " c.c_vars)
-    (ListExt.to_string string_of_comp " " c.c_evs)
+    (Utils.ListExt.to_string string_of_fsm " " (fst c.c_fsms))
+    (Utils.ListExt.to_string string_of_fsm " " (snd c.c_fsms))
+    (Utils.ListExt.to_string string_of_comp " " c.c_inputs)
+    (Utils.ListExt.to_string string_of_comp " " c.c_outputs)
+    (Utils.ListExt.to_string string_of_comp " " c.c_csts)
+    (Utils.ListExt.to_string string_of_comp " " c.c_fns)
+    (Utils.ListExt.to_string string_of_comp " " c.c_vars)
+    (Utils.ListExt.to_string string_of_comp " " c.c_evs)
     
 let rec dump_reaction (t,evs) =
-  Printf.printf "t=%4d: %s\n" t (ListExt.to_string string_of_event " " evs)
+  Printf.printf "t=%4d: %s\n" t (Utils.ListExt.to_string string_of_event " " evs)
 

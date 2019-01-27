@@ -531,7 +531,7 @@ let dump_testbench_impl fname m =
   fprintf oc "#include \"systemc.h\"\n";
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
   List.iter (function (id,_) -> fprintf oc "#include \"%s%s.h\"\n" cfg.sc_inpmod_prefix id) m.m_inputs;
-  List.iter (function f -> fprintf oc "#include \"%s.h\"\n" f.Fsm.Static.f_name) m.m_fsms;
+  List.iter (function f -> fprintf oc "#include \"%s.h\"\n" f.Fsm.f_name) m.m_fsms;
   fprintf oc "\n";
   fprintf oc "int sc_main(int argc, char *argv[])\n";
   fprintf oc "{\n";
@@ -548,7 +548,7 @@ let dump_testbench_impl fname m =
    m.m_shared;
   if cfg.sc_trace then
     List.iter
-      (function f -> fprintf oc "  sc_signal<int> %s;\n" (f.Fsm.Static.f_name ^ "_state"))
+      (function f -> fprintf oc "  sc_signal<int> %s;\n" (f.Fsm.f_name ^ "_state"))
       m.m_fsms;  
   (* Trace file *)
   fprintf oc "  sc_trace_file *trace_file;\n";
@@ -559,7 +559,7 @@ let dump_testbench_impl fname m =
    (m.m_inputs @ m.m_outputs @ m.m_shared);
   if cfg.sc_trace then
     List.iter
-      (function f -> let id = f.Fsm.Static.f_name ^ "_state" in fprintf oc "  sc_trace(trace_file, %s, \"%s\");\n" id id)
+      (function f -> let id = f.Fsm.f_name ^ "_state" in fprintf oc "  sc_trace(trace_file, %s, \"%s\");\n" id id)
       m.m_fsms;  
   fprintf oc "\n";
   (* Input modules *)
@@ -597,14 +597,14 @@ let dump_testbench_impl fname m =
 let dump_makefile ?(dir="./systemc") m =
   let fname = dir ^ "/" ^ "Makefile" in
   let oc = open_out fname in
-  let modname suff f = f.Fsm.Static.f_name ^ suff in
+  let modname suff f = f.Fsm.f_name ^ suff in
   let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
   let open Sysm in
   fprintf oc "include %s/etc/Makefile.systemc\n\n" cfg.sc_lib_dir;
   let globals suffix = if need_globals m then cfg.sc_globals_name ^ suffix else "" in
   (* fprintf oc "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
   List.iter
-    (function f -> fprintf oc "%s.o: %s.h %s.cpp %s\n" f.Fsm.Static.f_name f.Fsm.Static.f_name f.Fsm.Static.f_name (globals ".h"))
+    (function f -> fprintf oc "%s.o: %s.h %s.cpp %s\n" f.Fsm.f_name f.Fsm.f_name f.Fsm.f_name (globals ".h"))
     m.m_fsms;
   List.iter
     (function inp -> let name = imodname "" inp in fprintf oc "%s.o: %s.h %s.cpp\n" name name name)
@@ -660,7 +660,7 @@ let dump_makefile ?(dir="./systemc") m =
 
 let dump_fsm m ?(prefix="") ?(dir="./systemc") fsm =
   let f = Cmodel.c_model_of_fsm m fsm in
-  let prefix = match prefix with "" -> fsm.Fsm.Static.f_name | p -> p in
+  let prefix = match prefix with "" -> fsm.Fsm.f_name | p -> p in
   dump_module_intf m (dir ^ "/" ^ prefix ^ ".h") f;
   dump_module_impl m (dir ^ "/" ^ prefix ^ ".cpp") f
 

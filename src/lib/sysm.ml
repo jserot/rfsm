@@ -20,7 +20,7 @@ module DepG =
 
 type t = {
   m_name: string;
-  m_fsms: Fsm.Static.inst list;
+  m_fsms: Fsm.inst list;
   m_inputs: (string * global) list; 
   m_outputs: (string * global) list; 
   m_types: (string * Types.typ) list; 
@@ -59,7 +59,7 @@ and dependencies = {
  *  { sd_comprehension = st; sd_extension = mk_ext st } *)
 
 let extract_globals (inputs,outputs,shared) f =
-  let name = f.Fsm.Static.f_name in
+  let name = f.Fsm.f_name in
   let add_reader (ty,mg) id = match mg with
       MInp (sd, rdrs) -> ty, MInp (sd, id::rdrs)
     | MShared (wrs, rdrs) -> ty, MShared (wrs, id::rdrs)
@@ -112,7 +112,7 @@ let build_dependencies fsms shared =
   let lookup n = try List.assoc n !nodes with Not_found -> Misc.fatal_error "Sysm.build_dependencie.lookup" in
   List.iter
     (function f ->
-       let name = f.Fsm.Static.f_name in
+       let name = f.Fsm.f_name in
        let v = DepG.V.create name in
        nodes := (name, v) :: !nodes;
        DepG.add_vertex g v)
@@ -208,17 +208,17 @@ let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(wit
      Printf.fprintf oc "digraph %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" name layout rankdir mindist in
   if with_insts then 
     List.iter
-      (Fsm.Static.dot_output ~dot_options:dot_options ~options:(GlobalNames::fsm_options) ~dir:dir)
+      (Fsm.dot_output ~dot_options:dot_options ~options:(GlobalNames::fsm_options) ~dir:dir)
       m.m_fsms;
   if with_models then 
     List.iter
-      (function f -> Fsm.Static.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir f.Fsm.Static.f_model)
+      (function f -> Fsm.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir f.Fsm.f_model)
       m.m_fsms;
   let fname = Filename.concat dir (m.m_name ^ "_top.dot") in
   let oc = open_out fname in
   dump_header oc m.m_name;
   List.iter
-    (Fsm.Static.dot_output_oc oc ~dot_options:(Utils.Dot.SubGraph::dot_options) ~options:(GlobalNames::fsm_options))
+    (Fsm.dot_output_oc oc ~dot_options:(Utils.Dot.SubGraph::dot_options) ~options:(GlobalNames::fsm_options))
     m.m_fsms;
   let caption = StringExt.concat_sep "\\r" 
             [ListExt.to_string string_of_global "\\r" m.m_inputs;
@@ -290,7 +290,7 @@ let dump_dependencies m =
   close_out oc
   
 let dump oc m =
-  List.iter (Fsm.Static.dump_inst oc) m.m_fsms;
+  List.iter (Fsm.dump_inst oc) m.m_fsms;
   List.iter (dump_global oc) m.m_inputs;
   List.iter (dump_global oc) m.m_outputs;
   List.iter (dump_global oc) m.m_fns;

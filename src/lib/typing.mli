@@ -44,10 +44,10 @@ val type_expression : tenv -> Expr.t -> Types.typ
 val type_check_stim : tenv -> string -> Types.typ -> Global.stim_desc -> unit
   (** [type_stimuli env id ty sd] type checks an input stimuli description [sd] against type [ty] *)
 
-val type_fsm_model : tenv -> Fsm.Static.model -> unit
+val type_fsm_model : tenv -> Fsm.model -> unit
   (** [type_fsm_model env m] type checks an FSM model in environment [env] *)
 
-val type_fsm_inst : tenv -> Fsm.Static.inst -> unit
+val type_fsm_inst : tenv -> Fsm.inst -> unit
   (** [type_fsm_inst env f] type checks an FSM instance [f] in environment [env].  *)
 
 (* val type_system : tenv -> Sysm.t -> unit

@@ -214,7 +214,7 @@ let dump_module_impl m fname fsm =
   close_out oc
 
 let dump_fsm ?(prefix="") ?(dir="./ctask") m f =
-  let prefix = match prefix with "" -> f.Fsm.Static.f_name | p -> p in
+  let prefix = match prefix with "" -> f.Fsm.f_name | p -> p in
   dump_module_impl m (dir ^ "/" ^ prefix ^ ".c") f
 
 (* Dumping global type declarations, functions and constants *)

@@ -62,48 +62,48 @@ let handle e = match e with
      eprintf "Undefined %s in FSM %s:  %s\n" what fsm id; flush stderr; exit 4
   | Fsm.Invalid_state (fsm, id) ->
      eprintf "Invalid state in FSM %s:  %s\n" fsm id; flush stderr; exit 4
-  | Fsm.Static.Binding_mismatch (fsm, what, "") ->
+  | Fsm.Binding_mismatch (fsm, what, "") ->
      eprintf "Error when binding %s for FSM %s\n" what fsm; flush stderr; exit 4
-  | Fsm.Static.Binding_mismatch (fsm, what, id) ->
+  | Fsm.Binding_mismatch (fsm, what, id) ->
      eprintf "Error when binding %s for FSM %s:  %s\n" what fsm id; flush stderr; exit 4
-  | Fsm.Static.Invalid_parameter (fsm, id) ->
+  | Fsm.Invalid_parameter (fsm, id) ->
      eprintf "Invalid parameter value for FSM %s:  %s\n" fsm id; flush stderr; exit 4
   | Typing.Typing_error (what, where, ty, ty') ->
      eprintf "Error when typing %s in %s: types %s and %s are not compatible\n"
        what where (Types.string_of_type ty) (Types.string_of_type ty');
      flush stderr; exit 4
-  (* | Fsm.NonDetTrans (m,ts,t) ->
-   *     eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Fsm.f_name t;
-   *     List.iter (function t -> eprintf "\t- %s\n" (Fsm.string_of_transition t)) ts;
-   *     flush stderr; exit 7
-   * | Fsm.IllegalTrans (m,msg) ->
-   *     eprintf "Error when simulating FSM %s: %s\n" m.Fsm.f_name msg; flush stderr; exit 7
-   * | Fsm.Undeterminate (m,id,t) ->
-   *     eprintf "Error when simulating FSM %s: unknown value for identifier %s at t=%d\n" m.Fsm.f_name id t;
-   *     flush stderr; exit 7 *)
-  (* | Fsm.Nonatomic_IO_write(m,a) ->
-   *    eprintf "Illegal action \"%s\" within FSM \"%s\": non atomic write(s) are forbidden for global IOs and shared objects\n"
-   *      (Action.to_string a) m.Fsm.f_name; *)
-  (* | Fsm.IllegalAction(m,a) ->
-   *    eprintf "Error when executing action \"%s\" within FSM \"%s\" (check for undefined values...)\n"
-   *      (Action.to_string a) m.Fsm.f_name;
-   *    flush stderr; exit 7 *)
+  | Fsm_dyn.NonDetTrans (m,ts,t) ->
+      eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Fsm_dyn.f_static.Fsm.f_name t;
+      List.iter (function t -> eprintf "\t- %s\n" (Fsm.string_of_transition t)) ts;
+      flush stderr; exit 7
+  | Fsm_dyn.IllegalTrans (m,msg) ->
+      eprintf "Error when simulating FSM %s: %s\n" m.Fsm_dyn.f_static.Fsm.f_name msg; flush stderr; exit 7
+  | Fsm_dyn.Undeterminate (m,id,t) ->
+      eprintf "Error when simulating FSM %s: unknown value for identifier %s at t=%d\n" m.Fsm_dyn.f_static.Fsm.f_name id t;
+      flush stderr; exit 7
+  | Fsm_dyn.NonAtomicIoWrite(m,a) ->
+     eprintf "Illegal action \"%s\" within FSM \"%s\": non atomic write(s) are forbidden for global IOs and shared objects\n"
+       (Action.to_string a) m.Fsm_dyn.f_static.Fsm.f_name;
+  | Fsm_dyn.IllegalAction(m,a) ->
+     eprintf "Error when executing action \"%s\" within FSM \"%s\" (check for undefined values...)\n"
+       (Action.to_string a) m.Fsm_dyn.f_static.Fsm.f_name;
+     flush stderr; exit 7
   (* | Intern.Incomplete_record (where,v,ty) ->
    *    eprintf "Found incomplete record value in %s: value %s does not have (full) type %s\n"
    *      where (Expr.string_of_value v) (Types.string_of_type ty);
    *    flush stderr; exit 7 *)
-  (* | Simul.OverReaction t ->
-   *     eprintf "Simulation loops (over-reaction) at t=%d\n" t; flush stderr; exit 5 *)
+  | Simul.OverReaction t ->
+      eprintf "Simulation loops (over-reaction) at t=%d\n" t; flush stderr; exit 5
   | Cmodel.Error (m,msg) ->
-     eprintf "Error when translating FSM <%s> to C model: %s\n" m.Fsm.Static.f_name msg; flush stderr; exit 6
+     eprintf "Error when translating FSM <%s> to C model: %s\n" m.Fsm.f_name msg; flush stderr; exit 6
   | Systemc.Error (where,msg) ->
      eprintf "Error when generating SystemC code (%s): %s\n" where msg; flush stderr; exit 7
   | Vhdl.Error ("",msg) ->
      eprintf "Error when generating VDHL: %s\n" msg; flush stderr; exit 8
   | Vhdl.Error (m,msg) ->
      eprintf "Error when generating VDHL for FSM %s: %s\n" m msg; flush stderr; exit 8
-  (* | Vcd.Error msg ->
-   *     eprintf "Error when generating VCD file: %s\n" msg; flush stderr; exit 9 *)
+  | Vcd.Error msg ->
+      eprintf "Error when generating VCD file: %s\n" msg; flush stderr; exit 9
   | Misc.Not_implemented msg ->
      eprintf "Not implemented: %s.\n" msg; flush stderr; exit 22
   | Misc.Internal_error msg ->

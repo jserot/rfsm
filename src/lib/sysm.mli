@@ -15,7 +15,7 @@ module DepG : Graph.Sig.IM with type V.label = string and type E.label = string
 
 type t = {
   m_name : string;
-  m_fsms : Fsm.Static.inst list;
+  m_fsms : Fsm.inst list;
   m_inputs : (string * global) list;
   m_outputs : (string * global) list;
   m_types: (string * Types.typ) list; 
@@ -56,7 +56,7 @@ val build : name:string
             -> ?gtyps:(string * Types.typ) list
             -> ?gfns:(string * global) list
             -> ?gcsts:(string * global) list
-            -> Fsm.Static.inst list
+            -> Fsm.inst list
             -> t
   (** [build name gtyps gfns gcsts fsms] builds a system description from a list of global types, function
       and constant declarations and FSM instances *)
@@ -66,7 +66,7 @@ val build : name:string
 val dot_output :
   string ->
   ?dot_options:Utils.Dot.graph_style list ->
-  ?fsm_options:Fsm.Static.dot_options list ->
+  ?fsm_options:Fsm.dot_options list ->
   ?with_insts:bool ->
   ?with_models:bool ->
   t ->

@@ -85,7 +85,7 @@ let string_of_transition (s,(cond,acts,prio,_),s') =
     else s1 in
   State.to_string s ^ "--" ^ lbl ^ "->" ^ State.to_string s' ^ "[" ^ string_of_int prio ^ "]"
   
-module Static = struct
+(* module Static = struct *)
 
   type model = { 
       fm_name: string;
@@ -122,8 +122,6 @@ module Static = struct
     (function f -> extract f.f_inps),
     (function f -> extract f.f_outps)
 
-  exception Undef_symbol of string * string * string (** FSM, kind, name *)
-  exception Invalid_state of string * string (** FSM, id *)
   exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
   exception Invalid_parameter of string * string (** FSM, name *)
   exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
@@ -384,7 +382,7 @@ module Static = struct
     Printf.fprintf oc "  ITRANS = { %s \"%s\" }\n" iq (string_of_acts iacts);
     Printf.fprintf oc "  }\n"
 
-end
+(* end *)
 
 (* module Dynamic = struct
  * 
@@ -653,9 +651,9 @@ end
  * 
  * end  *)
 
-(* Toplevel functions *)
-
-let build_model = Static.build_model                   
-let build_instance = Static.build_instance
-let dot_output_model = Static.dot_output_model
-let dot_output = Static.dot_output
+(* (\* Toplevel functions *\)
+ * 
+ * let build_model = Static.build_model                   
+ * let build_instance = Static.build_instance
+ * let dot_output_model = Static.dot_output_model
+ * let dot_output = Static.dot_output *)
