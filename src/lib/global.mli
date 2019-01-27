@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Global objects (IOs and shared values) *)
+(** Global objects  *)
 
 type global =
     GInp of string * Types.typ * stim_desc       (** Global input, with type and description of associated stimuli *)

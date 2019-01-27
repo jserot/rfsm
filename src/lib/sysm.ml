@@ -27,36 +27,22 @@ type t = {
   m_fns: (string * global) list; 
   m_consts: (string * global) list; 
   m_shared: (string * global) list; 
-  (* m_stimuli: Stimuli.stimuli list; *)
   m_deps: dependencies;
   }
 
 and global = Types.typ * mg_desc 
       
 and mg_desc =
-  (* | MInp of istim_desc * string list     (\** stimuli desc, reader(s) *\) *)
   | MInp of Global.stim_desc * string list     (** stimuli desc, reader(s) *)
   | MOutp of string list                 (** writer(s) *)
   | MFun of string list * Expr.t         (** args, body *)
   | MConst of Expr.value                 (** value *)
   | MShared of string list * string list (** writer(s), reader(s) *)
 
-(* and istim_desc = {
- *   sd_comprehension: Global.stim_desc;
- *   sd_extension: Stimuli.event list
- *   } *)
-
 and dependencies = {
     md_graph: DepG.t;
     md_node: string -> DepG.V.t;
     }
-
-(* let build_stim st =
- *   let mk_ext = function
- *     | Global.Periodic (per,t1,t2) -> Stimuli.mk_per_event per t1 t2
- *     | Global.Sporadic ts -> Stimuli.mk_spor_event ts
- *     | Global.ValueChange vs -> Stimuli.mk_val_changes vs in
- *  { sd_comprehension = st; sd_extension = mk_ext st } *)
 
 let extract_globals (inputs,outputs,shared) f =
   let name = f.Fsm.f_name in
@@ -173,10 +159,6 @@ let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) fsms =
     | name, (ty, MInp (sd, _)) -> Typing.type_check_stim tenv name ty sd
     | _, _ -> ())
     inputs;
-  (* let mk_stimuli = function
-   *     name, (ty, MInp ({sd_extension=evs}, _)) -> List.map (Stimuli.mk_stimuli name) evs
-   *   | _ -> Misc.fatal_error "Sysm.build" (\* should not happen *\) in
-   * let stimuli = List.map mk_stimuli inputs in *)
   { m_name = name;
     m_fsms = fsms;
     m_inputs = inputs;
@@ -185,7 +167,6 @@ let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) fsms =
     m_fns = gfns;
     m_consts = gcsts;
     m_shared = shared;
-    (* m_stimuli = Stimuli.merge_stimuli stimuli; *)
     m_deps = build_dependencies fsms shared;
    }
 
@@ -206,14 +187,20 @@ let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(wit
   let layout, mindist = if List.mem Lascar.Ltsa.Circular dot_options then "circo", 1.5 else "dot", 1.0 in
   let dump_header oc name =
      Printf.fprintf oc "digraph %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" name layout rankdir mindist in
-  if with_insts then 
-    List.iter
-      (Fsm.dot_output ~dot_options:dot_options ~options:(GlobalNames::fsm_options) ~dir:dir)
-      m.m_fsms;
-  if with_models then 
-    List.iter
-      (function f -> Fsm.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir f.Fsm.f_model)
-      m.m_fsms;
+  let fnames' = 
+    if with_insts then 
+      List.map
+        (Fsm.dot_output ~dot_options:dot_options ~options:(GlobalNames::fsm_options) ~dir:dir)
+        m.m_fsms
+    else
+      [] in
+  let fnames'' = 
+    if with_models then 
+      List.map
+        (function f -> Fsm.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir f.Fsm.f_model)
+        m.m_fsms
+    else 
+      [] in
   let fname = Filename.concat dir (m.m_name ^ "_top.dot") in
   let oc = open_out fname in
   dump_header oc m.m_name;
@@ -228,20 +215,14 @@ let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(wit
              ListExt.to_string string_of_global "\\r" m.m_shared] in
   Printf.fprintf oc "%s_globals [label=\"%s\", shape=rect, style=rounded]\n" m.m_name caption;
   Printf.fprintf oc "}\n";
-  Logfile.write fname;
-  close_out oc
+  close_out oc;
+  fname :: fnames' @ fnames''
   
 (* Printing *)
 
 let dump_global oc (name,(ty,g_desc)) =
   let open Utils in
   match g_desc with
-  (* | MInp ({sd_extension=evs},rdrs) ->
-   *    Printf.fprintf oc "INPUT %s : %s = %s [-> %s]\n"
-   *      name
-   *      (Types.string_of_type ty)
-   *      (Stimuli.string_of_events evs)
-   *      (ListExt.to_string Misc.id "," rdrs) *)
   | MInp (sd,rdrs) ->
      Printf.fprintf oc "INPUT %s : %s = %s [-> %s]\n"
        name
@@ -268,9 +249,6 @@ let dump_global oc (name,(ty,g_desc)) =
        (ListExt.to_string Misc.id "," wrs)
        (ListExt.to_string Misc.id "," rrs)
 
-(* let dump_stimuli oc st =
- *   Printf.fprintf oc "%s\n" (Stimuli.string_of_stimuli st) *)
-
 let dump_dependencies m =
   let module G = struct
       include DepG
@@ -295,6 +273,5 @@ let dump oc m =
   List.iter (dump_global oc) m.m_outputs;
   List.iter (dump_global oc) m.m_fns;
   List.iter (dump_global oc) m.m_shared;
-  (* List.iter (dump_stimuli oc) m.m_stimuli; *)
   dump_dependencies m
   

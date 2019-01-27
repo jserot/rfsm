@@ -157,5 +157,4 @@ let rec string_of_expr e = match e with
 
 and to_string e =
   let s = string_of_expr e.e_desc in
-  (* "(" ^ s ^ ":" ^ Types.string_of_type e.e_typ ^ ")" *)
   s

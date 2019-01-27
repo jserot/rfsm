@@ -2,8 +2,6 @@ Known bugs and limitations
 
 * Multi-events and multi-FSM models are not supported by the VHDL backend
 
-* Enum values are not (yet) by the SystemC and VHDL backends
-
 * There's no bound check for values with a ranged-integer type
 
 * Synchronous interpretation of actions is not (yet) supported by the CTask and SystemC backends

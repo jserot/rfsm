@@ -231,6 +231,8 @@ let elaborate name p =
   let m = Sysm.build ~name ~gtyps ~gfns ~gcsts fsms in
   m
 
-let dot_output = Sysm.dot_output
+let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(with_models=false) m =
+  let fnames = Sysm.dot_output dir ~dot_options ~fsm_options ~with_insts ~with_models m in
+  List.iter Logfile.write fnames
 
 let dump = Sysm.dump

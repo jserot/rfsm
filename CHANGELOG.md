@@ -1,5 +1,8 @@
 # Changes
 
+# 1.3r (Jan 27, 2019)
+* Major code recrafting (lib and compiler)
+
 # 1.3 (Jan 10, 2019)
 * Declarations (types, constants, fsm models, etc) can now appear in any order in source file(s)
 * The [rfsmc] compiler now accepts a list of .fsm files (to improve source level reuse)

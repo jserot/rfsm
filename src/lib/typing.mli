@@ -34,9 +34,6 @@ exception Invalid_record_access of Expr.t
 val type_of_type_expr : tenv -> Type_expr.t -> Types.typ
   (** [type_expression env te] returns the type represented by type expression [te] in environment [env] *)
   
-(* val type_value : Expr.value -> Types.typ
- *   (\** [type_value v] returns the type of value [v]  *\) *)
-
 val type_expression : tenv -> Expr.t -> Types.typ
   (** [type_expression env e] returns the type of expression [e] in environment [env], performing
       all required type checks. *)
@@ -49,9 +46,6 @@ val type_fsm_model : tenv -> Fsm.model -> unit
 
 val type_fsm_inst : tenv -> Fsm.inst -> unit
   (** [type_fsm_inst env f] type checks an FSM instance [f] in environment [env].  *)
-
-(* val type_system : tenv -> Sysm.t -> unit
- *   (\** [type_system m] typechecks system [m], raising exception [Typing_error] when needed. *\) *)
 
 (** {2 Printers} *)
 

@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Interface to the simulator *)
+(** The simulator *)
 
 exception Error of string
 

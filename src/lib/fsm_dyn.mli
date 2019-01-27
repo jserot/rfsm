@@ -9,9 +9,9 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Dynamic model of FSM instances used by the simulator *)
+(** Dynamic model of FSM instances (used by the simulator) *)
 
-(** FSM *)
+(** {3 FSM} *)
 
 type t = { 
     f_static: Fsm.inst;                                       (** Static representation *)
@@ -20,11 +20,11 @@ type t = {
     f_has_reacted: bool;                                      (** true when implied in the last reaction *)
   }
           
-(** Local evaluation environment *)
+(** {3 Local evaluation environment} *)
        
 type lenv = (string * Expr.value) list
 
-(** Global evaluation environment *)
+(** {3 Global evaluation environment} *)
 
 type genv = {
     fe_inputs: (string * (Types.typ * Expr.value)) list;   (** Global inputs *)
@@ -56,7 +56,7 @@ exception Undeterminate of t * string * Types.date
 exception NonDetTrans of t * Fsm.transition list * Types.date
 exception NonAtomicIoWrite of t * Action.t
 
-(** Accessors *)
+(** {2 Accessors} *)
 
 val fireable : t -> lenv -> Fsm.Repr.transition -> bool
   (** [fireable f env t] returns [true] iff transition [t] in FSM [f] is fireable, given ocal env [env]. *)

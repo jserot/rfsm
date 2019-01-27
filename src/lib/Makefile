@@ -27,7 +27,7 @@ byte:
 native:
 			$(OCB) rfsm.cmxa
 			if [ -d ../../lib/ml ]; then rm -f ../../lib/ml/*; else mkdir ../../lib/ml; fi
-			cp _build/rfsm.cmxa _build/rfsm.a  ../../lib/ml
+			cp _build/rfsm.cma _build/rfsm.cmxa _build/rfsm.a  ../../lib/ml
 			cp _build/*.cmx _build/*.cmi ../../lib/ml
 			cp *.mli ../../lib/ml
 

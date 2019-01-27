@@ -198,13 +198,6 @@ let type_check what where ty ty'  =
   with
     Types.TypeConflict _ -> raise (Typing_error (what, where, ty, ty'))
 
-(* (\* Typing input stimuli *\)
- * 
- * let type_stimuli tenv sd = match sd with
- *   | ValueChange (vc1::vcs) ->
- *      List.iter (type_check "input stimuli" (Expr.
- *   | _ -> () *)
-
 (* Typing FSM models *)
 
 let type_of_list = function
@@ -337,39 +330,11 @@ let type_check_fsm_model tenv f =
   List.iter (type_check_fsm_transition f.fm_name f.fm_repr tenv) (Fsm.Repr.transitions f.fm_repr);
   List.iter (type_check_fsm_itransition f.fm_name f.fm_repr tenv) (Fsm.Repr.itransitions f.fm_repr)
 
-(* let type_of_fsm_model f = 
- *   (\* Returns the "type" of a FSM model, i.e. : 
- *      - [ti_1 * ... * ti_m -> to_1 * ... * to_n] for parameter-less models
- *      - [tp_1 * ... * tp_p -> ti_1 * ... * ti_m -> to_1 * ... * to_n] for parameterized models *\)
- *   let open Fsm.Static in
- *   let ty_ins, ty_outs, ty_inouts =
- *     List.fold_left
- *       (fun (ins,outs,inouts) (id,(dir,ty)) ->
- *         match dir with
- *         | Types.IO_In -> ty::ins, outs, inouts
- *         | Types.IO_Out -> ins, ty::outs, inouts
- *         | Types.IO_Inout -> ins, outs, ty::inouts)
- *       ([],[],[])
- *       f.fm_ios in
- *   let ty_params = List.map snd f.fm_params in
- *   let ty_ios = TyArrow (type_of_list (ty_ins @ ty_inouts), type_of_list (ty_outs @ ty_inouts)) in
- *   let ty = match ty_params with
- *   | [] -> ty_ios
- *   | _ -> TyArrow (type_of_list ty_params, ty_ios) in
- *   f.fm_typ <- ty;
- *   ty *)
-
 let type_fsm_model tenv f =
   (* Type checks an FSM model *)
   let open Fsm in
-  (* let local_tenv = types_of_fsm_model f in
-   * let tenv = 
-   *   { tenv with
-   *     te_vars = local_tenv.te_vars @ tenv.te_vars;
-   *     te_ctors = local_tenv.te_ctors @ tenv.te_ctors } in *)
   let tenv = { tenv with te_vars = types_of_fsm_model f @ tenv.te_vars } in
   type_check_fsm_model tenv f
-  (* type_of_fsm_model f *)
 
 (* Typing FSM instances *)
 
@@ -409,11 +374,6 @@ let type_check_stim tenv id ty st = match st with
        (List.map (function (_,v) -> v.Expr.v_typ) vcs)
   | _ ->
      ()
-
-(* Typing systems *)
-
-(* let type_system tenv m =
- *   () *)
 
 (* Typing environment *)
                            

@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Model for Reactive Finite State Machines *)
+(** Reactive Finite State Machines *)
 
 open Lascar
 
@@ -28,7 +28,7 @@ exception Undef_symbol of string * string * string (** FSM, kind, name *)
 exception Invalid_state of string * string (** FSM, id *)
 exception Typing_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
 
-(** States *)
+(** {3 States} *)
 
 module State :
   sig
@@ -37,7 +37,7 @@ module State :
     val to_string : t -> t
   end
 
-(** Transition labels *)
+(** {3 Transition labels} *)
 
 module TransLabel :
   sig
@@ -58,7 +58,7 @@ module TransLabel :
           For rtl transitions, the sequantial and synchronous interpretations are equivalent. *)
   end
 
-(** The internal representation, as a Labeled Transition System *)
+(** {3 Internal representation} *)
      
 module Repr : Lts.T with type state = State.t and type label = TransLabel.t 
 
@@ -69,198 +69,101 @@ type itransition = TransLabel.t * State.t
 val string_of_transition: transition -> string
 val string_of_state: state -> string
   
-(* (\** {2 Static description} *\)
- * 
- * module Static : sig *)
+(** {3 FSM model} *)
 
-  (** FSM model *)
+type model = {
+    fm_name : string;                                      (** name *)
+    fm_params : (string * Types.typ) list;                 (** generic parameters *)
+    fm_ios : (string * (Types.dir * Types.typ)) list;      (** i/os *)
+    fm_vars : (string * Types.typ) list;                   (** internal variables *)
+    fm_repr : Repr.t;                                      (** underlying LTS *)
+    (* mutable fm_typ : Types.typ; *)
+  }
 
-  type model = {
-      fm_name : string;                                      (** name *)
-      fm_params : (string * Types.typ) list;                 (** generic parameters *)
-      fm_ios : (string * (Types.dir * Types.typ)) list;      (** i/os *)
-      fm_vars : (string * Types.typ) list;                   (** internal variables *)
-      fm_repr : Repr.t;                                      (** underlying LTS *)
-      (* mutable fm_typ : Types.typ; *)
-    }
+(** {3 FSM instance} *)
+           
+open Global
+   
+type inst = { 
+    f_name: string;
+    f_model: model;
+    f_params: (string * (Types.typ * Expr.value)) list;       (** name, type, actual value *)
+    f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
+    f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
+    f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
+    f_vars: (string * Types.typ) list;                        (** name, type *)
+    f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
+    f_l2g: string -> string;                                  (** local -> global name *)
+  }
 
-  (** FSM instance *)
-             
-  open Global
-     
-  type inst = { 
-      f_name: string;
-      f_model: model;
-      f_params: (string * (Types.typ * Expr.value)) list;       (** name, type, actual value *)
-      f_inps: (string * (Types.typ * global)) list;             (** local name, (type, global) *)
-      f_outps: (string * (Types.typ * global)) list;            (** local name, (type, global) *)
-      f_inouts: (string * (Types.typ * global)) list;           (** local name, (type, global) *)
-      f_vars: (string * Types.typ) list;                        (** name, type *)
-      f_repr: Repr.t;                                           (** Static representation as a LTS (with _local_ names) *)
-      f_l2g: string -> string;                                  (** local -> global name *)
-    }
-
-  (** {3 Accessors} *)
-
-  val states_of : inst -> state list
-  val istate_of : inst -> state option
-  val transitions_of : inst -> transition list
-  val itransitions_of : inst -> itransition list
-  val succs : inst -> state -> (state * TransLabel.t) list
-  val input_events_of : inst -> string list
-  val output_events_of : inst -> string list
-
-  (** {3 Builders} *)
-
-  val build_model :
-    name:string ->
-    states:state list ->
-    params:(string * Types.typ) list ->
-    ios:(Types.dir * string * Types.typ) list ->
-    vars:(string * Types.typ) list ->
-    trans:(state * (Condition.event * Condition.guard list) * Action.t list * state * int) list ->
-    itrans:state * Action.t list ->
-    model
-
-  val build_instance :
-    name:string ->
-    model:model ->
-    params:(string * Expr.value) list ->
-    ios:global list ->
-    inst
-
-  (** {3 Misc} *)
-
-  val is_rtl : inst -> bool
-  (** [is_rtl f] is [true] iff all [is_rtl a] for all actions [a] of [f] *)
-
-  (** {3 Exceptions} *)
-
-  exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
-  exception Invalid_parameter of string * string (** FSM, name *)
-  exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
-
-  (** {3 Printers} *)
-
-  type dot_options = OmitImplicitTransitions | GlobalNames | NoCaption
-
-  val dot_output_oc :
-    out_channel ->
-    ?dot_options:Utils.Dot.graph_style list ->
-    ?options:dot_options list ->
-    inst ->
-    unit
-
-  val dot_output :
-    ?fname:string ->
-    ?dot_options:Utils.Dot.graph_style list ->
-    ?options:dot_options list ->
-    dir:string ->
-    inst ->
-    unit
-
-  val dot_output_model :
-    ?fname:string ->
-    ?dot_options:Utils.Dot.graph_style list ->
-    ?options:dot_options list ->
-    dir:string ->
-    model ->
-    unit
-
-  val dump_model : out_channel -> model -> unit
-
-  val dump_inst : out_channel -> inst -> unit
-
-(** {2 Dynamic representations} *)
-
-(* module Dynamic : sig
- * 
- *   (\** FSM *\)
- * 
- *   type inst = { 
- *       f_static: Static.inst;                                    (\** Static representation *\)
- *       f_vars: (string * (Types.typ * Expr.value)) list;         (\** name, (type, value) *\)
- *       f_state: string;                                          (\** Current state *\)
- *       f_has_reacted: bool;                                      (\** true when implied in the last reaction *\)
- *     }
- *   
- *   (\** Evaluation environment *\)
- * 
- *   type lenv = (string * Expr.value) list
- *   type genv = {
- *       fe_inputs: (string * (Types.typ * Expr.value)) list;   (\** Global inputs *\)
- *       fe_csts: (string * (Types.typ * Expr.value)) list;     (\** Global constants *\)
- *       fe_fns: (string * (Types.typ * Expr.value)) list;      (\** Global functions *\)
- *       fe_vars: (string * (Types.typ * Expr.value)) list;     (\** Shared variables *\)
- *       fe_evs: (string * (Types.typ * Expr.value)) list;      (\** Shared events *\)
- *     }
- * 
- *   type response = lhs * Expr.value
- * 
- *   and lhs =
- *     | LhsVar of Ident.t             (\** Scalar *\)
- *     | LhsArrInd of Ident.t * int    (\** 1D array location *\)
- *     | LhsRField of Ident.t * string (\** Record field *\)
- * 
- *   (\** {3 Exceptions} *\)
- * 
- *   exception IllegalTrans of inst * string
- *   exception IllegalAction of inst * Action.t
- *   exception Undeterminate of inst * string * Types.date
- *   exception NonDetTrans of inst * transition list * Types.date
- *   exception NonAtomicIoWrite of inst * Action.t 
- * 
- *   (\** {3 Builders} *\)
- * 
- *   val mk_inst : Static.inst -> inst
- *     
- *   (\** {3 Simulation} *\)
- * 
- *   val init_fsm : genv -> inst -> inst * response list
- * 
- *   val react :
- *     Types.date ->
- *     genv ->
- *     inst ->
- *     inst * response list
- * 
- *   val fireable : inst -> lenv -> Repr.transition -> bool
- *   val check_cond : inst -> lenv -> Condition.t -> bool
- *   val is_event_set : lenv -> Condition.event -> bool
- * 
- * end *)
-
-(** {2 Toplevel functions} *)
+(** {2 Builders} *)
 
 val build_model :
-    name: string ->
-    states: state list ->
-    params: (string * Types.typ) list ->
-    ios: (Types.dir * string * Types.typ) list ->
-    vars: (string * Types.typ) list ->
-    trans: (state * (Condition.event * Condition.guard list) * Action.t list * state * int) list ->
-    itrans: state * Action.t list ->
-    model
+  name:string ->
+  states:state list ->
+  params:(string * Types.typ) list ->
+  ios:(Types.dir * string * Types.typ) list ->
+  vars:(string * Types.typ) list ->
+  trans:(state * (Condition.event * Condition.guard list) * Action.t list * state * int) list ->
+  itrans:state * Action.t list ->
+  model
 
 val build_instance :
-    name: string ->
-    model: model ->
-    params: (string * Expr.value) list ->
-    ios: Global.global list ->
-    inst
+  name:string ->
+  model:model ->
+  params:(string * Expr.value) list ->
+  ios:global list ->
+  inst
 
-val dot_output_model :
-    ?fname:string ->
-    ?dot_options:Utils.Dot.graph_style list ->
-    ?options:dot_options list ->
-    dir:string ->
-    model ->
-    unit
+(** {2 Accessors} *)
+
+val states_of : inst -> state list
+val istate_of : inst -> state option
+val transitions_of : inst -> transition list
+val itransitions_of : inst -> itransition list
+val succs : inst -> state -> (state * TransLabel.t) list
+val input_events_of : inst -> string list
+val output_events_of : inst -> string list
+
+val is_rtl : inst -> bool
+  (** [is_rtl f] is [true] iff all [is_rtl a] for all actions [a] of [f] *)
+
+(** {2 Exceptions} *)
+
+exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
+exception Invalid_parameter of string * string (** FSM, name *)
+exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
+
+(** {2 Externalizers} *)
+
+type dot_options = OmitImplicitTransitions | GlobalNames | NoCaption
+
+val dot_output_oc :
+  out_channel ->
+  ?dot_options:Utils.Dot.graph_style list ->
+  ?options:dot_options list ->
+  inst ->
+  unit
 
 val dot_output :
-    ?fname:string ->
-    ?dot_options:Utils.Dot.graph_style list ->
-    ?options:dot_options list ->
-    dir:string ->
-    inst ->
-    unit
+  ?fname:string ->
+  ?dot_options:Utils.Dot.graph_style list ->
+  ?options:dot_options list ->
+  dir:string ->
+  inst ->
+  string
+  (** [dot_output dir f] writes a DOT representation of FSM instance [f] in directory [dir].
+      Returns the name of the written file. *)
+
+val dot_output_model :
+  ?fname:string ->
+  ?dot_options:Utils.Dot.graph_style list ->
+  ?options:dot_options list ->
+  dir:string ->
+  model ->
+  string
+  (** [dot_output_model dir m] writes a DOT representation of FSM model [m] in directory [dir].
+      Returns the name of the written file. *)
+
+val dump_model : out_channel -> model -> unit
+val dump_inst : out_channel -> inst -> unit

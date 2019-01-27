@@ -20,8 +20,12 @@ exception Invalid_array_access of string * int (* array name, index value *)
 exception Illegal_record_access of Expr.t
 exception Non_static_expr of Expr.t * Expr.t
 
+(** Evaluation environment *)
+
 type env = (string * Expr.value) list
 
 val subst : (string * Expr.value) list -> Expr.t -> Expr.t
+  (** [subst senv e] substitutes each occurence of variable [v] listed in [senv] by its value in [e] *)
 
 val eval : (string * Expr.value) list -> Expr.t -> Expr.value
+  (** [eval env e] evaluates expression [e] in the context of environment [env] *)

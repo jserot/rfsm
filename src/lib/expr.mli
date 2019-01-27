@@ -50,10 +50,11 @@ and e_val =
   | Val_array of value array
   | Val_record of (string * value) list  (** (Field name, value) list *)
 
-module VarSet : Set.S with type elt = string
 
 exception Out_of_bound of string * int  (** array name, index value *)
                         
+(** {2 Builders} *)
+
 val mk_expr : e_desc -> t
 val mk_var : string -> t
   
@@ -66,13 +67,20 @@ val mk_char : char -> value
 val mk_bool : bool -> value
 val array_update : string -> value array -> int -> value -> value array
 val record_update : string -> (string * value) list -> string -> value -> (string * value) list
-  
-val of_value : value -> e_desc
 
 val unset_event : value
 val set_event : value
+  
+(** {2 Accessors} *)
+
+val of_value : value -> e_desc
+
+module VarSet : Set.S with type elt = string
 
 val vars_of : t -> VarSet.t
+
+(** {2 Manipulators} *)
+
 val rename : (string -> string) -> t -> t
 
 (** {2 Printers} *)

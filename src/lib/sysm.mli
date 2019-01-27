@@ -22,24 +22,17 @@ type t = {
   m_fns: (string * global) list; 
   m_consts: (string * global) list; 
   m_shared : (string * global) list;
-  (* m_stimuli : Stimuli.stimuli list; *)
   m_deps : dependencies;                (** dependency graph *)
 }
 
 and global = Types.typ * mg_desc
 
 and mg_desc =
-  (* | MInp of istim_desc * string list     (\** stimuli desc, reader(s) *\) *)
   | MInp of Global.stim_desc * string list     (** stimuli desc, reader(s) *)
   | MOutp of string list                 (** writer(s) *)
   | MFun of string list * Expr.t         (** args, body *)
   | MConst of Expr.value                 (** value *)
   | MShared of string list * string list (** writer(s), reader(s) *)
-
-(* and istim_desc = {
- *   sd_comprehension : Global.stim_desc;
- *   sd_extension : Stimuli.event list;
- * } *)
 
 and dependencies = {
   md_graph : DepG.t;
@@ -70,6 +63,8 @@ val dot_output :
   ?with_insts:bool ->
   ?with_models:bool ->
   t ->
-  unit
+  string list
+  (** [dot_output dir m] writes a DOT representation of system [m] in directory [dir] and returns 
+     a list of the written files *)
 
 val dump : out_channel -> t -> unit
