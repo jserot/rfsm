@@ -17,7 +17,7 @@
 #include "config.h"
 #include "fsm_syntax_highlighter.h"
 #include "ctask_syntax_highlighter.h"
-#include "ImageViewer.h"
+#include "imageviewer.h"
 
 #include <QDir>
 #include <QMap>

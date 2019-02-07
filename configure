@@ -15,6 +15,10 @@ install_docdir=''
 #install_mandir=''
 install_emacsdir=''
 gui='yes'
+sysc_lib='yes'
+vhdl_lib='yes'
+doc='yes'
+
 
 ocamlversion_min=4.06
 
@@ -39,8 +43,12 @@ while : ; do
         install_emacsdir=$2; shift;;
     -byte-only|--byte-only)
         native='no'; shift;;
+    -no-libs|--no-libs)
+        sysc_lib='no'; vhdl_lib='no'; shift;;
     -no-gui|--no-gui)
         gui='no'; shift;;
+    -no-doc|--no-doc)
+        doc='no'; shift;;
     -dot|--dot)
         dotprogram=$2; shift;;
     -dotviewer|--dotviewer)
@@ -61,6 +69,8 @@ Options: [defaults in brackets after descriptions]
   --emacsdir DIR          install emacs mode in DIR [default:$install_emacsdir]
   --byte-only             do not build native code executable
   --no-gui                do not build the Qt-based GUI
+  --no-libs               do not build the SystemC and GHDL support libraries
+  --no-doc                do not build the documentation from sources
   --dot NAME              command for runing dot program [default: $dotprogram]
   --dotviewer NAME        command for displaying .dot files [default: $dotviewer]
   --vcdviewer NAME        command for displaying .vcd files [default: $vcdviewer]
@@ -110,6 +120,9 @@ echo "PLATFORM=$platform" >> config
 echo "$version" >> config
 echo "BUILD_NATIVE=$native" >> config
 echo "BUILD_GUI=$gui" >> config
+echo "BUILD_SYSC_LIB=$sysc_lib" >> config
+echo "BUILD_VHDL_LIB=$vhdl_lib" >> config
+echo "BUILD_DOC=$doc" >> config
 echo "" >> config
 echo "# INSTALL PATHS" >> config
 echo "INSTALL_BINDIR=$install_bindir" >> config

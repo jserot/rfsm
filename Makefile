@@ -19,6 +19,7 @@ endif
 QMAKE_MACOS = /Developer/Qt5.2.1/5.2.1/clang_64/bin/qmake 
 QMAKE_WIN = C:/Qt/Qt5.8.0/5.8/mingw53_32/bin/qmake.exe
 MAKE_WIN = C:/Qt/Qt5.8.0/Tools/mingw530_32/bin/mingw32-make
+QMAKE_UNIX=qmake
 
 .PHONY: compiler lib gui clean test doc install dist opam opam-doc
 
@@ -45,22 +46,32 @@ ifeq ($(BUILD_GUI),yes)
 	cat src/gui/builtin_options.txt src/compiler/options_spec.txt > src/gui/options_spec.txt
 ifeq ($(PLATFORM), win32)
 	(cd src/gui; $(QMAKE_WIN) -spec win32-g++ rfsm.pro; $(MAKE_WIN))
-else
+endif
+ifeq ($(PLATFORM), macos)
 	(cd src/gui; $(QMAKE_MACOS) -spec macx-clang CONFIG+=x86_64 rfsm.pro; make)
+endif
+ifeq ($(PLATFORM), unix)
+	(cd src/gui; $(QMAKE_UNIX) rfsm.pro; make)
 endif
 endif
 
 libs:
+ifeq ($(BUILD_SYSC_LIB),yes)
 	(cd lib/systemc; make)
+endif
+ifeq ($(BUILD_VHDL_LIB),yes)
 	(cd lib/vhdl; make)
+endif
 
 doc: 
+ifeq ($(BUILD_DOC),yes)
 	(cd src/lib; make doc)
 	if [ -d doc/lib ]; then rm -f doc/lib/*; else mkdir doc/lib; fi
 	cp src/lib/rfsm.docdir/* doc/lib
 	(cd doc/um; make; cp rfsm.pdf ..)
 	pandoc -o CHANGELOG.txt CHANGELOG.md
 	pandoc -o README.txt README.md
+endif
 
 opam-doc: 
 	(cd src/lib; make doc)
@@ -92,10 +103,14 @@ install:
 	mkdir -p $(INSTALL_LIBDIR)
 	cp -r lib/ml $(INSTALL_LIBDIR)
 	cp -r lib/etc $(INSTALL_LIBDIR)
+ifeq ($(BUILD_SYSC_LIB),yes)
 	mkdir -p $(INSTALL_LIBDIR)/systemc
 	cp lib/systemc/*.{o,h} $(INSTALL_LIBDIR)/systemc
+endif
+ifeq ($(BUILD_VHDL_LIB),yes)
 	mkdir -p $(INSTALL_LIBDIR)/vhdl
 	cp lib/vhdl/*.vhd $(INSTALL_LIBDIR)/vhdl
+endif
 	mkdir -p $(INSTALL_BINDIR)
 	cp src/compiler/rfsmc $(INSTALL_BINDIR)
 ifeq ($(BUILD_NATIVE),yes)
@@ -108,9 +123,11 @@ else
 	cp src/gui/rfsm $(INSTALL_BINDIR)/rfsm
 endif
 endif
+ifeq ($(BUILD_DOC),yes)
 	mkdir -p $(INSTALL_DOCDIR)
 	cp -r doc/lib $(INSTALL_DOCDIR)
 	cp -r doc/um/rfsm.pdf $(INSTALL_DOCDIR)/rfsm-manual.pdf
+endif
 
 install-opam: 
 	@echo "Installing $(PACKNAME) in $(INSTALL_LIBDIR)"

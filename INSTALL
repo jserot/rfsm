@@ -1,5 +1,38 @@
-To build from sources :
+When building from sources
+
+Pre-requisites
+--------------
+
+* For compiling the [rfsmc] compiler
+
+- Ocaml compiler (>=4.06) with the following packages installed (preferably using OPAM 2) :
+  . ocamlfind
+  . ocamlbuild
+  . ocamlgraph
+  . menhir
+  . lascar
+  
+* For building the SystemC support library 
+
+- a working SystemC installation (see https://accellera.org/downloads/standards/systemc)
+
+* For building the VHDL support library
+
+- a working GHDL installation (see https://github.com/ghdl/ghdl/releases)
+
+* For building the GUI
+
+- a working Qt5 installation
+
+Building
+--------
+
+Decompress the archive, cd to the source directory and type :
 
 1. ./configure [options]
 2. ./make
 3. ./make install
+
+If you don't have Qt5 and/or don't want to build the GUI, pass the [--no-gui] option to [configure].
+
+If you don't have SystemC/VHDL and/or don't want to use the SystemC/VHDL backends, pass the [--no-libs] option to [configure].

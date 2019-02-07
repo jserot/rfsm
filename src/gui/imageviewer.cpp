@@ -10,7 +10,7 @@
 /**********************************************************************/
 
 #include <QtWidgets>
-#include "ImageViewer.h"
+#include "imageviewer.h"
 
 #include <QtGui>
 #include <QPainter>
