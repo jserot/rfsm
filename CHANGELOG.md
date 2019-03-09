@@ -1,6 +1,6 @@
 # Changes
 
-# 1.3r (Jan 27, 2019)
+# 1.4 (Mar XX, 2019)
 * Major code recrafting (lib and compiler)
 * Bug several bugs in scripts/Makefiles when building from sources on Linux platforms
 * Added options [--no-libs] and [--no-doc] to [configure] script when building from sources

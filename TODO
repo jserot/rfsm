@@ -1,6 +1,5 @@
 COMPILER
 
-- opam2
 - ocamlbuild -> dune
 - use cmake for building GUI
 - fix bug in rfsm_mode.el; should not inherit from C mode !
