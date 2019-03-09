@@ -42,13 +42,13 @@ while : ; do
     -emacsdir|--emacsdir)
         install_emacsdir=$2; shift;;
     -byte-only|--byte-only)
-        native='no'; shift;;
+        native='no';;
     -no-libs|--no-libs)
-        sysc_lib='no'; vhdl_lib='no'; shift;;
+        sysc_lib='no'; vhdl_lib='no';;
     -no-gui|--no-gui)
-        gui='no'; shift;;
+        gui='no';;
     -no-doc|--no-doc)
-        doc='no'; shift;;
+        doc='no';;
     -dot|--dot)
         dotprogram=$2; shift;;
     -dotviewer|--dotviewer)
