@@ -1,6 +1,6 @@
-opam-version: "1.2"
+opam-version: "2.0"
 name: "rfsm"
-version: "1.0"
+version: "1.4"
 maintainer: "jocelyn.serot@uca.fr"
 authors: [
   "Jocelyn Sérot <jocelyn.serot@uca.fr>"
@@ -10,7 +10,7 @@ dev-repo: "git://github.com/jserot/rfsm.git"
 bug-reports: "jocelyn.serot@uca.fr"
 license: "MIT"
 build: [
-  ["./configure" "--no-gui"]
+  ["./configure" "--no-gui" "--no-doc"]
   [make "opam"]
 ]
 install: [
@@ -20,6 +20,7 @@ remove: [
   [make "uninstall-opam"]
 ]
 depends: [
+  "ocaml" {>= "4.03"}
   "camlp4"
   "ocamlfind" {build}
   "ocamlbuild" {build}
@@ -27,4 +28,5 @@ depends: [
   "menhir"
   "lascar"
 ]
-available: [ ocaml-version >= "4.03" ]
+synopsis:
+  "A toolset for describing and simulating StateChart-like state diagrams"
