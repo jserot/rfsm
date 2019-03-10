@@ -2,7 +2,7 @@
 
 # 1.4 (Mar 9, 2019)
 * Major code recrafting (lib and compiler)
-* Bug several bugs in scripts/Makefiles when building from sources on Linux platforms
+* Fixed several bugs in scripts/Makefiles when building from sources on Linux platforms
 * Added options [--no-libs] and [--no-doc] to [configure] script when building from sources
 
 # 1.3 (Jan 10, 2019)

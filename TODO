@@ -1,6 +1,14 @@
 COMPILER
 
-- ocamlbuild -> dune
+- bug fix for neg constants in FSM inst params (ex: [fsm f = foo<-1>(...)] or [fsm f=foo<[1,-1,2](...)]
+- rewrite examples as model(s)+testbench (?)
+- alternate syntax: ex:
+  [FSM Chrono (...) ...
+   TRANS:
+   | Idle -> Running ON StartStop WITH t := 0
+   | Running -> Chrono ON Sec WHEN t<N WITH t:=t+1
+   ...]
+- ocamlbuild -> dune (?)
 - use cmake for building GUI
 - fix bug in rfsm_mode.el; should not inherit from C mode !
 - support for synchronous actions in CTask and SystemC
@@ -12,12 +20,6 @@ COMPILER
 - clarify mechanism for delta-waits insertion in SystemC backend
 - VHDL implementation of models with multiple input events
 - VHDL implementation of event and variable synchronized models
-- alternate syntax: ex:
-  [FSM Chrono (...) ...
-   TRANS:
-   | Idle -> Running ON StartStop WITH t := 0
-   | Running -> Chrono ON Sec WHEN t<N WITH t:=t+1
-   ...]
 - man page for rfsmc
 - FreeRTOS (or other RTOS) specialized C-backend
 - SCXML backend (www.w3.org/TR/scxml, Yakindu, ...)

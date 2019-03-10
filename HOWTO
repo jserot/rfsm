@@ -1,5 +1,5 @@
 * make local (dev) version
-- ./configure [--no-gui]
+- ./configure [--no-gui --no-doc]
 - make
 
 * make source dist

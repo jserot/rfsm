@@ -8,6 +8,7 @@ _build/
 CHANGELOG.txt
 README.txt
 HOWTO
+TODO
 config
 config-stamp
 *.dvi
@@ -19,7 +20,8 @@ config-stamp
 .qmake.stash
 Info.plist
 TAGS
-/doc/lib/
+/doc/lib/*
+!/doc/lib/.keep
 /etc/
 examples/others/
 examples/tofix/
