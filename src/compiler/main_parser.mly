@@ -351,18 +351,10 @@ opt_inst_params:
   |  LT params=separated_nonempty_list(COMMA, inst_param_value) GT { params }
 
 inst_param_value:  
-  | v = constant { mk_expr v }
+  | v = scalar_const { mk_expr (Expr.of_value v) }
+  | v = array_const { mk_expr (Expr.of_value v) }
   | v = LID { mk_expr (Expr.EVar v) }
-  | LBRACKET vs = separated_nonempty_list(COMMA,constant) RBRACKET { mk_expr (Expr.EArrExt (List.map mk_expr vs)) }
-  (* | v=int_const { Expr.mk_int v }
-   * | v=float_const { Expr.mk_float v }
-   * | v=char_const { Expr.mk_char v }
-   * (\* | v=bool { Expr.Val_bool v } *\)
-   * | v=array_val { Expr.mk_array v } *)
 
-(* array_val:
- *   | LBRACKET vs = separated_nonempty_list(COMMA,inst_param_value) RBRACKET { vs } *)
-                   
 (* TYPE EXPRESSIONs *)
 
 type_expr:

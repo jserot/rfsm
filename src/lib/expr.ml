@@ -51,12 +51,13 @@ and e_val =
   | Val_array of value array
   | Val_record of (string * value) list  (** (Field name, value) list *)
 
-let of_value v = match v.v_desc with
+let rec of_value v = match v.v_desc with
     Val_int v -> EInt v
   | Val_float f -> EFloat f
   | Val_char f -> EChar f
   | Val_bool b -> EBool b
   | Val_enum c -> EEnum c
+  | Val_array vs -> EArrExt (List.map (fun v -> mk_expr (of_value v)) (Array.to_list vs))
   | _ -> Misc.fatal_error "Expr.of_value"
 
 exception Out_of_bound of string * int
