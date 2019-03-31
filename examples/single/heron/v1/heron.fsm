@@ -16,11 +16,3 @@ fsm model Heron <niter: int> (
     Iter -- h.n=niter | r:=x; rdy:=1 -> Idle;
   itrans: | rdy:=1 -> Idle;
   }
-
-input H : event = periodic (10,10,200)
-input U : float = value_changes (5:2.0)
-input Start : bool = value_changes (0:0, 25:1, 35:0)
-output Rdy : bool
-output R : float
-
-fsm heron = Heron<8> (H,Start,U,Rdy,R)

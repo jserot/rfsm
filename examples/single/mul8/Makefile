@@ -1,5 +1,4 @@
-SRCS=mul8.fsm
-APP=mul8
+SRCS=mul8.fsm main.fsm
 DOT_OPTS=
 SIM_OPTS=
 SYSTEMC_OPTS=-sc_time_unit "SC_NS" # -trace

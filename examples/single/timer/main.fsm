@@ -1,21 +1,3 @@
-# A simple model for a programmable timer
-# Counts [n] occurences of [h] when [start] is received and emits [done]
-# The counter is value is available on IO [t]
-
-fsm model Timer <n: int> (
-  in h: event,
-  in start: event,
-  out done: event,
-  inout t: int)
-{
-  states: Idle, Count;
-  trans:
-    Idle -- start | t:=0 -> Count,
-    Count -- h.t<n-1 | t:=t+1 -> Count,
-    Count -- h.t=n-1 | done -> Idle;
-  itrans: -> Idle;
-}
-
 input h: event = periodic(1, 0, 25)
 input start: event = sporadic(5)
 output done: event

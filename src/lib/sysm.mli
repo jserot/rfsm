@@ -60,8 +60,6 @@ val dot_output :
   string ->
   ?dot_options:Utils.Dot.graph_style list ->
   ?fsm_options:Fsm.dot_options list ->
-  ?with_insts:bool ->
-  ?with_models:bool ->
   t ->
   string list
   (** [dot_output dir m] writes a DOT representation of system [m] in directory [dir] and returns 

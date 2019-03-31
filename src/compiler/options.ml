@@ -10,9 +10,9 @@
 (**********************************************************************)
 
 type target = Dot | Sim | CTask | SystemC | Vhdl
-                                          
 let target = ref None
-           
+type compile_mode = Model | Program
+let compile_mode = ref Program
 let target_dir = ref "."
 let main_name = ref ""
 let vcd_file = ref "run.vcd"
@@ -20,9 +20,8 @@ let print_version = ref false
 let do_run = ref false
 let dump_static = ref false
 let dot_captions = ref true
-let dot_fsm_insts = ref false
-let dot_fsm_models = ref false
 
+let set_compile_model () = compile_mode := Model
 let set_sim () = target := Some Sim
 let set_dot () = target := Some Dot
 let set_ctask () = target := Some CTask
@@ -57,6 +56,4 @@ let set_sc_double_float () = Systemc.cfg.Systemc.sc_double_float <- true
 let set_vhdl_trace () = Vhdl.cfg.Vhdl.vhdl_trace <- true
 
 let set_dot_no_captions () = dot_captions := false
-let set_dot_fsm_insts () = dot_fsm_insts := true
-let set_dot_fsm_models () = dot_fsm_models := true
 let set_dot_actions_nl () = Fsm.cfg.Fsm.act_sep <- "\\n"

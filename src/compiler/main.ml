@@ -27,7 +27,7 @@ let print_banner () =
 
 let parse lexer parser fname = 
   let ic = open_in_bin fname in
-  (* The source file must be opened in binary mode, so that the absolute seeks in print_location work. *)
+  (* The source file(s) must be opened in binary mode, so that the absolute seeks in print_location work. *)
   Location.input_name := fname;
   Location.input_chan := ic;
   let lexbuf = Lexing.from_channel !Location.input_chan in
@@ -62,32 +62,51 @@ try
        check_dir !Options.target_dir;
        Static.dot_output
          ~fsm_options:(if !Options.dot_captions then [] else [Fsm.NoCaption])
-         ~with_insts:!Options.dot_fsm_insts
-         ~with_models:!Options.dot_fsm_models
          !Options.target_dir
          m;
   | Some Options.CTask ->
        Ctask.check_allowed m;
        check_dir !Options.target_dir;
-       if Ctask.need_globals m then Ctask.dump_globals ~dir:!Options.target_dir m;
-       List.iter (Ctask.dump_fsm ~dir:!Options.target_dir m) m.Sysm.m_fsms
+       begin match m with
+       | Static.Models ms ->
+          List.iter (Ctask.dump_fsm_model ~dir:!Options.target_dir m) ms
+       | Static.System s ->
+          if Ctask.need_globals s then Ctask.dump_globals ~dir:!Options.target_dir s;
+          List.iter (Ctask.dump_fsm_inst ~dir:!Options.target_dir s) s.Sysm.m_fsms
+       end
   | Some Options.SystemC ->
        Systemc.check_allowed m;
        check_dir !Options.target_dir;
-       if Systemc.need_globals m then Systemc.dump_globals ~dir:!Options.target_dir m;
-       Systemc.dump_model ~dir:!Options.target_dir m;
-       Systemc.dump_testbench ~dir:!Options.target_dir m;
-       Systemc.dump_makefile ~dir:!Options.target_dir m
+       begin match m with
+       | Static.Models ms ->
+          List.iter (Systemc.dump_fsm_model ~dir:!Options.target_dir) ms
+       | Static.System s ->
+          if Systemc.need_globals s then Systemc.dump_globals ~dir:!Options.target_dir s;
+          Systemc.dump_model ~dir:!Options.target_dir s;
+          Systemc.dump_testbench ~name:name ~dir:!Options.target_dir s;
+          Systemc.dump_makefile ~name:name ~dir:!Options.target_dir s
+       end
   | Some Options.Vhdl ->
-       Vhdl.check_allowed m;
        check_dir !Options.target_dir;
-       if Vhdl.need_globals m then Vhdl.dump_globals ~dir:!Options.target_dir m;
-       Vhdl.dump_model ~dir:!Options.target_dir m;
-       Vhdl.dump_testbench ~dir:!Options.target_dir m;
-       Vhdl.dump_makefile ~dir:!Options.target_dir m
+       begin match m with
+       | Static.Models ms ->
+          Vhdl.check_allowed_models ms;
+          List.iter (Vhdl.dump_fsm_model ~dir:!Options.target_dir) ms
+       | Static.System s ->
+          Vhdl.check_allowed_system s;
+          if Vhdl.need_globals s then Vhdl.dump_globals ~dir:!Options.target_dir s;
+          Vhdl.dump_model ~dir:!Options.target_dir s;
+          Vhdl.dump_testbench ~name:name ~dir:!Options.target_dir s;
+          Vhdl.dump_makefile ~name:name ~dir:!Options.target_dir s
+       end
   | Some Options.Sim ->
-       let ctx, reacts = Simul.run m in
-       Vcd.output m ctx !Options.vcd_file reacts
+       begin match m with
+       | Static.System s ->
+          let ctx, reacts = Simul.run s in
+          Vcd.output s ctx !Options.vcd_file reacts
+       | _ ->
+          eprintf "No testbench to simulate.\n"; flush stderr; exit 1
+       end
   | None ->
      ()
   end;

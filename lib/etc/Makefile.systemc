@@ -10,19 +10,19 @@ SOURCES     = $(wildcard *.cpp)
 OBJS        = $(SOURCES:.cpp=.o)
 GTKWAVE     = PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin  # for visualizing .vcd trace files
 
-all: tb 
+all: $(TB) 
 
-run: tb
-	./tb
+run: $(TB)
+	./$(TB)
 
-view: tb.vcd
-	$(GTKWAVE) -f $< -a tb.sav > /tmp/gtkwave.log 2>&1
+view: $(TB).vcd
+	$(GTKWAVE) -f $< -a $(TB).sav > /tmp/gtkwave.log 2>&1
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 clean:
-	-rm -f *.o *~ tb
+	-rm -f *.o *~ $(TB)
 	-rm -f core
 	-rm -f *.vcd
 

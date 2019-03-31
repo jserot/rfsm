@@ -104,7 +104,7 @@ let register_fsm_var acc ((id,ty) as s) =
  
 let register_fsm acc f =
   let f' = f.Fsm_dyn.f_static in
-  let sigs = (Ident.Local (f'.f_name, "state"), TyEnum (Types.new_name_var(), states_of f'))
+  let sigs = (Ident.Local (f'.f_name, "state"), TyEnum (Types.new_name_var(), states_of_inst f'))
              :: List.map (function (id,ty) -> Ident.Local (f'.f_name,id),ty) f'.f_vars in
   List.fold_left register_fsm_var acc sigs
 

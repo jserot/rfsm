@@ -172,10 +172,9 @@ let dump_state_case oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss
 let dump_state oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   dump_transitions oc q false evs tss
 
-let dump_module_impl m fname fsm =
-  let m = Cmodel.c_model_of_fsm m fsm in
+let dump_model fname m =
   let oc = open_out fname in
-  let modname = String.capitalize_ascii fsm.f_name in
+  let modname = String.capitalize_ascii m.c_name in
   (* let string_of_ival v =
    *   let open Expr in
    *   match v.v_desc with
@@ -183,7 +182,9 @@ let dump_module_impl m fname fsm =
    *   | Val_array vs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (Array.to_list vs) -> ""
    *   | Val_record fs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (List.map snd fs) -> ""
    *   | _ -> " = " ^ string_of_value v in *)
-  fprintf oc "task %s(\n" modname;
+  fprintf oc "task %s%s(\n"
+    modname
+    (match m.c_params with [] -> "" | ps -> "<" ^ Utils.ListExt.to_string string_of_typed_item "," ps ^ ">");
   List.iter (fun (id,ty) -> fprintf oc "  in %s;\n" (string_of_typed_item (id,ty))) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc " out %s;\n" (string_of_typed_item (id,ty))) m.c_outps;
   List.iter (fun (id,ty) -> fprintf oc " inout %s;\n" (string_of_typed_item (id,ty))) m.c_inouts;
@@ -213,9 +214,13 @@ let dump_module_impl m fname fsm =
   Logfile.write fname;
   close_out oc
 
-let dump_fsm ?(prefix="") ?(dir="./ctask") m f =
+let dump_fsm_model ?(prefix="") ?(dir="./ctask") m f =
+  let prefix = match prefix with "" -> f.Fsm.fm_name | p -> p in
+  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_model f)
+
+let dump_fsm_inst ?(prefix="") ?(dir="./ctask") m f =
   let prefix = match prefix with "" -> f.Fsm.f_name | p -> p in
-  dump_module_impl m (dir ^ "/" ^ prefix ^ ".c") f
+  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_inst m f)
 
 (* Dumping global type declarations, functions and constants *)
 

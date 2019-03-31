@@ -189,7 +189,7 @@ let sysc_event e = e ^ ".posedge_event()"
   (* Events are implemented as boolean signals because it is not possible to wait on multiple [sc_event]s 
      and telling afterwards which one occurred in SystemC 2.3.0 !! *)
 
-let dump_transitions oc g src after evs m tss =
+let dump_transitions oc src after evs m tss =
    if after then fprintf oc "      else {\n";
    let tab = if after then "        " else "      " in
    begin match tss with 
@@ -210,20 +210,20 @@ let dump_transitions oc g src after evs m tss =
           - variables modified at delta=0 can be viewed at delta>0 *)
    if after then fprintf oc "      }\n"
      
-let dump_state oc g m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
-   dump_transitions oc g q false evs m tss
+let dump_state oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
+   dump_transitions oc q false evs m tss
 
-let dump_state_case oc g m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
+let dump_state_case oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   fprintf oc "    case %s:\n" q;
-  dump_transitions oc g q false evs m tss;
+  dump_transitions oc q false evs m tss;
   fprintf oc "      break;\n"
 
-let dump_module_impl g fname m =
+let dump_module_impl with_globals fname m =
   let oc = open_out fname in
   let modname = String.capitalize_ascii m.c_name in
   fprintf oc "#include \"%s.h\"\n" m.c_name;
   fprintf oc "#include \"%s.h\"\n" cfg.sc_lib_name;
-  if need_globals g then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
+  if with_globals then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
   (* List.iter (fun (id,(ty,v)) -> fprintf oc "  static const %s = %s;\n" (string_of_typed_item (id,ty)) (string_of_value v)) m.c_consts; *)
   List.iter
@@ -231,6 +231,8 @@ let dump_module_impl g fname m =
       fprintf oc "const %s = %s;\n" (string_of_typed_item ~scope:modname (id,ty)) (string_of_value v))
     m.c_consts;
   fprintf oc "\n";
+  if m.c_params <> [] then 
+    fprintf oc "template <%s>\n" (Utils.ListExt.to_string string_of_typed_item ", " m.c_params);
   fprintf oc "void %s::%s()\n" modname cfg.sc_proc_name;
   fprintf oc "{\n";
   fprintf oc "  %s = %s;\n" cfg.sc_state_var (fst m.c_init);
@@ -239,10 +241,10 @@ let dump_module_impl g fname m =
   if cfg.sc_trace then fprintf oc "    %s = %s;\n" cfg.sc_trace_state_var cfg.sc_state_var;
   begin match m.c_body with
     [] -> () (* should not happen *)
-  | [q] -> dump_state oc g m q 
+  | [q] -> dump_state oc m q 
   | qs -> 
       fprintf oc "    switch ( %s ) {\n" cfg.sc_state_var;
-      List.iter (dump_state_case oc g m) m.c_body;
+      List.iter (dump_state_case oc m) m.c_body;
       fprintf oc "    }\n"
   end;
   fprintf oc "  }\n";
@@ -250,7 +252,7 @@ let dump_module_impl g fname m =
   Logfile.write fname;
   close_out oc
 
-let dump_module_intf g fname m = 
+let dump_module_intf with_globals fname m = 
   let oc = open_out fname in
   let modname = String.capitalize_ascii m.c_name in
   (* let string_of_ival v =
@@ -261,8 +263,10 @@ let dump_module_intf g fname m =
    *   | Val_record fs when List.for_all (function {v_desc=Val_unknown} -> true | _ -> false) (List.map snd fs) -> ""
    *   | _ -> " = " ^ string_of_value v in *)
   fprintf oc "#include \"systemc.h\"\n";
-  if need_globals g then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
+  if with_globals then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
+  if m.c_params <> [] then 
+    fprintf oc "template <%s>\n" (Utils.ListExt.to_string string_of_typed_item ", " m.c_params);
   fprintf oc "SC_MODULE(%s)\n" modname;
   fprintf oc "{\n";
   fprintf oc "  // Types\n";
@@ -291,7 +295,7 @@ let dump_module_intf g fname m =
   Logfile.write fname;
   close_out oc
 
-let dump_inp_module_impl g fname (id,(ty,desc)) = 
+let dump_inp_module_impl fname (id,(ty,desc)) = 
   let oc = open_out fname in
   let name = cfg.sc_inpmod_prefix ^ id in
   let modname = String.capitalize_ascii name in
@@ -378,11 +382,11 @@ let dump_inp_module_impl g fname (id,(ty,desc)) =
   Logfile.write fname;
   close_out oc
 
-let dump_inp_module_intf g fname (id,(ty,desc)) = 
+let dump_inp_module_intf with_globals fname (id,(ty,desc)) = 
   let oc = open_out fname in
   let modname = String.capitalize_ascii (cfg.sc_inpmod_prefix ^ id) in
   fprintf oc "#include \"systemc.h\"\n";
-  if need_globals g then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
+  if with_globals then fprintf oc "#include \"%s.h\"\n" cfg.sc_globals_name;
   fprintf oc "\n";
   fprintf oc "SC_MODULE(%s)\n" modname;
   fprintf oc "{\n";
@@ -523,7 +527,7 @@ let dump_stimulus oc (id,v) = match v with
     None -> fprintf oc "  notify_ev(%s);\n" id
   | Some v' -> fprintf oc "  %s = %s;\n" id (string_of_value v')
 
-let dump_testbench_impl fname m = 
+let dump_testbench_impl tb_name fname m = 
   let oc = open_out fname in
   let open Sysm in
   let modname n = String.capitalize_ascii n in
@@ -552,7 +556,7 @@ let dump_testbench_impl fname m =
       m.m_fsms;  
   (* Trace file *)
   fprintf oc "  sc_trace_file *trace_file;\n";
-  fprintf oc "  trace_file = sc_create_vcd_trace_file (\"%s\");\n" cfg.sc_tb_name;
+  fprintf oc "  trace_file = sc_create_vcd_trace_file (\"%s\");\n" tb_name;
   fprintf oc "  sc_write_comment(trace_file, \"%s\");\n" comment;
   List.iter
    (function (id,(ty,_)) -> fprintf oc "  sc_trace(trace_file, %s, \"%s\");\n" id id)
@@ -573,7 +577,7 @@ let dump_testbench_impl fname m =
   (* FSM modules *)
   List.iter
     (function f ->
-      let m = Cmodel.c_model_of_fsm m f in
+      let m = Cmodel.c_model_of_fsm_inst m f in
       let actual_name (id,_) = f.f_l2g id in
       fprintf oc "  %s %s(\"%s\");\n" (modname f.f_name) f.f_name f.f_name;
       fprintf oc "  %s(%s%s);\n"
@@ -594,12 +598,14 @@ let dump_testbench_impl fname m =
 
 (* Dumping Makefile *)
 
-let dump_makefile ?(dir="./systemc") m =
+let dump_makefile ?(name="") ?(dir="./systemc") m =
+  let tb_name = match name with "" -> cfg.sc_tb_name | p -> p in
   let fname = dir ^ "/" ^ "Makefile" in
   let oc = open_out fname in
   let modname suff f = f.Fsm.f_name ^ suff in
   let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
   let open Sysm in
+  fprintf oc "TB=%s\n\n" tb_name;
   fprintf oc "include %s/etc/Makefile.systemc\n\n" cfg.sc_lib_dir;
   let globals suffix = if need_globals m then cfg.sc_globals_name ^ suffix else "" in
   (* fprintf oc "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
@@ -610,18 +616,18 @@ let dump_makefile ?(dir="./systemc") m =
     (function inp -> let name = imodname "" inp in fprintf oc "%s.o: %s.h %s.cpp\n" name name name)
     m.m_inputs;
   fprintf oc "%s.o: %s %s %s.cpp\n"
-          cfg.sc_tb_name
+          tb_name
           (Utils.ListExt.to_string (modname ".h")  " " m.m_fsms)
           (Utils.ListExt.to_string (imodname ".h")  " " m.m_inputs)
-          cfg.sc_tb_name;
+          tb_name;
   let objs = sprintf "%s.o %s %s %s %s.o"
             (cfg.sc_lib_name |> Filename.concat "systemc" |> Filename.concat cfg.sc_lib_dir)
             (globals ".o")
             (Utils.ListExt.to_string (modname ".o")  " " m.m_fsms)
             (Utils.ListExt.to_string (imodname ".o")  " " m.m_inputs)
-            cfg.sc_tb_name in
-  fprintf oc "%s: %s\n" cfg.sc_tb_name  objs;
-  fprintf oc "\t$(LD) $(LDFLAGS) -o %s %s -lsystemc  2>&1 | c++filt\n" cfg.sc_tb_name objs;
+            tb_name in
+  fprintf oc "%s: %s\n" tb_name  objs;
+  fprintf oc "\t$(LD) $(LDFLAGS) -o %s %s -lsystemc  2>&1 | c++filt\n" tb_name objs;
   Logfile.write fname;
   close_out oc
 
@@ -658,24 +664,30 @@ let dump_makefile ?(dir="./systemc") m =
   (* Logfile.write fname; *)
 (*   close_out oc *)
 
-let dump_fsm m ?(prefix="") ?(dir="./systemc") fsm =
-  let f = Cmodel.c_model_of_fsm m fsm in
+let dump_fsm_model ?(prefix="") ?(dir="./systemc") fsm =
+  let f = Cmodel.c_model_of_fsm_model fsm in
+  let prefix = match prefix with "" -> fsm.Fsm.fm_name | p -> p in
+  dump_module_intf false (dir ^ "/" ^ prefix ^ ".h") f;
+  dump_module_impl false (dir ^ "/" ^ prefix ^ ".cpp") f
+
+let dump_fsm_inst ?(prefix="") ?(dir="./systemc") m fsm =
+  let f = Cmodel.c_model_of_fsm_inst m fsm in
   let prefix = match prefix with "" -> fsm.Fsm.f_name | p -> p in
-  dump_module_intf m (dir ^ "/" ^ prefix ^ ".h") f;
-  dump_module_impl m (dir ^ "/" ^ prefix ^ ".cpp") f
+  dump_module_intf (need_globals m) (dir ^ "/" ^ prefix ^ ".h") f;
+  dump_module_impl (need_globals m) (dir ^ "/" ^ prefix ^ ".cpp") f
 
 let dump_input ?(prefix="") ?(dir="./systemc") m ((id,_) as inp) =
   let prefix = match prefix with "" -> cfg.sc_inpmod_prefix ^ id | p -> p in
-  dump_inp_module_intf m (dir ^ "/" ^ prefix ^ ".h") inp;
-  dump_inp_module_impl m (dir ^ "/" ^ prefix ^ ".cpp") inp
+  dump_inp_module_intf (need_globals m) (dir ^ "/" ^ prefix ^ ".h") inp;
+  dump_inp_module_impl (dir ^ "/" ^ prefix ^ ".cpp") inp
 
 let dump_model ?(dir="./systemc") m = 
   List.iter (dump_input ~dir:dir m) m.Sysm.m_inputs;
-  List.iter (dump_fsm ~dir:dir m) m.Sysm.m_fsms
+  List.iter (dump_fsm_inst ~dir:dir m) m.Sysm.m_fsms
 
 let dump_testbench ?(name="") ?(dir="./systemc") m =
-  let prefix = match name with "" -> cfg.sc_tb_name | p -> p in
-  dump_testbench_impl (dir ^ "/" ^ prefix ^ ".cpp") m 
+  let tb_name = match name with "" -> cfg.sc_tb_name | p -> p in
+  dump_testbench_impl tb_name (dir ^ "/" ^ tb_name ^ ".cpp") m 
 
 (* Check whether a model can be translated *)
 

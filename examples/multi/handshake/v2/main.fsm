@@ -1,45 +1,9 @@
 # Synchronisation de deux automates par un protocole de type handshake
 # CF par ex [1] "Architectures Logicielles et Materielles". Amblard et al. Dunod. Sec 3.2 pp 125-128
 # v2. Horloges emetteur et recepteur identiques mais rythmes respectifs ajustables.
-
-type t_data = int # Par ex
-
-fsm model Emetteur<delai:int>(
-     in h: event,
-     in r_rdy: bool,
-     out data: t_data,
-     out e_rdy: bool)
-  {
-  states: E1, E2, Att;
-  vars: t, cnt: int;
-  trans:
-    E1 -- h.r_rdy=1 | data:=cnt; cnt:=cnt+1; e_rdy:=1 -> E2,
-    E2 -- h.r_rdy=0 | e_rdy:=0; t:=0 -> Att,
-    Att -- h.t<delai | t:=t+1 -> Att,
-    Att -- h.t=delai -> E1;
-  itrans: | e_rdy:=0; cnt:=1 -> E1;
-  }
-
-fsm model Recepteur<delai:int>(
-     in h: event,
-     in e_rdy: bool,
-     in data: t_data,
-     out r_rdy: bool,
-     out dout: t_data)
-  {
-  states: R1, R2, Att;
-  vars: t: int;
-  trans:
-    R1 -- h.e_rdy=1 | dout:=data; t:=0 -> Att,
-    Att -- h.t<delai | t:=t+1 -> Att,
-    Att -- h.t=delai | r_rdy:=0 -> R2,  # l'acquittement est retarde apres de [delai] tops de H
-    R2 -- h.e_rdy=0 | r_rdy:=1 -> R1;
-  itrans: | r_rdy:=1 -> R1;
-  }
-
 input H:event = periodic(10,10,400)
 
-shared e_rdy, r_rdy:bool;
+shared e_rdy, r_rdy:bool
 shared v:t_data
 
 output r_data: t_data

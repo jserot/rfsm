@@ -108,25 +108,41 @@ type inst = {
 
 (* Inspectors *)
 
-let states_of m = Repr.states' m.f_repr
-let istate_of m = match Repr.istates' m.f_repr with [] -> None | qs -> Some (List.hd qs)
-let transitions_of m = Repr.transitions m.f_repr
-let itransitions_of m = Repr.itransitions m.f_repr
+let states_of_inst m = Repr.states' m.f_repr
+let istate_of_inst m = match Repr.istates' m.f_repr with [] -> None | qs -> Some (List.hd qs)
+let transitions_of_inst m = Repr.transitions m.f_repr
+let itransitions_of_inst m = Repr.itransitions m.f_repr
 
-let succs m q = Repr.succs' m.f_repr q
+let succs_inst m q = Repr.succs' m.f_repr q
 
-let input_events_of, output_events_of =
+let input_events_of_inst, output_events_of_inst =
   let extract l = List.fold_left (fun acc (id,(ty,_)) -> match ty with Types.TyEvent -> id::acc | _ -> acc) [] l in
   (function f -> extract f.f_inps),
   (function f -> extract f.f_outps)
 
+let is_rtl_inst f =
+  List.for_all (function (_,t,_) -> TransLabel.is_rtl t) (transitions_of_inst f)
+  && List.for_all (function (t,_) -> TransLabel.is_rtl t) (itransitions_of_inst f)
+
+let states_of_model m = Repr.states' m.fm_repr
+let istate_of_model m = match Repr.istates' m.fm_repr with [] -> None | qs -> Some (List.hd qs)
+let transitions_of_model m = Repr.transitions m.fm_repr
+let itransitions_of_model m = Repr.itransitions m.fm_repr
+
+let succs_model m q = Repr.succs' m.fm_repr q
+
+let input_events_of_model, output_events_of_model =
+  let extract dir l = List.fold_left (fun acc (id,(d,ty)) -> match ty with Types.TyEvent when d=dir -> id::acc | _ -> acc) [] l in
+  (function f -> extract Types.IO_In f.fm_ios),
+  (function f -> extract Types.IO_Out f.fm_ios)
+
+let is_rtl_model f =
+  List.for_all (function (_,t,_) -> TransLabel.is_rtl t) (transitions_of_model f)
+  && List.for_all (function (t,_) -> TransLabel.is_rtl t) (itransitions_of_model f)
+
 exception Binding_mismatch of string * string * string  (** FSM, kind, id *)
 exception Invalid_parameter of string * string (** FSM, name *)
 exception Uninstanciated_type_vars of string * string * string * string list (* FSM, kind, id, vars *)
-
-let is_rtl f =
-  List.for_all (function (_,t,_) -> TransLabel.is_rtl t) (transitions_of f)
-  && List.for_all (function (t,_) -> TransLabel.is_rtl t) (itransitions_of f)
 
 (* Builders *)
 
@@ -151,7 +167,7 @@ let sanity_check_model consts f =
           (ivs',ovs)
           acts)
       (Expr.VarSet.empty, Expr.VarSet.empty)
-      (transitions_of f) in
+      (transitions_of_inst f) in
   let check_symbols kind ss ss' =
     Expr.VarSet.iter
       (function s -> if not (List.mem_assoc s ss') then raise (Undef_symbol(f.f_name,kind,s)))
@@ -364,7 +380,7 @@ let dump_inst oc f =
   Printf.fprintf oc "  MODEL = %s\n" f.f_model.fm_name;
   if f.f_params <> []  then
     Printf.fprintf oc "  PARAMS = { %s }\n" (of_list string_of_param f.f_params);
-  Printf.fprintf oc "  STATES = { %s }\n" (of_list (function n -> n) (states_of f));
+  Printf.fprintf oc "  STATES = { %s }\n" (of_list (function n -> n) (states_of_inst f));
   Printf.fprintf oc "  INPS = { %s }\n" (of_list (string_of_io f) f.f_inps);
   Printf.fprintf oc "  OUTPS = { %s }\n" (of_list (string_of_io f) f.f_outps);
   (* Printf.fprintf oc "  INOUTS = { %s }\n" (of_list (string_of_io f) f.f_inouts); *)
@@ -374,8 +390,8 @@ let dump_inst oc f =
   List.iter 
     (fun (q,(cond,acts,p,_),q') ->
       Printf.fprintf oc "    { %s {%s} {%s} %s [%d]}\n" q (Condition.to_string cond) (string_of_acts acts) q' p)
-    (transitions_of f);
+    (transitions_of_inst f);
   Printf.fprintf oc "    }\n";
-  let (_,iacts,_,_),iq = List.hd (itransitions_of f) in
+  let (_,iacts,_,_),iq = List.hd (itransitions_of_inst f) in
   Printf.fprintf oc "  ITRANS = { %s \"%s\" }\n" iq (string_of_acts iacts);
   Printf.fprintf oc "  }\n"

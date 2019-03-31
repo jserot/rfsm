@@ -1,7 +1,6 @@
 COMPILER
 
 - bug fix for neg constants in FSM inst params (ex: [fsm f = foo<-1>(...)] or [fsm f=foo<[1,-1,2](...)]
-- rewrite examples as model(s)+testbench (?)
 - alternate syntax: ex:
   [FSM Chrono (...) ...
    TRANS:

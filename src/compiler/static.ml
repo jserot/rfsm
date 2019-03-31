@@ -9,7 +9,9 @@
 (*                                                                    *)
 (**********************************************************************)
 
-type program = Sysm.t
+type result = 
+  Models of Fsm.model list
+| System of Sysm.t
 
 open Syntax
 
@@ -219,20 +221,31 @@ let elaborate name p =
     |> Misc.fold_left mk_type_defn p.p_type_decls
     |> Misc.fold_left mk_cst_defn p.p_cst_decls
     |> Misc.fold_left mk_fn_defn p.p_fn_decls in
-  let _ = tenv
-    |> Misc.fold_left mk_inp_defn p.p_globals in
   let models = List.map (mk_fsm_model tenv) p.p_fsm_models in
-  let globals = List.map (mk_global tenv) p.p_globals in
-  let gtyps = List.rev (List.filter is_global_type_defn tenv.te_defns) in 
-  let gcsts = List.map (mk_global_cst tenv) p.p_cst_decls in
-  let cenv = List.fold_left mk_const_env [] gcsts in
-  let gfns = List.map (mk_global_fn tenv) p.p_fn_decls in
-  let fsms = List.map (mk_fsm_inst tenv cenv models globals) p.p_fsm_insts in
-  let m = Sysm.build ~name ~gtyps ~gfns ~gcsts fsms in
-  m
+  match !Options.compile_mode with
+  | Options.Model ->
+     Models models
+  | Options.Program ->
+     let _ = tenv |> Misc.fold_left mk_inp_defn p.p_globals in
+     let globals = List.map (mk_global tenv) p.p_globals in
+     let gtyps = List.rev (List.filter is_global_type_defn tenv.te_defns) in 
+     let gcsts = List.map (mk_global_cst tenv) p.p_cst_decls in
+     let cenv = List.fold_left mk_const_env [] gcsts in
+     let gfns = List.map (mk_global_fn tenv) p.p_fn_decls in
+     let fsms = List.map (mk_fsm_inst tenv cenv models globals) p.p_fsm_insts in
+     let s = Sysm.build ~name ~gtyps ~gfns ~gcsts fsms in
+     System s
 
-let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) ?(with_insts=false) ?(with_models=false) m =
-  let fnames = Sysm.dot_output dir ~dot_options ~fsm_options ~with_insts ~with_models m in
+let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) r =
+  let fnames = match r with
+  | Models ms ->
+      List.map
+        (Fsm.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir)
+        ms
+  | System s ->
+     Sysm.dot_output dir ~dot_options ~fsm_options s in
   List.iter Logfile.write fnames
 
-let dump = Sysm.dump
+let dump oc r = match r with
+  | Models ms -> List.iter (Fsm.dump_model oc) ms
+  | System s -> Sysm.dump oc s

@@ -20,11 +20,3 @@ fsm model Heron <eps: float> (
   itrans: | rdy:=1 -> Idle;
   }
 
-input H : event = periodic (10,10,200)
-input U : float = value_changes (5:2.0)
-input Start : bool = value_changes (0:0, 25:1, 35:0)
-output Rdy : bool
-output R : float
-output niter : int
-
-fsm heron = Heron<0.00000001> (H,Start,U,Rdy,niter,R)
