@@ -25,7 +25,7 @@ QMAKE_UNIX=qmake
 
 all: 		lib compiler libs gui doc
 
-opam: lib compiler opam-doc
+opam: lib compiler 
 
 lib:
 			(cd src/lib; make byte)
