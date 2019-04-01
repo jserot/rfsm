@@ -135,10 +135,12 @@ install-opam:
 	ocamlfind install -destdir $(INSTALL_LIBDIR) $(PACKNAME) META $(LIB_INSTALLED)
 	@echo "Installing rfsmc in $(INSTALL_BINDIR)"
 	cp $(BIN_INSTALLED) $(INSTALL_BINDIR)
+ifeq ($(BUILD_DOC),yes)
 	@echo "Installing $(PACKNAME) documentation in $(INSTALL_DOCDIR)"
 	rm -rf $(INSTALL_DOCDIR)/$(PACKNAME)
 	mkdir $(INSTALL_DOCDIR)/$(PACKNAME)
 	cp doc/lib/*.html doc/lib/*.css $(INSTALL_DOCDIR)/$(PACKNAME)
+endif
 	@echo "Installing emacs mode in $(INSTALL_EMACSDIR)"
 	mkdir -p $(INSTALL_EMACSDIR)
 	cp lib/etc/rfsm-mode.el $(INSTALL_EMACSDIR)
@@ -148,8 +150,10 @@ uninstall-opam:
 	rm -rf $(INSTALL_LIBDIR)/$(PACKNAME)
 	@echo "Removing rfsmc from $(INSTALL_BINDIR)"
 	rm -f $(INSTALL_BINDIR)/rfsmc $(INSTALL_BINDIR)/rfsmc.opt
+ifeq ($(BUILD_DOC),yes)
 	@echo "Removing $(PACKNAME) doc from $(INSTALL_DOCDIR)"
 	rm -rf $(INSTALL_DOCDIR)/$(PACKNAME)
+endif
 	@echo "Removing emacs mode from $(INSTALL_EMACSDIR)"
 	rm -f $(INSTALL_EMACSDIR)/rfsm-mode.el
 
