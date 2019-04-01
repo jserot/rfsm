@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "rfsm"
-version: "1.4"
+version: "1.4.1"
 maintainer: "jocelyn.serot@uca.fr"
 authors: [
   "Jocelyn Sérot <jocelyn.serot@uca.fr>"
