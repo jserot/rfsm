@@ -28,6 +28,7 @@ depends: [
 synopsis:
   "A toolset for describing and simulating StateChart-like state diagrams"
 url {
-  src: "https://github.com/jserot/rfsm/archive/v1.4.tar.gz"
-  checksum: "md5=ee3620aa898122e50b629ecb9d8ee4c8"
+  src: "https://github.com/jserot/rfsm/archive/v1.4.1.tar.gz"
+  checksum: "md5=f5fab9415e67b08ad613295b60fb96fd"
 }
+
