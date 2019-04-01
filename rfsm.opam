@@ -16,9 +16,6 @@ build: [
 install: [
   [make "install-opam"]
 ]
-remove: [
-  [make "uninstall-opam"]
-]
 depends: [
   "ocaml" {>= "4.03"}
   "camlp4"
