@@ -29,8 +29,14 @@ COMPILER
 - communication via FIFOs (message queues) ?
 
 DOC
+- allow doc building in opam
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
 
 GUI
+- project tree view
 - About window
+
+SITE
+- new syntax for examples
+- adjust urls
 

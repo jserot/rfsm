@@ -1,4 +1,4 @@
-version = "1.1"
+version = "1.5"
 description = "Rfsm: A package for describing and simulating StateChart-like state diagrams"
 requires="lascar camlp4"
 archive(byte) = "rfsm.cma"
