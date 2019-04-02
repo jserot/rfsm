@@ -1,0 +1,17 @@
+# Run-length encoder 
+
+type rle = record { val: char, cnt:int }
+
+fsm model rle(
+  in h: event, 
+  in e: char,
+ out s: rle)
+ {
+ states: E0, E1;
+   vars: r: rle;
+  trans:
+     E0 -- h | r.val:=e; r.cnt:=1 -> E1,
+     E1 -- h.(e=r.val) | r.cnt:=r.cnt+1 -> E1,
+     E1 -- h.(e!=r.val) | s:=r; r.val:=e; r.cnt:=1 -> E1;
+  itrans: -> E0;
+  }

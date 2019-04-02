@@ -224,7 +224,7 @@ let rec react t genv f =
     let acts' = if s <> s' then Action.StateMove(sf.f_name,s,s')::acts else acts in
     let f', resps' = do_actions lenv f acts'  in   (* .. perform associated actions .. *)
     { f' with f_has_reacted=true }, resps' in
-  let ts = List.filter (fireable f lenv) (Fsm.transitions_of sf) in
+  let ts = List.filter (fireable f lenv) (Fsm.transitions_of_inst sf) in
   match ts with
     [] ->                                                                 (* No transition found *)
      ({f with f_has_reacted=false}, [])

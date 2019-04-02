@@ -117,15 +117,24 @@ val build_instance :
 
 (** {2 Accessors} *)
 
-val states_of : inst -> state list
-val istate_of : inst -> state option
-val transitions_of : inst -> transition list
-val itransitions_of : inst -> itransition list
-val succs : inst -> state -> (state * TransLabel.t) list
-val input_events_of : inst -> string list
-val output_events_of : inst -> string list
+val states_of_inst : inst -> state list
+val istate_of_inst : inst -> state option
+val transitions_of_inst : inst -> transition list
+val itransitions_of_inst : inst -> itransition list
+val succs_inst : inst -> state -> (state * TransLabel.t) list
+val input_events_of_inst : inst -> string list
+val output_events_of_inst : inst -> string list
+val is_rtl_inst : inst -> bool
+  (** [is_rtl f] is [true] iff all [is_rtl a] for all actions [a] of [f] *)
 
-val is_rtl : inst -> bool
+val states_of_model : model -> state list
+val istate_of_model : model -> state option
+val transitions_of_model : model -> transition list
+val itransitions_of_model : model -> itransition list
+val succs_model : model -> state -> (state * TransLabel.t) list
+val input_events_of_model : model -> string list
+val output_events_of_model : model -> string list
+val is_rtl_model : model -> bool
   (** [is_rtl f] is [true] iff all [is_rtl a] for all actions [a] of [f] *)
 
 (** {2 Exceptions} *)

@@ -1,0 +1,19 @@
+# Model of an "impulse doubler" 
+# Each impulsion of duration n.Th on input [e] generates
+# an impulsion of duration 2n.Th on output [s]
+
+fsm model doubleimp (
+  in h: event,
+  in e: bool,
+  out s: bool)
+  {
+  states: E0, E1, E2;
+  vars: k: int;
+  trans:
+    E0 -- h.e=1 | k:=1 -> E1,
+    E1 -- h.e=1 | k:=k+1 -> E1,
+    E1 -- h.e=0 | s:=1; k:=k*2-1 -> E2,
+    E2 -- h.k>0 | k:=k-1 -> E2,
+    E2 -- h.k=0 | s:=0 -> E0;
+  itrans: | s:=0 -> E0; 
+  }

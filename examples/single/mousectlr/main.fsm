@@ -1,0 +1,5 @@
+input Clk: event = periodic(10,10,120)
+input Clic: event = sporadic(25,75,95)
+output SimpleClic, DoubleClic: event
+
+fsm c = ctlr<5>(Clk,Clic,SimpleClic,DoubleClic)

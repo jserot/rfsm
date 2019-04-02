@@ -95,7 +95,7 @@ let handle e = match e with
   | Simul.OverReaction t ->
       eprintf "Simulation loops (over-reaction) at t=%d\n" t; flush stderr; exit 5
   | Cmodel.Error (m,msg) ->
-     eprintf "Error when translating FSM <%s> to C model: %s\n" m.Fsm.f_name msg; flush stderr; exit 6
+     eprintf "Error when translating FSM <%s> to C model: %s\n" m msg; flush stderr; exit 6
   | Systemc.Error (where,msg) ->
      eprintf "Error when generating SystemC code (%s): %s\n" where msg; flush stderr; exit 7
   | Vhdl.Error ("",msg) ->

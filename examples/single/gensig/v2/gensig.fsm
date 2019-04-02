@@ -17,9 +17,3 @@ fsm model gensig<n:int> (
     E1 -- h.k=n | s:=0 -> E0;
   itrans: | s:=0 -> E0;
   }
-
-input H : event = periodic (10,0,80)
-input E : bool = value_changes (0:0, 25:1, 35:0)
-output S : bool 
-
-fsm g4 = gensig<4>(H,E,S)

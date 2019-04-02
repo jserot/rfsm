@@ -10,7 +10,7 @@ TXTVIEWER=open
 .phony: dot sim ctask systemc vhdl clean clobber test
 
 dot:
-	$(RFSMC) -dot -target_dir ./dot -main $(APP) $(DOT_OPTS) $(SRCS)
+	$(RFSMC) -dot -target_dir ./dot $(DOT_OPTS) $(SRCS)
 	@$(eval files=`cat ./rfsm.output`)
 	@for f in $(files); do \
 		if [[ $$f = *.dot ]]; then \
@@ -19,7 +19,7 @@ dot:
 	done
 
 dot.run:
-	$(RFSMC) -dot -target_dir ./dot -main $(APP) $(DOT_OPTS) $(SRCS)
+	$(RFSMC) -dot -target_dir ./dot $(DOT_OPTS) $(SRCS)
 
 dot.test: dot.run
 
@@ -28,10 +28,10 @@ all: dot sim ctask systemc vhdl
 all.test: dot.test sim.test ctask.test systemc.test vhdl.test
 
 sim.run:
-	$(RFSMC) -main $(APP) $(SIM_OPTS) -sim -vcd "./sim/$(APP).vcd" $(SRCS)
+	$(RFSMC) $(SIM_OPTS) -sim -vcd "./sim/$(TB).vcd" $(SRCS)
 
 sim.view:
-	$(VCDVIEWER) -f ./sim/$(APP).vcd -a ./sim/$(APP).gtkw > /tmp/gtkwave.log 2>&1; echo $$?
+	$(VCDVIEWER) -f ./sim/$(TB).vcd -a ./sim/$(TB).gtkw > /tmp/gtkwave.log 2>&1; echo $$?
 
 sim: sim.run sim.view
 
@@ -41,7 +41,7 @@ ctask: ctask.code
 ctask.run: ctask.code
 
 ctask.code:
-	$(RFSMC) -ctask -target_dir ./ctask -main $(APP) $(CTASK_OPTS) $(SRCS)
+	$(RFSMC) -ctask -target_dir ./ctask $(CTASK_OPTS) $(SRCS)
 
 ctask.view:
 	@$(eval files=`cat ./rfsm.output`)
@@ -56,7 +56,7 @@ ctask: ctask.run ctask.view
 ctask.test: ctask.code
 
 systemc.code:
-	$(RFSMC) -systemc -target_dir ./systemc -main $(APP) -lib $(LIBDIR) $(SYSTEMC_OPTS) $(SRCS)
+	$(RFSMC) -systemc -target_dir ./systemc -lib $(LIBDIR) $(SYSTEMC_OPTS) $(SRCS)
 
 systemc.run: systemc.code
 	if [ -d ./systemc ]; then cd ./systemc; make; make run; fi
@@ -102,14 +102,14 @@ view:
 view2:
 	make sim.run
 	make systemc.run
-	$(VCDVIEWER) -f ./sim/$(APP).vcd -a ./sim/$(APP).gtkw > /tmp/gtkwave.log 2>&1 &
+	$(VCDVIEWER) -f ./sim/$(TB).vcd -a ./sim/$(TB).gtkw > /tmp/gtkwave.log 2>&1 &
 	(cd ./systemc; make view) 
 
 view3:
 	make sim.run
 	make systemc.run
 	make vhdl.run
-	$(VCDVIEWER) -f ./sim/$(APP).vcd -a ./sim/$(APP).gtkw > /tmp/gtkwave.log 2>&1 &
+	$(VCDVIEWER) -f ./sim/$(TB).vcd -a ./sim/$(TB).gtkw > /tmp/gtkwave.log 2>&1 &
 	(cd ./systemc; make view) &
 	(cd ./vhdl; make view) 
 

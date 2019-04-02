@@ -29,9 +29,3 @@ fsm model Txd<n:int> ( # n gives the bit duration (in clk periods)
   itrans: | sout:=1 -> Idle;
   }
 
-input clk:event = periodic(10,10,550)
-input din:int<8> = value_changes(10:69)  # 0x45
-input wr:bool = value_changes(0:0, 15:1, 25:0)
-output sout:bit
-
-fsm txd = Txd<4>(clk,din,wr,sout)

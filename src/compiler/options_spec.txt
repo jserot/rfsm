@@ -1,16 +1,14 @@
+noide;general;-c;Arg.Unit;set_compile_model;compile FSM model(s) without instantiating them
 noide;general;-lib;Arg.String;set_lib_dir;set location of the support library (default: /usr/local/rfsm/lib)
-noide;general;-dump_static;Arg.Unit;set_dump_static;dump static representation of program to stdout
+noide;general;-dump_static;Arg.Unit;set_dump_static;dump static representation of model(s)/program to stdout
 noide;general;-target_dir;Arg.String;set_target_dir;set target directory (default: .)
-noide;general;-dot;Arg.Unit;set_dot;generate top-level .dot representation(s)
+noide;general;-dot;Arg.Unit;set_dot;generate .dot representation of model(s)/program
 noide;general;-ctask;Arg.Unit;set_ctask;generate CTask code
 noide;general;-systemc;Arg.Unit;set_systemc;generate SystemC code
 noide;general;-vhdl;Arg.Unit;set_vhdl;generate VHDL code
 noide;general;-sim;Arg.Unit;set_sim;run simulation (generating .vcd file)
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
-noide;general;-main;Arg.String;set_main_name;set main model name (default: name of the last given input file)
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
-ide;dot;-dot_fsm_insts;Arg.Unit;set_dot_fsm_insts;generate .dot representation of all FSM instances
-ide;dot;-dot_fsm_models;Arg.Unit;set_dot_fsm_models;generate .dot representation of all FSM models
 ide;dot;-dot_actions_nl;Arg.Unit;set_dot_actions_nl;write actions with with a separating newline
 noide;sim;-trace;Arg.Int;set_trace;set trace level for simulation (default: 0)
 noide;sim;-vcd;Arg.String;set_vcd_file;set name of .vcd output file when running simulation (default: run.vcd)
