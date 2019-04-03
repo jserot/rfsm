@@ -22,8 +22,7 @@
 \newcommand\rfsmgramfunc[1]{\rfsmgramnonterm{#1}}
 \newcommand\rfsmgramterm[1]{#1}
 
-\newcommand\rfsmARROWEND{\Verb|\textbf{->}|}
-\newcommand\rfsmARROWSTART{\Verb|\textbf{--}|}
+\newcommand\rfsmARROW{\Verb|\textbf{->}|}
 \newcommand\rfsmBAR{\Verb+\textbf{|}+}
 \newcommand\rfsmCHAR{\textbf{char}}
 \newcommand\rfsmCOLEQ{\Verb|\textbf{:=}|}
@@ -62,12 +61,16 @@
 \newcommand\rfsmMINUS{\Verb|\textbf{-}|}
 \newcommand\rfsmMOD{\Verb|\textbf{\%}|}
 \newcommand\rfsmMODEL{\textbf{model}}
+\newcommand\rfsmON{\textbf{on}}
+\newcommand\rfsmWHEN{\textbf{when}}
+\newcommand\rfsmWITH{\textbf{with}}
 \newcommand\rfsmNOTEQUAL{\Verb|\textbf{!=}|}
 \newcommand\rfsmOUT{\textbf{out}}
 \newcommand\rfsmOUTPUT{\textbf{output}}
 \newcommand\rfsmPERIODIC{\textbf{periodic}}
 \newcommand\rfsmPLUS{\Verb|\textbf{+}|}
 \newcommand\rfsmQMARK{\Verb|\textbf{?}|}
+\newcommand\rfsmEMARK{\Verb|\textbf{!}|}
 \newcommand\rfsmRBRACE{\Verb|\textbf{\}}|}
 \newcommand\rfsmRBRACKET{\Verb|\textbf{]}|}
 \newcommand\rfsmRECORD{\textbf{record}}
@@ -97,7 +100,8 @@
 \newcommand\rfsmarraysize{array\_size}
 \newcommand\rfsmbraced[1]{\rfsmLBRACE\ #1\ \rfsmRBRACE}
 \newcommand\rfsmcharconst{char\_const}
-\newcommand\rfsmcondition{condition}
+\newcommand\rfsmguard{guard}
+\newcommand\rfsmtranshdr{trans\_mark}
 \newcommand\rfsmconst{const}
 \newcommand\rfsmconstant{constant}
 \newcommand\rfsmcstdecl{cst\_decl}
@@ -144,8 +148,7 @@
 \newcommand\rfsmvaluechange{value\_change}
 \newcommand\rfsmvar{var}
 \newcommand\rfsmvars{vars}
-\WithSuffix\newcommand\rfsmARROWEND*{\rfsmgramterm{\rfsmARROWEND}}
-\WithSuffix\newcommand\rfsmARROWSTART*{\rfsmgramterm{\rfsmARROWSTART}}
+\WithSuffix\newcommand\rfsmARROW*{\rfsmgramterm{\rfsmARROW}}
 \WithSuffix\newcommand\rfsmBAR*{\rfsmgramterm{\rfsmBAR}}
 \WithSuffix\newcommand\rfsmCHAR*{\rfsmgramterm{\rfsmCHAR}}
 \WithSuffix\newcommand\rfsmCOLEQ*{\rfsmgramterm{\rfsmCOLEQ}}
@@ -184,12 +187,16 @@
 \WithSuffix\newcommand\rfsmMINUS*{\rfsmgramterm{\rfsmMINUS}}
 \WithSuffix\newcommand\rfsmMOD*{\rfsmgramterm{\rfsmMOD}}
 \WithSuffix\newcommand\rfsmMODEL*{\rfsmgramterm{\rfsmMODEL}}
+\WithSuffix\newcommand\rfsmON*{\rfsmgramterm{\rfsmON}}
+\WithSuffix\newcommand\rfsmWHEN*{\rfsmgramterm{\rfsmWHEN}}
+\WithSuffix\newcommand\rfsmWITH*{\rfsmgramterm{\rfsmWITH}}
 \WithSuffix\newcommand\rfsmNOTEQUAL*{\rfsmgramterm{\rfsmNOTEQUAL}}
 \WithSuffix\newcommand\rfsmOUT*{\rfsmgramterm{\rfsmOUT}}
 \WithSuffix\newcommand\rfsmOUTPUT*{\rfsmgramterm{\rfsmOUTPUT}}
 \WithSuffix\newcommand\rfsmPERIODIC*{\rfsmgramterm{\rfsmPERIODIC}}
 \WithSuffix\newcommand\rfsmPLUS*{\rfsmgramterm{\rfsmPLUS}}
 \WithSuffix\newcommand\rfsmQMARK*{\rfsmgramterm{\rfsmQMARK}}
+\WithSuffix\newcommand\rfsmEMARK*{\rfsmgramterm{\rfsmEMARK}}
 \WithSuffix\newcommand\rfsmRBRACE*{\rfsmgramterm{\rfsmRBRACE}}
 \WithSuffix\newcommand\rfsmRBRACKET*{\rfsmgramterm{\rfsmRBRACKET}}
 \WithSuffix\newcommand\rfsmRECORD*{\rfsmgramterm{\rfsmRECORD}}
@@ -218,7 +225,8 @@
 \WithSuffix\newcommand\rfsmarrayconst*{\rfsmgramnonterm{\rfsmarrayconst}}
 \WithSuffix\newcommand\rfsmarraysize*{\rfsmgramnonterm{\rfsmarraysize}}
 \WithSuffix\newcommand\rfsmcharconst*{\rfsmgramnonterm{\rfsmcharconst}}
-\WithSuffix\newcommand\rfsmcondition*{\rfsmgramnonterm{\rfsmcondition}}
+\WithSuffix\newcommand\rfsmguard*{\rfsmgramnonterm{\rfsmguard}}
+\WithSuffix\newcommand\rfsmtranshdr*{\rfsmgramnonterm{\rfsmtranshdr}}
 \WithSuffix\newcommand\rfsmconst*{\rfsmgramnonterm{\rfsmconst}}
 \WithSuffix\newcommand\rfsmconstant*{\rfsmgramnonterm{\rfsmconstant}}
 \WithSuffix\newcommand\rfsmcstdecl*{\rfsmgramnonterm{\rfsmcstdecl}}

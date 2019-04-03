@@ -1,6 +1,13 @@
 # Changes
 
 # 1.5 (Apr xx, 2019)
+* New syntax for FSM models. Transitions are now written:
+     `| src_state -> dst_state ON ev [WHEN guards] [WITH actions]`
+     `| -> init_state [WITH actions]`
+* New syntax for comments. Now start with `--` (like in VHDL)
+* The old syntax is still supported by invoking the compiler with the `-old_syntax` option
+* The option `-transl_syntax` can be used to convert source files from old to new syntax
+* Updated the user manual with new syntax
 * Introduced option `-c` for the compiler for compiling FSM models without testbench
 * Suppressed option `-main`; without the `-c` option, the testbench is assumed to be in the last
   source file

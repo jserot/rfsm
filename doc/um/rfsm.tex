@@ -42,7 +42,7 @@
 %\lstset{aboveskip=2\medskipamount}
 %\lstset{belowskip=1.5\medskipamount}
 %\lstset{abovecaptionskip=\medskipamount}
-\lstdefinelanguage{Rfsm}{keywords={type,enum,record,function,return,fsm,model,in,out,inout,vars,states,trans,itrans,periodic,sporadic,value_changes,event,bool,input,output,shared},morecomment=[l]{\#}}
+\lstdefinelanguage{Rfsm}{keywords={type,enum,record,function,return,fsm,model,in,out,inout,vars,states,trans,itrans,on,when,with,periodic,sporadic,value_changes,event,bool,input,output,shared},morecomment=[l]{--}}
 \lstdefinelanguage{ctask}{language=C,morekeywords={task,wait_ev,wait_evs,notify_ev,in,out,inout}}
 \lstdefinelanguage{systemc}{language=C++,morekeywords={SC_MODULE,SC_METHOD,SC_THREAD,sc_in,sc_out,sc_inout}}
 
@@ -56,9 +56,7 @@
 %\Newcommand{\docdate}{\today} %%%!!!!
 \newcommand{\step}{\medskip$\blacktriangleright$\xspace}
 
-\newcommand{\version}{1.4b}
-%\ifthenelse{\boolean{devel}}{\newcommand{\version}{1.3}}{\newcommand{\version}{1.1}}
-%% This has to be fixed !
+\newcommand{\version}{1.5}
 
 \newcommand{\ie}{\emph{i.e.}\xspace}
 \newcommand{\txt}[1]{\hbox{#1}}

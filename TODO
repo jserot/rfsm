@@ -1,6 +1,5 @@
 COMPILER
 
-- bug fix for neg constants in FSM inst params (ex: [fsm f = foo<-1>(...)] or [fsm f=foo<[1,-1,2](...)]
 - ocamlbuild -> dune (?)
 - use cmake for building GUI
 - support for synchronous actions in CTask and SystemC

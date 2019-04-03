@@ -8,7 +8,7 @@ Known bugs and limitations
 
 * The implementation of cascaded event synchronisation in SystemC using delta-cycles is fragile
 
-* The mechanism of binary priority (high/low, "*"/nothing) used to resolve non-deterministic situations
+* The mechanism of binary priority (high/low, "|"/"!") used to resolve non-deterministic situations
   could be refined 
 
 * A portable way of building the GUI on Linux distros is still missing

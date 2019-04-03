@@ -3,23 +3,23 @@
 
 This is the code generated from program given in Listing~\ref{lst:rfsm-gensig} 
 
-\begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File g4.vhd]
+\begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File g.vhd]
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 library rfsm;
 use rfsm.core.all;
 
-entity g4 is
+entity g is
   port(
         h: in std_logic;
         e: in std_logic;
         s: out std_logic;
         rst: in std_logic
         );
-end g4;
+end g;
 
-architecture RTL of g4 is
+architecture RTL of g is
   type t_state is ( E0, E1 );
   signal state: t_state;
   signal k: unsigned(2 downto 0);
@@ -62,7 +62,7 @@ end tb;
 
 architecture Bench of tb is
 
-component g4 
+component g 
   port(
         h: in std_logic;
         e: in std_logic;
@@ -108,7 +108,7 @@ begin
       wait;
   end process;
 
-  U0: G4 port map(H,E,S,rst);
+  U0: G port map(H,E,S,rst);
 
   process
 

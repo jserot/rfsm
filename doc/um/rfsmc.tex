@@ -204,12 +204,15 @@ The current distribution provides, in \verb|.../lib/etc| directory, a file \verb
 aiming at easing the invokation of the RFSM compiler and the exploitation of the generated
 products.
 
-Basically, if this file has been installed, let say in directory \verb|/usr/local/rfsm/lib/etc|
-and if you create the following Makefile in the working directory (that containing the RFSM source
-file)
+Suppose, for instance, that RFSM has been installed in \verb|/usr/local/rfsm| and the application is
+to be compiled is made of two source files, \verb|foo.fsm|, containing the FSM model(s), and
+\verb|main.fsm|, containing the global declarations and FSM instanciations (the so-called
+\emph{testbench}). The only thing to do is create the following Makefile in the working directory
+(that containing the RFSM source file)
 
 \begin{lstlisting}[language=make,frame=single]
-SRCS=f1.fsm ... 
+TB=main
+SRCS=foo.fsm main.fsm
 DOT_OPTS= ...
 SIM_OPTS= ...
 SYSTEMC_OPTS= ...
@@ -217,7 +220,7 @@ VHDL_OPTS= ...
 include /usr/local/rfsm/lib/etc/Makefile.app
 \end{lstlisting}
 
-then, for example, simply typing\footnote{Please refer to the file \texttt{Makefile.app} itself for
+Then, simply typing\footnote{Please refer to the file \texttt{Makefile.app} itself for
   a complete list of targets.}
   \begin{itemize}
   \item \verb|make dot| will generate the \verb|.dot| and lauch the corresponding viewer,
