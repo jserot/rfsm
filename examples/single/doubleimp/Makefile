@@ -1,3 +1,4 @@
+TB=main
 SRCS=dimp.fsm main.fsm
 DOT_OPTS=
 SIM_OPTS=

@@ -1,3 +1,4 @@
+TB=main
 SRCS=emetteur.fsm recepteur.fsm main.fsm
 DOT_OPTS=
 SIM_OPTS=

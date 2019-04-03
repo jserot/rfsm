@@ -1,3 +1,4 @@
+TB=main
 SRCS=mul8.fsm main.fsm
 DOT_OPTS=
 SIM_OPTS=

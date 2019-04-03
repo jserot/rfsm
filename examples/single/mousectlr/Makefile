@@ -1,3 +1,4 @@
+TB=main
 SRCS=ctlr.fsm main.fsm
 DOT_OPTS=
 SIM_OPTS=

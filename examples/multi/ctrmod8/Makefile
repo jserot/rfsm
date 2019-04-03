@@ -1,3 +1,4 @@
+TB=main
 SRCS=ctrmod8.fsm main.fsm
 DOT_OPTS=
 SIM_OPTS=
