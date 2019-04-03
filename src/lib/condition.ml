@@ -28,7 +28,7 @@ let string_of_guards cs = match cs with
 | [c] -> string_of_guard c
 |  _ -> Utils.ListExt.to_string (fun c -> "(" ^ string_of_guard c ^ ")") "." cs
 
-let to_string' (evs,gs) = Utils.ListExt.to_string Utils.Misc.id "." evs ^ string_of_guards gs 
+let to_string' (evs,gs) = Utils.ListExt.to_string Utils.Misc.id "." evs ^ "." ^  string_of_guards gs 
 
 let to_string c = to_string' c
 
