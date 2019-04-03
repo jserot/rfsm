@@ -1,21 +1,21 @@
-# A Ping-Pong model
-#
-# FSM A sends "Ping" to FSM B and waits for answer "Pong"
-# FSM B waits for "Ping" and emits "Pong" back after a pre-defined delay
+-- A Ping-Pong model
+--
+-- FSM A sends "Ping" to FSM B and waits for answer "Pong"
+-- FSM B waits for "Ping" and emits "Pong" back after a pre-defined delay
 
-fsm model A (
+fsm model A(
   in top: event,
   in pong: event,
   out ping: event)
 {
   states: Repos, AttPong;
   trans:
-    Repos -- top | ping -> AttPong,
-    AttPong -- pong -> Repos;
-  itrans: -> Repos;
+  | Repos -> AttPong on top with ping
+  | AttPong -> Repos on pong;
+  itrans:
+  | -> Repos ;
 }
-
-fsm model B <delay:int> (
+fsm model B<delay: int>(
   in h: event,
   in ping: event,
   out pong: event)
@@ -23,10 +23,11 @@ fsm model B <delay:int> (
   states: AttPing, Delay;
   vars: t: int;
   trans:
-    AttPing -- ping | t:=delay -> Delay,  
-    Delay -- h.t>0 | t:=t-1 -> Delay,  
-    Delay -- h.t=0 | pong -> AttPing;  
-  itrans: -> AttPing;
+  | AttPing -> Delay on ping with t:=delay
+  | Delay -> Delay on h when t>0 with t:=t-1
+  | Delay -> AttPing on h when t=0 with pong;
+  itrans:
+  | -> AttPing ;
 }
 
 input H: event = periodic(1, 0, 10)

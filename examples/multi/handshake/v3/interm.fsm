@@ -1,25 +1,23 @@
-fsm model Interm<delai:int>(
-# [delai] est le nombre de tops de [h] requis pour produire la sortie [dout]
-#  une fois recue l'entree [din]
-     in h: event,
-     in e_rdy1: bool,
-     in din: t_data,
-     out r_rdy1: bool,
-     in r_rdy2: bool,
-     out dout: t_data,
-     out e_rdy2: bool)
-  {
+fsm model Interm<delai: int>(
+-- [delai] est le nombre de tops de [h] requis pour produire la sortie [dout]
+--  une fois recue l'entree [din]
+  in h: event,
+  in e_rdy1: bool,
+  in din: t_data,
+  out r_rdy1: bool,
+  in r_rdy2: bool,
+  out dout: t_data,
+  out e_rdy2: bool)
+{
   states: R1, R2, U, E1, E2;
-  vars:
-    data: t_data,
-    t: int;
+  vars: data: t_data, t: int;
   trans:
-    R1 -- h.e_rdy1=1 | data:=din; r_rdy1:=0 -> R2,
-    R2 -- h.e_rdy1=0 | r_rdy1:=1; t:=0 -> U,
-     U -- h.t<delai | t:=t+1 -> U,
-     U -- h.t=delai -> E1,
-    E1 -- h.r_rdy2=1 | dout:=data; e_rdy2:=1 -> E2,
-    E2 -- h.r_rdy2=0 | e_rdy2:=0 -> R1;
-  itrans: | r_rdy1:=1; e_rdy2:=0 -> R1;
-  }
-
+  | R1 -> R2 on h when e_rdy1=1 with data:=din, r_rdy1:=0
+  | R2 -> U on h when e_rdy1=0 with r_rdy1:=1, t:=0
+  | U -> U on h when t<delai with t:=t+1
+  | U -> E1 on h when t=delai
+  | E1 -> E2 on h when r_rdy2=1 with dout:=data, e_rdy2:=1
+  | E2 -> R1 on h when r_rdy2=0 with e_rdy2:=0;
+  itrans:
+  | -> R1 with r_rdy1:=1,e_rdy2:=0;
+}

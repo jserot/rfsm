@@ -1,18 +1,20 @@
-type t_data = int # Par ex
+type t_data = int -- Par ex
 
-fsm model Emetteur<delai:int>(
-     in h: event,
-     in r_rdy: bool,
-     out data: t_data,
-     out e_rdy: bool)
-  {
+fsm model Emetteur<delai: int>(
+  in h: event,
+  in r_rdy: bool,
+  out data: t_data,
+  out e_rdy: bool)
+{
   states: E1, E2, Att;
-  vars: t, cnt: int;
+  vars: t: int, cnt: int;
   trans:
-    E1 -- h.r_rdy=1 | data:=cnt; cnt:=cnt+1; e_rdy:=1 -> E2,
-    E2 -- h.r_rdy=0 | e_rdy:=0; t:=0 -> Att,
-    Att -- h.t<delai | t:=t+1 -> Att,
-    Att -- h.t=delai -> E1;
-  itrans: | e_rdy:=0; cnt:=1 -> E1;
-  }
+  | E1 -> E2 on h when r_rdy=1 with data:=cnt, cnt:=cnt+1, e_rdy:=1
+  | E2 -> Att on h when r_rdy=0 with e_rdy:=0, t:=0
+  | Att -> Att on h when t<delai with t:=t+1
+  | Att -> E1 on h when t=delai;
+  itrans:
+  | -> E1 with e_rdy:=0,cnt:=1;
+}
+
 

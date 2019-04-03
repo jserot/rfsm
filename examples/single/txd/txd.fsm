@@ -1,31 +1,30 @@
-# Parallel to serial converter (1 start bit, LSB->MSB, 1 parity bit, 1 stop bit)
+-- Parallel to serial converter (1 start bit, LSB->MSB, 1 parity bit, 1 stop bit)
 
 type bit = int<1>
 
-fsm model Txd<n:int> ( # n gives the bit duration (in clk periods)
-     in clk: event,
-     in din: int<8>,
-     in wr: bool,
-     out sout: bit)
-  {
+fsm model Txd<n: int>( -- n gives the bit duration (in clk periods)
+  in clk: event,
+  in din: int<8>,
+  in wr: bool,
+  out sout: bit)
+{
   states: Idle, Start, Tx, Parity, Stop;
-  vars:
-    i: int<0:8>,
-    k: int<0:n>,
-    r: int<8>,
-    p: int<1>;
+  vars: i: int<0:8>,
+        k: int<0:n>,
+        r: int<8>,
+        p: int<1>;
   trans:
-    Idle -- clk.wr=0 -> Idle,
-    Idle -- clk.wr=1 | r:=din; sout:=0; k:=0 -> Start,
-    Start -- clk.k<n-1 | k:=k+1; p:=0 -> Start,
-    Start -- clk.k=n-1 | k:=0; i:=1; sout:=r[0]; p:=r[0] -> Tx,
-    Tx -- clk.k<n-1 | k:=k+1 -> Tx,
-    Tx -- clk.(k=n-1).(i<8) | sout:=r[i]; p:=p^r[i]; i:=i+1; k:=0 -> Tx,
-    Tx -- clk.(k=n-1).(i=8) | sout:=p; k:=0 -> Parity,
-    Parity -- clk.(k<n-1) | k:=k+1 -> Parity,
-    Parity -- clk.(k=n-1) | sout:=1; k:=0 -> Stop,
-    Stop -- clk.(k<n-1) | k:=k+1 -> Stop,
-    Stop -- clk.(k=n-1) -> Idle;
-  itrans: | sout:=1 -> Idle;
-  }
-
+  | Idle -> Idle on clk when wr=0
+  | Idle -> Start on clk when wr=1 with r:=din, sout:=0, k:=0
+  | Start -> Start on clk when k<n-1 with k:=k+1, p:=0
+  | Start -> Tx on clk when k=n-1 with k:=0, i:=1, sout:=r[0], p:=r[0]
+  | Tx -> Tx on clk when k<n-1 with k:=k+1
+  | Tx -> Tx on clk when (k=n-1).(i<8) with sout:=r[i], p:=p^r[i], i:=i+1, k:=0
+  | Tx -> Parity on clk when (k=n-1).(i=8) with sout:=p, k:=0
+  | Parity -> Parity on clk when k<n-1 with k:=k+1
+  | Parity -> Stop on clk when k=n-1 with sout:=1, k:=0
+  | Stop -> Stop on clk when k<n-1 with k:=k+1
+  | Stop -> Idle on clk when k=n-1;
+  itrans:
+  | -> Idle with sout:=1;
+}

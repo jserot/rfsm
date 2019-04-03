@@ -1,16 +1,16 @@
-# Model of 1x3 Finite Impulse Responde filter
-# y_i = a_0 * x_i + a_1 * x_{i-1} + a_2 * x_{i-2}
-# v1: with separate coeffs and buffering variables
+-- Model of 1x3 Finite Impulse Responde filter
+-- y_i = a_0 * x_i + a_1 * x_{i-1} + a_2 * x_{i-2}
+-- v1: with separate coeffs and buffering variables
 
-fsm model conv13 <a0:int,a1:int,a2:int> (
-     in h: event,
-     in x: int,
-    out y: int)
-  {
+fsm model conv13<a0:int, a1:int, a2:int>(
+  in h: event,
+  in x: int,
+  out y: int)
+{
   states: Run;
-  vars: zx, zzx: int;
+  vars: zx: int, zzx: int;
   trans:
-    Run -- h | y:=a0*x+a1*zx+a2*zzx; zzx:=zx; zx:=x -> Run;
-  itrans: | zx:=0; zzx:=0 -> Run;
-  }
-
+  | Run -> Run on h with y:=a0*x+a1*zx+a2*zzx, zzx:=zx, zx:=x;
+  itrans:
+  | -> Run with zx:=0,zzx:=0;
+}

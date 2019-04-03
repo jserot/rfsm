@@ -13,11 +13,13 @@ open Printf
 open Location
    
 let handle e = match e with
+  | Old_parser.Error
   | Main_parser.Error ->
      let pos1 = Lexing.lexeme_start !Location.input_lexbuf in
      let pos2 = Lexing.lexeme_end !Location.input_lexbuf in
      eprintf "%aSyntax error\n" output_location (Loc(!input_name,pos1, pos2));
      flush stderr; exit 1
+  | Old_lexer.Lexical_error(Old_lexer.Illegal_character, pos1, pos2)
   | Main_lexer.Lexical_error(Main_lexer.Illegal_character, pos1, pos2) ->
      eprintf "%aIllegal character.\n" output_location (Loc(!input_name,pos1, pos2)); flush stderr; exit 1
   | Types.Index.Illegal_type_index i -> 

@@ -38,7 +38,6 @@
 %token DOT
 %token COLON
 %token QMARK
-%token EMARK
 %token COLEQ
 %token EQUAL
 %token NOTEQUAL
@@ -56,10 +55,8 @@
 %token FPLUS FMINUS FTIMES FDIV
 %token LAND LOR LXOR
 %token SHL SHR
-%token ARROW
-%token ON
-%token WHEN
-%token WITH
+%token ARROW_START
+%token ARROW_END
 %token BAR
 %token COLONCOLON
 (* %token BARBAR *)
@@ -237,7 +234,7 @@ fsm_model:
       LBRACE
       STATES COLON states=terminated(my_separated_list(COMMA, UID),SEMICOLON)
       vars = optional(vars)
-      TRANS COLON trans=terminated(my_list(transition),SEMICOLON)
+      TRANS COLON trans=terminated(my_separated_list(COMMA,transition),SEMICOLON)
       ITRANS COLON itrans=terminated(itransition,SEMICOLON)
       RBRACE {
         mk_fsm_decl
@@ -272,23 +269,28 @@ var:
       { List.map (fun id -> (id, mk_type_expression ($symbolstartofs,$endofs) ty)) ids }
 
 transition:
-  | prio=prio src=UID ARROW dst=UID ON ev=LID gds=guards acts=actions
-      { src, mk_condition ($symbolstartofs,$endofs) ([ev],gds), acts, dst, prio }
+  | prio=prio
+    src=UID
+    ARROW_START
+    cond=condition
+    actions=optional(actions)
+    ARROW_END
+    dst=UID
+      { src, mk_condition ($symbolstartofs,$endofs) cond, actions, dst, prio }
 
 prio:
-    | BAR { false }
-    | EMARK { true } 
+    | (* Nothing *) { false }
+    | TIMES { true } 
       
 itransition:
-  | BAR ARROW dst=UID acts=actions { dst, acts }
+  | actions=optional(actions) ARROW_END dst=UID { dst, actions }
 
-guards:
-  | (* Nothing *) { [] }
-  | WHEN conds=separated_nonempty_list(DOT, expr) { conds }
+condition:
+  | ev=LID { ([ev],[]) }
+  | ev=LID DOT guards=separated_nonempty_list(DOT, expr) { ([ev], guards) }
 
 actions:
-  | (* Nothing *) { [] }
-  | WITH acts=separated_nonempty_list(COMMA, action) { acts }
+  | BAR actions=separated_nonempty_list(SEMICOLON, action) { actions }
 
 action:
   | i=LID               { mk_action ($symbolstartofs,$endofs) (Action.Emit i) }

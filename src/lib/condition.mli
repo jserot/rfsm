@@ -44,4 +44,5 @@ val subst : Eval.env -> t -> t
 (** {2 Printers} *)
 
 val string_of_guard : guard -> string
+val string_of_guards : guard list -> string
 val to_string : t -> string

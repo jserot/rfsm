@@ -11,8 +11,6 @@
 
 (* Abstract syntax of programs *)
 
-open Utils
-
 (* Type expressions *)
 
 type type_expression = {
@@ -202,71 +200,104 @@ let add_program p1 p2 = { (* TODO : Flag redefinitions ? *)
  *  | Sporadic ts -> "Sporadic(" ^ ListExt.to_string string_of_int "," ts ^ ")"
  *  | ValueChange vs -> "ValueChange(" ^ ListExt.to_string string_of_value_change "," vs ^ ")" *)
 
+type syntax_mode = Syntax_old | Syntax_new
+
 let string_of_stimuli st = Global.string_of_stim st.stim_desc
    
 let string_of_type_expression t = Type_expr.string_of_type_expr t.te_desc
 
 let string_of_io_tag = function Types.IO_In -> "in" | Types.IO_Out -> "out" | Types.IO_Inout -> "inout"
                                                                             
-let string_of_io (tag,(id,ty)) = string_of_io_tag tag ^ " " ^ id ^ ": " ^ string_of_type_expression ty
+let string_of_io pfx (tag,(id,ty)) = pfx ^ string_of_io_tag tag ^ " " ^ id ^ ": " ^ string_of_type_expression ty
 
-and string_of_field (n,ty) = n ^ ":" ^ Type_expr.string_of_type_expr ty
+and string_of_field (n,ty) = "  " ^ n ^ ": " ^ Type_expr.string_of_type_expr ty
 
-let dump_type_decl oc { td_desc=d } = match d with
+let dump_type_decl mode oc { td_desc=d } = match d with
     TD_Alias (name,te) ->
-     Printf.printf "TYPE %s = %s\n" name (Type_expr.string_of_type_expr te)
+     Printf.fprintf oc "type %s = %s\n" name (Type_expr.string_of_type_expr te)
   | TD_Enum (name, cs) ->
-     Printf.printf "TYPE %s = { %s }\n" name (ListExt.to_string (function c -> c) "," cs)
+     Printf.fprintf oc "type %s = { %s }\n" name (Utils.ListExt.to_string (function c -> c) ", " cs)
   | TD_Record (name, fs) ->
-     Printf.printf "TYPE %s = { %s }\n" name (ListExt.to_string string_of_field "," fs)
+     Printf.fprintf oc "type %s = record {\n%s\n}\n" name (Utils.ListExt.to_string string_of_field ",\n" fs)
 
 let string_of_fn_arg (id,ty) = id ^ ":" ^ string_of_type_expression ty
 
 let string_of_expression e = Expr.to_string e.e_desc
                            
-let dump_fn_decl oc { fd_desc=d } =
-  Printf.printf "FUNCTION %s (%s) : %s { return %s }\n"
+let dump_fn_decl mode oc { fd_desc=d } =
+  Printf.fprintf oc "function %s (%s) : %s { return %s }\n"
     d.ff_name
-    (ListExt.to_string string_of_fn_arg "," d.ff_args)
+    (Utils.ListExt.to_string string_of_fn_arg "," d.ff_args)
     (string_of_type_expression d.ff_res)
     (string_of_expression d.ff_body)
 
-let dump_fsm_model oc { fsm_desc=m } =
-  let of_list f xs = ListExt.to_string f ", " xs in
+let string_of_opt f left right l = match l with [] -> "" | _ -> left ^ f l ^ right
+
+let string_of_actions sep acts = Utils.ListExt.to_string (fun a -> Action.to_string a.act_desc) sep acts
+
+let string_of_transition mode (q,cond,acts,q',p) =
+  match mode, cond.cond_desc with
+  | Syntax_old, _ ->
+      Printf.sprintf "    %s%s -- %s %s %s"
+        (if p then "*" else "")
+        q
+        (Condition.to_string cond.cond_desc)
+        (string_of_opt (string_of_actions "; ") "| " "" acts)
+        q'
+  | Syntax_new, ([ev],guards) ->
+      Printf.sprintf "  %s %s -> %s on %s%s%s"
+        (if p then "!" else "|")
+        q
+        q'
+        ev
+        (string_of_opt Condition.string_of_guards " when " "" guards)
+        (string_of_opt (string_of_actions ", ") " with " "" acts)
+  | _, _ ->
+     Misc.fatal_error "Syntax.string_of_transition"
+
+let string_of_transitions mode ts =
+  match mode with
+  | Syntax_old -> Utils.ListExt.to_string (string_of_transition mode) ",\n" ts
+  | Syntax_new -> Utils.ListExt.to_string (string_of_transition mode) "\n" ts
+
+
+let string_of_itransition mode (q,iacts) =
+  match mode with
+  | Syntax_old -> Printf.sprintf "  | %s -> %s" (string_of_actions ";" iacts) q
+  | Syntax_new -> Printf.sprintf "  | -> %s %s" q (string_of_opt (string_of_actions ",") "with " "" iacts)
+
+let dump_fsm_model mode oc { fsm_desc=m } =
   let string_of_comp_t (id,ty) = id ^ ": " ^ string_of_type_expression ty in
-  let string_of_acts = ListExt.to_string (function a -> Action.to_string a.act_desc) "; " in
-  Printf.fprintf oc "FSM %s <%s> (%s) {\n"
+  Printf.fprintf oc "fsm model %s%s(\n%s)\n{\n"
                  m.fd_name
-                 (of_list string_of_comp_t m.fd_params)
-                 (of_list string_of_io m.fd_ios);
-  Printf.fprintf oc "  STATES = { %s }\n" (of_list (function n -> n) m.fd_states);
-  Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_comp_t m.fd_vars);
-  Printf.fprintf oc "  TRANS = {\n";
-  List.iter 
-    (fun (q,cond,acts,q',p) ->
-      Printf.fprintf oc "    { %s%s {%s} {%s} %s }\n"
-        (if p then "*" else "") q (Condition.to_string cond.cond_desc) (string_of_acts acts) q')
-    (m.fd_trans);
-  Printf.fprintf oc "    }\n";
-  let (q,iacts) = m.fd_itrans in
-  Printf.fprintf oc "  ITRANS = { %s \"%s\" }\n" q (string_of_acts iacts);
-  Printf.fprintf oc "  }\n"
+                 (string_of_opt (Utils.ListExt.to_string string_of_comp_t ", ") "<" ">" m.fd_params)
+                 (Utils.ListExt.to_string (string_of_io "  ") ",\n" m.fd_ios);
+  Printf.fprintf oc "  states: %s;\n" (Utils.ListExt.to_string Misc.id ", " m.fd_states);
+  if m.fd_vars <> [] then 
+    Printf.fprintf oc "  vars: %s;\n" (Utils.ListExt.to_string string_of_comp_t ", " m.fd_vars);
+  Printf.fprintf oc "  trans:\n%s;\n" (string_of_transitions mode m.fd_trans);
+  Printf.fprintf oc "  itrans:\n%s;\n" (string_of_itransition mode m.fd_itrans);
+  Printf.fprintf oc "}\n"
 
-let dump_global oc {g_desc=g} = match g.gd_desc with
-  | GInp st -> Printf.fprintf oc "INPUT %s : %s = %s\n" g.gd_name (string_of_type_expression g.gd_type) (string_of_stimuli st)
-  | GOutp -> Printf.fprintf oc "OUTPUT %s : %s\n" g.gd_name (string_of_type_expression g.gd_type)
-  | GShared -> Printf.fprintf oc "SHARED %s : %s\n" g.gd_name (string_of_type_expression g.gd_type)
+let dump_global mode oc {g_desc=g} = match g.gd_desc with
+  | GInp st -> Printf.fprintf oc "input %s : %s = %s\n" g.gd_name (string_of_type_expression g.gd_type) (string_of_stimuli st)
+  | GOutp -> Printf.fprintf oc "output %s : %s\n" g.gd_name (string_of_type_expression g.gd_type)
+  | GShared -> Printf.fprintf oc "shared %s : %s\n" g.gd_name (string_of_type_expression g.gd_type)
 
-let dump_fsm_inst oc {fi_desc=f} =
-  Printf.fprintf oc "FSM %s = %s<%s>(%s)\n"
+let dump_fsm_inst mode oc {fi_desc=f} =
+  Printf.fprintf oc "fsm %s = %s%s(%s)\n"
     f.fi_name
     f.fi_model
-    (ListExt.to_string Expr.to_string "," f.fi_params)
-    (ListExt.to_string Misc.id "," f.fi_args)
+    (string_of_opt (Utils.ListExt.to_string Expr.to_string ",") "<" ">" f.fi_params)
+    (Utils.ListExt.to_string Misc.id "," f.fi_args)
   
-let dump_program p =   (* for debug only *)
-  List.iter (dump_type_decl stdout) p.p_type_decls;
-  List.iter (dump_fn_decl stdout) p.p_fn_decls;
-  List.iter (dump_fsm_model stdout) p.p_fsm_models;
-  List.iter (dump_global stdout) p.p_globals;
-  List.iter (dump_fsm_inst stdout) p.p_fsm_insts
+let dump_program oc mode p =
+  List.iter (dump_type_decl mode oc) p.p_type_decls;
+  Printf.fprintf oc "\n";
+  List.iter (dump_fn_decl mode oc) p.p_fn_decls;
+  Printf.fprintf oc "\n";
+  List.iter (dump_fsm_model mode oc) p.p_fsm_models;
+  Printf.fprintf oc "\n";
+  List.iter (dump_global mode oc) p.p_globals;
+  Printf.fprintf oc "\n";
+  List.iter (dump_fsm_inst mode oc) p.p_fsm_insts

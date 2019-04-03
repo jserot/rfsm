@@ -1,17 +1,18 @@
-# Model of a (very) simple stop watch :
-# - H gives seconds
-# - counting starts and stops at each occurence of [startstop]
+-- Model of a (very) simple stop watch :
+-- - H gives seconds
+-- - counting starts and stops at each occurence of [startstop]
 
-fsm model chrono (
-     in h: event,
-     in startstop: event,
-    out aff: int)
-  {
+fsm model chrono(
+  in h: event,
+  in startstop: event,
+  out aff: int)
+{
   states: Stopped, Running;
   vars: ctr: int;
   trans:
-    Stopped -- startstop | ctr:=0; aff:=0 -> Running,
-    Running -- h | ctr:=ctr+1; aff:=ctr -> Running,
-    *Running -- startstop -> Stopped;
-  itrans: -> Stopped;
-  }
+  | Stopped -> Running on startstop with ctr:=0, aff:=0
+  | Running -> Running on h with ctr:=ctr+1, aff:=ctr
+  ! Running -> Stopped on startstop;
+  itrans:
+  | -> Stopped;
+}

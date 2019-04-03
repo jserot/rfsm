@@ -1,17 +1,17 @@
-fsm model Recepteur<delai:int>(
-     in h: event,
-     in e_rdy: bool,
-     in data: t_data,
-     out r_rdy: bool,
-     out dout: t_data)
-  {
+fsm model Recepteur<delai: int>(
+  in h: event,
+  in e_rdy: bool,
+  in data: t_data,
+  out r_rdy: bool,
+  out dout: t_data)
+{
   states: R1, R2, Att;
   vars: t: int;
   trans:
-    R1 -- h.e_rdy=1 | dout:=data; t:=0 -> Att,
-    Att -- h.t<delai | t:=t+1 -> Att,
-    Att -- h.t=delai | r_rdy:=0 -> R2,  # l'acquittement est retarde apres de [delai] tops de H
-    R2 -- h.e_rdy=0 | r_rdy:=1 -> R1;
-  itrans: | r_rdy:=1 -> R1;
-  }
-
+  | R1 -> Att on h when e_rdy=1 with dout:=data, t:=0
+  | Att -> Att on h when t<delai with t:=t+1
+  | Att -> R2 on h when t=delai with r_rdy:=0 -- l'acquittement est retarde apres de [delai] tops de H
+  | R2 -> R1 on h when e_rdy=0 with r_rdy:=1;
+  itrans:
+  | -> R1 with r_rdy:=1;
+}

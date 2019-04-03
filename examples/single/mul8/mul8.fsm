@@ -1,22 +1,20 @@
-# A naive model of a multiplier implemented with successive additions
-# The generated VHDL code is a good starting point for hardware implementation
+-- A naive model of a multiplier implemented with successive additions
+-- The generated VHDL code is a good starting point for hardware implementation
 
-fsm model mult (
+fsm model mult(
   in h: event,
   in start: bool,
   in n1: int<8>,
   in n2: int<8>,
   out r: int<16>,
   out rdy: bool)
-  {
+{
   states: Repos, Calcul;
-  vars:
-    a, b:int<8>,
-    acc:int<16>;
+  vars: a: int<8>, b: int<8>, acc: int<16>;
   trans:
-    Repos -- h.start=1 | a:=n1; b:=n2; acc:=0; rdy:=0 -> Calcul,
-    Calcul -- h.b>0 | b:=b-1; acc:=acc+a::int<16> -> Calcul,
-    Calcul -- h.b=0 | r:=acc; rdy:=1 -> Repos; 
-  itrans: | rdy:=1 -> Repos;
-  }
-
+  | Repos -> Calcul on h when start=1 with a:=n1, b:=n2, acc:=0, rdy:=0
+  | Calcul -> Calcul on h when b>0 with b:=b-1, acc:=acc+a::int<16>
+  | Calcul -> Repos on h when b=0 with r:=acc, rdy:=1;
+  itrans:
+  | -> Repos with rdy:=1;
+}

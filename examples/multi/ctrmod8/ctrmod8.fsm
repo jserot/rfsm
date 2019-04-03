@@ -1,14 +1,14 @@
-# A mod 8 counter described as a combination of three event-synchronized mod 2 counters
+-- A mod 8 counter described as a combination of three event-synchronized mod 2 counters
 
-fsm model cntmod2 (
+fsm model cntmod2(
   in h: event,
   out s: int<0:1>,
   out r: event)
-  {
+{
   states: E0, E1;
   trans:
-    E0 -- h | s:=1 -> E1,
-    E1 -- h | r; s:=0 -> E0;
-  itrans: | s:=0 -> E0;
-  }
-
+  | E0 -> E1 on h with s:=1
+  | E1 -> E0 on h with r, s:=0;
+  itrans:
+  | -> E0 with s:=0;
+}

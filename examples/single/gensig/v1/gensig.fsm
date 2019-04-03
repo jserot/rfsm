@@ -1,17 +1,18 @@
-# Generates an impulsion of duration 3.Th on output [s]
-# whenever [e=1] when [h] occurs
+-- Generates an impulsion of duration 3.Th on output [s]
+-- whenever [e=1] when [h] occurs
 
-fsm model gensig (
+fsm model gensig(
   in h: event, 
   in e: bool,
   out s: bool)
   {
   states: E0, E1, E2, E3;
   trans:
-    E0 -- h.e=1 | s:=1 -> E1,
-    E1 -- h -> E2,
-    E2 -- h -> E3,
-    E3 -- h | s:=0 -> E0;
-  itrans: | s:=0 -> E0;
+  | E0 -> E1 on h when e=1 with s:=1
+  | E1 -> E2 on h
+  | E2 -> E3 on h
+  | E3 -> E0 on h with s:=0;
+  itrans:
+  | -> E0 with s:=0;
   }
 

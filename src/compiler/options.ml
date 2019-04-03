@@ -9,8 +9,10 @@
 (*                                                                    *)
 (**********************************************************************)
 
-type target = Dot | Sim | CTask | SystemC | Vhdl
+type target = Dot | Sim | CTask | SystemC | Vhdl 
 let target = ref None
+let use_old_syntax = ref false
+let transl_syntax = ref false
 type compile_mode = Model | Program
 let compile_mode = ref Program
 let target_dir = ref "."
@@ -21,6 +23,8 @@ let do_run = ref false
 let dump_static = ref false
 let dot_captions = ref true
 
+let set_old_syntax () = use_old_syntax := true
+let set_transl_syntax () = use_old_syntax := true; transl_syntax := true
 let set_compile_model () = compile_mode := Model
 let set_sim () = target := Some Sim
 let set_dot () = target := Some Dot

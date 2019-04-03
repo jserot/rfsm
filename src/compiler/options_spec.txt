@@ -1,3 +1,4 @@
+noide;general;-old_syntax;Arg.Unit;set_old_syntax;use old (pre-1.5) syntax for FSM models
 noide;general;-c;Arg.Unit;set_compile_model;compile FSM model(s) without instantiating them
 noide;general;-lib;Arg.String;set_lib_dir;set location of the support library (default: /usr/local/rfsm/lib)
 noide;general;-dump_static;Arg.Unit;set_dump_static;dump static representation of model(s)/program to stdout
@@ -7,6 +8,7 @@ noide;general;-ctask;Arg.Unit;set_ctask;generate CTask code
 noide;general;-systemc;Arg.Unit;set_systemc;generate SystemC code
 noide;general;-vhdl;Arg.Unit;set_vhdl;generate VHDL code
 noide;general;-sim;Arg.Unit;set_sim;run simulation (generating .vcd file)
+noide;general;-transl_syntax;Arg.Unit;set_transl_syntax;convert old syntax to new syntax
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
 ide;dot;-dot_actions_nl;Arg.Unit;set_dot_actions_nl;write actions with with a separating newline

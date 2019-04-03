@@ -1,6 +1,7 @@
 input h : event = periodic (10,10,120)
 
-# Scenario 1: "1 ^ 2 + 4 * => 3, 12"
+-- Scenario 1: "1 ^ 2 + 4 * => 3, 12"
+
 input inp : token_t = value_changes(
    5:{tag=Number,val=1},
    25:{tag=Enter,val=0},
@@ -8,6 +9,7 @@ input inp : token_t = value_changes(
    65:{tag=Plus,val=0},
    85:{tag=Number,val=4},
    105:{tag=Times,val=0})
+
 input wr : bool = value_changes (0:0, 5:1, 15:0, 25:1, 35:0, 45:1, 55:0, 65:1, 75:0, 85:1, 95:0, 105:1, 115:0)
 
 output outp : int  

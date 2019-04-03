@@ -18,6 +18,9 @@ let source_files = ref ([] : string list)
 
 let anonymous fname = source_files := !source_files @ [fname]
 
+let check_dir path = 
+  if not (Sys.is_directory path) then raise (Sys_error ("file " ^ " is not a directory"))
+
 let print_banner () = 
   Printf.printf "------------------------------------------------------------------\n";
   Printf.printf "Reactive Finite State Machine compiler and simulator, version %s\n" Version.version;
@@ -25,33 +28,31 @@ let print_banner () =
   Printf.printf "------------------------------------------------------------------\n";
   flush stdout
 
-let parse lexer parser fname = 
+let parse fname = 
   let ic = open_in_bin fname in
   (* The source file(s) must be opened in binary mode, so that the absolute seeks in print_location work. *)
   Location.input_name := fname;
   Location.input_chan := ic;
   let lexbuf = Lexing.from_channel !Location.input_chan in
   Location.input_lexbuf := lexbuf;
-  parser lexer !Location.input_lexbuf
+  if !Options.use_old_syntax then 
+    Old_parser.program Old_lexer.main !Location.input_lexbuf
+  else
+    Main_parser.program Main_lexer.main !Location.input_lexbuf 
 
-let check_dir path = 
-  if not (Sys.is_directory path) then raise (Sys_error ("file " ^ " is not a directory"))
+let rewrite_syntax fname =
+  let p = parse fname in
+  let fname' = Utils.FilenameExt.add_before_suffix fname ".new" in
+  Printf.printf "** Translating %s... " fname; flush stdout;
+  let oc = open_out fname' in
+  Syntax.dump_program oc Syntax.Syntax_new p;
+  close_out oc;
+  Printf.printf "Done (translated source is in file %s)\n" fname'; flush stdout
 
-let main () =
-try
-  Sys.catch_break true;
-  Arg.parse Options_spec.options_spec anonymous usage;
-  print_banner ();
-  if !Options.print_version then exit 0;
-  let name =
-    begin match !Options.main_name, !source_files with
-    | "", [] -> eprintf "No input file(s)\n"; flush stderr; exit 1
-    | "",  srcs -> Filename.chop_extension (Filename.basename (List.hd (List.rev srcs)))
-    | n, _ -> n
-    end in
+let compile name =
   let p =
     List.fold_left
-      (fun p f -> Syntax.add_program p (parse Main_lexer.main Main_parser.program f))
+      (fun p f -> Syntax.add_program p (parse f))
       Syntax.empty_program
       !source_files in
   let m = Static.elaborate name p in
@@ -59,58 +60,75 @@ try
   Logfile.start ();
   begin match !Options.target with
   | Some Options.Dot ->
-       check_dir !Options.target_dir;
-       Static.dot_output
-         ~fsm_options:(if !Options.dot_captions then [] else [Fsm.NoCaption])
-         !Options.target_dir
-         m;
+     check_dir !Options.target_dir;
+     Static.dot_output
+       ~fsm_options:(if !Options.dot_captions then [] else [Fsm.NoCaption])
+       !Options.target_dir
+       m;
   | Some Options.CTask ->
-       Ctask.check_allowed m;
-       check_dir !Options.target_dir;
-       begin match m with
-       | Static.Models ms ->
-          List.iter (Ctask.dump_fsm_model ~dir:!Options.target_dir m) ms
-       | Static.System s ->
-          if Ctask.need_globals s then Ctask.dump_globals ~dir:!Options.target_dir s;
-          List.iter (Ctask.dump_fsm_inst ~dir:!Options.target_dir s) s.Sysm.m_fsms
-       end
+     Ctask.check_allowed m;
+     check_dir !Options.target_dir;
+     begin match m with
+     | Static.Models ms ->
+        List.iter (Ctask.dump_fsm_model ~dir:!Options.target_dir m) ms
+     | Static.System s ->
+        if Ctask.need_globals s then Ctask.dump_globals ~dir:!Options.target_dir s;
+        List.iter (Ctask.dump_fsm_inst ~dir:!Options.target_dir s) s.Sysm.m_fsms
+     end
   | Some Options.SystemC ->
-       Systemc.check_allowed m;
-       check_dir !Options.target_dir;
-       begin match m with
-       | Static.Models ms ->
-          List.iter (Systemc.dump_fsm_model ~dir:!Options.target_dir) ms
-       | Static.System s ->
-          if Systemc.need_globals s then Systemc.dump_globals ~dir:!Options.target_dir s;
-          Systemc.dump_model ~dir:!Options.target_dir s;
-          Systemc.dump_testbench ~name:name ~dir:!Options.target_dir s;
-          Systemc.dump_makefile ~name:name ~dir:!Options.target_dir s
-       end
+     Systemc.check_allowed m;
+     check_dir !Options.target_dir;
+     begin match m with
+     | Static.Models ms ->
+        List.iter (Systemc.dump_fsm_model ~dir:!Options.target_dir) ms
+     | Static.System s ->
+        if Systemc.need_globals s then Systemc.dump_globals ~dir:!Options.target_dir s;
+        Systemc.dump_model ~dir:!Options.target_dir s;
+        Systemc.dump_testbench ~name:name ~dir:!Options.target_dir s;
+        Systemc.dump_makefile ~name:name ~dir:!Options.target_dir s
+     end
   | Some Options.Vhdl ->
-       check_dir !Options.target_dir;
-       begin match m with
-       | Static.Models ms ->
-          Vhdl.check_allowed_models ms;
-          List.iter (Vhdl.dump_fsm_model ~dir:!Options.target_dir) ms
-       | Static.System s ->
-          Vhdl.check_allowed_system s;
-          if Vhdl.need_globals s then Vhdl.dump_globals ~dir:!Options.target_dir s;
-          Vhdl.dump_model ~dir:!Options.target_dir s;
-          Vhdl.dump_testbench ~name:name ~dir:!Options.target_dir s;
-          Vhdl.dump_makefile ~name:name ~dir:!Options.target_dir s
-       end
+     check_dir !Options.target_dir;
+     begin match m with
+     | Static.Models ms ->
+        Vhdl.check_allowed_models ms;
+        List.iter (Vhdl.dump_fsm_model ~dir:!Options.target_dir) ms
+     | Static.System s ->
+        Vhdl.check_allowed_system s;
+        if Vhdl.need_globals s then Vhdl.dump_globals ~dir:!Options.target_dir s;
+        Vhdl.dump_model ~dir:!Options.target_dir s;
+        Vhdl.dump_testbench ~name:name ~dir:!Options.target_dir s;
+        Vhdl.dump_makefile ~name:name ~dir:!Options.target_dir s
+     end
   | Some Options.Sim ->
-       begin match m with
-       | Static.System s ->
-          let ctx, reacts = Simul.run s in
-          Vcd.output s ctx !Options.vcd_file reacts
-       | _ ->
-          eprintf "No testbench to simulate.\n"; flush stderr; exit 1
-       end
+     begin match m with
+     | Static.System s ->
+        let ctx, reacts = Simul.run s in
+        Vcd.output s ctx !Options.vcd_file reacts
+     | _ ->
+        eprintf "No testbench to simulate.\n"; flush stderr; exit 1
+     end
   | None ->
      ()
   end;
   Logfile.stop ()
+
+let main () =
+try
+  Sys.catch_break true;
+  Arg.parse Options_spec.options_spec anonymous usage;
+  print_banner ();
+  if !Options.print_version then exit 0;
+  let main_name =
+    begin match !Options.main_name, !source_files with
+    | "", [] -> eprintf "No input file(s)\n"; flush stderr; exit 1
+    | "",  srcs -> Filename.chop_extension (Filename.basename (List.hd (List.rev srcs)))
+    | n, _ -> n
+    end in
+  if !Options.transl_syntax then 
+    List.iter rewrite_syntax !source_files
+  else
+    compile main_name
 with
 | e -> Error.handle e
 

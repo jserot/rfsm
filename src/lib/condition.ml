@@ -21,11 +21,12 @@ let vars_of (evs, gs) =
   
 let events_of (evs, gs) = Expr.VarSet.of_list evs
                   
-let string_of_guard exp = "(" ^ Expr.to_string exp ^ ")"
+let string_of_guard exp = Expr.to_string exp
 
 let string_of_guards cs = match cs with
   [] -> ""
-|  _ -> "." ^ Utils.ListExt.to_string string_of_guard "." cs
+| [c] -> string_of_guard c
+|  _ -> Utils.ListExt.to_string (fun c -> "(" ^ string_of_guard c ^ ")") "." cs
 
 let to_string' (evs,gs) = Utils.ListExt.to_string Utils.Misc.id "." evs ^ string_of_guards gs 
 

@@ -37,6 +37,6 @@ let string_of_value_change (t,v) = string_of_int t ^ ":" ^ Expr.string_of_value 
 let string_of_stim =
   let open Utils in
   function
- | Periodic (x,y,z) -> "Periodic(" ^ ListExt.to_string string_of_int "," [x;y;z] ^ ")"
- | Sporadic ts -> "Sporadic(" ^ ListExt.to_string string_of_int "," ts ^ ")"
- | ValueChange vs -> "ValueChange(" ^ ListExt.to_string string_of_value_change "," vs ^ ")"
+ | Periodic (x,y,z) -> "Periodic(" ^ ListExt.to_string string_of_int ", " [x;y;z] ^ ")"
+ | Sporadic ts -> "Sporadic(" ^ ListExt.to_string string_of_int ", " ts ^ ")"
+ | ValueChange vs -> "ValueChange(" ^ ListExt.to_string string_of_value_change ", " vs ^ ")"

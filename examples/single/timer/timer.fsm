@@ -1,8 +1,8 @@
-# A simple model for a programmable timer
-# Counts [n] occurences of [h] when [start] is received and emits [done]
-# The counter is value is available on IO [t]
+-- A simple model for a programmable timer
+-- Counts [n] occurences of [h] when [start] is received and emits [done]
+-- The counter is value is available on IO [t]
 
-fsm model Timer <n: int> (
+fsm model Timer<n: int>(
   in h: event,
   in start: event,
   out done: event,
@@ -10,9 +10,9 @@ fsm model Timer <n: int> (
 {
   states: Idle, Count;
   trans:
-    Idle -- start | t:=0 -> Count,
-    Count -- h.t<n-1 | t:=t+1 -> Count,
-    Count -- h.t=n-1 | done -> Idle;
-  itrans: -> Idle;
+  | Idle -> Count on start with t:=0
+  | Count -> Count on h when t<n-1 with t:=t+1
+  | Count -> Idle on h when t=n-1 with done;
+  itrans:
+  | -> Idle ;
 }
-

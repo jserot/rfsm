@@ -82,6 +82,11 @@ vhdl: vhdl.run vhdl.view
 vhdl.test:
 	if [ -d ./vhdl ]; then make vhdl.run; fi
 
+new_syntax:
+	for f in *.fsm ; do \
+		$(RFSMC) -transl_syntax $$f; \
+	done
+
 test:
 	if [ -d ./vhdl ]; then make test3; else make test2; fi
 

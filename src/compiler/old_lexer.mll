@@ -1,5 +1,5 @@
 {
-open Main_parser
+open Old_parser
 
 type lexical_error =
     Illegal_character
@@ -36,9 +36,6 @@ let keyword_table = [
   "bool", TYBOOL;
   "char", TYCHAR;
   "array", TYARRAY;
-  "on", ON;
-  "when", WHEN;
-  "with", WITH;
   (* "true", TRUE;
    * "false", FALSE; *)
 ]
@@ -53,7 +50,7 @@ rule main = parse
         with Not_found -> LID s }
   | ['A'-'Z' 'a'-'z' ] ( ['A'-'Z' 'a'-'z' '0'-'9' '_' ] ) *
       { UID (Lexing.lexeme !Location.input_lexbuf) }
-  | "--"
+  | "#"
       { comment !Location.input_lexbuf; main !Location.input_lexbuf }
   | ['0'-'9']+
       { INT (int_of_string(Lexing.lexeme !Location.input_lexbuf)) }
@@ -70,10 +67,10 @@ rule main = parse
   | "]" { RBRACKET }
   | "," { COMMA }
   | "." { DOT }
-  | "->" { ARROW }
+  | "--" { ARROW_START }
+  | "->" { ARROW_END }
   | ":" { COLON }
   | "?" { QMARK }
-  | "!" { EMARK }
   | "=" { EQUAL }
   | ":=" { COLEQ }
   | "|" { BAR }

@@ -1,2 +1,1 @@
 true:   annot, debug, explain
-<foo.ml>: syntax(camlp4o), package(camlp4.macro)
