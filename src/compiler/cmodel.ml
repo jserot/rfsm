@@ -94,7 +94,7 @@ let c_model_of_fsm_model f =
 
 let c_model_of_fsm_inst m f = 
   let states = Fsm.states_of_inst f in
-  let open Sysm in
+  let open Static in
   let open Fsm in
   { c_name = f.f_name;
     c_states = states;
@@ -107,7 +107,7 @@ let c_model_of_fsm_inst m f =
     c_vars = f.f_vars;
     c_init = mk_init f.f_name (Fsm.itransitions_of_inst f);
     c_body = List.map (mk_state_case (Fsm.Repr.succs' f.f_repr)) (List.rev states);
-    c_ddepth = Sysm.DepG.Mark.get (m.m_deps.md_node f.f_name);
+    c_ddepth = Static.DepG.Mark.get (m.m_deps.md_node f.f_name);
     }
 
 let empty = 

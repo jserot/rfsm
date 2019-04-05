@@ -15,17 +15,15 @@ exception Unbound_fsm of Location.location * string
 exception Unbound_global of Location.location * string
 exception Fsm_mismatch of string * Location.location * string
 
-type result = 
-  Models of Fsm.model list
-| System of Sysm.t
-             
-val elaborate: string -> Syntax.program -> result
+val process: string -> Syntax.program -> Static.t * bool
+  (** [process name p] builds a static representation of program [p]. Also indicates whether
+      this representation can be turned into a simulation testbench *)
 
-val dot_output :
-  string ->
-  ?dot_options:Utils.Dot.graph_style list ->
-  ?fsm_options:Fsm.dot_options list ->
-  result ->
-  unit
-
-val dump: out_channel -> result -> unit                              
+(* val dot_output :
+ *   string ->
+ *   ?dot_options:Utils.Dot.graph_style list ->
+ *   ?fsm_options:Fsm.dot_options list ->
+ *   result ->
+ *   unit
+ * 
+ * val dump: out_channel -> result -> unit                               *)

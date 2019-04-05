@@ -35,11 +35,11 @@ let build_counter n =
                      ~model:ctrmod2
                      ~params:[]
                      ~ios:[if i=0 then h else r.(i-1); s.(i); r.(i)]) in
-  Sysm.build ~name:("ctrmod" ^ string_of_int (pow2 n)) (Array.to_list c)
+  Static.build ~name:("ctrmod" ^ string_of_int (pow2 n)) [ctrmod2] (Array.to_list c)
 
 let p = build_counter 3
 
-let _ = Sysm.dot_output "./dot" p
+let _ = Static.dot_output "./dot" p
 
 (* let c, rs = Simul.run p
  * let _ = List.iter Simul.dump_reaction rs *)

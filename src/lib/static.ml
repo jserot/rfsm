@@ -20,6 +20,7 @@ module DepG =
 
 type t = {
   m_name: string;
+  m_models : Fsm.model list;
   m_fsms: Fsm.inst list;
   m_inputs: (string * global) list; 
   m_outputs: (string * global) list; 
@@ -146,7 +147,7 @@ let add_global_value tenv (name, (ty, d)) =
   | MFun _ -> { tenv with te_vars = (name, ty) :: tenv.te_vars }
   | _ -> tenv
 
-let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) fsms =
+let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) models fsms =
   let tenv =
        Typing.builtin_tenv
     |> Misc.fold_left add_global_type gtyps
@@ -160,6 +161,7 @@ let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) fsms =
     | _, _ -> ())
     inputs;
   { m_name = name;
+    m_models = models;
     m_fsms = fsms;
     m_inputs = inputs;
     m_outputs = outputs;

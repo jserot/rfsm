@@ -47,11 +47,11 @@ let handle e = match e with
      eprintf "Illegal type cast: %s\n" (Expr.to_string e); flush stderr; exit 3
   | Typing.Invalid_record_access e -> 
      eprintf "Illegal record access: %s\n" (Expr.to_string e); flush stderr; exit 3
-  | Static.Unbound_fsm (loc,fsm) ->
+  | Elab.Unbound_fsm (loc,fsm) ->
      eprintf "%aNo definition for FSM %s.\n" output_location loc fsm; flush stderr; exit 3
-  | Static.Unbound_global (loc,id) ->
+  | Elab.Unbound_global (loc,id) ->
      eprintf "%aNo declaration for global value %s.\n" output_location loc id; flush stderr; exit 3
-  | Static.Fsm_mismatch (what,loc,fsm) ->
+  | Elab.Fsm_mismatch (what,loc,fsm) ->
      eprintf "%aThe number of %s supplied for FSM %s does not match its declaration.\n" output_location loc what fsm;
      flush stderr; exit 3
   | Eval.Illegal_array_access e -> 
@@ -74,21 +74,21 @@ let handle e = match e with
      eprintf "Error when typing %s in %s: types %s and %s are not compatible\n"
        what where (Types.string_of_type ty) (Types.string_of_type ty');
      flush stderr; exit 4
-  | Fsm_dyn.NonDetTrans (m,ts,t) ->
-      eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Fsm_dyn.f_static.Fsm.f_name t;
+  | Dynamic.NonDetTrans (m,ts,t) ->
+      eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d:\n" m.Dynamic.f_static.Fsm.f_name t;
       List.iter (function t -> eprintf "\t- %s\n" (Fsm.string_of_transition t)) ts;
       flush stderr; exit 7
-  | Fsm_dyn.IllegalTrans (m,msg) ->
-      eprintf "Error when simulating FSM %s: %s\n" m.Fsm_dyn.f_static.Fsm.f_name msg; flush stderr; exit 7
-  | Fsm_dyn.Undeterminate (m,id,t) ->
-      eprintf "Error when simulating FSM %s: unknown value for identifier %s at t=%d\n" m.Fsm_dyn.f_static.Fsm.f_name id t;
+  | Dynamic.IllegalTrans (m,msg) ->
+      eprintf "Error when simulating FSM %s: %s\n" m.Dynamic.f_static.Fsm.f_name msg; flush stderr; exit 7
+  | Dynamic.Undeterminate (m,id,t) ->
+      eprintf "Error when simulating FSM %s: unknown value for identifier %s at t=%d\n" m.Dynamic.f_static.Fsm.f_name id t;
       flush stderr; exit 7
-  | Fsm_dyn.NonAtomicIoWrite(m,a) ->
+  | Dynamic.NonAtomicIoWrite(m,a) ->
      eprintf "Illegal action \"%s\" within FSM \"%s\": non atomic write(s) are forbidden for global IOs and shared objects\n"
-       (Action.to_string a) m.Fsm_dyn.f_static.Fsm.f_name;
-  | Fsm_dyn.IllegalAction(m,a) ->
+       (Action.to_string a) m.Dynamic.f_static.Fsm.f_name;
+  | Dynamic.IllegalAction(m,a) ->
      eprintf "Error when executing action \"%s\" within FSM \"%s\" (check for undefined values...)\n"
-       (Action.to_string a) m.Fsm_dyn.f_static.Fsm.f_name;
+       (Action.to_string a) m.Dynamic.f_static.Fsm.f_name;
      flush stderr; exit 7
   (* | Intern.Incomplete_record (where,v,ty) ->
    *    eprintf "Found incomplete record value in %s: value %s does not have (full) type %s\n"

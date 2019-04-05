@@ -18,7 +18,7 @@ clobber: clean
 			\rm -f *~
 
 byte:
-			$(OCB) rfsm.cma
+	    	$(OCB) rfsm.cma
 			if [ -d ../../lib/ml ]; then rm -f ../../lib/ml/*; else mkdir ../../lib/ml; fi
 			cp _build/rfsm.cma ../../lib/ml
 			cp _build/*.cmo _build/*.cmi ../../lib/ml

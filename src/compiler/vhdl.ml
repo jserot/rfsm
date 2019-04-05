@@ -59,7 +59,7 @@ let cfg = {
   vhdl_trace_state_var = "st";
   }
 
-let need_globals m = m.Sysm.m_types <> [] || m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] 
+let need_globals m = m.Static.m_types <> [] || m.Static.m_fns <> [] || m.Static.m_consts <> [] 
 
 let enum_id id = cfg.vhdl_enum_prefix ^ id
                
@@ -445,7 +445,7 @@ let dump_vc_inp_process oc ty id vcs =
        fprintf oc "      wait;\n"
 
 let dump_input_process oc (id,(ty,desc)) =
-  let open Sysm in
+  let open Static in
   fprintf oc "  inp_%s: process\n" id;
   begin match desc with
     (* | MInp ({sd_comprehension=Sporadic ts}, _) -> dump_sporadic_inp_process oc id ts
@@ -473,7 +473,7 @@ let dump_toplevel_intf prefix kind oc m =
   let top_name = prefix ^ "_top" in
   fprintf oc "%s %s is\n" kind top_name;
   fprintf oc "  port(\n";
-  let open Sysm in
+  let open Static in
   List.iter
    (function (id,(ty,_)) ->
      fprintf oc "        %s: in %s;\n" id (string_of_type ty))
@@ -494,7 +494,7 @@ let dump_toplevel_intf prefix kind oc m =
 let dump_toplevel_impl prefix fname m =
   let oc = open_out fname in
   let top_name = prefix ^ "_top" in
-  let open Sysm in
+  let open Static in
   let modname n = n in
   dump_libraries oc;
   if need_globals m then fprintf oc "use work.%s.all;\n" cfg.vhdl_globals_name;
@@ -541,7 +541,7 @@ let dump_testbench_impl prefix fname m =
   let oc = open_out fname in
   let tb_name = prefix ^ "_tb" in
   let top_name = prefix ^ "_top" in
-  let open Sysm in
+  let open Static in
   dump_libraries oc;
   if need_globals m then fprintf oc "use work.%s.all;\n" cfg.vhdl_globals_name;
   fprintf oc "entity %s is\n" tb_name;
@@ -628,7 +628,7 @@ let dump_fsm_inst ?(prefix="") ?(dir="./vhdl") m fsm =
   close_out oc
 
 let dump_model ?(dir="./vhdl") m =
-  List.iter (dump_fsm_inst ~dir:dir m) m.Sysm.m_fsms;
+  List.iter (dump_fsm_inst ~dir:dir m) m.Static.m_fsms;
   dump_toplevel ~dir:dir m
 
 (* Dumping global type definitions, functions and constants *)
@@ -672,18 +672,18 @@ let rec dump_globals ?(name="") ?(dir="./vhdl") m =
 
 and dump_globals_intf oc package_name m =
   fprintf oc "package %s is\n" package_name;
-  List.iter (dump_global_type_defn oc) m.Sysm.m_types; 
-  dump_array_types oc (List.map (fun (id,(ty,_)) -> id,ty) (m.Sysm.m_consts @ m.Sysm.m_fns));
-  List.iter (dump_global_sig oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
+  List.iter (dump_global_type_defn oc) m.Static.m_types; 
+  dump_array_types oc (List.map (fun (id,(ty,_)) -> id,ty) (m.Static.m_consts @ m.Static.m_fns));
+  List.iter (dump_global_sig oc) (m.Static.m_consts @ m.Static.m_fns);
   fprintf oc "end %s;\n" package_name
 
 and dump_global_sig oc (id,(ty,gd)) = match gd, ty with
-| Sysm.MConst v, _ -> 
+| Static.MConst v, _ -> 
     fprintf oc "  constant %s : %s := %s;\n"
       id
       (string_of_type ty) 
       (string_of_value v) 
-| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+| Static.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
     fprintf oc "  function %s(%s) return %s;\n"
       id
       (Utils.ListExt.to_string string_of_fn_arg "; "  (List.combine args ts))
@@ -694,12 +694,12 @@ and string_of_fn_arg (id,ty) = id ^ ":" ^ (string_of_type ty)
 
 and dump_globals_impl oc package_name m =
   fprintf oc "package body %s is\n" package_name;
-  List.iter (dump_global_type_fns oc) m.Sysm.m_types;
-  List.iter (dump_global_fn_impl oc) m.Sysm.m_fns;
+  List.iter (dump_global_type_fns oc) m.Static.m_types;
+  List.iter (dump_global_fn_impl oc) m.Static.m_fns;
   fprintf oc "end %s;\n" package_name
 
 and dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
-| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+| Static.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
     fprintf oc "function %s(%s) return %s is\n"
       id
       (Utils.ListExt.to_string string_of_fn_arg "; "  (List.combine args ts))
@@ -729,7 +729,7 @@ let dump_makefile ?(name="") ?(dir="./vhdl") m =
   let fname = dir ^ "/" ^ "Makefile" in
   let oc = open_out fname in
   let modname suff f = f.Fsm.f_name ^ suff in
-  let open Sysm in
+  let open Static in
   fprintf oc "TB=%s\n\n" tb_name;
   fprintf oc "include %s/etc/Makefile.vhdl\n\n" cfg.vhdl_lib_dir;
   fprintf oc "%s: %s %s %s.vhd\n"
@@ -771,7 +771,7 @@ let check_allowed_models ms =
   List.iter check_allowed_fsm_model ms
 
 let check_allowed_system s = 
-  let open Sysm in 
+  let open Static in 
   let valid_shared (id, (ty, desc)) = match desc with
       MShared ([_], _) ->
        begin match ty with

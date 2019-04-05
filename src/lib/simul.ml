@@ -21,9 +21,9 @@ let cfg = {
   max_micro_reactions = 32;
   }
 
-type stimulus = Fsm_dyn.loc * Expr.value
+type stimulus = Dynamic.loc * Expr.value
 
-type response = Fsm_dyn.loc * Expr.value 
+type response = Dynamic.loc * Expr.value 
 
 type reaction = Types.date * string * Stimuli.stimuli list * response list * string
 
@@ -35,11 +35,11 @@ type context = {  (* The simulator state *)
   c_csts: (string * (Types.typ * Expr.value)) list;         (* Global constants *)
   c_vars: (string * (Types.typ * Expr.value)) list;         (* Shared variables *)
   c_evs: (string * (Types.typ * Expr.value)) list;          (* Shared events *)
-  c_fsms: Fsm_dyn.t list * Fsm_dyn.t list;                  (* FSMs, partitioned into active and inactive subsets *)
+  c_fsms: Dynamic.fsm list * Dynamic.fsm list;              (* FSMs, partitioned into active and inactive subsets *)
   }
 
 let update_ctx ctx =
-  let open Fsm_dyn in
+  let open Dynamic in
   function
   | LVar (Ident.Global id'), v' ->
      let update_io ((id,(ty,v)) as x) =
@@ -60,7 +60,7 @@ let update_ctx ctx =
      (* ctx  *)
 
 let string_of_context c = 
-  let open Fsm_dyn in
+  let open Dynamic in
   let string_of_comp (id,(ty,v)) = id  ^ "=" ^ Expr.string_of_value v in
   let string_of_fsm f = f.f_static.f_name ^ ".st=" ^ f.f_state in
   Printf.sprintf "{fsms=[%s / %s] inps=[%s] outps=[%s] shared=[%s]}"
@@ -85,7 +85,7 @@ let global_updates resps =
 let erase_type (id,(ty,v)) = id, v
 
 let string_of_event (lhs,v) =
-  let open Fsm_dyn in
+  let open Dynamic in
   match lhs with
   | LVar id -> Ident.to_string id ^ ":=" ^ Expr.string_of_value v
   | LArrInd (id,k) -> Ident.to_string id ^ "[" ^ string_of_int k ^ "]" ^ ":=" ^ Expr.string_of_value v
@@ -94,7 +94,7 @@ let string_of_event (lhs,v) =
 let string_of_events evs = "[" ^ Utils.ListExt.to_string string_of_event "," evs ^ "]"
 
 let mk_fsm_env ctx =
-  let open Fsm_dyn in
+  let open Dynamic in
   { fe_inputs = ctx.c_inputs;
     fe_csts = ctx.c_csts;
     fe_fns = ctx.c_fns;
@@ -102,7 +102,7 @@ let mk_fsm_env ctx =
     fe_evs = ctx.c_evs }
 
 let rec react t ctx stimuli =
-  let open Fsm_dyn in
+  let open Dynamic in
   let is_reentrant =     (* A reentrant stimulus is one which can trigger a micro-reaction *)
     function
     | LVar (Ident.Global n), v -> 
@@ -154,7 +154,7 @@ let rec react t ctx stimuli =
 (* RUN *)
 
 let run m =
-  let open Sysm in
+  let open Static in
   let extract_shared (vars,evs) (name,(ty,desc)) = match desc, ty with
     | MShared _, Types.TyEvent -> vars, (name,(ty,Expr.unset_event))::evs  (* Initially not set *)
     | MShared _, _ -> (name, (ty, Expr.mk_val ty Expr.Val_unknown))::vars, evs (* Uninitialized *)
@@ -193,10 +193,10 @@ let run m =
           c_csts = List.map mk_gcst m.m_consts; 
           c_vars = shared_vars;
           c_evs = shared_evs;
-          c_fsms = List.map Fsm_dyn.create m.m_fsms, [] } in
+          c_fsms = List.map Dynamic.make_fsm m.m_fsms, [] } in
       let init_env = mk_fsm_env init_ctx in
       let fsms', resps =
-        List.split (List.map (Fsm_dyn.init init_env) (fst init_ctx.c_fsms)) in 
+        List.split (List.map (Dynamic.init init_env) (fst init_ctx.c_fsms)) in 
       let resps' = List.concat resps in
       let ctx' = List.fold_left update_ctx init_ctx resps' in
       {ctx' with c_fsms=fsms',[]}, [0, resps' (*@ resps''*)] in
@@ -204,7 +204,7 @@ let run m =
       name, (ty, MInp (sd, _)) -> List.map (Stimuli.mk_stimuli name) (Stimuli.events_of sd)
     | _ -> Misc.fatal_error "Simul.run(inp_stimuli)" (* should not happen *) in
   let stimuli = Stimuli.merge_stimuli (List.map inp_stimuli m.m_inputs) in
-  let wrap_stimuli (t,evs) =  t, List.map (function (id,v) -> Fsm_dyn.LVar id, v) evs in
+  let wrap_stimuli (t,evs) =  t, List.map (function (id,v) -> Dynamic.LVar id, v) evs in
   let ctx, resps = step (ctx0,resps0) (List.map wrap_stimuli stimuli) in
   (* TODO: post-processing ? *)
   ctx, resps
@@ -219,7 +219,7 @@ let string_of_fsm f = (* short version for context printing *)
     | Expr.Val_unknown -> "<unknown>"
     | _ -> Expr.string_of_value v in
   let string_of_var (id,(ty,v)) = id  ^ "=" ^ string_of_val v in
-  let open Fsm_dyn in
+  let open Dynamic in
   let sf = f.f_static in
   match f.f_vars with
     [] -> sf.f_name ^ ".st=" ^ f.f_state

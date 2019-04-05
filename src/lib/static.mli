@@ -9,12 +9,13 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** System description as a composition of FSM instances and global objects *)
+(** Static description of systems *)
 
 module DepG : Graph.Sig.IM with type V.label = string and type E.label = string
 
 type t = {
   m_name : string;
+  m_models : Fsm.model list;
   m_fsms : Fsm.inst list;
   m_inputs : (string * global) list;
   m_outputs : (string * global) list;
@@ -49,10 +50,11 @@ val build : name:string
             -> ?gtyps:(string * Types.typ) list
             -> ?gfns:(string * global) list
             -> ?gcsts:(string * global) list
+            -> Fsm.model list
             -> Fsm.inst list
             -> t
-  (** [build name gtyps gfns gcsts fsms] builds a system description from a list of global types, function
-      and constant declarations and FSM instances *)
+  (** [build name gtyps gfns gcsts models fsms] builds a system description from a list of global types, function
+      and constant declarations, FSM models and instances *)
 
 (** {2 Printers} *)
   

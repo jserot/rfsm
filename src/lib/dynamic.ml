@@ -9,8 +9,8 @@
 (*                                                                    *)
 (**********************************************************************)
 
-type t = { 
-    f_static: Fsm.inst;                                    (** Static representation *)
+type fsm = { 
+    f_static: Fsm.inst;                                       (** Static representation *)
     f_vars: (string * (Types.typ * Expr.value)) list;         (** name, (type, value) *)
     f_state: string;                                          (** Current state *)
     f_has_reacted: bool;                                      (** true when implied in the last reaction *)
@@ -33,10 +33,10 @@ and loc =
   | LArrInd of Ident.t * int    (** 1D array location *)
   | LRField of Ident.t * string (** Record field *)
 
-exception IllegalTrans of t * string
-exception Undeterminate of t * string * Types.date
-exception NonDetTrans of t * Fsm.transition list * Types.date
-exception NonAtomicIoWrite of t * Action.t 
+exception IllegalTrans of fsm * string
+exception Undeterminate of fsm * string * Types.date
+exception NonDetTrans of fsm * Fsm.transition list * Types.date
+exception NonAtomicIoWrite of fsm * Action.t 
 
 let rec mk_ival ty = match ty with
   | Types.TyArray(TiConst sz, ty') ->
@@ -48,7 +48,7 @@ let rec mk_ival ty = match ty with
 
 let mk_var (v,ty) = (v,(ty, mk_ival ty))
                   
-let create sf = {
+let make_fsm sf = {
     f_static = sf;
     f_vars = List.map mk_var sf.Fsm.f_vars;
     f_state = ""; (* undefined *)
@@ -62,7 +62,7 @@ let rec replace_assoc' k v env =
     | (k',(x,v'))::rest -> if k=k' then (k,(x,v)) :: repl rest else (k',(x,v')) :: repl rest in
   repl env
 
-exception IllegalAction of t * Action.t
+exception IllegalAction of fsm * Action.t
                          
 let do_action (f,resps,resps',env) act =
   (* Make FSM [f] perform action [act] in (local) environment [env], returning an updated FSM [f'],

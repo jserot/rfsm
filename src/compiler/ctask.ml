@@ -30,7 +30,7 @@ let cfg = {
 
 exception Ctask_error of string * string  (* where, msg *)
 
-let need_globals m = m.Sysm.m_types <> [] || m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] 
+let need_globals m = m.Static.m_types <> [] || m.Static.m_fns <> [] || m.Static.m_consts <> [] 
 
 let string_of_type t = match t with 
   | TyEvent -> "event"
@@ -241,11 +241,11 @@ let dump_global_type_defn oc (name,ty) = match ty with
   | _ -> ()
 
 let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
-| Sysm.MConst _, TyArray(sz,ty') ->
+| Static.MConst _, TyArray(sz,ty') ->
      fprintf oc "extern %s %s[%s];\n" (string_of_type ty') id (string_of_array_size sz)
-| Sysm.MConst _, _ ->
+| Static.MConst _, _ ->
      fprintf oc "%s %s;\n" (string_of_type ty) id 
-| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+| Static.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
     fprintf oc "%s %s (%s);\n"
       (string_of_type tr)
       id 
@@ -253,11 +253,11 @@ let dump_global_fn_intf oc (id,(ty,gd)) = match gd, ty with
 | _ -> ()
 
 let dump_global_fn_impl oc (id,(ty,gd)) = match gd, ty with
-| Sysm.MConst v, TyArray(sz,ty') ->
+| Static.MConst v, TyArray(sz,ty') ->
      fprintf oc "%s %s[%s] = %s;\n" (string_of_type ty') id (string_of_array_size sz) (string_of_value v)
-| Sysm.MConst v, _ -> 
+| Static.MConst v, _ -> 
     fprintf oc "%s %s = %s;\n" (string_of_type ty) id (string_of_value v)
-| Sysm.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
+| Static.MFun (args, body), Types.TyArrow(TyProduct ts, tr) -> 
     fprintf oc "%s %s (%s) { return %s; }\n"
       (string_of_type tr)
       id 
@@ -270,8 +270,8 @@ let dump_globals_intf dir prefix m =
   let oc = open_out fname in
   Printf.fprintf oc "#ifndef _%s_h\n" cfg.globals_name;
   Printf.fprintf oc "#define _%s_h\n\n" cfg.globals_name;
-  List.iter (dump_global_type_defn oc) m.Sysm.m_types; 
-  List.iter (dump_global_fn_intf oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
+  List.iter (dump_global_type_defn oc) m.Static.m_types; 
+  List.iter (dump_global_fn_intf oc) (m.Static.m_consts @ m.Static.m_fns);
   Printf.fprintf oc "\n#endif\n";
   Logfile.write fname;
   close_out oc
@@ -280,14 +280,14 @@ let dump_globals_impl dir prefix m =
   let fname = dir ^ "/" ^ prefix ^ ".c" in
   let oc = open_out fname in
   Printf.fprintf oc "#include \"%s.h\"\n\n" prefix;
-  List.iter (dump_global_fn_impl oc) (m.Sysm.m_consts @ m.Sysm.m_fns);
+  List.iter (dump_global_fn_impl oc) (m.Static.m_consts @ m.Static.m_fns);
   Logfile.write fname;
   close_out oc
 
 let dump_globals ?(name="") ?(dir="./ctask") m =
   let prefix = match name with "" -> cfg.globals_name | p -> p in
   dump_globals_intf dir prefix m;
-  if m.Sysm.m_fns <> [] || m.Sysm.m_consts <> [] then dump_globals_impl dir prefix m
+  if m.Static.m_fns <> [] || m.Static.m_consts <> [] then dump_globals_impl dir prefix m
 
 (* Check whether a model can be translated *)
 
