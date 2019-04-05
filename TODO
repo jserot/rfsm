@@ -1,5 +1,6 @@
 COMPILER
 
+- use project file
 - ocamlbuild -> dune (?)
 - use cmake for building GUI
 - support for synchronous actions in CTask and SystemC
@@ -27,6 +28,7 @@ DOC
 GUI
 - project tree view
 - About window
+- use project file
 
 SITE
 - new syntax for examples
