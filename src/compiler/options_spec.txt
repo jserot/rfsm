@@ -1,5 +1,5 @@
-noide;general;-c;Arg.Unit;set_compile_model;compile FSM model(s) without instantiating them
 noide;general;-lib;Arg.String;set_lib_dir;set location of the support library (default: /usr/local/rfsm/lib)
+noide;general;-main;Arg.String;set_main_prefix;set prefix for the generated main files
 noide;general;-dump_static;Arg.Unit;set_dump_static;dump static representation of model(s)/program to stdout
 noide;general;-target_dir;Arg.String;set_target_dir;set target directory (default: .)
 noide;general;-dot;Arg.Unit;set_dot;generate .dot representation of model(s)/program

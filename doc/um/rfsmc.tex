@@ -15,23 +15,14 @@ terminal.
 \medskip
 The compiler is invoked with a command like :
 
+%rfsmc [options] file\textsubscript{1} ... file\textsubscript{n}
 \begin{FVerbatim}[commandchars=\\\{\}]
-rfsmc [options] file\textsubscript{1} ... file\textsubscript{n}
+rfsmc [options] \emph{source_files}
 \end{FVerbatim}
 
-where \texttt{file\_1}, \ldots, \texttt{file\_n} are the names of files\footnote{By convention,
-  these file names should have suffix \texttt{.fsm}.} containing source code.
-
 \medskip
-If the \verb|-c| option appears in the list of options, the given source files are assumed to
-contain global types, global constants and FSM models. Each FSM model is then compiled 
-and the corresponding code is produced, depending on the invoked backend (DOT, C, SystemC or VHDL). 
-
-\medskip
-Without the \verb|-c| option, the last source file (\verb|file_n|) is assumed to contain a
-\emph{testbench} description, instantiating the previously defined FSM models on global inputs,
-outputs or shared objects. The compiler then also produces code for the corresponding
-\emph{testbench}, which can be used for simulating the corresponding program. 
+There must be at least one source file. If several are given, all happens as if a single one,
+obtained by concatening all of them, in the given order, was used. 
 
 \medskip
 The complete set of options is described in App.~\ref{cha:compiler-options}.
@@ -40,52 +31,55 @@ The complete set of options is described in App.~\ref{cha:compiler-options}.
 The set of generated files depends on the selected target. The output file \texttt{rfsm.output}
 contains the list of the generated file.
 
-\clearpage
-\section{Generating a graphical representation of the program}
+\section{Generating graphical representations}
 \label{sec:gener-graph-repr}
 
+%rfsmc -dot f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
 \begin{FVerbatim}[commandchars=\\\{\}]
-rfsmc [-c] -dot f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
+rfsmc [-options] -dot \emph{source_files}
 \end{FVerbatim}
 
-With the \verb|-c| option, the previous command generates graphical representations,in \verb|.dot| format, of each FSM model
-contained in file \ifname{f}{1}{.fsm}, \ldots, \ifname{f}{n}{.fsm}. These representations can be viewed
+The previous command generates a graphical representation of each FSM model 
+contained in the given source file(s). If the source file(s) contain(s) FSM instances, involving global IOs
+and shared objects, it also generates a graphical representation of the the corresponding system. 
+
+The graphical representations use the \verb|.dot| format and can be viewed
 with the \texttt{Graphviz} suite of tools\footnote{Available freely from
   \texttt{http://www.graphviz.org}.}.
 
-Without the \verb|-c| option, and assuming file \ifname{f}{n}{.fsm} contains a \emph{testbench}
-description -- \ie a set of FSM instanciations on global IOs and shared objects --, the 
-command also generates a \verb|.dot| representation of the system top level in file
-\ifname{f}{n}{dot}.
+The representation for the FSM model \verb|m| is generated in file \verb|m.dot|. When generated, the representation
+for the system is written in file \verb|main.dot| by default. The name of this file can be changed
+with the \verb|-main| option.
+
+By default, the generated \verb|.dot| files are written in the current directory. This can be changed with the
+\verb|-target_dir| option.
 
 \section{Running the simulator}
 \label{sec:running-simulator}
 
 \begin{FVerbatim}[commandchars=\\\{\}]
-rfsmc -sim f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
+rfsmc [-options] -sim \emph{source_files}
 \end{FVerbatim}
 
-The previous command runs simulator on the program described in files \ifname{f}{1}{.fsm}, \ldots,
-\ifname{f}{n}{.fsm}, writing
-an execution trace in VCD (Value Change Dump) format in file \verb|run.vcd|.
+The previous command runs simulator on the program described in the given source files, writing
+an execution trace in VCD (Value Change Dump) format.
 
-The file \ifname{f}{n}{.fsm} is assumed to contain a valid \emph{testbench} description.
-
-The \verb|-sim| and \verb|-c| options are incompatible.
-
-This \verb|.vcd| file can be viewed using a VCD visualizing application such as
+The generated \verb|.vcd| file can be viewed using a VCD visualizing application such as
 \verb|gtkwave|\footnote{gtkwave.sourceforge.net}.
 
-The name of the \verb|vcd.file| can be changed using the \verb|-vcd| option.
+By default, the VCD file is named \verb|main.vcd|. This name can be changed using the \verb|-vcd| option.
+
+By default, the VCD file is written in the current directory. This can be changed with the
+\verb|-target_dir| option.
 
 \section{Generating C code}
 \label{sec:gener-c-code}
 
 \begin{FVerbatim}[commandchars=\\\{\}]
-rfsmc -c -ctask f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
+rfsmc [-options] -ctask \emph{source_files}
 \end{FVerbatim}
 
-For each FSM model \verb|m| contained in file \ifname{f}{i}{.fsm}, the previous command generates a file
+For each FSM model \verb|m| contained in the listed source file(s), the previous command generates a file
 \verb|m.c| containing a C-based implementation of the corresponding behavior.
 
 By default, the generated code is written in the current directory. This can be changed with the
@@ -95,29 +89,31 @@ By default, the generated code is written in the current directory. This can be 
 \label{sec:gener-syst-code}
 
 \begin{FVerbatim}[commandchars=\\\{\}]
-rfsmc -c -systemc f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
+rfsmc [-options] -systemc \emph{source_files}
 \end{FVerbatim}
 
-For each FSM model \texttt{m} contained in files \ifname{f}{1}{.fsm}, \ldots, \ifname{f}{n}{.fsm},
-the previous command will generate a pair of files \verb|m.h| and \verb|m.cpp| containing the
-  interface and implementation of the SystemC module describing this model.
+If the source file(s) only contain(s) FSM \emph{models}, then, for each listed FSM model \texttt{m}, 
+the previous command generates a pair of files \verb|m.h| and \verb|m.cpp| containing the
+  interface and implementation of the SystemC module implementing this model.
 
-By default, the generated code is written in the current directory. This can be changed with the
-\verb|-target_dir| option.
-
-\begin{FVerbatim}[commandchars=\\\{\}]
-rfsmc -systemc f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
-\end{FVerbatim}
-
-Assuming file \ifname{f}{n}{.fsm} contains a \emph{testbench} description, the previous command will
-also generate  
+\medskip
+If the source file(s) contain(s) FSM \emph{instances}, involving global IOs
+and shared objects, it generates
 \begin{itemize}
-\item for each global input \verb|i| defined in the \emph{testbench}, a pair of files \verb|inp_i.h|
+\item for each FSM instance \verb|m|, a pair of files \verb|m.h| and \verb|m.cpp| containing the
+  interface and implementation of the SystemC module implementing this instance,
+\item for each global input \verb|i|, a pair of files \verb|inp_i.h|
   and \verb|inp_i.cpp| containing the interface and implementation of the SystemC module describing
   this input (generating the associated stimuli, in particular),
-\item a file \ifname{f}{n}{cpp} containing the description of the \emph{testbench} corresponding to the
-  program for simulation.
+\item a file \verb|main.cpp| containing the description of the \emph{testbench} for simulating the
+  program.
 \end{itemize}
+
+The name of the file containing the \emph{testbench} can be changed with the \verb|main| option.
+
+\medskip
+By default, the generated code is written in the current directory. This can be changed with the
+\verb|-target_dir| option.
 
 \medskip
 Simulation itself is performed by compiling the generated code and running the executable,
@@ -130,7 +126,7 @@ installed. This is achieved by using the \verb|-lib| option when invoking the co
 provided that RFSM has been installed in directory \verb|/usr/local/rfsm|, the following command
 
 \begin{FVerbatim}[commandchars=\\\{\}]
-rsfmc -systemc -lib /usr/local/rfsm/lib -target_dir ./systemc f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
+rsfmc -systemc -lib /usr/local/rfsm/lib -target_dir ./systemc \emph{source_file(s)}
 \end{FVerbatim}
 
 will write in directory \verb|./systemc| the generated source files and the corresponding
@@ -150,29 +146,33 @@ make
 \label{sec:generating-vhdl-code}
 
 \begin{FVerbatim}[commandchars=\\\{\}]
-rfsmc -c -vhdl f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
+rfsmc [-options] -vhdl \emph{source_files}
 \end{FVerbatim}
 
-For each FSM model \texttt{m} contained in files \ifname{f}{1}{.fsm}, \ldots, \ifname{f}{n}{.fsm}, the
-previous command will generate a file \verb|m.vhd| containing the entity and architecture describing
+If the source file(s) only contain(s) FSM \emph{models}, then, for each listed FSM model \texttt{m}, 
+the previous command generates file \verb|m.vhd| containing the entity and architecture describing
 this model.
 
-By default, the generated code is written in the current directory. This can be changed with the
-\verb|-target_dir| option.
-
-\begin{FVerbatim}[commandchars=\\\{\}]
-rfsmc -vhdl f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
-\end{FVerbatim}
-
-Assuming file \ifname{f}{n}{.fsm} contains a \emph{testbench} description, the previous command will
-also generate  
+\medskip
+If the source file(s) contain(s) FSM \emph{instances}, involving global IOs
+and shared objects, it generates
 \begin{itemize}
-\item a file \ifname{f}{n}{\_top.vhd} containing the description of the \emph{top level} model of the
+\item for each FSM instance \verb|m|, a file \verb|m.vhd| containing an entity and architecture
+  description for this instance,
+\item a file \verb|main_top.vhd| containing the description of the \emph{top level} model of the
   system,
-\item a file \ifname{f}{n}{\_tb.vhd} containing the description of the \emph{testbench} for
+\item a file \verb|main_tb.vhd|containing the description of the \emph{testbench} for
   simulating the system.
 \end{itemize}
 
+\medskip The name of the files containing the \emph{top level} description \emph{testbench} can be
+changed with the \verb|main| option.
+
+\medskip
+By default, the generated code is written in the current directory. This can be changed with the
+\verb|-target_dir| option.
+
+\medskip
 The produced files can then compiled, simulated and synthetized using a standard VHDL
 toolchain\footnote{We use GHDL for simulation and Altera/Quartus for synthesis.}.
 
@@ -182,7 +182,7 @@ and, again, provided that RFSM has been installed in directory \verb|/usr/local/
 command
 
 \begin{FVerbatim}[commandchars=\\\{\}]
-rsfmc -vhdl -lib /usr/local/rfsm/lib -target_dir ./vhdl f\textsubscript{1}.fsm ... f\textsubscript{n}.fsm
+rsfmc -vhdl -lib /usr/local/rfsm/lib -target_dir ./vhdl \emph{source_file(s)}
 \end{FVerbatim}
 
 will write in directory \verb|./vhdl| the generated source files and the corresponding
