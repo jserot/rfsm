@@ -97,8 +97,9 @@ let compile name =
          List.iter (Vhdl.dump_fsm_model ~dir:!Options.target_dir) s.Static.m_models
   | Some Options.Sim ->
      if has_testbench then
+        let fname = !Options.target_dir ^ "/" ^ !Options.main_prefix ^ ".vcd" in
         let ctx, reacts = Simul.run s in
-        Vcd.output s ctx !Options.vcd_file reacts
+        Vcd.output s ctx fname reacts
      else begin
          eprintf "No testbench to simulate.\n"; flush stderr;
          exit 1

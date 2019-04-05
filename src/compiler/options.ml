@@ -16,7 +16,6 @@ let use_old_syntax = ref false
 let transl_syntax = ref false
 let target_dir = ref "."
 let main_name = ref ""
-let vcd_file = ref "main.vcd"
 let print_version = ref false
 let do_run = ref false
 let dump_static = ref false
@@ -30,7 +29,6 @@ let set_dot () = target := Some Dot
 let set_ctask () = target := Some CTask
 let set_systemc () = target := Some SystemC
 let set_vhdl () = target := Some Vhdl
-let set_vcd_file file = vcd_file := file
 let set_print_version () = print_version := true
 let set_dump_static () = dump_static := true
 let set_lib_dir d =

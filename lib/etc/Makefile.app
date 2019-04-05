@@ -28,10 +28,10 @@ all: dot sim ctask systemc vhdl
 all.test: dot.test sim.test ctask.test systemc.test vhdl.test
 
 sim.run:
-	$(RFSMC) $(SIM_OPTS) -sim -vcd "./sim/$(TB).vcd" $(SRCS)
+	$(RFSMC) $(SIM_OPTS) -sim -target_dir ./sim $(SRCS)
 
 sim.view:
-	$(VCDVIEWER) -f ./sim/$(TB).vcd -a ./sim/$(TB).gtkw > /tmp/gtkwave.log 2>&1; echo $$?
+	$(VCDVIEWER) -f ./sim/main.vcd -a ./sim/main.gtkw > /tmp/gtkwave.log 2>&1; echo $$?
 
 sim: sim.run sim.view
 
