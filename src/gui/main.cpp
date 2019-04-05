@@ -14,9 +14,21 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    MainWindow w;
+    QApplication app(argc, argv);
+
+    QCoreApplication::setApplicationVersion(QT_VERSION_STR);
+    QCommandLineParser parser;
+    parser.setApplicationDescription("RFSM IDE");
+    parser.addHelpOption();
+    parser.addVersionOption();
+    // QCommandLineOption showFileInfoOption("f", "Display file info");
+    // parser.addOption(showFileInfoOption);
+    parser.addPositionalArgument("directory", "The directory to start in.");
+    parser.process(app);
+    QString initDir = parser.positionalArguments().isEmpty() ? "" : parser.positionalArguments().at(0);
+
+    MainWindow w(initDir);
     w.show();
 
-    return a.exec();
+    return app.exec();
 }

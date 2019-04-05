@@ -15,6 +15,8 @@
 #include <QMainWindow>
 #include <QtCore>
 #include <QtGui>
+#include <QFileSystemModel>
+#include "file_filter.h"
 #include "app_file.h"
 #include "command.h"
 #include "syntax_highlighter.h"
@@ -29,15 +31,14 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QString rootPath, QWidget *parent = 0);
 
     ~MainWindow();
 
-    void about();
-
 private slots:
 
-    void openFile();
+  //void openFile();
+    void openDir();
     void newFile();
     void saveFile();
     void saveFileAs();
@@ -45,6 +46,8 @@ private slots:
     void closeCurrentFile();
     void closeAll();
     void quit();
+    void about();
+    void select(QModelIndex idx);
 
     void selectAllText();
     void copyText();
@@ -52,7 +55,7 @@ private slots:
     void pasteText();
 
     void textHasBeenModified();
-    void outTabChanged(int);
+    void tabChanged(int);
 
     void makeDot();
     void makeSim();
@@ -67,8 +70,7 @@ private slots:
     void readProcStdout();
     void readProcStderr();
 
-    void closeInputFileTab(int index);
-    void closeOutputFileTab(int index);
+    void closeFileTab(int index);
 
     void zoomIn(); 
     void zoomOut();
@@ -76,13 +78,14 @@ private slots:
     void fitToWindow();
 
 private:
-    void createViewActions();
+    void setDir(QString path);
     void createMenus();
     void updateViewActions();
+    void createViewActions();
 
     void compile(QString type, QString baseCmd, QString targetDir);
     void dotTransform(QFileInfo f, QString dir);
-    void addFileTab(QString fname, QTabWidget *ui_tabs, QList<AppFile*>& files, bool ronly=false, bool isTemp=false);
+    void addFileTab(QString fname, bool ronly=false, bool isTemp=false);
 
     void openGeneratedFiles(QString type, QString path);
     void openOutputFile(QString type,QString filename, QString dir);
@@ -108,15 +111,18 @@ private:
 
     ImageViewer* selectedImageViewer();
 
-private:
+protected:
+    static QStringList excludedFiles;
+    static QStringList acceptedSuffixes;
 
+private:
+    QFileSystemModel model;
+    QFont codeFont, logFont;
+    QString initDir;
+    FileFilter *modelProxy;
     Ui::MainWindow *ui;
 
-    QFont codeFont;
-    QString initDir;
-
-    QList<AppFile*> inFiles;
-    QList<AppFile*> outFiles;
+    QList<AppFile*> openedFiles;
 
     QProcess proc; 
 

@@ -1,5 +1,6 @@
 COMPILER
 
+- use project file
 - bug fix for neg constants in FSM inst params (ex: [fsm f = foo<-1>(...)] or [fsm f=foo<[1,-1,2](...)]
 - alternate syntax: ex:
   [FSM Chrono (...) ...
@@ -35,6 +36,7 @@ DOC
 GUI
 - project tree view
 - About window
+- use project file
 
 SITE
 - new syntax for examples

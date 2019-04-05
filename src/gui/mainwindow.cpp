@@ -25,8 +25,18 @@
 #include <QFileDialog>
 #include <QFontDialog>
 
-MainWindow::MainWindow(QWidget *parent) :
+QStringList MainWindow::excludedFiles = {
+      "*~",
+      "*.sav", "*.ghw", "*.o", "*.log", "*.output", "*.gif",
+      "*_deps.dot", "Makefile"
+      };
+
+QStringList MainWindow::acceptedSuffixes = { "fsm", "c", "cpp", "h", "dot", "vcd" };
+
+MainWindow::MainWindow(QString rootPath, QWidget *parent) :
   QMainWindow(parent),
+  initDir(rootPath),
+  modelProxy(NULL),
   ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
@@ -34,15 +44,10 @@ MainWindow::MainWindow(QWidget *parent) :
   setWindowIcon(QPixmap( ":/img/icon.png" ));
   createViewActions();
   createMenus();
-  ui->inpFilesTab->setMovable(false);
-
-  ui->inpFilesTab->removeTab(0);  // TO FIX : only one tab at startup ?
-  ui->inpFilesTab->removeTab(0);
-  ui->outFilesTab->removeTab(0);
-  ui->outFilesTab->removeTab(0);
+  // ui->inpFilesTab->setMovable(false);
 
   connect(ui->newFileButton, SIGNAL(clicked()), this, SLOT(newFile()));
-  connect(ui->openFileButton, SIGNAL(clicked()), this, SLOT(openFile()));
+  connect(ui->openDirButton, SIGNAL(clicked()), this, SLOT(openDir()));
   connect(ui->saveFileButton, SIGNAL(clicked()), this, SLOT(saveFile()));
   connect(ui->saveAllButton, SIGNAL(clicked()), this, SLOT(saveAll()));
 
@@ -55,23 +60,25 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(&proc,SIGNAL(readyReadStandardOutput ()),this,  SLOT(readProcStdout()));
   connect(&proc,SIGNAL(readyReadStandardError ()),this,  SLOT(readProcStderr()));
 
-  connect(ui->inpFilesTab, SIGNAL(tabCloseRequested(int)), this, SLOT(closeInputFileTab(int)));
-  connect(ui->outFilesTab, SIGNAL(tabCloseRequested(int)), this, SLOT(closeOutputFileTab(int)));
-  connect(ui->outFilesTab, SIGNAL(currentChanged(int)), this, SLOT(outTabChanged(int)));
+  connect(ui->filesTab, SIGNAL(tabCloseRequested(int)), this, SLOT(closeFileTab(int)));
+  connect(ui->filesTab, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
 
-  ui->logText->setReadOnly(true);
+  connect(ui->treeView, SIGNAL(activated(QModelIndex)), this, SLOT(select(QModelIndex)));
 
   codeFont.setFamily("Courier");
   codeFont.setFixedPitch(true);
   codeFont.setPointSize(11);
 
+  logFont.setPointSize(10);
+  ui->logText->setFont(logFont);
+
   readInitFile();
 }
 
-void MainWindow::about()
+void MainWindow::about(void)
 {
-  QMessageBox::about(this, tr("About RFSM"),  // TO FIX
-                     tr("<p>Contact: jocelyn.serot@uca.fr</p>"));
+  QMessageBox::about(this, tr("RFSM"),  // TO FIX
+                     tr("<p>Reactive Finite State Machines</p><p>http://cloud.ip.uca.fr/~serot/rfsm</p><p>(C) 2019, J. Sérot, jocelyn.serot@uca.fr</p>"));
 }
 
 void MainWindow::readInitFile(void)
@@ -116,42 +123,45 @@ MainWindow::~MainWindow()
 void MainWindow::createMenus()
 {
   menuBar()->clear();
-  QMenu *menuFichier = menuBar()->addMenu("&File");
-  QMenu *menuEdition = menuBar()->addMenu("&Edit");
+  QMenu *fileMenu = menuBar()->addMenu("&File");
 
-  QAction *actionNouvFich = menuFichier->addAction("&New file");
-  QAction *actionOuvrirFich = menuFichier->addAction("&Open file");
-  menuFichier->addSeparator();
-  QAction *actionSaveFich = menuFichier->addAction("&Save");
-  QAction *actionSaveFichAs = menuFichier->addAction("&Save as");
-  QAction *actionSaveAll = menuFichier->addAction("&Save all");
-  menuFichier->addSeparator();
-  QAction *actionCloseFile = menuFichier->addAction("&Close file");
-  QAction *actionCloseAll = menuFichier->addAction("&Close all");
-  menuFichier->addSeparator();
-  QAction *actionQuit = menuFichier->addAction("&Quit");
-  QAction *actionCopy = menuEdition->addAction("&Copy");
-  QAction *actionCut = menuEdition->addAction("&Cut");
-  QAction *actionPaste = menuEdition->addAction("&Paste");
-  QAction *actionSelect = menuEdition->addAction("&Select all");
+  QAction *actionOpenDir = fileMenu->addAction("&Open project");
+  QAction *actionNewFile = fileMenu->addAction("&New file");
+  fileMenu->addSeparator();
+  QAction *actionSaveFile = fileMenu->addAction("&Save");
+  QAction *actionSaveFileAs = fileMenu->addAction("&Save as");
+  QAction *actionSaveAll = fileMenu->addAction("&Save all");
+  fileMenu->addSeparator();
+  QAction *actionCloseFile = fileMenu->addAction("&Close file");
+  QAction *actionCloseAll = fileMenu->addAction("&Close all");
+  fileMenu->addSeparator();
+  QAction *actionAbout = fileMenu->addAction("&About");
+  QAction *actionQuit = fileMenu->addAction("&Quit");
 
-  QObject::connect(actionNouvFich, SIGNAL(triggered()), this, SLOT(newFile()));
-  QObject::connect(actionOuvrirFich, SIGNAL(triggered()), this, SLOT(openFile()));
-  QObject::connect(actionSaveFich, SIGNAL(triggered()), this, SLOT(saveFile()));
-  QObject::connect(actionSaveFichAs, SIGNAL(triggered()), this, SLOT(saveFileAs()));
+  QMenu *editMenu = menuBar()->addMenu("&Edit");
+  QAction *actionCopy = editMenu->addAction("&Copy");
+  QAction *actionCut = editMenu->addAction("&Cut");
+  QAction *actionPaste = editMenu->addAction("&Paste");
+  QAction *actionSelect = editMenu->addAction("&Select all");
+
+  QObject::connect(actionNewFile, SIGNAL(triggered()), this, SLOT(newFile()));
+  QObject::connect(actionOpenDir, SIGNAL(triggered()), this, SLOT(openDir()));
+  QObject::connect(actionSaveFile, SIGNAL(triggered()), this, SLOT(saveFile()));
+  QObject::connect(actionSaveFileAs, SIGNAL(triggered()), this, SLOT(saveFileAs()));
   QObject::connect(actionSaveAll, SIGNAL(triggered()), this, SLOT(saveAll()));
   QObject::connect(actionCloseFile, SIGNAL(triggered()), this, SLOT(closeCurrentFile()));
   QObject::connect(actionCloseAll, SIGNAL(triggered()), this, SLOT(closeAll()));
   QObject::connect(actionQuit, SIGNAL(triggered()), this, SLOT(quit()));
+  QObject::connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
 
   QObject::connect(actionCopy, SIGNAL(triggered()), this, SLOT(copyText()));
   QObject::connect(actionCut, SIGNAL(triggered()), this, SLOT(cutText()));
   QObject::connect(actionPaste, SIGNAL(triggered()), this, SLOT(pasteText()));
   QObject::connect(actionSelect, SIGNAL(triggered()), this, SLOT(selectAllText()));
 
-  actionSaveFich->setShortcut(QKeySequence("Ctrl+S"));
-  actionNouvFich->setShortcut(QKeySequence("Ctrl+N"));
-  actionOuvrirFich->setShortcut(QKeySequence("Ctrl+O"));
+  actionOpenDir->setShortcut(QKeySequence("Ctrl+O"));
+  actionSaveFile->setShortcut(QKeySequence("Ctrl+S"));
+  actionNewFile->setShortcut(QKeySequence("Ctrl+N"));
   actionQuit->setShortcut(QKeySequence("Ctrl+Q"));
   actionSaveAll->setShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT +Qt::Key_S ));
 
@@ -168,9 +178,9 @@ void MainWindow::createMenus()
   QString ICON_PREF(":/img/preferences.png");
   QString ICON_CLOSEF(":/img/closefile.png");
 
-  actionNouvFich->setIcon(QIcon(ICON_NEW));
-  actionOuvrirFich->setIcon(QIcon(ICON_OPEN));
-  actionSaveFich->setIcon(QIcon(ICON_SAVE));
+  actionOpenDir->setIcon(QIcon(ICON_OPEN));
+  actionNewFile->setIcon(QIcon(ICON_NEW));
+  actionSaveFile->setIcon(QIcon(ICON_SAVE));
   actionSaveAll->setIcon(QIcon(ICON_SAVEALL));
   actionQuit->setIcon(QIcon(ICON_QUIT));
   actionCopy->setIcon(QIcon(ICON_COPY));
@@ -190,6 +200,7 @@ void MainWindow::createMenus()
   QAction *pathConfig = menuConfig->addAction("&Compiler and tools");
   QAction *generalOptions = menuConfig->addAction("&Compiler options");
   QAction *fontConfig = menuConfig->addAction("&Code font");
+
   QObject::connect(pathConfig,SIGNAL(triggered()),this,SLOT(setPaths()));
   QObject::connect(generalOptions, SIGNAL(triggered()), this, SLOT(setGeneralOptions()));
   QObject::connect(fontConfig, SIGNAL(triggered()), this, SLOT(setCodeFont()));
@@ -217,44 +228,55 @@ void MainWindow::createViewActions()
   fitToWindowAct->setCheckable(true);
   fitToWindowAct->setShortcut(tr("Ctrl+F"));
   connect(fitToWindowAct, SIGNAL(triggered()), this, SLOT(fitToWindow()));
-
-  // aboutQtAct = new QAction(tr("About &Qt"), this);
-  // connect(aboutQtAct, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
-
-  // helpAct = new QAction(tr("&Help"), this);
-  // helpAct->setShortcut(tr("F1"));
-  // connect(helpAct, SIGNAL(triggered()), this, SLOT(helpDialog()));
 }
 
-
-void MainWindow::openFile()
+void MainWindow::openDir()
 {
-  QString filename = QFileDialog::getOpenFileName(this, "Open file", initDir, "*.fsm");
-  if ( filename.isEmpty() ) return;
-  QFile file(filename);
-  if ( filename.right(4) == ".fsm" ) {
-    if ( alreadyOpened(filename) ) {
-      QMessageBox::warning(this, "Error:", "file:\n" + filename + "\n is already open");
-      return;
+  QString dirName = QFileDialog::getExistingDirectory(this, tr("Open Project Directory"), initDir,
+                                                  QFileDialog::ShowDirsOnly
+                                                  | QFileDialog::DontResolveSymlinks);
+   if ( dirName.isEmpty() ) return;
+
+  ui->logText->append("Opening directory" + dirName);
+  closeAll();
+  setDir(dirName);
+}
+
+void MainWindow::setDir(QString path)
+{
+    model.setRootPath("");
+    QModelIndex rootModelIndex = model.setRootPath(path);
+
+    if ( modelProxy ) delete modelProxy;
+    modelProxy = new FileFilter(&model, excludedFiles);
+    modelProxy->setSourceModel(&model);
+    //modelProxy->setSortRole(QFileSystemModel::FileNameRole);
+    modelProxy->sort(3, Qt::DescendingOrder);  // Files first, then directories 
+    model.fetchMore(model.index(0,0));  // Do not omit !
+
+    ui->treeView->setModel(modelProxy);
+    if (!path.isEmpty()) {
+      QModelIndex rootIndex = model.index(QDir::cleanPath(path));
+      if (rootIndex.isValid()) ui->treeView->setRootIndex(modelProxy->mapFromSource(rootModelIndex));
       }
-    addFileTab(filename, ui->inpFilesTab, inFiles);
-  }
-  else
-    addFileTab(filename, ui->outFilesTab, outFiles);
+
+    for ( int i=1; i<ui->treeView->header()->count(); i++ ) ui->treeView->hideColumn(i);
+    ui->treeView->setHeaderHidden(true);
 }
 
 void MainWindow::newFile()
 {
+  // TODO: the new file should be created in the current project directory with a given name...
   QTemporaryFile* f = new QTemporaryFile(QDir::tempPath()+"/rfsmTmp_XXXXXX.fsm");  // TODO : delete when saved..
   f->open();
   qDebug() << "Creating tmp file " << f->fileName();
-  addFileTab(f->fileName(), ui->inpFilesTab, inFiles, false, true);
+  addFileTab(f->fileName(), false, true);
 }
 
 void MainWindow::saveFile()
 {
-  if ( ui->inpFilesTab->count() !=0 ) {
-      int ind = ui->inpFilesTab->currentIndex();
+  if ( ui->filesTab->count() !=0 ) {
+      int ind = ui->filesTab->currentIndex();
       saveIndexedFile(ind);
       ui->runSimButton->setEnabled(false);
       this->repaint();
@@ -265,24 +287,24 @@ void MainWindow::saveFile()
 
 void MainWindow::saveAll()
 {
-  for ( int ind=0; ind<ui->inpFilesTab->count(); ind++ ) {
-      ui->inpFilesTab->setCurrentIndex(ind);
+  for ( int ind=0; ind<ui->filesTab->count(); ind++ ) {
+      ui->filesTab->setCurrentIndex(ind);
       saveIndexedFile(ind);
     }
 }
 
 void MainWindow::saveIndexedFile(int ind)
 {
-  QString path = inFiles[ind]->path;
+  QString path = openedFiles[ind]->path;
   qDebug() << "Saving " << path;
   if ( path.contains("rfsmTmp") ) {
       path = QFileDialog::getSaveFileName(this,"Select location to save file");
       if ( path.isEmpty() ) return;
       qDebug() << "Saving as: " << path;
       //inFiles[ui->inpFilesTab->currentIndex()].upToDate = false; // ???
-      inFiles[ind]->path = path;
+      openedFiles[ind]->path = path;
       QFileInfo f(path);
-      ui->inpFilesTab->setTabText(ind, f.fileName());
+      ui->filesTab->setTabText(ind, f.fileName());
     }
   QFile save(path);
   if ( ! save.open(QFile::WriteOnly | QFile::Text) ) {
@@ -290,21 +312,21 @@ void MainWindow::saveIndexedFile(int ind)
       return;
     }
   QTextStream os(&save);
-  QTextEdit* text = inFiles[ind]->text;
+  QTextEdit* text = openedFiles[ind]->text;
   os << text->toPlainText();
   save.flush();
   save.close();
-  QString nouv = ui->inpFilesTab->tabText(ind);
+  QString nouv = ui->filesTab->tabText(ind);
   if ( nouv.at(nouv.size()-1)=='*' ) {
       nouv.replace("*","");
-      ui->inpFilesTab->setTabText(ind,nouv);
+      ui->filesTab->setTabText(ind,nouv);
     }
-  inFiles[ui->inpFilesTab->currentIndex()]->upToDate = true;
+  openedFiles[ui->filesTab->currentIndex()]->upToDate = true;
 }
 
 void MainWindow::closeIndexedFile(int ind)
 {
-  if ( inFiles[ind]->upToDate == false ) {
+  if ( openedFiles[ind]->upToDate == false ) {
       QMessageBox msgBox;
       msgBox.setText("File unsaved.");
       msgBox.setInformativeText("Do you want to save your changes ?");
@@ -320,55 +342,51 @@ void MainWindow::closeIndexedFile(int ind)
           break;
         }
     }
-  delete inFiles[ind];
-  inFiles.removeAt(ind);
-  ui->inpFilesTab->removeTab(ind);
+  delete openedFiles[ind];
+  openedFiles.removeAt(ind);
+  ui->filesTab->removeTab(ind);
 }
 
 void MainWindow::closeCurrentFile()
 {
-  if ( ui->inpFilesTab->count() > 0 )
-    closeIndexedFile(ui->inpFilesTab->currentIndex());
+  if ( ui->filesTab->count() > 0 )
+    closeIndexedFile(ui->filesTab->currentIndex());
 }
 
 void MainWindow::closeAll()
 {
-  while ( ui->inpFilesTab->count() > 0 )
+  while ( ui->filesTab->count() > 0 )
     closeCurrentFile();
 }
 
 void MainWindow::saveFileAs()
 {
-  int ind = ui->inpFilesTab->currentIndex();
-  inFiles[ind]->upToDate = false;
+  int ind = ui->filesTab->currentIndex();
+  openedFiles[ind]->upToDate = false;
   QString path = QFileDialog::getSaveFileName(this,"Select location to save file");
   if ( path.isEmpty() ) return;
   qDebug() << "Saving as: " << path;
-  inFiles[ind]->path = path;
+  openedFiles[ind]->path = path;
   saveIndexedFile(ind);
   QFileInfo f(path);
-  ui->inpFilesTab->setTabText(ind, f.fileName());
-  inFiles[ind]->upToDate = true;
+  ui->filesTab->setTabText(ind, f.fileName());
+  openedFiles[ind]->upToDate = true;
 }
 
-void MainWindow::closeInputFileTab(int index)
+void MainWindow::closeFileTab(int index)
 {
   closeIndexedFile(index);
+  ui->filesTab->removeTab(index);
 }
 
-void MainWindow::closeOutputFileTab(int index)
-{
-  ui->outFilesTab->removeTab(index);
-}
-
-void MainWindow::outTabChanged(int index)
+void MainWindow::tabChanged(int index)
 {
   updateViewActions();
 }
 
 void MainWindow::keyPressed(int key)
 {
-  if ( ui->inpFilesTab->count() > 0 ) {
+  if ( ui->filesTab->count() > 0 ) {
       QWidget* focused = QApplication::focusWidget();
       if( focused != 0 )
         QApplication::postEvent(focused, new QKeyEvent(QEvent::KeyPress, Qt::CTRL+key, Qt::ControlModifier ));
@@ -468,12 +486,12 @@ bool MainWindow::executeCmd(QString wDir, QString cmd, bool sync)
 void MainWindow::compile(QString type, QString baseCmd, QString targetDir)
 {
   ui->logText->clear();
-  if( ui->inpFilesTab->count() == 0 ) return;
+  if( ui->filesTab->count() == 0 ) return;
   saveFile();
   QString compiler = config::getInstance()->getPath("compiler");
   if ( compiler.isNull() || compiler.isEmpty() ) compiler = "rfsm"; // Last chance..
   // Get actual source file
-  QString srcFilePath = ui->inpFilesTab->count() > 0 ? inFiles[ui->inpFilesTab->currentIndex()]->path : "";
+  QString srcFilePath = ui->filesTab->count() > 0 ? openedFiles[ui->filesTab->currentIndex()]->path : "";
   if ( srcFilePath == "" ) return;
   QFileInfo f(srcFilePath);
   QDir dir = f.absoluteDir();
@@ -616,7 +634,7 @@ void MainWindow::openOutputFile(QString type, QString fname, QString wDir)
     if ( useTxtExternalViewer == "on" && f.suffix() != "gif" ) 
       customView("txtViewer", fname, wDir);
     else
-      addFileTab(fullName, ui->outFilesTab, outFiles, true, false);
+      addFileTab(fullName, true, false);
     }
 }
 
@@ -627,7 +645,7 @@ void MainWindow::customView(QString toolName, QString fname, QString wDir)
      CommandLine cmd (toolPath, fname);
      if ( ! executeCmd(wDir, cmd.toString(), false) ) {
          QMessageBox::warning(this, "", "Could not start " + toolName);
-         addFileTab(fname, ui->outFilesTab, outFiles, true, false);
+         addFileTab(fname, true, false);
          }
        }
    else
@@ -635,7 +653,7 @@ void MainWindow::customView(QString toolName, QString fname, QString wDir)
 }
 
 
-void MainWindow::addFileTab(QString fname, QTabWidget *ui_tabs, QList<AppFile*>& files, bool ronly, bool isTemp)
+void MainWindow::addFileTab(QString fname, bool ronly, bool isTemp)
 {
   QFile file(fname);
   QFileInfo f(fname);
@@ -648,7 +666,7 @@ void MainWindow::addFileTab(QString fname, QTabWidget *ui_tabs, QList<AppFile*>&
     ImageViewer *viewer = new ImageViewer();
     viewer->setPixmap(pixmap);
     viewer->setWhatsThis("ImageViewer");
-    ui_tabs->addTab(viewer, changeSuffix(f.fileName(),".dot"));
+    ui->filesTab->addTab(viewer, changeSuffix(f.fileName(),".dot"));
     viewer->adjustImageSize();
     } 
   else {
@@ -660,16 +678,16 @@ void MainWindow::addFileTab(QString fname, QTabWidget *ui_tabs, QList<AppFile*>&
     edit->setPlainText(QString::fromUtf8(file.readAll()));
     edit->setReadOnly(ronly);
     if ( ! ronly ) QObject::connect(edit, SIGNAL(textChanged()), this, SLOT(textHasBeenModified()));
-    ui_tabs->addTab(edit, isTemp ? "new" : f.fileName());
+    ui->filesTab->addTab(edit, isTemp ? "new" : f.fileName());
     SyntaxHighlighter* highlighter;
     if ( f.suffix() == "fsm" ) highlighter = new FsmSyntaxHighlighter(edit->document());
     else if ( f.suffix() == "c" ) highlighter = new CTaskSyntaxHighlighter(edit->document());
     else highlighter = NULL;
-    AppFile* fic = new AppFile(fname, true, edit, highlighter);
-    files.append(fic);
+    AppFile* fic = new AppFile(fname, ronly, true, edit, highlighter);
+    openedFiles.append(fic);
     }
   updateViewActions();
-  ui_tabs->setCurrentIndex(ui_tabs->count()-1);
+  ui->filesTab->setCurrentIndex(ui->filesTab->count()-1);
 }
 
 
@@ -699,8 +717,8 @@ void MainWindow::setPaths()
 
 bool MainWindow::alreadyOpened(QString path)
 {
-  for ( int i=0; i<inFiles.length(); i++ )
-    if ( inFiles[i]->path == path ) {
+  for ( int i=0; i<openedFiles.length(); i++ )
+    if ( openedFiles[i]->path == path ) {
         return true;
       }
   return false;
@@ -708,13 +726,13 @@ bool MainWindow::alreadyOpened(QString path)
 
 void MainWindow::textHasBeenModified()
 {
-  int ind = ui->inpFilesTab->currentIndex();
-  QString nouv = ui->inpFilesTab->tabText(ind);
+  int ind = ui->filesTab->currentIndex();
+  QString nouv = ui->filesTab->tabText(ind);
   if ( nouv.at(nouv.size()-1)!='*' ) {
       nouv += "*";
-      ui->inpFilesTab->setTabText(ind,nouv);
+      ui->filesTab->setTabText(ind,nouv);
     }
-  inFiles[ind]->upToDate = false;
+  openedFiles[ind]->upToDate = false;
 }
 
 void MainWindow::setCodeFont()
@@ -723,10 +741,8 @@ void MainWindow::setCodeFont()
   int i;
   QFont font = QFontDialog::getFont(&ok, QFont("Courier", 10), this);
   if ( ok ) {
-      for ( i=0; i<inFiles.length(); i++ )
-        inFiles[i]->text->setFont(font);
-      for ( i=0; i<outFiles.length(); i++ )
-        outFiles[i]->text->setFont(font);
+      for ( i=0; i<openedFiles.length(); i++ )
+          openedFiles[i]->text->setFont(font);
       codeFont = font;
     }
 }
@@ -760,9 +776,9 @@ void MainWindow::fitToWindow()
 
 ImageViewer* MainWindow::selectedImageViewer()
 {
-  int i = ui->outFilesTab->currentIndex();
+  int i = ui->filesTab->currentIndex();
   if ( i < 0 ) return NULL;
-  QWidget *tab = ui->outFilesTab->widget(i);
+  QWidget *tab = ui->filesTab->widget(i);
   return tab->whatsThis() == "ImageViewer" ? (ImageViewer *)tab : NULL;
 }
 
@@ -794,4 +810,23 @@ void MainWindow::updateViewActions()
     zoomOutAct->setEnabled(false);
     normalSizeAct->setEnabled(false);
     }
+}
+
+void MainWindow::select(QModelIndex idx)
+{
+  if ( ! idx.isValid() ) return; // should not happen
+  QString path = idx.data(QFileSystemModel::FilePathRole).toString();
+  //statusBar()->showMessage(tr("%1").arg(path)); // To be removed
+  QFileInfo info(path);
+  QString suffix = info.completeSuffix();
+  if ( ! acceptedSuffixes.contains(suffix) ) return;
+  QFile file(path);
+  // if ( alreadyOpened(filename) ) {
+  //     QMessageBox::warning(this, "Error:", "file:\n" + filename + "\n is already open");
+  //     return;
+  //     }
+  //   addFileTab(filename, ui->inpFilesTab, inFiles);
+  // }
+  // else
+  addFileTab(path);
 }

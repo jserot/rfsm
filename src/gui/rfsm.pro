@@ -2,7 +2,7 @@ QT       += core gui
 QT 		 += xml
 QT 		 += widgets
 
-//CONFIG -= c++11
+CONFIG += c++11
 
 TARGET = rfsm
 TEMPLATE = app
@@ -16,6 +16,7 @@ SOURCES += main.cpp\
     fsm_syntax_highlighter.cpp \ 
     imageviewer.cpp \ 
     option.cpp \
+    file_filter.cpp \
     command.cpp
 
 HEADERS  += mainwindow.h \
@@ -26,10 +27,10 @@ HEADERS  += mainwindow.h \
     ctask_syntax_highlighter.h \ 
     fsm_syntax_highlighter.h \ 
     imageviewer.h \ 
+    file_filter.h \
     command.h
 
-FORMS    += uis/mainwindow.ui \
-    uis/config.ui
+FORMS    += uis/config.ui
 
 RESOURCES += \
     resources.qrc

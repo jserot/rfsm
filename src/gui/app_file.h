@@ -17,16 +17,14 @@
 
 class AppFile {
 public:
+    bool readOnly;
     bool upToDate;
     QString path;
-    QString name;
+    QFileInfo info;
     QTextEdit* text;
     SyntaxHighlighter *syntax;
-    AppFile(QString path_, bool upToDate_, QTextEdit *edit, SyntaxHighlighter *sh)
-        : upToDate(upToDate_), path(path_), text(edit), syntax(sh) {
-        QFileInfo f(path);
-        name = f.fileName();
-    }
+    AppFile(QString path, bool readOnly, bool upToDate, QTextEdit *edit, SyntaxHighlighter *sh)
+      : readOnly(readOnly), upToDate(upToDate), path(path), info(path), text(edit), syntax(sh) { }
     ~AppFile() {
         if ( syntax != NULL ) delete syntax;
         if ( text != NULL ) delete text;
