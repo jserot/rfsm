@@ -17,6 +17,8 @@ open Printf
 
 exception Error of string * string  (* where, msg *)
 
+type dump_format = Vcd | Ghw
+
 type vhdl_config = {
   mutable vhdl_lib_name: string;
   mutable vhdl_lib_dir: string;
@@ -35,6 +37,7 @@ type vhdl_config = {
   mutable vhdl_support_library: string;
   mutable vhdl_support_package: string;
   mutable vhdl_trace: bool;
+  mutable vhdl_dump_format: dump_format;
   mutable vhdl_trace_state_var: string
   }
 
@@ -56,6 +59,7 @@ let cfg = {
   vhdl_support_library = "rfsm";
   vhdl_support_package = "core";
   vhdl_trace = false;
+  vhdl_dump_format = Vcd;
   vhdl_trace_state_var = "st";
   }
 
@@ -723,30 +727,43 @@ and dump_global_type_fns oc (name,ty) =
 (* Dumping Makefile *)
 
 let dump_makefile ?(name="") ?(dir="./vhdl") m =
-  let prefix = match name with "" -> cfg.vhdl_tb_prefix | p -> p in
-  let tb_name = prefix ^ "_tb" in
-  let top_name = prefix ^ "_top" in
-  let fname = dir ^ "/" ^ "Makefile" in
-  let oc = open_out fname in
-  let modname suff f = f.Fsm.f_name ^ suff in
-  let open Static in
-  fprintf oc "TB=%s\n\n" tb_name;
-  fprintf oc "include %s/etc/Makefile.vhdl\n\n" cfg.vhdl_lib_dir;
-  fprintf oc "%s: %s %s %s.vhd\n"
-          tb_name
-          (if need_globals m then cfg.vhdl_globals_name ^ ".vhd" else "")
-          (Utils.ListExt.to_string (modname ".vhd") " " m.m_fsms)
-          tb_name;
-  if need_globals m then 
-    fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_globals_name;
-  List.iter
-    (function f -> fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s\n" (modname ".vhd" f))
-    m.m_fsms;
-  fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" top_name;
-  fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" tb_name;
-  fprintf oc "\t$(GHDL) -e $(GHDLOPTS) %s\n" tb_name;
-  Logfile.write fname;
-  close_out oc
+  let templ_fname = cfg.vhdl_lib_dir ^ "/etc/Makefile.vhdl.templ" in
+  if Sys.file_exists templ_fname then begin
+      let prefix = match name with "" -> cfg.vhdl_tb_prefix | p -> p in
+      let tb_name = prefix ^ "_tb" in
+      let top_name = prefix ^ "_top" in
+      let fname = dir ^ "/" ^ "Makefile" in
+      let oc = open_out fname in
+      fprintf oc "LIBDIR=%s\n\n" cfg.vhdl_lib_dir;
+      let ic = open_in templ_fname in
+      let dump_opt, dump_fmt =
+        begin match cfg.vhdl_dump_format with
+        | Vcd -> "--vcd", "vcd"
+        | Ghw -> "--wave", "ghw"
+      end in
+      Misc.copy_with_subst ["%%MAIN%%", tb_name; "%%DUMPOPT%%", dump_opt; "%%DUMPFMT%%", dump_fmt] ic oc;
+      close_in ic;
+      fprintf oc "\n";
+      let modname suff f = f.Fsm.f_name ^ suff in
+      let open Static in
+      fprintf oc "%s: %s %s %s.vhd\n"
+        tb_name
+        (if need_globals m then cfg.vhdl_globals_name ^ ".vhd" else "")
+        (Utils.ListExt.to_string (modname ".vhd") " " m.m_fsms)
+        tb_name;
+      if need_globals m then 
+        fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_globals_name;
+      List.iter
+        (function f -> fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s\n" (modname ".vhd" f))
+        m.m_fsms;
+      fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" top_name;
+      fprintf oc "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" tb_name;
+      fprintf oc "\t$(GHDL) -e $(GHDLOPTS) %s\n" tb_name;
+      Logfile.write fname;
+      close_out oc
+    end
+  else
+    Misc.warning (Printf.sprintf "No file %s. No Makefile generated." templ_fname)
 
 (* Check whether a model can be translated *)
 

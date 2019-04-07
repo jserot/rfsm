@@ -4,4 +4,4 @@ input start : bool = value_changes (0:0, 25:1, 35:0)
 output rdy : bool
 output r: bcd3
 
-fsm conv = Convert(h,start,n,rdy,r)
+fsm conv = convert(h,start,n,rdy,r)

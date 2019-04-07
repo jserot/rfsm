@@ -2,7 +2,7 @@ type digit = int<0:9>
 
 type bcd3 = record { d2: digit, d1: digit, d0: digit }
 
-fsm model Convert  (
+fsm model convert  (
   in h: event,
   in start: bool,
   in inp: int<8>,

@@ -1,0 +1,29 @@
+all.test: dot.test sim.test ctask.test systemc.test vhdl.test
+
+dot.test: dot.run
+
+sim.test: sim.run
+
+ctask.test: ctask.code
+
+systemc.test: systemc.run
+
+vhdl.test:
+	if [ -d ./vhdl ]; then make vhdl.run; fi
+
+test:
+	if [ -d ./vhdl ]; then make test3; else make test2; fi
+
+test2:
+	make dot.run
+	make sim.run
+	make systemc.run
+
+test3:
+	make dot.run
+	make sim.run
+	make systemc.run
+	make vhdl.run
+
+
+

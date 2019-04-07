@@ -1,0 +1,29 @@
+include $(LIBDIR)/etc/platform
+
+CXXFLAGS += -I. -I$(SYSTEMC)/include -I$(LIBDIR)/systemc
+
+LDFLAGS	 += -L$(SYSTEMC)/lib-$(TARGET_ARCH) 
+
+SOURCES     = $(wildcard *.cpp)
+OBJS        = $(SOURCES:.cpp=.o)
+
+all: %%MAIN%% 
+
+run: %%MAIN%%
+	./%%MAIN%%
+
+view: %%MAIN%%.vcd
+	$(VCDVIEWER) %%MAIN%%.vcd %%MAIN%%.gtkw > /tmp/gtkwave.log 2>&1
+
+.cpp.o:
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+clean:
+	-rm -f *.o *~ %%MAIN%%
+	-rm -f core
+	-rm -f *.vcd
+
+clobber: clean
+	-rm -f *.cpp *.h
+	-rm -f *.gtkw *.vcd
+	-rm -f Makefile  # Generated

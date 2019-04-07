@@ -9,7 +9,7 @@ if [ "$#" -eq 1 ]; then
     do
         if [ -d $i -a -f $i/Makefile ]; then
             (( nt = nt + 1 ))
-            ./do_test $1.test $i
+            ./do_test $1 $i
             (( ns = ns + $? ))
         fi
     done

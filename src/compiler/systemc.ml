@@ -354,9 +354,9 @@ let dump_inp_module_impl fname (id,(ty,desc)) =
        fprintf oc "void %s::%s(void)\n" modname cfg.sc_clk_step_proc_name;
        fprintf oc "{\n";
        fprintf oc "  %s.write(1);\n" id;
-       fprintf oc "  wait(_clk.period/2, SC_NS);\n";
+       fprintf oc "  wait(_clk.period/2.0, SC_NS);\n";
        fprintf oc "  %s.write(0);\n" id;
-       fprintf oc "  wait(_clk.period/2, SC_NS);\n";
+       fprintf oc "  wait(_clk.period/2.0, SC_NS);\n";
        fprintf oc "  t += _clk.period;\n";
        fprintf oc "};\n"
     (* | MInp ({sd_comprehension=ValueChange []}, _) -> *)
@@ -599,37 +599,45 @@ let dump_testbench_impl tb_name fname m =
 (* Dumping Makefile *)
 
 let dump_makefile ?(name="") ?(dir="./systemc") m =
-  let tb_name = match name with "" -> cfg.sc_tb_name | p -> p in
-  let fname = dir ^ "/" ^ "Makefile" in
-  let oc = open_out fname in
-  let modname suff f = f.Fsm.f_name ^ suff in
-  let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
-  let open Static in
-  fprintf oc "TB=%s\n\n" tb_name;
-  fprintf oc "include %s/etc/Makefile.systemc\n\n" cfg.sc_lib_dir;
-  let globals suffix = if need_globals m then cfg.sc_globals_name ^ suffix else "" in
-  (* fprintf oc "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
-  List.iter
-    (function f -> fprintf oc "%s.o: %s.h %s.cpp %s\n" f.Fsm.f_name f.Fsm.f_name f.Fsm.f_name (globals ".h"))
-    m.m_fsms;
-  List.iter
-    (function inp -> let name = imodname "" inp in fprintf oc "%s.o: %s.h %s.cpp\n" name name name)
-    m.m_inputs;
-  fprintf oc "%s.o: %s %s %s.cpp\n"
-          tb_name
-          (Utils.ListExt.to_string (modname ".h")  " " m.m_fsms)
-          (Utils.ListExt.to_string (imodname ".h")  " " m.m_inputs)
-          tb_name;
-  let objs = sprintf "%s.o %s %s %s %s.o"
-            (cfg.sc_lib_name |> Filename.concat "systemc" |> Filename.concat cfg.sc_lib_dir)
-            (globals ".o")
-            (Utils.ListExt.to_string (modname ".o")  " " m.m_fsms)
-            (Utils.ListExt.to_string (imodname ".o")  " " m.m_inputs)
-            tb_name in
-  fprintf oc "%s: %s\n" tb_name  objs;
-  fprintf oc "\t$(LD) $(LDFLAGS) -o %s %s -lsystemc  2>&1 | c++filt\n" tb_name objs;
-  Logfile.write fname;
-  close_out oc
+  let templ_fname = cfg.sc_lib_dir ^ "/etc/Makefile.systemc.templ" in
+  if Sys.file_exists templ_fname then begin
+      let tb_name = match name with "" -> cfg.sc_tb_name | p -> p in
+      let fname = dir ^ "/" ^ "Makefile" in
+      let oc = open_out fname in
+      fprintf oc "LIBDIR=%s\n\n" cfg.sc_lib_dir;
+      let ic = open_in templ_fname in
+      Misc.copy_with_subst ["%%MAIN%%", tb_name] ic oc;
+      close_in ic;
+      fprintf oc "\n";
+      let modname suff f = f.Fsm.f_name ^ suff in
+      let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
+      let open Static in
+      let globals suffix = if need_globals m then cfg.sc_globals_name ^ suffix else "" in
+      (* fprintf oc "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
+      List.iter
+        (function f -> fprintf oc "%s.o: %s.h %s.cpp %s\n" f.Fsm.f_name f.Fsm.f_name f.Fsm.f_name (globals ".h"))
+        m.m_fsms;
+      List.iter
+        (function inp -> let name = imodname "" inp in fprintf oc "%s.o: %s.h %s.cpp\n" name name name)
+        m.m_inputs;
+      fprintf oc "%s.o: %s %s %s.cpp\n"
+        tb_name
+        (Utils.ListExt.to_string (modname ".h")  " " m.m_fsms)
+        (Utils.ListExt.to_string (imodname ".h")  " " m.m_inputs)
+        tb_name;
+      let objs = sprintf "$(LIBDIR)/systemc/%s.o %s %s %s %s.o"
+                   cfg.sc_lib_name
+                   (globals ".o")
+                   (Utils.ListExt.to_string (modname ".o")  " " m.m_fsms)
+                   (Utils.ListExt.to_string (imodname ".o")  " " m.m_inputs)
+                   tb_name in
+      fprintf oc "%s: %s\n" tb_name  objs;
+      fprintf oc "\t$(LD) $(LDFLAGS) -o %s %s -lsystemc  2>&1 | c++filt\n" tb_name objs;
+      Logfile.write fname;
+      close_out oc
+    end
+  else
+    Misc.warning (Printf.sprintf "No file %s. No Makefile generated." templ_fname)
 
 (* Dumping the support library *)
 

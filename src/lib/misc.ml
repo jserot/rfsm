@@ -28,6 +28,18 @@ let list_split_at n l =
 
 let rec bit_size n = if n=0 then 0 else 1 + bit_size (n/2)
 
+let copy_with_subst defns ic oc = 
+  let rec subst mdefs s = match mdefs with
+      [] -> s
+    | (v,v')::ds -> subst ds (Str.global_replace (Str.regexp_string v) v' s)  in
+   try
+     while true do
+       let line = input_line ic in
+       Printf.fprintf oc "%s\n" (subst defns line)
+     done
+   with End_of_file ->
+     ()
+
 exception Internal_error of string
 exception Not_implemented of string
 

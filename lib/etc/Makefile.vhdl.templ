@@ -1,0 +1,22 @@
+include $(LIBDIR)/etc/platform
+
+GHDLOPTS += -P$(LIBDIR)/vhdl
+
+all: run
+
+run: %%MAIN%%
+	$(GHDL) -r $(GHDLOPTS) %%MAIN%% %%DUMPOPT%%=%%MAIN%%.%%DUMPFMT%%
+
+view: run
+	$(VCDVIEWER) %%MAIN%%.%%DUMPFMT%% %%MAIN%%.gtkw > /tmp/gtkwave.log 2>&1; echo $$?
+
+clean:
+	\rm -f work*.cf
+	\rm -f *.o
+	\rm -f %%MAIN%%
+	\rm -f %%MAIN%%.vcd
+	\rm -f %%MAIN%%.ghw
+
+clobber: clean
+	\rm -f *~
+	\rm -rf html

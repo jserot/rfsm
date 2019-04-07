@@ -22,5 +22,6 @@ ide;vhdl;-vhdl_ev_duration;Arg.Int;set_vhdl_ev_duration;set duration of event si
 ide;vhdl;-vhdl_rst_duration;Arg.Int;set_vhdl_ev_duration;set duration of reset signals (default: 1 ns)
 ide;vhdl;-vhdl_numeric_std;Arg.Unit;set_vhdl_use_numeric_std;translate integers as numeric_std [un]signed (default: false)
 ide;vhdl;-vhdl_bool_as_bool;Arg.Unit;set_vhdl_bool_as_bool;translate all booleans as boolean (default: false)
+ide;vhdl;-vhdl_dump_ghw;Arg.Unit;set_vhdl_dump_ghw;make GHDL generate trace files in .ghw format instead of .vcd
 noide;general;-old_syntax;Arg.Unit;set_old_syntax;use old (pre-1.5) syntax
 noide;general;-transl_syntax;Arg.Unit;set_transl_syntax;convert old syntax to new syntax

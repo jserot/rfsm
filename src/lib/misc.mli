@@ -37,3 +37,7 @@ val list_split_at: int -> 'a list -> 'a list * 'a list
                 
 val bit_size: int -> int
   (** [bit_size n] returns the number of bits required for representing [n] *)
+
+val copy_with_subst: (string * string) list -> in_channel -> out_channel -> unit
+  (** [copy_with_subst [(s1,s1');...] ic oc] copies each line read from input channel [ic] to output channel [oc],
+      substituting each occurrence of string [si] by [si']. *) 

@@ -22,7 +22,6 @@ Info.plist
 TAGS
 /doc/lib/*
 !/doc/lib/.keep
-/etc/
 examples/others/
 examples/tofix/
 examples/scxmlcc/

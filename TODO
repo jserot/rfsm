@@ -1,6 +1,5 @@
 COMPILER
 
-- use project file
 - ocamlbuild -> dune (?)
 - use cmake for building GUI
 - support for synchronous actions in CTask and SystemC

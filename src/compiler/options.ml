@@ -55,6 +55,7 @@ let set_trace level = Trace.level := level
 let set_sc_trace () = Systemc.cfg.Systemc.sc_trace <- true
 let set_sc_double_float () = Systemc.cfg.Systemc.sc_double_float <- true
 let set_vhdl_trace () = Vhdl.cfg.Vhdl.vhdl_trace <- true
+let set_vhdl_dump_ghw () = Vhdl.cfg.Vhdl.vhdl_dump_format <- Vhdl.Ghw
 
 let set_dot_no_captions () = dot_captions := false
 let set_dot_actions_nl () = Fsm.cfg.Fsm.act_sep <- "\\n"
