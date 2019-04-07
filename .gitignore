@@ -25,6 +25,8 @@ TAGS
 examples/others/
 examples/tofix/
 examples/scxmlcc/
+examples/*/*/Makefile
+examples/*/*/*/Makefile
 examples/*/*/rfsm.output
 examples/*/*/*/rfsm.output
 examples/*/*/dot/

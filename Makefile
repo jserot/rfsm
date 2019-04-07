@@ -7,7 +7,7 @@ LIB_INSTALLED = \
   src/lib/_build/*.mli \
   src/lib/_build/*.cmi \
   src/lib/_build/*.cma 
-BIN_INSTALLED = src/compiler/rfsmc
+BIN_INSTALLED = etc/rfsmmake src/compiler/rfsmc
 ifeq ($(BUILD_NATIVE),yes)
 	LIB_INSTALLED += \
       src/lib/_build/*.cmx \
@@ -95,6 +95,7 @@ clobber:
 	(cd lib; make clobber)
 	(cd examples; make clobber)
 	(cd doc/um; make clobber)
+	(cd etc; make clobber)
 	rm -f doc/lib/*
 	\rm -f src/gui/rfsm.app/Contents/MacOS/rfsm
 	\rm -f *~
@@ -116,6 +117,8 @@ endif
 ifeq ($(BUILD_NATIVE),yes)
 	cp src/compiler/rfsmc.opt $(INSTALL_BINDIR)
 endif
+	sed -e 's,__LIBDIR__,$(INSTALL_LIBDIR),' ./etc/rfsmmake > $(INSTALL_BINDIR)/rfsmmake
+	chmod a+x $(INSTALL_BINDIR)/rfsmmake
 ifeq ($(BUILD_GUI),yes)
 ifeq ($(PLATFORM), macos)
 	cp -r src/gui/rfsm.app $(INSTALL_BINDIR)
@@ -133,7 +136,7 @@ install-opam:
 	@echo "Installing $(PACKNAME) in $(INSTALL_LIBDIR)"
 	rm -rf $(INSTALL_LIBDIR)/$(PACKNAME)
 	ocamlfind install -destdir $(INSTALL_LIBDIR) $(PACKNAME) META $(LIB_INSTALLED)
-	@echo "Installing rfsmc in $(INSTALL_BINDIR)"
+	@echo "Installing rfsmc and rfsmmake in $(INSTALL_BINDIR)"
 	cp $(BIN_INSTALLED) $(INSTALL_BINDIR)
 ifeq ($(BUILD_DOC),yes)
 	@echo "Installing $(PACKNAME) documentation in $(INSTALL_DOCDIR)"
@@ -170,7 +173,7 @@ source-dist:
 	rm -rf $(SRCDISTDIR)
 	mkdir -p $(SRCDISTDIR)
 	@echo "** Copying files"
-	cp -r {lib,src,doc} $(SRCDISTDIR)
+	cp -r {lib,src,doc,etc} $(SRCDISTDIR)
 	mkdir -p $(SRCDISTDIR)/examples
 	cp -r examples/{single,multi,Makefile} $(SRCDISTDIR)/examples
 	cp configure CHANGELOG.md README.md KNOWN-BUGS LICENSE VERSION INSTALL Makefile $(SRCDISTDIR)
