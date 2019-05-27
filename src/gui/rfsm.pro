@@ -2,6 +2,8 @@ QT       += core gui
 QT 		 += xml
 QT 		 += widgets
 
+QMAKE_CXXFLAGS += -Wno-unused-parameter
+
 CONFIG += c++11
 
 TARGET = rfsm
@@ -17,6 +19,7 @@ SOURCES += main.cpp\
     imageviewer.cpp \ 
     option.cpp \
     file_filter.cpp \
+    project.cpp \
     command.cpp
 
 HEADERS  += mainwindow.h \
@@ -28,24 +31,13 @@ HEADERS  += mainwindow.h \
     fsm_syntax_highlighter.h \ 
     imageviewer.h \ 
     file_filter.h \
+    project.h \
     command.h
 
 FORMS    += uis/config.ui
 
 RESOURCES += \
     resources.qrc
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

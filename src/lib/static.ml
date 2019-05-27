@@ -189,33 +189,30 @@ let dot_output dir ?(dot_options=[]) ?(fsm_options=[]) m =
   let layout, mindist = if List.mem Lascar.Ltsa.Circular dot_options then "circo", 1.5 else "dot", 1.0 in
   let dump_header oc name =
      Printf.fprintf oc "digraph %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" name layout rankdir mindist in
-  (* let fnames'' = 
-   *   if with_insts then 
-   *     List.map
-   *       (Fsm.dot_output ~dot_options:dot_options ~options:(GlobalNames::fsm_options) ~dir:dir)
-   *       m.m_fsms
-   *   else
-   *     [] in *)
-  let fnames' = 
-      List.map
-        (function f -> Fsm.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir f.Fsm.f_model)
-        m.m_fsms in
-  let fname = Filename.concat dir (m.m_name ^ ".dot") in
-  let oc = open_out fname in
-  dump_header oc m.m_name;
-  List.iter
-    (Fsm.dot_output_oc oc ~dot_options:(Utils.Dot.SubGraph::dot_options) ~options:(GlobalNames::fsm_options))
-    m.m_fsms;
-  let caption = StringExt.concat_sep "\\r" 
+  let fnames = (* Dump all FSM models *)
+    List.map
+      (Fsm.dot_output_model ~dot_options:dot_options ~options:fsm_options ~dir:dir)
+      m.m_models in
+  match m.m_fsms with
+  | [] -> (* No instance, that's all folks *)
+     fnames
+  | _ -> (* System, with FSM instances, globals, etc.. *)
+     let fname = Filename.concat dir (m.m_name ^ ".dot") in
+     let oc = open_out fname in
+     dump_header oc m.m_name;
+     List.iter
+       (Fsm.dot_output_oc oc ~dot_options:(Utils.Dot.SubGraph::dot_options) ~options:(GlobalNames::fsm_options))
+       m.m_fsms;
+     let caption = StringExt.concat_sep "\\r" 
             [ListExt.to_string string_of_global "\\r" m.m_inputs;
              ListExt.to_string string_of_global "\\r" m.m_outputs;
              ListExt.to_string string_of_global "\\r" m.m_consts;
              ListExt.to_string string_of_global "\\r" m.m_fns;
              ListExt.to_string string_of_global "\\r" m.m_shared] in
-  Printf.fprintf oc "%s_globals [label=\"%s\", shape=rect, style=rounded]\n" m.m_name caption;
-  Printf.fprintf oc "}\n";
-  close_out oc;
-  fname :: fnames' (*@ fnames''*)
+     Printf.fprintf oc "%s_globals [label=\"%s\", shape=rect, style=rounded]\n" m.m_name caption;
+     Printf.fprintf oc "}\n";
+     close_out oc;
+     fname :: fnames
   
 (* Printing *)
 

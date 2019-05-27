@@ -1,6 +1,6 @@
 # Changes
 
-# 1.5 (Apr xx, 2019)
+# 1.5 (May XX, 2019)
 * New syntax for FSM models. Transitions are now written:
      `| src_state -> dst_state ON ev [WHEN guards] [WITH actions]`
      `| -> init_state [WITH actions]`
@@ -20,6 +20,7 @@
 * The `configure` script now writes file a `lib/etc/platform` containing platform-specific
   definitions to be used in generated Makefiles
 * Source code for all examples rewritten as FSM model(s) + testbench + `.pro` file
+* Revamped GUI with support for projects
 
 # 1.4 (Mar 9, 2019)
 * Major code recrafting (lib and compiler)

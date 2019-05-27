@@ -2,21 +2,18 @@ ide;general;-dot_external_viewer;Arg.Unit;;use DOTVIEWER external program for vi
 ide;general;-txt_external_viewer;Arg.Unit;;use TXTVIEWER external program for viewing .{c,h,cpp,vhd} files
 ide;dot;-dot_options;Arg.String;;options for calling the DOT program (ex: -Grankdir=LR)
 noide;general;-lib;Arg.String;set_lib_dir;set location of the support library (default: /usr/local/rfsm/lib)
-noide;general;-dump_static;Arg.Unit;set_dump_static;dump static representation of program to stdout
+noide;general;-main;Arg.String;set_main_prefix;set prefix for the generated main files
+noide;general;-dump_static;Arg.Unit;set_dump_static;dump static representation of model(s)/program to stdout
 noide;general;-target_dir;Arg.String;set_target_dir;set target directory (default: .)
-noide;general;-dot;Arg.Unit;set_dot;generate top-level .dot representation(s)
+noide;general;-dot;Arg.Unit;set_dot;generate .dot representation of model(s)/program
 noide;general;-ctask;Arg.Unit;set_ctask;generate CTask code
 noide;general;-systemc;Arg.Unit;set_systemc;generate SystemC code
 noide;general;-vhdl;Arg.Unit;set_vhdl;generate VHDL code
 noide;general;-sim;Arg.Unit;set_sim;run simulation (generating .vcd file)
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
-noide;general;-main;Arg.String;set_main_name;set main model name (default: name of the last given input file)
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
-ide;dot;-dot_fsm_insts;Arg.Unit;set_dot_fsm_insts;generate .dot representation of all FSM instances
-ide;dot;-dot_fsm_models;Arg.Unit;set_dot_fsm_models;generate .dot representation of all FSM models
 ide;dot;-dot_actions_nl;Arg.Unit;set_dot_actions_nl;write actions with with a separating newline
 noide;sim;-trace;Arg.Int;set_trace;set trace level for simulation (default: 0)
-noide;sim;-vcd;Arg.String;set_vcd_file;set name of .vcd output file when running simulation (default: run.vcd)
 ide;general;-synchronous_actions;Arg.Unit;set_synchronous_actions;interpret actions synchronously
 ide;systemc;-sc_time_unit;Arg.String;set_systemc_time_unit;set time unit for the SystemC test-bench (default: SC_NS)
 ide;systemc;-sc_trace;Arg.Unit;set_sc_trace;set trace mode for SystemC backend (default: false)
@@ -28,3 +25,6 @@ ide;vhdl;-vhdl_ev_duration;Arg.Int;set_vhdl_ev_duration;set duration of event si
 ide;vhdl;-vhdl_rst_duration;Arg.Int;set_vhdl_ev_duration;set duration of reset signals (default: 1 ns)
 ide;vhdl;-vhdl_numeric_std;Arg.Unit;set_vhdl_use_numeric_std;translate integers as numeric_std [un]signed (default: false)
 ide;vhdl;-vhdl_bool_as_bool;Arg.Unit;set_vhdl_bool_as_bool;translate all booleans as boolean (default: false)
+ide;vhdl;-vhdl_dump_ghw;Arg.Unit;set_vhdl_dump_ghw;make GHDL generate trace files in .ghw format instead of .vcd
+noide;general;-old_syntax;Arg.Unit;set_old_syntax;use old (pre-1.5) syntax
+noide;general;-transl_syntax;Arg.Unit;set_transl_syntax;convert old syntax to new syntax

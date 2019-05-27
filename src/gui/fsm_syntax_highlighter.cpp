@@ -17,16 +17,19 @@ FsmSyntaxHighlighter::FsmSyntaxHighlighter(QTextDocument *parent)
     HighlightingRule rule;
 
     rule.format.setForeground(Qt::blue);
-    rule.format.setFontWeight(QFont::Bold);
+    //rule.format.setFontWeight(QFont::Bold);
     rule.pattern = QRegExp("\\btype\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bfsm\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bmodel\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\binput\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\boutput\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bshared\\b"); highlightingRules.append(rule);
-    rule.pattern = QRegExp("\\s--\\s"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\s->\\s"); highlightingRules.append(rule);
-    rule.pattern = QRegExp("\\s|\\s"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\bon\\b"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\bwhen\\b"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\bwith\\b"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\|\\s"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("!\\s"); highlightingRules.append(rule);
     rule.format.setForeground(Qt::darkGreen);
     rule.format.setFontWeight(QFont::Normal);
     //rule.pattern = QRegExp("#[a-z]+\\b"); highlightingRules.append(rule);
@@ -44,8 +47,9 @@ FsmSyntaxHighlighter::FsmSyntaxHighlighter(QTextDocument *parent)
     rule.pattern = QRegExp("\\bevent\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bint\\b"); highlightingRules.append(rule);
     rule.pattern = QRegExp("\\bbool\\b"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("\\barray\\b"); highlightingRules.append(rule);
     //rule.pattern = QRegExp("[A-Za-z]+\\s*:"); highlightingRules.append(rule);
     rule.format.setForeground(Qt::gray);
     rule.format.setFontItalic(true);
-    rule.pattern = QRegExp("#[^\n]*"); highlightingRules.append(rule);
+    rule.pattern = QRegExp("-- [^\n]*"); highlightingRules.append(rule);
 }

@@ -12,19 +12,20 @@
 #ifndef _app_file_h
 #define _app_file_h
 
-#include <QTextEdit>
+#include <QPlainTextEdit>
 #include "syntax_highlighter.h"
 
 class AppFile {
 public:
-    bool readOnly;
+    bool ronly;
     bool upToDate;
-    QString path;
     QFileInfo info;
-    QTextEdit* text;
+    QPlainTextEdit* text;
     SyntaxHighlighter *syntax;
-    AppFile(QString path, bool readOnly, bool upToDate, QTextEdit *edit, SyntaxHighlighter *sh)
-      : readOnly(readOnly), upToDate(upToDate), path(path), info(path), text(edit), syntax(sh) { }
+    AppFile(QString path, bool ronly, QPlainTextEdit *edit, SyntaxHighlighter *sh)
+      : ronly(ronly), upToDate(true), info(path), text(edit), syntax(sh) { }
+    AppFile()
+      : ronly(true), upToDate(true), info(""), text(NULL), syntax(NULL) { }
     ~AppFile() {
         if ( syntax != NULL ) delete syntax;
         if ( text != NULL ) delete text;

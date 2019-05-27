@@ -23,11 +23,11 @@ int main(int argc, char *argv[])
     parser.addVersionOption();
     // QCommandLineOption showFileInfoOption("f", "Display file info");
     // parser.addOption(showFileInfoOption);
-    parser.addPositionalArgument("directory", "The directory to start in.");
+    parser.addPositionalArgument("project file", "Project file to open.");
     parser.process(app);
-    QString initDir = parser.positionalArguments().isEmpty() ? "" : parser.positionalArguments().at(0);
+    QString projFile = parser.positionalArguments().isEmpty() ? "" : parser.positionalArguments().at(0);
 
-    MainWindow w(initDir);
+    MainWindow w(projFile);
     w.show();
 
     return app.exec();

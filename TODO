@@ -1,6 +1,7 @@
 COMPILER
 
 - ocamlbuild -> dune (?)
+- rewrite menhir parser with $sloc+%inline (cf OCaml 4.08 srcs)
 - use cmake for building GUI
 - support for synchronous actions in CTask and SystemC
 - allow arrays as parameters (ex: [fsm model m <t: int array[4]])
@@ -25,9 +26,8 @@ DOC
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
 
 GUI
-- project tree view
-- About window
-- use project file
+- use a form to edit project
+- About window on Windows
 
 SITE
 - new syntax for examples

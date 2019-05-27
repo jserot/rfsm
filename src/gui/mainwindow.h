@@ -18,6 +18,7 @@
 #include <QFileSystemModel>
 #include "file_filter.h"
 #include "app_file.h"
+#include "project.h"
 #include "command.h"
 #include "syntax_highlighter.h"
 #include "imageviewer.h"
@@ -37,31 +38,46 @@ public:
 
 private slots:
 
-  //void openFile();
-    void openDir();
     void newFile();
-    void saveFile();
-    void saveFileAs();
-    void saveAll();
+    void openFile();
+    void saveCurrentFile();
+    void saveCurrentFileAs();
     void closeCurrentFile();
-    void closeAll();
+    void closeAllFiles();
     void quit();
     void about();
-    void select(QModelIndex idx);
+
+    void newProject();
+    void openProject();
+    void editProject();
+    void addFileToProject();
+    /* void addCurrentFileToProject(); */
+    /* void saveProject(); */
+    /* void saveProjectAs(); */
+    void closeProject();
+
+    void makeDotFile();
+    void makeDotProject();
+    void makeCTaskFile();
+    void makeCTaskProject();
+    void makeSystemCFile();
+    void makeSystemCProject();
+    void makeVHDLFile();
+    void makeVHDLProject();
+    void makeSim();
 
     void selectAllText();
     void copyText();
     void cutText();
     void pasteText();
 
-    void textHasBeenModified();
-    void tabChanged(int);
+    void zoomIn(); 
+    void zoomOut();
+    void normalSize();
+    void fitToWindow();
 
-    void makeDot();
-    void makeSim();
-    void makeCTask();
-    void makeSystemC();
-    void makeVHDL();
+    void textHasBeenModified();
+    void tabChanged(int index);
 
     void setGeneralOptions();
     void setPaths();
@@ -70,28 +86,30 @@ private slots:
     void readProcStdout();
     void readProcStderr();
 
+    void select(QModelIndex idx);
     void closeFileTab(int index);
-
-    void zoomIn(); 
-    void zoomOut();
-    void normalSize();
-    void fitToWindow();
 
 private:
     void setDir(QString path);
+    void setTreeView(QString path);
     void createMenus();
     void updateViewActions();
     void createViewActions();
 
-    void compile(QString type, QString baseCmd, QString targetDir);
+    void makeDot(bool inProject);
+    void makeCTask(bool inProject);
+    void makeSystemC(bool inProject);
+    void makeVHDL(bool inProject);
+
+    void compile(QString type, QString baseCmd, QString targetDir, bool inProject);
     void dotTransform(QFileInfo f, QString dir);
-    void addFileTab(QString fname, bool ronly=false, bool isTemp=false);
+    void addFileTab(QString fname, bool ronly, bool isTemp);
 
     void openGeneratedFiles(QString type, QString path);
     void openOutputFile(QString type,QString filename, QString dir);
 
-    void saveIndexedFile(int ind);
-    void closeIndexedFile(int ind);
+    void closeIndexedFile(int tabIndex);
+    void saveIndexedFile(int tabIndex, QString path);
 
     void closeEvent(QCloseEvent *event);
 
@@ -114,6 +132,10 @@ private:
 protected:
     static QStringList excludedFiles;
     static QStringList acceptedSuffixes;
+    static QStringList editableSuffixes;
+    static QStringList ignoredAnswerPrefixes;
+
+    bool ignore_answer(QString r);
 
 private:
     QFileSystemModel model;
@@ -121,8 +143,11 @@ private:
     QString initDir;
     FileFilter *modelProxy;
     Ui::MainWindow *ui;
+    QMap<QWidget*,AppFile*> openedFiles;
+    Project* project;
 
-    QList<AppFile*> openedFiles;
+    QWidget* indexedWidget(int tabIndex);
+    AppFile* indexedFile(int tabIndex);
 
     QProcess proc; 
 
