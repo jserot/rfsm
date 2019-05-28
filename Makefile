@@ -216,7 +216,7 @@ RFSM_VOLUME=Rfsm-$(VERSION)
 macos-installer:
 	@echo "** Creating disk image"
 	rm -f /tmp/Rfsm.dmg
-	hdiutil create -size 48m -fs HFS+ -volname "$(RFSM_VOLUME)" /tmp/Rfsm.dmg
+	hdiutil create -size 64m -fs HFS+ -volname "$(RFSM_VOLUME)" /tmp/Rfsm.dmg
 	hdiutil attach /tmp/Rfsm.dmg
 	cp -r $(MACOS_DIST)/Rfsm.app /Volumes/$(RFSM_VOLUME)
 	ln -s /Applications /Volumes/$(RFSM_VOLUME)/Applications

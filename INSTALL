@@ -33,6 +33,6 @@ Decompress the archive, cd to the source directory and type :
 2. ./make
 3. ./make install
 
-If you don't have Qt5 and/or don't want to build the GUI, pass the [--no-gui] option to [configure].
+If you don't have Qt5 and/or don't want to build the GUI, give the [--no-gui] option to [configure].
 
-If you don't have SystemC/VHDL and/or don't want to use the SystemC/VHDL backends, pass the [--no-libs] option to [configure].
+If you don't have SystemC/VHDL and/or don't want to use the SystemC/VHDL backends, give the [--no-libs] option to [configure].

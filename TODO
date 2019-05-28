@@ -1,5 +1,6 @@
 COMPILER
 
+- update links to web site
 - ocamlbuild -> dune (?)
 - rewrite menhir parser with $sloc+%inline (cf OCaml 4.08 srcs)
 - use cmake for building GUI
