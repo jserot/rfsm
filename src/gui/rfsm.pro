@@ -11,6 +11,7 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
+        ui_mainwindow.cpp \
     options.cpp \
     config.cpp \
     syntax_highlighter.cpp \ 
@@ -23,6 +24,7 @@ SOURCES += main.cpp\
     command.cpp
 
 HEADERS  += mainwindow.h \
+    ui_mainwindow.h \
     options.h \
     app_file.h \
     config.h \

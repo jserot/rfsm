@@ -1,6 +1,5 @@
 COMPILER
 
-- update links to web site
 - ocamlbuild -> dune (?)
 - rewrite menhir parser with $sloc+%inline (cf OCaml 4.08 srcs)
 - use cmake for building GUI
@@ -28,7 +27,7 @@ DOC
 
 GUI
 - use a form to edit project
-- About window on Windows
+- update URL in About window
 
 SITE
 - new syntax for examples

@@ -38,34 +38,26 @@ QStringList MainWindow::editableSuffixes = { "fsm" };
 
 QStringList MainWindow::ignoredAnswerPrefixes = { "** (ImageGlass", "(gtkwave-bin:" };
 
+QStringList MainWindow::specialOptions = { "-dot_external_viewer", "-txt_external_viewer" };
+
 MainWindow::MainWindow(QString projFile, QWidget *parent) :
   QMainWindow(parent),
+  ui(new Ui::MainWindow),
   modelProxy(NULL),
-  ui(new Ui::MainWindow)
+  project(NULL)
 {
   ui->setupUi(this);
 
   setWindowIcon(QPixmap( ":/img/icon.png" ));
-  createViewActions();
-  createMenus();
+  ui->createMenus(this);
+  setupFileActions();
+  setupProjectActions();
+  setupBuildActions();
+  setupEditActions();
+  setupViewActions();
+  setupConfigActions();
+  setupToolbar();
   // ui->inpFilesTab->setMovable(false);
-
-  connect(ui->openProjectButton, SIGNAL(clicked()), this, SLOT(openProject()));
-  connect(ui->openFileButton, SIGNAL(clicked()), this, SLOT(openFile()));
-  connect(ui->newFileButton, SIGNAL(clicked()), this, SLOT(newFile()));
-  // connect(ui->saveFileButton, SIGNAL(clicked()), this, SLOT(saveCurrentFile()));
-  // connect(ui->saveAllButton, SIGNAL(clicked()), this, SLOT(saveAll()));
-
-  connect(ui->compileDotFileButton, SIGNAL(clicked()), this, SLOT(makeDotFile()));
-  connect(ui->compileCTaskFileButton, SIGNAL(clicked()), this, SLOT(makeCTaskFile()));
-  connect(ui->compileSystemcFileButton, SIGNAL(clicked()), this, SLOT(makeSystemCFile()));
-  connect(ui->compileVHDLFileButton, SIGNAL(clicked()), this, SLOT(makeVHDLFile()));
-
-  connect(ui->compileDotProjectButton, SIGNAL(clicked()), this, SLOT(makeDotProject()));
-  connect(ui->compileCTaskProjectButton, SIGNAL(clicked()), this, SLOT(makeCTaskProject()));
-  connect(ui->compileSystemcProjectButton, SIGNAL(clicked()), this, SLOT(makeSystemCProject()));
-  connect(ui->compileVHDLProjectButton, SIGNAL(clicked()), this, SLOT(makeVHDLProject()));
-  connect(ui->runSimButton, SIGNAL(clicked()), this, SLOT(makeSim()));
 
   connect(&proc,SIGNAL(readyReadStandardOutput ()),this,  SLOT(readProcStdout()));
   connect(&proc,SIGNAL(readyReadStandardError ()),this,  SLOT(readProcStderr()));
@@ -89,8 +81,6 @@ MainWindow::MainWindow(QString projFile, QWidget *parent) :
     // openProject(f.canonicalFilePath());
     openProject();
     }
-  else
-    project = NULL;
 }
 
 void MainWindow::about(void)
@@ -98,6 +88,198 @@ void MainWindow::about(void)
   QMessageBox::about(this, tr("RFSM"),  // TO FIX
                      tr("<p>Reactive Finite State Machines</p><p>http://cloud.ip.uca.fr/~serot/rfsm</p><p>(C) 2019, J. Sérot, jocelyn.serot@uca.fr</p>"));
 }
+
+MainWindow::~MainWindow()
+{
+  delete ui;
+}
+
+// UI-related fonctions
+
+void MainWindow::setupFileActions()
+{
+  QObject::connect(ui->actionNewFile, SIGNAL(triggered()), this, SLOT(newFile()));
+  QObject::connect(ui->actionOpenFile, SIGNAL(triggered()), this, SLOT(openFile()));
+  QObject::connect(ui->actionSaveCurrentFile, SIGNAL(triggered()), this, SLOT(saveCurrentFile()));
+  QObject::connect(ui->actionSaveCurrentFileAs, SIGNAL(triggered()), this, SLOT(saveCurrentFileAs()));
+  QObject::connect(ui->actionCloseFile, SIGNAL(triggered()), this, SLOT(closeCurrentFile()));
+  QObject::connect(ui->actionCloseAllFiles, SIGNAL(triggered()), this, SLOT(closeAllFiles()));
+  QObject::connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(quit()));
+  QObject::connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
+  updateFileActions(false);
+}
+
+void MainWindow::updateFileActions(bool status)
+{
+  ui->actionSaveCurrentFile->setEnabled(status);
+  ui->actionSaveCurrentFileAs->setEnabled(status);
+  ui->actionCloseFile->setEnabled(status);
+  ui->actionCloseAllFiles->setEnabled(status);
+  // Other actions are always enabled
+}
+
+void MainWindow::setupProjectActions()
+{
+  QObject::connect(ui->actionNewProject, SIGNAL(triggered()), this, SLOT(newProject()));
+  QObject::connect(ui->actionOpenProject, SIGNAL(triggered()), this, SLOT(openProject()));
+  // QObject::connect(ui->actionAddCurrentFileToProject, SIGNAL(triggered()), this, SLOT(addCurrentFileToProject()));
+  QObject::connect(ui->actionAddFileToProject, SIGNAL(triggered()), this, SLOT(addFileToProject()));
+  QObject::connect(ui->actionEditProject, SIGNAL(triggered()), this, SLOT(editProject()));
+  // QObject::connect(ui->actionSaveProject, SIGNAL(triggered()), this, SLOT(saveProject()));
+  // QObject::connect(ui->actionSaveProjectAs, SIGNAL(triggered()), this, SLOT(saveProjectAs()));
+  QObject::connect(ui->actionCloseProject, SIGNAL(triggered()), this, SLOT(closeProject()));
+  updateProjectActions(false);
+}
+
+void MainWindow::updateProjectActions(bool status)
+{
+  ui->actionAddFileToProject->setEnabled(status);
+  ui->actionEditProject->setEnabled(status);
+  ui->actionCloseProject->setEnabled(status);
+  // Other actions are always enabled
+}
+
+void MainWindow::setupBuildActions()
+{
+  QObject::connect(ui->actionBuildDotFile, SIGNAL(triggered()), this, SLOT(makeDotFile()));
+  QObject::connect(ui->actionBuildCTaskFile, SIGNAL(triggered()), this, SLOT(makeCTaskFile()));
+  QObject::connect(ui->actionBuildSystemCFile, SIGNAL(triggered()), this, SLOT(makeSystemCFile()));
+  QObject::connect(ui->actionBuildVHDLFile, SIGNAL(triggered()), this, SLOT(makeVHDLFile()));
+  QObject::connect(ui->actionBuildDotProject, SIGNAL(triggered()), this, SLOT(makeDotProject()));
+  QObject::connect(ui->actionBuildCTaskProject, SIGNAL(triggered()), this, SLOT(makeCTaskProject()));
+  QObject::connect(ui->actionBuildSystemCProject, SIGNAL(triggered()), this, SLOT(makeSystemCProject()));
+  QObject::connect(ui->actionBuildVHDLProject, SIGNAL(triggered()), this, SLOT(makeVHDLProject()));
+  QObject::connect(ui->actionRunSim, SIGNAL(triggered()), this, SLOT(makeSim()));
+  updateBuildActions(false);
+}
+
+void MainWindow::updateBuildActions(bool status)
+{
+  ui->actionBuildDotFile->setEnabled(status);
+  ui->actionBuildCTaskFile->setEnabled(status);
+  ui->actionBuildSystemCFile->setEnabled(status);
+  ui->actionBuildVHDLFile->setEnabled(status);
+
+  ui->actionBuildDotProject->setEnabled(project != NULL && status);
+  ui->actionBuildCTaskProject->setEnabled(project != NULL && status);
+  ui->actionBuildSystemCProject->setEnabled(project != NULL && status);
+  ui->actionBuildVHDLProject->setEnabled(project != NULL && status);
+  ui->actionRunSim->setEnabled(project != NULL && status);
+}
+
+void MainWindow::setupEditActions()
+{
+  QObject::connect(ui->actionCopy, SIGNAL(triggered()), this, SLOT(copyText()));
+  QObject::connect(ui->actionCut, SIGNAL(triggered()), this, SLOT(cutText()));
+  QObject::connect(ui->actionPaste, SIGNAL(triggered()), this, SLOT(pasteText()));
+  QObject::connect(ui->actionSelect, SIGNAL(triggered()), this, SLOT(selectAllText()));
+}
+
+void MainWindow::setupViewActions()
+{
+  connect(ui->actionZoomIn, SIGNAL(triggered()), this, SLOT(zoomIn()));
+  connect(ui->actionZoomOut, SIGNAL(triggered()), this, SLOT(zoomOut()));
+  connect(ui->actionNormalSize, SIGNAL(triggered()), this, SLOT(normalSize()));
+  connect(ui->actionFitToWindow, SIGNAL(triggered()), this, SLOT(fitToWindow()));
+  updateViewActions(NULL);
+}
+
+void MainWindow::updateViewActions(ImageViewer *viewer)
+{
+  if ( viewer ) {
+    bool b = viewer->isFittedToWindow();
+    ui->actionFitToWindow->setEnabled(true);
+    ui->actionFitToWindow->setChecked(b);
+    ui->actionZoomIn->setEnabled(!b);
+    ui->actionZoomOut->setEnabled(!b);
+    ui->actionNormalSize->setEnabled(!b);
+    }
+  else {
+    ui->actionFitToWindow->setEnabled(false);
+    ui->actionZoomIn->setEnabled(false);
+    ui->actionZoomOut->setEnabled(false);
+    ui->actionNormalSize->setEnabled(false);
+    }
+}
+
+void MainWindow::setupConfigActions()
+{
+  QObject::connect(ui->actionPathConfig,SIGNAL(triggered()),this,SLOT(setPaths()));
+  QObject::connect(ui->actionGeneralOptions, SIGNAL(triggered()), this, SLOT(setGeneralOptions()));
+  QObject::connect(ui->actionFontConfig, SIGNAL(triggered()), this, SLOT(setCodeFont()));
+}
+
+void MainWindow::setupToolbar()
+{
+  connect(ui->openProjectButton, SIGNAL(clicked()), this, SLOT(openProject()));
+  connect(ui->openFileButton, SIGNAL(clicked()), this, SLOT(openFile()));
+  connect(ui->newFileButton, SIGNAL(clicked()), this, SLOT(newFile()));
+  // connect(ui->saveFileButton, SIGNAL(clicked()), this, SLOT(saveCurrentFile()));
+  // connect(ui->saveAllButton, SIGNAL(clicked()), this, SLOT(saveAll()));
+
+  connect(ui->compileDotFileButton, SIGNAL(clicked()), this, SLOT(makeDotFile()));
+  connect(ui->compileCTaskFileButton, SIGNAL(clicked()), this, SLOT(makeCTaskFile()));
+  connect(ui->compileSystemcFileButton, SIGNAL(clicked()), this, SLOT(makeSystemCFile()));
+  connect(ui->compileVHDLFileButton, SIGNAL(clicked()), this, SLOT(makeVHDLFile()));
+
+  connect(ui->compileDotProjectButton, SIGNAL(clicked()), this, SLOT(makeDotProject()));
+  connect(ui->compileCTaskProjectButton, SIGNAL(clicked()), this, SLOT(makeCTaskProject()));
+  connect(ui->compileSystemcProjectButton, SIGNAL(clicked()), this, SLOT(makeSystemCProject()));
+  connect(ui->compileVHDLProjectButton, SIGNAL(clicked()), this, SLOT(makeVHDLProject()));
+  connect(ui->runSimButton, SIGNAL(clicked()), this, SLOT(makeSim()));
+
+  updateToolbar(false);
+}
+
+void MainWindow::updateToolbar(bool status)
+{
+  ui->compileDotFileButton->setEnabled(status);
+  ui->compileCTaskFileButton->setEnabled(status);
+  ui->compileSystemcFileButton->setEnabled(status);
+  ui->compileVHDLFileButton->setEnabled(status);
+  ui->compileDotProjectButton->setEnabled(project != NULL && status);
+  ui->compileCTaskProjectButton->setEnabled(project != NULL && status);
+  ui->compileSystemcProjectButton->setEnabled(project != NULL && status);
+  ui->compileVHDLProjectButton->setEnabled(project != NULL && status);
+  ui->runSimButton->setEnabled(project != NULL && status);
+}
+
+void MainWindow::updateActions(void)
+{
+  int currentTab = ui->filesTab->count() > 0 ? ui->filesTab->currentIndex() : -1;
+  QString currentFile = currentTab >= 0 ? ui->filesTab->tabText(currentTab) : "";
+  bool srcFileSelected = !currentFile.isEmpty() && currentFile.endsWith(".fsm");
+  updateFileActions(srcFileSelected);
+  updateProjectActions(project != NULL);
+  updateBuildActions(project != NULL || srcFileSelected);
+  updateToolbar(srcFileSelected);
+  // updateEditActions(status); // TODO
+  updateViewActions(selectedImageViewer());
+}
+
+void MainWindow::setTreeView(QString path)
+{
+    model.setRootPath(path);
+    QModelIndex rootModelIndex = model.setRootPath(path);
+
+    if ( modelProxy ) delete modelProxy;
+    modelProxy = new FileFilter(&model, excludedFiles);
+    modelProxy->setSourceModel(&model);
+    //modelProxy->setSortRole(QFileSystemModel::FileNameRole);
+    //qDebug() << "Sort column : " << modelProxy->sortColumn();
+    model.fetchMore(model.index(0,0));  // Do not omit !
+    modelProxy->sort(3, Qt::DescendingOrder);  // Files first, then directories 
+    //qDebug() << "Sort column : " << modelProxy->sortColumn();
+    ui->treeView->setModel(modelProxy);
+    if (!path.isEmpty()) {
+      QModelIndex rootIndex = model.index(QDir::cleanPath(path));
+      if (rootIndex.isValid()) ui->treeView->setRootIndex(modelProxy->mapFromSource(rootModelIndex));
+      }
+    for ( int i=1; i<ui->treeView->header()->count(); i++ ) ui->treeView->hideColumn(i);
+    ui->treeView->setHeaderHidden(true);
+}
+
+// Reading .ini file
 
 void MainWindow::readInitFile(void)
 {
@@ -133,186 +315,39 @@ void MainWindow::readInitFile(void)
   iniFile->close();
 }
 
-MainWindow::~MainWindow()
+void writeInitfile(void)
 {
-  delete ui;
+  QString filedir = QApplication::applicationDirPath();
+  filedir.append("/rfsm.ini");
+  QFile* fic= new QFile(filedir);
+  if ( fic->exists() ) fic->remove();
+  if ( fic->open(QIODevice::WriteOnly | QIODevice::Text) == false ) return;
+  QTextStream flux(fic);
+  flux.setCodec("UTF-8");
+  flux << "COMPILER=" << config::getInstance()->getPath("compiler") << endl;
+  flux << "DOTPROGRAM=" << config::getInstance()->getPath("dotProgram") << endl;
+  flux << "DOTVIEWER=" << config::getInstance()->getPath("dotViewer") << endl;
+  flux << "VCDVIEWER=" << config::getInstance()->getPath("vcdViewer") << endl;
+  flux << "TXTVIEWER=" << config::getInstance()->getPath("txtViewer") << endl;
+  flux.flush();
+  fic->close();
 }
 
-void MainWindow::createMenus()
-{
-  menuBar()->clear();
 
-  QMenu *fileMenu = menuBar()->addMenu("&File");
-
-  QAction *actionNewFile = fileMenu->addAction("&New file");
-  QAction *actionOpenFile = fileMenu->addAction("&Open file");
-  QAction *actionSaveCurrentFile = fileMenu->addAction("&Save current file");
-  QAction *actionSaveCurrentFileAs = fileMenu->addAction("&Save current file as");
-  QAction *actionCloseFile = fileMenu->addAction("&Close file");
-  QAction *actionCloseAllFiles = fileMenu->addAction("&Close all files");
-  fileMenu->addSeparator();
-  QAction *actionAbout = fileMenu->addAction("&About");
-  QAction *actionQuit = fileMenu->addAction("&Quit");
-
-  QObject::connect(actionNewFile, SIGNAL(triggered()), this, SLOT(newFile()));
-  QObject::connect(actionOpenFile, SIGNAL(triggered()), this, SLOT(openFile()));
-  QObject::connect(actionSaveCurrentFile, SIGNAL(triggered()), this, SLOT(saveCurrentFile()));
-  QObject::connect(actionSaveCurrentFileAs, SIGNAL(triggered()), this, SLOT(saveCurrentFileAs()));
-  QObject::connect(actionCloseFile, SIGNAL(triggered()), this, SLOT(closeCurrentFile()));
-  QObject::connect(actionCloseAllFiles, SIGNAL(triggered()), this, SLOT(closeAllFiles()));
-  QObject::connect(actionQuit, SIGNAL(triggered()), this, SLOT(quit()));
-  QObject::connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
-
-  actionNewFile->setShortcut(QKeySequence("Ctrl+N"));
-  // actionSaveFile->setShortcut(QKeySequence("Ctrl+S"));
-  actionQuit->setShortcut(QKeySequence("Ctrl+Q"));
-
-  QMenu *projectMenu = menuBar()->addMenu("&Project");
-
-  QAction *actionNewProject = projectMenu->addAction("&New project");
-  QAction *actionOpenProject = projectMenu->addAction("&Open project");
-  // QAction *actionAddCurrentFileToProject = projectMenu->addAction("&Add current file to project");
-  QAction *actionAddFileToProject = projectMenu->addAction("&Add file to project");
-  QAction *actionEditProject = projectMenu->addAction("&Edit project");
-  // QAction *actionSaveProject = projectMenu->addAction("&Save project");
-  // QAction *actionSaveProjectAs = projectMenu->addAction("&Save project as");
-  QAction *actionCloseProject = projectMenu->addAction("&Close project");
-
-  QObject::connect(actionNewProject, SIGNAL(triggered()), this, SLOT(newProject()));
-  QObject::connect(actionOpenProject, SIGNAL(triggered()), this, SLOT(openProject()));
-  // QObject::connect(actionAddCurrentFileToProject, SIGNAL(triggered()), this, SLOT(addCurrentFileToProject()));
-  QObject::connect(actionAddFileToProject, SIGNAL(triggered()), this, SLOT(addFileToProject()));
-  QObject::connect(actionEditProject, SIGNAL(triggered()), this, SLOT(editProject()));
-  // QObject::connect(actionSaveProject, SIGNAL(triggered()), this, SLOT(saveProject()));
-  // QObject::connect(actionSaveProjectAs, SIGNAL(triggered()), this, SLOT(saveProjectAs()));
-  QObject::connect(actionCloseProject, SIGNAL(triggered()), this, SLOT(closeProject()));
-
-  actionOpenProject->setShortcut(QKeySequence("Ctrl+O"));
-
-  QMenu *buildMenu = menuBar()->addMenu("Build");
-  QAction *actionBuildDotFile = buildMenu->addAction("&Build DOT representation for file");
-  QAction *actionBuildCTaskFile = buildMenu->addAction("&Build C code for file");
-  QAction *actionBuildSystemCFile = buildMenu->addAction("&Build SystemC code for file");
-  QAction *actionBuildVHDLFile = buildMenu->addAction("&Build VHDL code for file");
-  buildMenu->addSeparator();
-  QAction *actionBuildDotProject = buildMenu->addAction("&Build DOT representation for project");
-  QAction *actionBuildCTaskProject = buildMenu->addAction("&Build C code for project");
-  QAction *actionBuildSystemCProject = buildMenu->addAction("&Build SystemC code for project");
-  QAction *actionBuildVHDLProject = buildMenu->addAction("&Build VHDL code for project");
-  QAction *actionRunSim = buildMenu->addAction("&Run simulation for project");
-
-  QObject::connect(actionBuildDotFile, SIGNAL(triggered()), this, SLOT(makeDotFile()));
-  QObject::connect(actionBuildCTaskFile, SIGNAL(triggered()), this, SLOT(makeCTaskFile()));
-  QObject::connect(actionBuildSystemCFile, SIGNAL(triggered()), this, SLOT(makeSystemCFile()));
-  QObject::connect(actionBuildVHDLFile, SIGNAL(triggered()), this, SLOT(makeVHDLFile()));
-  QObject::connect(actionBuildDotProject, SIGNAL(triggered()), this, SLOT(makeDotProject()));
-  QObject::connect(actionBuildCTaskProject, SIGNAL(triggered()), this, SLOT(makeCTaskProject()));
-  QObject::connect(actionBuildSystemCProject, SIGNAL(triggered()), this, SLOT(makeSystemCProject()));
-  QObject::connect(actionBuildVHDLProject, SIGNAL(triggered()), this, SLOT(makeVHDLProject()));
-  QObject::connect(actionRunSim, SIGNAL(triggered()), this, SLOT(makeSim()));
-
-  QMenu *editMenu = menuBar()->addMenu("&Edit");
-
-  QAction *actionCopy = editMenu->addAction("&Copy");
-  QAction *actionCut = editMenu->addAction("&Cut");
-  QAction *actionPaste = editMenu->addAction("&Paste");
-  QAction *actionSelect = editMenu->addAction("&Select all");
-
-  QObject::connect(actionCopy, SIGNAL(triggered()), this, SLOT(copyText()));
-  QObject::connect(actionCut, SIGNAL(triggered()), this, SLOT(cutText()));
-  QObject::connect(actionPaste, SIGNAL(triggered()), this, SLOT(pasteText()));
-  QObject::connect(actionSelect, SIGNAL(triggered()), this, SLOT(selectAllText()));
-
-  // QString ICON_NEW(":/img/new.png");
-  // QString ICON_OPEN( ":/img/open.png");
-  // QString ICON_SAVE( ":/img/save.png");
-  // QString ICON_SAVEALL( ":/img/saveall.png");
-  // QString ICON_QUIT(":/img/exit.png");
-  // QString ICON_COPY(":/img/copier.png");
-  // QString ICON_CUT(":/img/couper.png");
-  // QString ICON_PASTE(":/img/coller.png");
-  // QString ICON_SELECT(":/img/select_all.png");
-  // QString ICON_COLOR(":/img/color.png");
-  // QString ICON_PREF(":/img/preferences.png");
-  // QString ICON_CLOSEF(":/img/closefile.png");
-
-  // actionOpenProject->setIcon(QIcon(ICON_OPEN));
-  // actionNewFile->setIcon(QIcon(ICON_NEW));
-  // // actionSaveFile->setIcon(QIcon(ICON_SAVE));
-  // // actionSaveAll->setIcon(QIcon(ICON_SAVEALL));
-  // actionQuit->setIcon(QIcon(ICON_QUIT));
-  // actionCopy->setIcon(QIcon(ICON_COPY));
-  // actionCut->setIcon(QIcon(ICON_CUT));
-  // actionPaste->setIcon(QIcon(ICON_PASTE));
-  // actionSelect->setIcon(QIcon(ICON_SELECT));
-  // actionCloseFile->setIcon(QIcon(ICON_CLOSEF));
-
-  QMenu *viewMenu = menuBar()->addMenu("View");
-
-  viewMenu->addAction(zoomInAct);
-  viewMenu->addAction(zoomOutAct);
-  viewMenu->addAction(normalSizeAct);
-  viewMenu->addSeparator();
-  viewMenu->addAction(fitToWindowAct);
-
-  QMenu *menuConfig = menuBar()->addMenu("Configuration");
-  QAction *pathConfig = menuConfig->addAction("&Compiler and tools");
-  QAction *fontConfig = menuConfig->addAction("&Code font");
-
-  QObject::connect(pathConfig,SIGNAL(triggered()),this,SLOT(setPaths()));
-  QObject::connect(fontConfig, SIGNAL(triggered()), this, SLOT(setCodeFont()));
-}
-
-void MainWindow::createViewActions()
-{
-  zoomInAct = new QAction(QString("Zoom &In"), this);
-  zoomInAct->setShortcut(tr("Ctrl++"));
-  zoomInAct->setEnabled(false);
-  connect(zoomInAct, SIGNAL(triggered()), this, SLOT(zoomIn()));
-
-  zoomOutAct = new QAction(QString("Zoom &Out"), this);
-  zoomOutAct->setShortcut(tr("Ctrl+-"));
-  zoomOutAct->setEnabled(false);
-  connect(zoomOutAct, SIGNAL(triggered()), this, SLOT(zoomOut()));
-
-  normalSizeAct = new QAction(tr("&Normal Size (100%)"), this);
-  normalSizeAct->setShortcut(tr("Ctrl+0"));
-  normalSizeAct->setEnabled(false);
-  connect(normalSizeAct, SIGNAL(triggered()), this, SLOT(normalSize()));
-
-  fitToWindowAct = new QAction(tr("&Fit to Window"), this);
-  fitToWindowAct->setEnabled(false);
-  fitToWindowAct->setCheckable(true);
-  fitToWindowAct->setShortcut(tr("Ctrl+F"));
-  connect(fitToWindowAct, SIGNAL(triggered()), this, SLOT(fitToWindow()));
-}
-
-void MainWindow::setTreeView(QString path)
-{
-    model.setRootPath(path);
-    QModelIndex rootModelIndex = model.setRootPath(path);
-
-    if ( modelProxy ) delete modelProxy;
-    modelProxy = new FileFilter(&model, excludedFiles);
-    modelProxy->setSourceModel(&model);
-    //modelProxy->setSortRole(QFileSystemModel::FileNameRole);
-    //qDebug() << "Sort column : " << modelProxy->sortColumn();
-    model.fetchMore(model.index(0,0));  // Do not omit !
-    modelProxy->sort(3, Qt::DescendingOrder);  // Files first, then directories 
-    //qDebug() << "Sort column : " << modelProxy->sortColumn();
-    ui->treeView->setModel(modelProxy);
-    if (!path.isEmpty()) {
-      QModelIndex rootIndex = model.index(QDir::cleanPath(path));
-      if (rootIndex.isValid()) ui->treeView->setRootIndex(modelProxy->mapFromSource(rootModelIndex));
-      }
-    for ( int i=1; i<ui->treeView->header()->count(); i++ ) ui->treeView->hideColumn(i);
-    ui->treeView->setHeaderHidden(true);
-}
+// TABed file management
 
 QWidget* MainWindow::indexedWidget(int tabIndex)
 {
   QWidget *r = ui->filesTab->widget(tabIndex);
   return r;
+}
+
+AppFile* MainWindow::indexedFile(int tabIndex)
+{
+  QWidget* w = indexedWidget(tabIndex);
+  if ( w == NULL ) return NULL;
+  if ( ! openedFiles.contains(w) ) return NULL; 
+  return openedFiles.value(w);
 }
 
 void MainWindow::closeIndexedFile(int index)
@@ -342,14 +377,6 @@ void MainWindow::closeIndexedFile(int index)
   openedFiles.remove(w);
 }
 
-AppFile* MainWindow::indexedFile(int tabIndex)
-{
-  QWidget* w = indexedWidget(tabIndex);
-  if ( w == NULL ) return NULL;
-  if ( ! openedFiles.contains(w) ) return NULL; 
-  return openedFiles.value(w);
-}
-
 void MainWindow::closeFileTab(int index)
 {
   closeIndexedFile(index);
@@ -358,10 +385,62 @@ void MainWindow::closeFileTab(int index)
 
 void MainWindow::tabChanged(int index)
 {
-  updateViewActions();
+  updateActions();
 }
 
-// File manipulation 
+QString changeSuffix(QString fname, QString suffix)
+{
+  QFileInfo f(fname);
+  return f.path() + "/" + f.completeBaseName() + suffix;
+}
+
+SyntaxHighlighter* makeSyntaxHighlighter(QString suffix, QTextDocument* doc)
+{
+    if ( suffix == "fsm" ) return new FsmSyntaxHighlighter(doc);
+    if ( suffix == "c" || suffix == "h" || suffix == "cpp" ) return new CTaskSyntaxHighlighter(doc);
+    return NULL;
+}
+
+void MainWindow::addFileTab(QString fname, bool ronly, bool isTemp)
+{
+  QFile file(fname);
+  QFileInfo f(fname);
+  if ( ! file.open(QIODevice::ReadOnly | QIODevice::Text) ) {
+      QMessageBox::warning(this,"Error:","cannot open file:\n"+fname);
+      return;
+    }
+  if ( f.suffix() == "gif" ) {
+    QPixmap pixmap(f.filePath());
+    ImageViewer *viewer = new ImageViewer();
+    viewer->setPixmap(pixmap);
+    viewer->setWhatsThis("ImageViewer");
+    ui->filesTab->addTab(viewer, changeSuffix(f.fileName(),".dot"));
+    //AppFile* openedFile = new AppFile(fname, true, viewer, NULL);
+    //openedFiles.insert(edit, openedFile);
+    QSize sz1 = pixmap.size();
+    QSize sz2 = ui->filesTab->currentWidget()->size();
+    viewer->scaleImage((double)sz2.height()/sz1.height());
+    } 
+  else {
+    QPlainTextEdit* edit = new QPlainTextEdit();
+#ifdef Q_OS_MACOS
+    edit->setFont(codeFont);
+#endif
+    edit->setWhatsThis("TextEditor");
+    edit->setPlainText(QString::fromUtf8(file.readAll()));
+    edit->setReadOnly(ronly);
+    ui->filesTab->addTab(edit, isTemp ? "new" : f.fileName());
+    SyntaxHighlighter* highlighter = makeSyntaxHighlighter(f.suffix(), edit->document());
+    AppFile* openedFile = new AppFile(fname, ronly, edit, highlighter);
+    openedFiles.insert(edit, openedFile);
+    if ( ! ronly ) QObject::connect(edit, SIGNAL(modificationChanged(bool)), this, SLOT(textHasBeenModified()));
+    }
+  ui->filesTab->setCurrentIndex(ui->filesTab->count()-1);
+  updateActions();
+}
+
+
+// FILE operations 
 
 void MainWindow::newFile()
 {
@@ -372,6 +451,7 @@ void MainWindow::newFile()
   f.open(QIODevice::ReadWrite);
   qDebug() << "Created file " << path;
   addFileTab(path, false, false);
+  updateActions();
 }
 
 void MainWindow::openFile()
@@ -383,6 +463,7 @@ void MainWindow::openFile()
   QFileInfo f(fileName);
   ui->logText->append("Opening file " + f.canonicalFilePath());
   addFileTab(f.canonicalFilePath(), false, false);
+  updateActions();
 }
 
 void MainWindow::saveCurrentFile()
@@ -436,12 +517,14 @@ void MainWindow::saveIndexedFile(int ind, QString newSavePath)
 void MainWindow::closeCurrentFile()
 {
   closeFileTab(ui->filesTab->currentIndex());
+  updateActions();
 }
 
 void MainWindow::closeAllFiles()
 {
   while ( ui->filesTab->count() > 0 )
     closeFileTab(ui->filesTab->currentIndex());
+  updateActions();
 }
 
 // void MainWindow::saveAll()
@@ -452,7 +535,7 @@ void MainWindow::closeAllFiles()
 //     }
 // }
 
-// Project manipulation
+// PROJECT operations
 
 void MainWindow::newProject()
 {
@@ -473,6 +556,7 @@ void MainWindow::newProject()
   project = new Project();
   project->writeToFile(ff.canonicalFilePath());
   setTreeView(ff.canonicalPath());
+  updateActions();
 }
 
 void MainWindow::openProject()
@@ -487,6 +571,7 @@ void MainWindow::openProject()
   if ( project != NULL ) closeProject();
   project = new Project(f.canonicalFilePath());
   setTreeView(f.canonicalPath());
+  updateActions();
 }
 
 QStringList getProjFile(QString path)
@@ -552,9 +637,10 @@ void MainWindow::closeProject()
   delete project;
   project = NULL;
   setTreeView(""); // TO FIX !
+  updateActions();
 }
 
-// Others 
+// EDIT operations 
 
 void MainWindow::keyPressed(int key)
 {
@@ -570,16 +656,65 @@ void MainWindow::cutText() { keyPressed(Qt::Key_X); }
 void MainWindow::pasteText() { keyPressed(Qt::Key_V); }
 void MainWindow::selectAllText() { keyPressed(Qt::Key_A); }
 
-void MainWindow::quit()
+// VIEW operations 
+
+void MainWindow::setCodeFont()
 {
-  closeAllFiles();
-  close();
+  bool ok;
+  QFont font = QFontDialog::getFont(&ok, QFont("Courier", 10), this);
+  if ( ok ) {
+    foreach (AppFile* f, openedFiles) f->text->setFont(font);
+    codeFont = font;
+    }
 }
 
-void MainWindow::closeEvent(QCloseEvent *)
+void MainWindow::zoomIn()
 {
-  this->quit();
+  scaleImage(1.25);
 }
+
+
+void MainWindow::zoomOut()
+{
+  scaleImage(0.8);
+}
+
+void MainWindow::normalSize()
+{
+  ImageViewer *viewer = selectedImageViewer();
+  if ( viewer == NULL ) return;
+  viewer->adjustImageSize();
+  // updateSelectedTabTitle(); // TODO ? 
+}
+
+void MainWindow::fitToWindow()
+{
+  ImageViewer *viewer = selectedImageViewer();
+  if ( viewer == NULL ) return;
+  viewer->fitToWindow(ui->actionFitToWindow->isChecked() );
+  updateViewActions(viewer);
+}
+
+ImageViewer* MainWindow::selectedImageViewer()
+{
+  int i = ui->filesTab->currentIndex();
+  if ( i < 0 ) return NULL;
+  QWidget *tab = ui->filesTab->widget(i);
+  return tab->whatsThis() == "ImageViewer" ? (ImageViewer *)tab : NULL;
+}
+
+void MainWindow::scaleImage(double factor)
+{
+  ImageViewer *viewer = selectedImageViewer();
+  if ( viewer == NULL ) return;
+  double newScaleFactor = factor * viewer->getScaleFactor();
+  viewer->scaleImage(newScaleFactor);
+  ui->actionZoomIn->setEnabled(newScaleFactor < 3.0);
+  ui->actionZoomOut->setEnabled(newScaleFactor > 0.33);
+  // updateSelectedTabTitle(); // TODO ? 
+}
+
+// CONFIG operations
 
 void MainWindow::setGeneralOptions()
 {
@@ -638,10 +773,13 @@ QString getOption(QString name)
     }
 }
 
+// BUILD operations
+
 bool MainWindow::executeCmd(QString wDir, QString cmd, bool sync)
 {
   bool r = false;
-  ui->logText->append("> " + cmd + " [" + wDir + "]");
+  ui->logText->append("> " + cmd);
+  // ui->logText->append("> " + cmd + " [" + wDir + "]");
   proc.setWorkingDirectory(wDir);
   proc.start(cmd);
   if ( proc.error() == QProcess::FailedToStart ) {
@@ -715,13 +853,13 @@ void MainWindow::compile(QString type, QString baseCmd, QString targetDir, bool 
     }
   else
     QMessageBox::warning(this, "", "Compilation failed");
+  updateActions();
 }
 
 void MainWindow::makeDot(bool inProject)
 {
   QString targetDir = "-target_dir ./dot";
-  QStringList exclude("-dot_options");
-  QString opts = getOptions("general") + getOptions("dot",exclude);
+  QString opts = getOptions("general",specialOptions) + getOptions("dot");
   //QStringList eraseFirst = { "*.dot", "*.gif" };
   compile("dot", " -dot " + targetDir + opts, "dot", inProject);
 }
@@ -732,7 +870,7 @@ void MainWindow::makeDotProject() { makeDot(true); }
 void MainWindow::makeCTask(bool inProject)
 {
   QString targetDir = "-target_dir ./ctask";
-  QString opts = getOptions("general") + getOptions("ctask");
+  QString opts = getOptions("general",specialOptions) + getOptions("ctask");
   //QStringList eraseFirst = { "*.c" };
   compile("ctask", " -ctask " + targetDir + opts, "ctask", inProject);
 }
@@ -743,7 +881,7 @@ void MainWindow::makeCTaskProject() { makeCTask(true); }
 void MainWindow::makeSystemC(bool inProject)
 {
   QString targetDir = "-target_dir ./systemc";
-  QString opts = getOptions("general") + getOptions("systemc");
+  QString opts = getOptions("general", specialOptions) + getOptions("systemc");
   //QStringList eraseFirst = { "*.h", "*.cpp" };
   compile("systemc", " -systemc " + targetDir + opts, "systemc", inProject);
 }
@@ -754,7 +892,7 @@ void MainWindow::makeSystemCProject() { makeSystemC(true); }
 void MainWindow::makeVHDL(bool inProject)
 {
   QString targetDir = "-target_dir ./vhdl";
-  QString opts = getOptions("general") + getOptions("vhdl");
+  QString opts = getOptions("general", specialOptions) + getOptions("vhdl");
   //QStringList eraseFirst = { "*.vhd" };
   compile("vhdl", " -vhdl " + targetDir + opts, "vhdl", inProject);
 }
@@ -765,8 +903,7 @@ void MainWindow::makeVHDLProject() { makeVHDL(true); }
 void MainWindow::makeSim()
 {
   QString targetDir = "-target_dir ./sim";
-  QStringList exclude("-sim_options");
-  QString opts = getOptions("general") + getOptions("sim",exclude);
+  QString opts = getOptions("general", specialOptions) + getOptions("sim");
   //QStringList eraseFirst = { "*.dot", "*.gif" };
   compile("sim", " -sim " + targetDir + opts, "sim", true);
 }
@@ -813,12 +950,6 @@ QStringList getFileList(QString fname)
     }
   ifile.close();
   return res;
-}
-
-QString changeSuffix(QString fname, QString suffix)
-{
-  QFileInfo f(fname);
-  return f.path() + "/" + f.completeBaseName() + suffix;
 }
 
 void MainWindow::dotTransform(QFileInfo f, QString wDir)
@@ -895,73 +1026,12 @@ void MainWindow::customView(QString toolName, QString fname, QString wDir)
      QMessageBox::warning(this, "", "No path specified for " + toolName);
 }
 
-SyntaxHighlighter* makeSyntaxHighlighter(QString suffix, QTextDocument* doc)
-{
-    if ( suffix == "fsm" ) return new FsmSyntaxHighlighter(doc);
-    if ( suffix == "c" || suffix == "h" || suffix == "cpp" ) return new CTaskSyntaxHighlighter(doc);
-    return NULL;
-}
-
-void MainWindow::addFileTab(QString fname, bool ronly, bool isTemp)
-{
-  QFile file(fname);
-  QFileInfo f(fname);
-  if ( ! file.open(QIODevice::ReadOnly | QIODevice::Text) ) {
-      QMessageBox::warning(this,"Error:","cannot open file:\n"+fname);
-      return;
-    }
-  if ( f.suffix() == "gif" ) {
-    QPixmap pixmap(f.filePath());
-    ImageViewer *viewer = new ImageViewer();
-    viewer->setPixmap(pixmap);
-    viewer->setWhatsThis("ImageViewer");
-    ui->filesTab->addTab(viewer, changeSuffix(f.fileName(),".dot"));
-    //AppFile* openedFile = new AppFile(fname, true, viewer, NULL);
-    //openedFiles.insert(edit, openedFile);
-    QSize sz1 = pixmap.size();
-    QSize sz2 = ui->filesTab->currentWidget()->size();
-    viewer->scaleImage((double)sz2.height()/sz1.height());
-    } 
-  else {
-    QPlainTextEdit* edit = new QPlainTextEdit();
-#ifdef Q_OS_MACOS
-    edit->setFont(codeFont);
-#endif
-    edit->setWhatsThis("TextEditor");
-    edit->setPlainText(QString::fromUtf8(file.readAll()));
-    edit->setReadOnly(ronly);
-    ui->filesTab->addTab(edit, isTemp ? "new" : f.fileName());
-    SyntaxHighlighter* highlighter = makeSyntaxHighlighter(f.suffix(), edit->document());
-    AppFile* openedFile = new AppFile(fname, ronly, edit, highlighter);
-    openedFiles.insert(edit, openedFile);
-    if ( ! ronly ) QObject::connect(edit, SIGNAL(modificationChanged(bool)), this, SLOT(textHasBeenModified()));
-    }
-  updateViewActions();
-  ui->filesTab->setCurrentIndex(ui->filesTab->count()-1);
-}
-
-void writeInifile(void)
-{
-  QString filedir = QApplication::applicationDirPath();
-  filedir.append("/rfsm.ini");
-  QFile* fic= new QFile(filedir);
-  if ( fic->exists() ) fic->remove();
-  if ( fic->open(QIODevice::WriteOnly | QIODevice::Text) == false ) return;
-  QTextStream flux(fic);
-  flux.setCodec("UTF-8");
-  flux << "COMPILER=" << config::getInstance()->getPath("compiler") << endl;
-  flux << "DOTPROGRAM=" << config::getInstance()->getPath("dotProgram") << endl;
-  flux << "DOTVIEWER=" << config::getInstance()->getPath("dotViewer") << endl;
-  flux << "VCDVIEWER=" << config::getInstance()->getPath("vcdViewer") << endl;
-  flux << "TXTVIEWER=" << config::getInstance()->getPath("txtViewer") << endl;
-  flux.flush();
-  fic->close();
-}
+// Misc
 
 void MainWindow::setPaths()
 {
   if ( ! config::getInstance()->exec() ) return;
-    writeInifile();
+    writeInitfile();
 }
 
 bool MainWindow::alreadyOpened(QString path)
@@ -987,81 +1057,6 @@ void MainWindow::textHasBeenModified()
     }
 }
 
-void MainWindow::setCodeFont()
-{
-  bool ok;
-  QFont font = QFontDialog::getFont(&ok, QFont("Courier", 10), this);
-  if ( ok ) {
-    foreach (AppFile* f, openedFiles) f->text->setFont(font);
-    codeFont = font;
-    }
-}
-
-void MainWindow::zoomIn()
-{
-  scaleImage(1.25);
-}
-
-
-void MainWindow::zoomOut()
-{
-  scaleImage(0.8);
-}
-
-void MainWindow::normalSize()
-{
-  ImageViewer *viewer = selectedImageViewer();
-  if ( viewer == NULL ) return;
-  viewer->adjustImageSize();
-  // updateSelectedTabTitle(); // TODO ? 
-}
-
-void MainWindow::fitToWindow()
-{
-  ImageViewer *viewer = selectedImageViewer();
-  if ( viewer == NULL ) return;
-  viewer->fitToWindow( fitToWindowAct->isChecked() );
-  updateViewActions();
-}
-
-ImageViewer* MainWindow::selectedImageViewer()
-{
-  int i = ui->filesTab->currentIndex();
-  if ( i < 0 ) return NULL;
-  QWidget *tab = ui->filesTab->widget(i);
-  return tab->whatsThis() == "ImageViewer" ? (ImageViewer *)tab : NULL;
-}
-
-void MainWindow::scaleImage(double factor)
-{
-  ImageViewer *viewer = selectedImageViewer();
-  if ( viewer == NULL ) return;
-  double newScaleFactor = factor * viewer->getScaleFactor();
-  viewer->scaleImage(newScaleFactor);
-  zoomInAct->setEnabled(newScaleFactor < 3.0);
-  zoomOutAct->setEnabled(newScaleFactor > 0.33);
-  // updateSelectedTabTitle(); // TODO ? 
-}
-
-void MainWindow::updateViewActions()
-{
-  ImageViewer *viewer = selectedImageViewer();
-  if ( viewer ) {
-    bool b = viewer->isFittedToWindow();
-    fitToWindowAct->setEnabled(true);
-    fitToWindowAct->setChecked(b);
-    zoomInAct->setEnabled(!b);
-    zoomOutAct->setEnabled(!b);
-    normalSizeAct->setEnabled(!b);
-    }
-  else {
-    fitToWindowAct->setEnabled(false);
-    zoomInAct->setEnabled(false);
-    zoomOutAct->setEnabled(false);
-    normalSizeAct->setEnabled(false);
-    }
-}
-
 void MainWindow::select(QModelIndex idx)
 {
   if ( ! idx.isValid() ) return; // should not happen
@@ -1077,3 +1072,15 @@ void MainWindow::select(QModelIndex idx)
       }
   addFileTab(path, !editableSuffixes.contains(f.suffix()), false);
 }
+
+void MainWindow::quit()
+{
+  closeAllFiles();
+  close();
+}
+
+void MainWindow::closeEvent(QCloseEvent *)
+{
+  this->quit();
+}
+

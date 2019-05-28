@@ -28,7 +28,7 @@ Options::Options(QWidget *parent)
     tabs = new QTabWidget(parent);
     addTab("General", "general");
     addTab("Dot", "dot");
-    addTab("Simu", "simu");
+    addTab("Sim", "sim");
     addTab("SystemC", "systemc");
     addTab("VHDL", "vhdl");
     QVBoxLayout *mainLayout = new QVBoxLayout();

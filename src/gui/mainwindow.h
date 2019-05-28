@@ -92,9 +92,21 @@ private slots:
 private:
     void setDir(QString path);
     void setTreeView(QString path);
-    void createMenus();
-    void updateViewActions();
-    void createViewActions();
+    void setupMenus();
+    void setupToolbar();
+    void updateToolbar(bool status);
+    void setupFileActions();
+    void updateFileActions(bool status);
+    void setupProjectActions();
+    void updateProjectActions(bool status);
+    void setupBuildActions();
+    void updateBuildActions(bool status);
+    void setupEditActions();
+    void updateEditActions(bool status);
+    void setupViewActions();
+    void updateViewActions(ImageViewer *viewer);
+    void setupConfigActions();
+    void updateActions();
 
     void makeDot(bool inProject);
     void makeCTask(bool inProject);
@@ -134,15 +146,19 @@ protected:
     static QStringList acceptedSuffixes;
     static QStringList editableSuffixes;
     static QStringList ignoredAnswerPrefixes;
+    static QStringList specialOptions;
 
     bool ignore_answer(QString r);
 
+    void enableCompileActions(bool status);
+
 private:
+    Ui::MainWindow *ui;
+
     QFileSystemModel model;
     QFont codeFont, logFont;
     QString initDir;
     FileFilter *modelProxy;
-    Ui::MainWindow *ui;
     QMap<QWidget*,AppFile*> openedFiles;
     Project* project;
 
@@ -150,11 +166,6 @@ private:
     AppFile* indexedFile(int tabIndex);
 
     QProcess proc; 
-
-    QAction *zoomInAct;
-    QAction *zoomOutAct;
-    QAction *normalSizeAct;
-    QAction *fitToWindowAct;
 };
 
 #endif // MAINWINDOW_H
