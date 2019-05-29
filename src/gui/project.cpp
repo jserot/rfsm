@@ -3,7 +3,6 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QTextStream>
-#include <QMessageBox>
 #include <QDebug>
 
 QString Project::fileSuffix = "pro";
@@ -16,6 +15,7 @@ bool Project::readFromFile(QString fname)
   QFileInfo fi(fname);
   file = fi.canonicalFilePath();
   dir = fi.absolutePath();
+  qDebug() << "Reading project file " << file << " in " << dir;
   QTextStream s(&f);
   while( ! s.atEnd() ) {
       QStringList l = s.readLine().split("=");
@@ -23,14 +23,14 @@ bool Project::readFromFile(QString fname)
       if ( l.length() == 2 && l[0] != "" && l[1] != "" ) {
           QString key = l[0].trimmed();
           QString val = l[1].trimmed();
-          qDebug() << "  Project file " << fname << ": key=" << key << " val=" << val ;
+          qDebug() << "  key=" << key << " val=" << val ;
           if ( key == "MAIN" ) mainName = val;
           if ( key == "SRCS" ) srcFiles = val.split(" ");
-          if ( key == "DOT_OPTIONS" ) dotOptions = val;
-          if ( key == "SIM_OPTIONS" ) simOptions = val;
-          if ( key == "CTASK_OPTIONS" ) ctaskOptions = val;
-          if ( key == "SYSTEMC_OPTIONS" ) systemcOptions = val;
-          if ( key == "VHDL_OPTIONS" ) vhdlOptions = val;
+          if ( key == "DOT_OPTS" ) dotOptions = val;
+          if ( key == "SIM_OPTS" ) simOptions = val;
+          if ( key == "CTASK_OPTS" ) ctaskOptions = val;
+          if ( key == "SYSTEMC_OPTS" ) systemcOptions = val;
+          if ( key == "VHDL_OPTS" ) vhdlOptions = val;
         }
     }
   s.flush();

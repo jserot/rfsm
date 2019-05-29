@@ -179,11 +179,11 @@ void Ui_MainWindow::createMenus(QMainWindow *MainWindow)
 
   actionNewProject = projectMenu->addAction("&New project");
   actionOpenProject = projectMenu->addAction("&Open project");
-  // actionAddCurrentFileToProject = projectMenu->addAction("&Add current file to project");
+  actionAddCurrentFileToProject = projectMenu->addAction("&Add current file to project");
   actionAddFileToProject = projectMenu->addAction("&Add file to project");
   actionEditProject = projectMenu->addAction("&Edit project");
-  // actionSaveProject = projectMenu->addAction("&Save project");
-  // actionSaveProjectAs = projectMenu->addAction("&Save project as");
+  actionSaveProject = projectMenu->addAction("&Save project");
+  actionSaveProjectAs = projectMenu->addAction("&Save project as");
   actionCloseProject = projectMenu->addAction("&Close project");
 
   actionAddFileToProject->setEnabled(false);

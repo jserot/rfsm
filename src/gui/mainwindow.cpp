@@ -81,6 +81,8 @@ MainWindow::MainWindow(QString projFile, QWidget *parent) :
     // openProject(f.canonicalFilePath());
     openProject();
     }
+
+  options = new Options(":options_spec.txt", this);
 }
 
 void MainWindow::about(void)
@@ -122,11 +124,11 @@ void MainWindow::setupProjectActions()
 {
   QObject::connect(ui->actionNewProject, SIGNAL(triggered()), this, SLOT(newProject()));
   QObject::connect(ui->actionOpenProject, SIGNAL(triggered()), this, SLOT(openProject()));
-  // QObject::connect(ui->actionAddCurrentFileToProject, SIGNAL(triggered()), this, SLOT(addCurrentFileToProject()));
+  QObject::connect(ui->actionAddCurrentFileToProject, SIGNAL(triggered()), this, SLOT(addCurrentFileToProject()));
   QObject::connect(ui->actionAddFileToProject, SIGNAL(triggered()), this, SLOT(addFileToProject()));
   QObject::connect(ui->actionEditProject, SIGNAL(triggered()), this, SLOT(editProject()));
-  // QObject::connect(ui->actionSaveProject, SIGNAL(triggered()), this, SLOT(saveProject()));
-  // QObject::connect(ui->actionSaveProjectAs, SIGNAL(triggered()), this, SLOT(saveProjectAs()));
+  QObject::connect(ui->actionSaveProject, SIGNAL(triggered()), this, SLOT(saveProject()));
+  QObject::connect(ui->actionSaveProjectAs, SIGNAL(triggered()), this, SLOT(saveProjectAs()));
   QObject::connect(ui->actionCloseProject, SIGNAL(triggered()), this, SLOT(closeProject()));
   updateProjectActions(false);
 }
@@ -237,11 +239,11 @@ void MainWindow::updateToolbar(bool status)
   ui->compileCTaskFileButton->setEnabled(status);
   ui->compileSystemcFileButton->setEnabled(status);
   ui->compileVHDLFileButton->setEnabled(status);
-  ui->compileDotProjectButton->setEnabled(project != NULL && status);
-  ui->compileCTaskProjectButton->setEnabled(project != NULL && status);
-  ui->compileSystemcProjectButton->setEnabled(project != NULL && status);
-  ui->compileVHDLProjectButton->setEnabled(project != NULL && status);
-  ui->runSimButton->setEnabled(project != NULL && status);
+  ui->compileDotProjectButton->setEnabled(project != NULL || status);
+  ui->compileCTaskProjectButton->setEnabled(project != NULL || status);
+  ui->compileSystemcProjectButton->setEnabled(project != NULL || status);
+  ui->compileVHDLProjectButton->setEnabled(project != NULL || status);
+  ui->runSimButton->setEnabled(project != NULL || status);
 }
 
 void MainWindow::updateActions(void)
@@ -570,6 +572,10 @@ void MainWindow::openProject()
   closeAllFiles();
   if ( project != NULL ) closeProject();
   project = new Project(f.canonicalFilePath());
+  QString msg;
+  if ( ( msg = options->readFromProject(project)) != "" )
+    QMessageBox::warning(this, "", "Error reading project file " + f.fileName() + ": " + msg);
+  ui->logText->append("Updated compiler options with settings from file " + f.fileName());
   setTreeView(f.canonicalPath());
   updateActions();
 }
@@ -580,44 +586,80 @@ QStringList getProjFile(QString path)
     return dir.entryList(QStringList () << "*.pro");
 }
 
-// void MainWindow::saveProject()
-// {
-//   // TODO: save .pro file
-// }
+void MainWindow::saveProject()
+{
+  if ( project == NULL ) return;
+  QString path = project->file;
+  ui->logText->append("Saving project file " + path);
+  QFile save(path);
+  if ( ! save.open(QFile::WriteOnly | QFile::Text) ) {
+      QMessageBox::warning(this,"Error:","cannot open file:\n"+ path + " for writing");
+      return;
+    }
+  QTextStream os(&save);
+  if ( ! project->mainName.isEmpty() )
+    os << "MAIN=" << project->mainName << endl;
+  os << "SRCS=" << project->srcFiles.join(" ") << endl;
+  // We save the options currently recorded in the configuration !
+  os << "DOT_OPTS=" << getOptions("dot") << endl;
+  os << "CTASK_OPTS=" << getOptions("ctask") << endl;
+  os << "SYSTEMC_OPTS=" << getOptions("systemc") << endl;
+  os << "VHDL_OPTS=" << getOptions("vhdl") << endl;
+  os << "SIM_OPTS=" << getOptions("sim") << endl;
+  save.flush();
+  save.close();
+}
 
-// void MainWindow::saveProjectAs()
-// {
-//   // TODO: save .pro file
-// }
+void MainWindow::saveProjectAs()
+{
+  QString saveName = QFileDialog::getSaveFileName(this, "Select location to save file", initDir);
+  if ( saveName.isEmpty() ) return;
+  project->file = saveName;
+  saveProject();
+  QFileInfo f(saveName);
+  project->dir = f.canonicalPath();
+}
 
 void MainWindow::editProject()
 {
-  // TODO: bring up options setting form
+  // TODO: bring up form for setting project name ans source files + compiler options
   // Meanwhile: simply the .pro file as text
   if ( project == NULL ) return;
   addFileTab(project->file, false, false);
 }
 
-// void MainWindow::addCurrentFileToProject()
-// {
-//   if ( project == NULL ) return;
-//   if ( ui->filesTab->count() == 0 ) return;
-//   int ind = ui->filesTab->currentIndex();
-//   AppFile *f = indexedFile(ind);
-//   if ( f == NULL ) return;
-//   // TODO: add f to project srcs list
-// }
+void MainWindow::addCurrentFileToProject()
+{
+  if ( project == NULL ) return;
+  if ( ui->filesTab->count() == 0 ) return;
+  int ind = ui->filesTab->currentIndex();
+  AppFile *f = indexedFile(ind);
+  if ( f == NULL ) return;
+  addFileToProject(f->info.canonicalFilePath());
+}
 
 void MainWindow::addFileToProject()
 {
   // Get file from dialog, copy to project dir, add to srcs list 
   if ( project == NULL ) return;
-  QString fileName = QFileDialog::getOpenFileName(this, tr("Select Source File"),
+  QString path = QFileDialog::getOpenFileName(this, tr("Select Source File"),
                                                 initDir,
                                                 tr("Source files (*.fsm)"));
-  if ( fileName.isEmpty() ) return;
-  QFileInfo fi(fileName);
-  QFile f(fileName);
+  if ( path.isEmpty() ) return;
+  addFileToProject(path);
+}
+
+void MainWindow::addFileToProject(QString path)
+{
+  QFileInfo fi(path);
+  QString fname = fi.fileName();
+  for ( int i=0; i<project->srcFiles.length(); i++ ) {
+    if ( fname == project->srcFiles.at(i) ) {
+      QMessageBox::warning(this, "", "File " + fname + " already belongs to project");
+      return;
+      }
+    }
+  QFile f(path);
   QString dst = project->dir + "/" + fi.fileName();
   f.copy(dst);
   ui->logText->append("File " + fi.canonicalFilePath() + " copied to " + dst);
@@ -718,29 +760,30 @@ void MainWindow::scaleImage(double factor)
 
 void MainWindow::setGeneralOptions()
 {
-  if ( ! Options::getInstance()->exec() ) return;
+  //if ( ! Options::getInstance()->exec() ) return;
+  options->show(this, "Options");
 }
 
-void clearOptions(void)
-{
-QMap<QString,AppOption> opts = Options::getInstance()->values;
-foreach ( AppOption opt, opts) {
-    switch ( opt.typ ) {
-      case AppOption::UnitOpt:
-        opt.checkbox->setChecked(false);
-        break;
-      case AppOption::StringOpt:
-      case AppOption::IntOpt:
-        opt.val->setText("");
-        break;
-      }
-  }
-}
+// void clearOptions(void)
+// {
+// QMap<QString,AppOption> opts = Options::getInstance()->values;
+// foreach ( AppOption opt, opts) {
+//     switch ( opt.typ ) {
+//       case AppOption::UnitOpt:
+//         opt.checkbox->setChecked(false);
+//         break;
+//       case AppOption::StringOpt:
+//       case AppOption::IntOpt:
+//         opt.val->setText("");
+//         break;
+//       }
+//   }
+// }
 
-QString getOptions(QString category, QStringList exclude=QStringList())
+QString MainWindow::getOptions(QString category, QStringList exclude)
 {
-  QMap<QString,AppOption> opts = Options::getInstance()->values;
-  QMapIterator<QString, AppOption> i(opts);
+  //QMap<QString,AppOption> opts = Options::getInstance()->values;
+  QMapIterator<QString, AppOption> i(options->opts);
   QString res;
   while ( i.hasNext() ) {
       i.next();
@@ -755,12 +798,12 @@ QString getOptions(QString category, QStringList exclude=QStringList())
   return res;
 }
 
-QString getOption(QString name)
+QString MainWindow::getOption(QString name)
 {
-  QMap<QString,AppOption> opts = Options::getInstance()->values;
-  Q_ASSERT(opts.contains(name));
-  AppOption opt = opts.value(name);
-  switch ( opt.typ ) {
+  //QMap<QString,AppOption> opts = Options::getInstance()->values;
+  Q_ASSERT(options.contains(name));
+  AppOption opt = options->opts.value(name);
+  switch ( opt.kind ) {
     case AppOption::UnitOpt:
       return opt.checkbox != NULL && opt.checkbox->isChecked() ? "on" : "off";
       break;

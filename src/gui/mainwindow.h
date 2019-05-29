@@ -19,6 +19,7 @@
 #include "file_filter.h"
 #include "app_file.h"
 #include "project.h"
+#include "options.h"
 #include "command.h"
 #include "syntax_highlighter.h"
 #include "imageviewer.h"
@@ -51,9 +52,9 @@ private slots:
     void openProject();
     void editProject();
     void addFileToProject();
-    /* void addCurrentFileToProject(); */
-    /* void saveProject(); */
-    /* void saveProjectAs(); */
+    void addCurrentFileToProject();
+    void saveProject();
+    void saveProjectAs();
     void closeProject();
 
     void makeDotFile();
@@ -108,6 +109,8 @@ private:
     void setupConfigActions();
     void updateActions();
 
+    void addFileToProject(QString path);
+
     void makeDot(bool inProject);
     void makeCTask(bool inProject);
     void makeSystemC(bool inProject);
@@ -139,6 +142,9 @@ private:
 
     void scaleImage(double factor);
 
+    QString getOptions(QString category, QStringList exclude=QStringList());
+    QString getOption(QString name);
+
     ImageViewer* selectedImageViewer();
 
 protected:
@@ -161,6 +167,7 @@ private:
     FileFilter *modelProxy;
     QMap<QWidget*,AppFile*> openedFiles;
     Project* project;
+    Options* options;
 
     QWidget* indexedWidget(int tabIndex);
     AppFile* indexedFile(int tabIndex);
