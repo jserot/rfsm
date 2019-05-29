@@ -136,8 +136,11 @@ void MainWindow::setupProjectActions()
 void MainWindow::updateProjectActions(bool status)
 {
   ui->actionAddFileToProject->setEnabled(status);
+  ui->actionAddCurrentFileToProject->setEnabled(status);
   ui->actionEditProject->setEnabled(status);
   ui->actionCloseProject->setEnabled(status);
+  ui->actionSaveProject->setEnabled(status);
+  ui->actionSaveProjectAs->setEnabled(status);
   // Other actions are always enabled
 }
 

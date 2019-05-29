@@ -26,6 +26,7 @@ DOC
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
 
 GUI
+- back to two tab groups : one for source files (.fsm, .pro), one for the generated : not being able to view simultaneously source and graphs for example is really annoying..
 - use a form to edit project
 - update URL in About window
 
