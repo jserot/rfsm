@@ -18,15 +18,15 @@
 class AppOption 
 {
  public:
-  typedef enum { UnitOpt, StringOpt, IntOpt } Opt_type;
+  typedef enum { UnitOpt, StringOpt, IntOpt } Opt_kind;
   QString category;
   QString name;
-  Opt_type typ;
+  Opt_kind kind;
   QString desc;
   QCheckBox *checkbox;
   QLineEdit *val;
   AppOption() : category(""), name("") { }
-  AppOption(QString _category, QString _name, Opt_type _typ, QString _desc);
+  AppOption(QString _category, QString _name, Opt_kind _kind, QString _desc);
   ~AppOption() { }
 };
 #endif

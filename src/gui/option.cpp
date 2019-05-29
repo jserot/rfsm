@@ -11,12 +11,12 @@
 
 #include "option.h"
 
-AppOption::AppOption(QString _category, QString _name, Opt_type _typ, QString _desc) {
+AppOption::AppOption(QString _category, QString _name, Opt_kind _kind, QString _desc) {
   category = _category;
   name = _name;
-  typ = _typ;
+  kind = _kind;
   desc = _desc;
-  switch ( typ ) {
+  switch ( kind ) {
   case UnitOpt:
     checkbox = new QCheckBox();
     val = NULL;

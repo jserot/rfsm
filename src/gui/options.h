@@ -9,6 +9,8 @@
 /*                                                                    */
 /**********************************************************************/
 
+// A class for keeping track of compiler options
+
 #ifndef _options_h
 #define _options_h
 
@@ -23,25 +25,24 @@
 #include <QScrollArea>
 #include <QDialogButtonBox>
 #include "option.h"
+#include "project.h"
 
-class Options: public QDialog {
-    Q_OBJECT
-
+class Options {
 public:
-    static Options* getInstance(void);
-    QMap<QString,AppOption> values;
-    QSize sizeHint() const { return QSize(700, 300); }
+    Options(QString specFile, QWidget *parent);
+    ~Options();
+
+    QMap<QString,AppOption> opts;
+
+    void show(QWidget *parent, QString title);
+    QString readFromProject(Project *project);
+
+    QString toString(QString cat);
 
 private:
-        QTabWidget* tabs;
-        QDialogButtonBox *buttonBox;
 
-        static Options* instance;
-        explicit Options(QWidget *parent = 0);
-
-        ~Options();
-
-  void addTab(QString title, QString category);
+    QString parse_opts(QString cat, QString line);
+    void addTab(QString title, QString category, QTabWidget *tabs, QWidget *parent);
 };
 
 #endif
