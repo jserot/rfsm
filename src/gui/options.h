@@ -37,8 +37,6 @@ public:
     void show(QWidget *parent, QString title);
     QString readFromProject(Project *project);
 
-    QString toString(QString cat);
-
 private:
 
     QString parse_opts(QString cat, QString line);

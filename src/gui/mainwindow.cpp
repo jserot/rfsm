@@ -124,7 +124,7 @@ void MainWindow::setupProjectActions()
 {
   QObject::connect(ui->actionNewProject, SIGNAL(triggered()), this, SLOT(newProject()));
   QObject::connect(ui->actionOpenProject, SIGNAL(triggered()), this, SLOT(openProject()));
-  // QObject::connect(ui->actionAddCurrentFileToProject, SIGNAL(triggered()), this, SLOT(addCurrentFileToProject()));
+  QObject::connect(ui->actionAddCurrentFileToProject, SIGNAL(triggered()), this, SLOT(addCurrentFileToProject()));
   QObject::connect(ui->actionAddFileToProject, SIGNAL(triggered()), this, SLOT(addFileToProject()));
   QObject::connect(ui->actionEditProject, SIGNAL(triggered()), this, SLOT(editProject()));
   QObject::connect(ui->actionSaveProject, SIGNAL(triggered()), this, SLOT(saveProject()));
@@ -239,11 +239,11 @@ void MainWindow::updateToolbar(bool status)
   ui->compileCTaskFileButton->setEnabled(status);
   ui->compileSystemcFileButton->setEnabled(status);
   ui->compileVHDLFileButton->setEnabled(status);
-  ui->compileDotProjectButton->setEnabled(project != NULL && status);
-  ui->compileCTaskProjectButton->setEnabled(project != NULL && status);
-  ui->compileSystemcProjectButton->setEnabled(project != NULL && status);
-  ui->compileVHDLProjectButton->setEnabled(project != NULL && status);
-  ui->runSimButton->setEnabled(project != NULL && status);
+  ui->compileDotProjectButton->setEnabled(project != NULL || status);
+  ui->compileCTaskProjectButton->setEnabled(project != NULL || status);
+  ui->compileSystemcProjectButton->setEnabled(project != NULL || status);
+  ui->compileVHDLProjectButton->setEnabled(project != NULL || status);
+  ui->runSimButton->setEnabled(project != NULL || status);
 }
 
 void MainWindow::updateActions(void)
@@ -601,11 +601,11 @@ void MainWindow::saveProject()
     os << "MAIN=" << project->mainName << endl;
   os << "SRCS=" << project->srcFiles.join(" ") << endl;
   // We save the options currently recorded in the configuration !
-  os << "DOT_OPTS=" << options->toString("dot") << endl;
-  os << "CTASK_OPTS=" << options->toString("ctask") << endl;
-  os << "SYSTEMC_OPTS=" << options->toString("systemc") << endl;
-  os << "VHDL_OPTS=" << options->toString("vhdl") << endl;
-  os << "SIM_OPTS=" << options->toString("sim") << endl;
+  os << "DOT_OPTS=" << getOptions("dot") << endl;
+  os << "CTASK_OPTS=" << getOptions("ctask") << endl;
+  os << "SYSTEMC_OPTS=" << getOptions("systemc") << endl;
+  os << "VHDL_OPTS=" << getOptions("vhdl") << endl;
+  os << "SIM_OPTS=" << getOptions("sim") << endl;
   save.flush();
   save.close();
 }
@@ -628,26 +628,38 @@ void MainWindow::editProject()
   addFileTab(project->file, false, false);
 }
 
-// void MainWindow::addCurrentFileToProject()
-// {
-//   if ( project == NULL ) return;
-//   if ( ui->filesTab->count() == 0 ) return;
-//   int ind = ui->filesTab->currentIndex();
-//   AppFile *f = indexedFile(ind);
-//   if ( f == NULL ) return;
-//   // TODO: add f to project srcs list
-// }
+void MainWindow::addCurrentFileToProject()
+{
+  if ( project == NULL ) return;
+  if ( ui->filesTab->count() == 0 ) return;
+  int ind = ui->filesTab->currentIndex();
+  AppFile *f = indexedFile(ind);
+  if ( f == NULL ) return;
+  addFileToProject(f->info.canonicalFilePath());
+}
 
 void MainWindow::addFileToProject()
 {
   // Get file from dialog, copy to project dir, add to srcs list 
   if ( project == NULL ) return;
-  QString fileName = QFileDialog::getOpenFileName(this, tr("Select Source File"),
+  QString path = QFileDialog::getOpenFileName(this, tr("Select Source File"),
                                                 initDir,
                                                 tr("Source files (*.fsm)"));
-  if ( fileName.isEmpty() ) return;
-  QFileInfo fi(fileName);
-  QFile f(fileName);
+  if ( path.isEmpty() ) return;
+  addFileToProject(path);
+}
+
+void MainWindow::addFileToProject(QString path)
+{
+  QFileInfo fi(path);
+  QString fname = fi.fileName();
+  for ( int i=0; i<project->srcFiles.length(); i++ ) {
+    if ( fname == project->srcFiles.at(i) ) {
+      QMessageBox::warning(this, "", "File " + fname + " already belongs to project");
+      return;
+      }
+    }
+  QFile f(path);
   QString dst = project->dir + "/" + fi.fileName();
   f.copy(dst);
   ui->logText->append("File " + fi.canonicalFilePath() + " copied to " + dst);
@@ -768,7 +780,7 @@ void MainWindow::setGeneralOptions()
 //   }
 // }
 
-QString MainWindow::getOptions(QString category, QStringList exclude=QStringList())
+QString MainWindow::getOptions(QString category, QStringList exclude)
 {
   //QMap<QString,AppOption> opts = Options::getInstance()->values;
   QMapIterator<QString, AppOption> i(options->opts);

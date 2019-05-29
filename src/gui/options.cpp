@@ -92,31 +92,6 @@ QString Options::parse_opts(QString cat, QString line)
   return "";
 }
 
-QString Options::toString(QString cat)
-{
-    QStringList r;
-    QList<AppOption> vs = opts.values();
-    for ( int i=0; i<vs.length(); i++ ) {
-      AppOption opt = vs.at(i);
-      if ( opt.category != cat ) continue;
-      switch ( opt.kind ) {
-        case AppOption::UnitOpt:
-          if ( opt.checkbox->isChecked() ) 
-            r += opt.name;
-          break;
-        case AppOption::StringOpt:
-        case AppOption::IntOpt:
-          QString v = opt.val->text().trimmed();
-          if ( ! v.isEmpty() ) {
-            r += opt.name;
-            r += v;
-            }
-          break;
-        }
-      }
-    return r.join(" ");
-}
-
 void Options::show(QWidget *parent, QString title)
 {
   QDialog *dialog = new QDialog(parent);

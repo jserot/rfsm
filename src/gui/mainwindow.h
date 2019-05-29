@@ -52,7 +52,7 @@ private slots:
     void openProject();
     void editProject();
     void addFileToProject();
-    /* void addCurrentFileToProject(); */
+    void addCurrentFileToProject();
     void saveProject();
     void saveProjectAs();
     void closeProject();
@@ -109,6 +109,8 @@ private:
     void setupConfigActions();
     void updateActions();
 
+    void addFileToProject(QString path);
+
     void makeDot(bool inProject);
     void makeCTask(bool inProject);
     void makeSystemC(bool inProject);
@@ -140,7 +142,7 @@ private:
 
     void scaleImage(double factor);
 
-    QString getOptions(QString category, QStringList exclude);
+    QString getOptions(QString category, QStringList exclude=QStringList());
     QString getOption(QString name);
 
     ImageViewer* selectedImageViewer();
