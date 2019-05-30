@@ -1,6 +1,6 @@
 # Changes
 
-# 1.5 (May XX, 2019)
+# 1.5 (May 30, 2019)
 * New syntax for FSM models. Transitions are now written:
      `| src_state -> dst_state ON ev [WHEN guards] [WITH actions]`
      `| -> init_state [WITH actions]`
