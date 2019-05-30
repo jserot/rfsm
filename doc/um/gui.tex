@@ -30,7 +30,8 @@ The main elements are (with corresponding areas labeled in red in Fig.~\ref{fig:
 \item a menubar,
 \item a toolbar, containing four groups of buttons,
 \item a sub-window for viewing project trees,
-\item a sub-window for viewing input and output files,
+\item a sub-window for viewing input files,
+\item a sub-window for viewing result files,
 \item a log area, displaying issued command and outputs from the compiler.
 \end{enumerate}
 
@@ -43,7 +44,7 @@ The main elements are (with corresponding areas labeled in red in Fig.~\ref{fig:
 
 The buttons in the toolbar are respectively used to (from left to right, and grouped as depicted in
 Fig.~\ref{fig:main-window})~:
-\begin{enumerate}
+\begin{itemize}
 \item 
   \begin{itemize}
   \item open an existing project
@@ -65,7 +66,7 @@ Fig.~\ref{fig:main-window})~:
   \item generating VHDL code from the current project
   \item simulate the current project
   \end{itemize}
-\end{enumerate}
+\end{itemize}
 
 \section{Configuration}
 \label{sec:gui-configuration}
@@ -95,6 +96,7 @@ If the specified paths are not correct\footnote{This may be the case, for exampl
 
 The GUI supports two modes of operation~: \emph{single file mode} and \emph{project mode}. 
 
+\medskip
 In \emph{single file mode}, the compiler is invoked on a single source file, whis is supposed to
 contain the description of a FSM model, to produce a DOT representation of the model or the C,
 SystemC or VHDL corresponding code.
@@ -104,11 +106,11 @@ Source files (\verb|.fsm|) can be created by clicking on the \textsf{New File} b
 menu. Existing source file can opened by clicking on the \textsf{Open file} button\footnote{First
   group, second button} or, similarly, by invoking the corresponding item of the \textsf{File} menu.
 
-Once opened, source files appear in a new tab in the right subwindow (numbered 4 in
+Once opened, source files appear in a new tab in the middle subwindow (numbered 4 in
 Fig.~\ref{fig:main-window}) and can can be freely edited and saved. 
 
 Fig.~\ref{fig:open-file} shows the GUI after
-opening the source file \verb|ctlr.fsm|, located in directory \texttt{examples/single/mousectlr} of
+opening the source file \verb|chrono.fsm|, located in directory \texttt{examples/single/\\chrono} of
 the distribution.
 
 \begin{figure}[h]
@@ -176,8 +178,9 @@ described by the file \verb|main.pro| located in the directory \texttt{examples/
 This project is composed of two source files~: the file \verb|ctlr.fsm|, which contains a FSM
 model\footnote{This file is the same as the one used as an example in
   Sec.~\ref{sec:gui-single-file-mode}.} and the file \verb|main.fsm|, which contains a
-\emph{testbench} for this model. These files are shown on the tree view in the left sub-window,
-along with the sub-directories in which the compilation results will be written. 
+\emph{testbench} for this model. These files are shown on the tree view in the left sub-window and
+in two separate tabs in the middle subwindow. 
+% along with the sub-directories in which the compilation results will be written. 
 
 \begin{figure}[h]
   \centering
@@ -224,8 +227,8 @@ the corresponding button in the toolbar\footnote{Last button on the right, with 
 \label{sec:gui-project-options}
 
 In \emph{project mode}, compiler options are attached to the current project (and hence remembered
-between sessions) and can be edited by invoking the \textsf{Edit project} item of the \textsf{Project}
-menu.
+between sessions) and can be edited (resp. saved) by invoking the \textsf{Edit project}
+(resp. \textsf{Save project}) item of the \textsf{Project} menu.
 
 
 %%% Local Variables:

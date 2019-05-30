@@ -836,7 +836,7 @@ QString MainWindow::getOptions(QString category, QStringList exclude)
 QString MainWindow::getOption(QString name)
 {
   //QMap<QString,AppOption> opts = Options::getInstance()->values;
-  Q_ASSERT(options.contains(name));
+  Q_ASSERT(options->opts.contains(name));
   AppOption opt = options->opts.value(name);
   switch ( opt.kind ) {
     case AppOption::UnitOpt:
