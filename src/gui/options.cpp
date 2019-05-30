@@ -68,11 +68,13 @@ QString Options::readFromProject(Project *project)
 QString Options::parse_opts(QString cat, QString line)
 // Parsing .pro text spec. Ex: "-dot_xxx -dot_yyy arg ..."
 {
+  line = line.trimmed();
   if ( line.isEmpty() ) return "";
   QStringList items = line.split(" ");
   for ( int i=0; i<items.length(); i++ ) {
     QString k = items.at(i);
-    if ( ! opts.contains(k) ) return ("unrecognized option: " + k);
+    if ( k.isEmpty() ) continue;
+    if ( ! opts.contains(k) ) return ("unrecognized option: \"" + k + "\"");
     AppOption opt = opts.value(k);
     if ( opt.category != cat ) return ("option " + k + " does not belong to category " + cat) ;
     switch ( opt.kind ) {
