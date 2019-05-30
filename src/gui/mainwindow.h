@@ -33,7 +33,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QString rootPath, QWidget *parent = 0);
+    explicit MainWindow(QString arg, QWidget *parent = 0);
 
     ~MainWindow();
 
@@ -97,13 +97,13 @@ private:
     void setTreeView(QString path);
     void setupMenus();
     void setupToolbar();
-    void updateToolbar(bool status);
+    void updateToolbar(bool, bool);
     void setupFileActions();
     void updateFileActions(bool status);
     void setupProjectActions();
     void updateProjectActions(bool status);
     void setupBuildActions();
-    void updateBuildActions(bool status);
+    void updateBuildActions(bool, bool);
     void setupEditActions();
     void updateEditActions(bool status);
     void setupViewActions();
@@ -111,6 +111,8 @@ private:
     void setupConfigActions();
     void updateActions();
 
+    void openThisFile(QString fname);
+    void openProjectFile(QString fname);
     void addFileToProject(QString path);
 
     void makeDot(bool inProject);

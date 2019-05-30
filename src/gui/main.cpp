@@ -25,9 +25,9 @@ int main(int argc, char *argv[])
     // parser.addOption(showFileInfoOption);
     parser.addPositionalArgument("project file", "Project file to open.");
     parser.process(app);
-    QString projFile = parser.positionalArguments().isEmpty() ? "" : parser.positionalArguments().at(0);
+    QString arg = parser.positionalArguments().isEmpty() ? "" : parser.positionalArguments().at(0);
 
-    MainWindow w(projFile);
+    MainWindow w(arg);
     w.show();
 
     return app.exec();

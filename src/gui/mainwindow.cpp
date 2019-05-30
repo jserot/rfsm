@@ -40,7 +40,7 @@ QStringList MainWindow::ignoredAnswerPrefixes = { "** (ImageGlass", "(gtkwave-bi
 
 QStringList MainWindow::specialOptions = { "-dot_external_viewer", "-txt_external_viewer" };
 
-MainWindow::MainWindow(QString projFile, QWidget *parent) :
+MainWindow::MainWindow(QString arg, QWidget *parent) :
   QMainWindow(parent),
   ui(new Ui::MainWindow),
   modelProxy(NULL),
@@ -78,13 +78,16 @@ MainWindow::MainWindow(QString projFile, QWidget *parent) :
 
   readInitFile();
 
-  if ( ! projFile.isEmpty() ) {
-    //QFileInfo f(projFile);
-    // openProject(f.canonicalFilePath());
-    openProject();
-    }
-
   options = new Options(":options_spec.txt", this);
+
+  if ( ! arg.isEmpty() ) {
+    if ( arg.endsWith(".pro") ) 
+      openProjectFile(arg);
+    else if ( arg.endsWith(".fsm") ) 
+      openThisFile(arg);
+    else
+      QMessageBox::warning(this,"Error:","unrecognized file suffix for argument (should be .fsm or .pro)");
+    }
 }
 
 void MainWindow::about(void)
@@ -158,21 +161,21 @@ void MainWindow::setupBuildActions()
   QObject::connect(ui->actionBuildSystemCProject, SIGNAL(triggered()), this, SLOT(makeSystemCProject()));
   QObject::connect(ui->actionBuildVHDLProject, SIGNAL(triggered()), this, SLOT(makeVHDLProject()));
   QObject::connect(ui->actionRunSim, SIGNAL(triggered()), this, SLOT(makeSim()));
-  updateBuildActions(false);
+  updateBuildActions(false,false);
 }
 
-void MainWindow::updateBuildActions(bool status)
+void MainWindow::updateBuildActions(bool srcFileSelected, bool inProject)
 {
-  ui->actionBuildDotFile->setEnabled(status);
-  ui->actionBuildCTaskFile->setEnabled(status);
-  ui->actionBuildSystemCFile->setEnabled(status);
-  ui->actionBuildVHDLFile->setEnabled(status);
+  ui->actionBuildDotFile->setEnabled(srcFileSelected);
+  ui->actionBuildCTaskFile->setEnabled(srcFileSelected);
+  ui->actionBuildSystemCFile->setEnabled(srcFileSelected);
+  ui->actionBuildVHDLFile->setEnabled(srcFileSelected);
 
-  ui->actionBuildDotProject->setEnabled(project != NULL && status);
-  ui->actionBuildCTaskProject->setEnabled(project != NULL && status);
-  ui->actionBuildSystemCProject->setEnabled(project != NULL && status);
-  ui->actionBuildVHDLProject->setEnabled(project != NULL && status);
-  ui->actionRunSim->setEnabled(project != NULL && status);
+  ui->actionBuildDotProject->setEnabled(inProject);
+  ui->actionBuildCTaskProject->setEnabled(inProject);
+  ui->actionBuildSystemCProject->setEnabled(inProject);
+  ui->actionBuildVHDLProject->setEnabled(inProject);
+  ui->actionRunSim->setEnabled(inProject);
 }
 
 void MainWindow::setupEditActions()
@@ -236,20 +239,20 @@ void MainWindow::setupToolbar()
   connect(ui->compileVHDLProjectButton, SIGNAL(clicked()), this, SLOT(makeVHDLProject()));
   connect(ui->runSimButton, SIGNAL(clicked()), this, SLOT(makeSim()));
 
-  updateToolbar(false);
+  updateToolbar(false,false);
 }
 
-void MainWindow::updateToolbar(bool status)
+void MainWindow::updateToolbar(bool srcFileSelected, bool inProject)
 {
-  ui->compileDotFileButton->setEnabled(status);
-  ui->compileCTaskFileButton->setEnabled(status);
-  ui->compileSystemcFileButton->setEnabled(status);
-  ui->compileVHDLFileButton->setEnabled(status);
-  ui->compileDotProjectButton->setEnabled(project != NULL && status);
-  ui->compileCTaskProjectButton->setEnabled(project != NULL && status);
-  ui->compileSystemcProjectButton->setEnabled(project != NULL && status);
-  ui->compileVHDLProjectButton->setEnabled(project != NULL && status);
-  ui->runSimButton->setEnabled(project != NULL && status);
+  ui->compileDotFileButton->setEnabled(srcFileSelected);
+  ui->compileCTaskFileButton->setEnabled(srcFileSelected);
+  ui->compileSystemcFileButton->setEnabled(srcFileSelected);
+  ui->compileVHDLFileButton->setEnabled(srcFileSelected);
+  ui->compileDotProjectButton->setEnabled(inProject); 
+  ui->compileCTaskProjectButton->setEnabled(inProject); 
+  ui->compileSystemcProjectButton->setEnabled(inProject); 
+  ui->compileVHDLProjectButton->setEnabled(inProject); 
+  ui->runSimButton->setEnabled(inProject); 
 }
 
 void MainWindow::updateActions(void)
@@ -259,8 +262,8 @@ void MainWindow::updateActions(void)
   bool srcFileSelected = !currentFile.isEmpty() && currentFile.endsWith(".fsm");
   updateFileActions(srcFileSelected);
   updateProjectActions(project != NULL);
-  updateBuildActions(project != NULL || srcFileSelected);
-  updateToolbar(srcFileSelected);
+  updateBuildActions(srcFileSelected, project != NULL);
+  updateToolbar(srcFileSelected, project != NULL);
   // updateEditActions(status); // TODO
   updateViewActions(selectedImageViewer());
 }
@@ -480,6 +483,11 @@ void MainWindow::openFile()
                                                 initDir,
                                                 tr("Source files (*.fsm)"));
   if ( fileName.isEmpty() ) return;
+  openThisFile(fileName);
+}
+
+void MainWindow::openThisFile(QString fileName)
+{
   QFileInfo f(fileName);
   ui->logText->append("Opening file " + f.canonicalFilePath());
   addFileTab(0, f.canonicalFilePath(), false, false);
@@ -595,6 +603,16 @@ void MainWindow::openProject()
                                                 initDir,
                                                 tr("Project files (*.pro)"));
   if ( fileName.isEmpty() ) return;
+  openProjectFile(fileName);
+}
+
+void MainWindow::openProjectFile(QString fileName)
+{
+  QFile file(fileName);
+  if ( ! file.exists() ) {
+      QMessageBox::warning(NULL, "", "Cannot open file " + fileName);
+      return;
+    }
   QFileInfo f(fileName);
   ui->logText->append("Opening project " + f.canonicalFilePath());
   closeAllFiles();
