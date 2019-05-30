@@ -43,7 +43,7 @@ private slots:
     void openFile();
     void saveCurrentFile();
     void saveCurrentFileAs();
-    void closeCurrentFile();
+    void closeAllResFiles();
     void closeAllFiles();
     void quit();
     void about();
@@ -78,7 +78,8 @@ private slots:
     void fitToWindow();
 
     void textHasBeenModified();
-    void tabChanged(int index);
+    void tabChanged0(int index);
+    void tabChanged1(int index);
 
     void setGeneralOptions();
     void setPaths();
@@ -88,7 +89,8 @@ private slots:
     void readProcStderr();
 
     void select(QModelIndex idx);
-    void closeFileTab(int index);
+    void closeFileTab0(int index);
+    void closeFileTab1(int index);
 
 private:
     void setDir(QString path);
@@ -118,13 +120,15 @@ private:
 
     void compile(QString type, QString baseCmd, QString targetDir, bool inProject);
     void dotTransform(QFileInfo f, QString dir);
-    void addFileTab(QString fname, bool ronly, bool isTemp);
+    void addFileTab(int col, QString fname, bool ronly, bool isTemp);
 
     void openGeneratedFiles(QString type, QString path);
     void openOutputFile(QString type,QString filename, QString dir);
 
-    void closeIndexedFile(int tabIndex);
-    void saveIndexedFile(int tabIndex, QString path);
+    void closeIndexedFile(int col, int tabIndex);
+    void saveIndexedFile(int col, int tabIndex, QString path);
+    void closeCurrentFile(int col);
+
 
     void closeEvent(QCloseEvent *event);
 
@@ -169,8 +173,8 @@ private:
     Project* project;
     Options* options;
 
-    QWidget* indexedWidget(int tabIndex);
-    AppFile* indexedFile(int tabIndex);
+    QWidget* indexedWidget(int col, int tabIndex);
+    AppFile* indexedFile(int col, int tabIndex);
 
     QProcess proc; 
 };

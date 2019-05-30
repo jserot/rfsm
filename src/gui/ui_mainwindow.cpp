@@ -110,17 +110,28 @@ void Ui_MainWindow::setupUi(QMainWindow *MainWindow)
 
   hSplitter->addWidget(treeView);
 
-  filesTab = new QTabWidget(hSplitter);
-  filesTab->setObjectName(QStringLiteral("filesTab"));
-  QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  sizePolicy1.setHeightForWidth(filesTab->sizePolicy().hasHeightForWidth());
-  filesTab->setSizePolicy(sizePolicy1);
-  filesTab->setMinimumSize(QSize(500, 150));
-  filesTab->setDocumentMode(false);
-  filesTab->setTabsClosable(true);
-  filesTab->setMovable(true);
+  for ( int i=0; i<2; i++ ) {
+    filesTab[i] = new QTabWidget(hSplitter);
+    filesTab[i]->setObjectName("filesTab" + QString::number(i));
+    QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    sizePolicy1.setHeightForWidth(filesTab[i]->sizePolicy().hasHeightForWidth());
+    filesTab[i]->setSizePolicy(sizePolicy1);
+    filesTab[i]->setMinimumSize(QSize(250, 150));
+    filesTab[i]->setDocumentMode(false);
+    filesTab[i]->setTabsClosable(true);
+    filesTab[i]->setMovable(true);
+    hSplitter->addWidget(filesTab[i]);
+  }
 
-  hSplitter->addWidget(filesTab);
+  // filesTab->setObjectName(QStringLiteral("filesTab"));
+  // QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  // sizePolicy1.setHeightForWidth(filesTab->sizePolicy().hasHeightForWidth());
+  // filesTab->setSizePolicy(sizePolicy1);
+  // filesTab->setMinimumSize(QSize(500, 150));
+  // filesTab->setDocumentMode(false);
+  // filesTab->setTabsClosable(true);
+  // filesTab->setMovable(true);
+  // hSplitter->addWidget(filesTab);
 
   vSplitter->addWidget(hSplitter);
 
@@ -161,6 +172,7 @@ void Ui_MainWindow::createMenus(QMainWindow *MainWindow)
   actionSaveCurrentFile = fileMenu->addAction("&Save current file");
   actionSaveCurrentFileAs = fileMenu->addAction("&Save current file as");
   actionCloseFile = fileMenu->addAction("&Close file");
+  actionCloseResFiles = fileMenu->addAction("&Close all result files");
   actionCloseAllFiles = fileMenu->addAction("&Close all files");
   fileMenu->addSeparator();
   actionAbout = fileMenu->addAction("&About");

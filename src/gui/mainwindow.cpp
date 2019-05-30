@@ -62,8 +62,10 @@ MainWindow::MainWindow(QString projFile, QWidget *parent) :
   connect(&proc,SIGNAL(readyReadStandardOutput ()),this,  SLOT(readProcStdout()));
   connect(&proc,SIGNAL(readyReadStandardError ()),this,  SLOT(readProcStderr()));
 
-  connect(ui->filesTab, SIGNAL(tabCloseRequested(int)), this, SLOT(closeFileTab(int)));
-  connect(ui->filesTab, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
+  connect(ui->filesTab[0], SIGNAL(tabCloseRequested(int)), this, SLOT(closeFileTab0(int)));
+  connect(ui->filesTab[0], SIGNAL(currentChanged(int)), this, SLOT(tabChanged0(int)));
+  connect(ui->filesTab[1], SIGNAL(tabCloseRequested(int)), this, SLOT(closeFileTab1(int)));
+  connect(ui->filesTab[1], SIGNAL(currentChanged(int)), this, SLOT(tabChanged1(int)));
 
   connect(ui->treeView, SIGNAL(activated(QModelIndex)), this, SLOT(select(QModelIndex)));
 
@@ -104,7 +106,8 @@ void MainWindow::setupFileActions()
   QObject::connect(ui->actionOpenFile, SIGNAL(triggered()), this, SLOT(openFile()));
   QObject::connect(ui->actionSaveCurrentFile, SIGNAL(triggered()), this, SLOT(saveCurrentFile()));
   QObject::connect(ui->actionSaveCurrentFileAs, SIGNAL(triggered()), this, SLOT(saveCurrentFileAs()));
-  QObject::connect(ui->actionCloseFile, SIGNAL(triggered()), this, SLOT(closeCurrentFile()));
+  //QObject::connect(ui->actionCloseFile, SIGNAL(triggered()), this, SLOT(closeCurrentFile()));
+  QObject::connect(ui->actionCloseResFiles, SIGNAL(triggered()), this, SLOT(closeAllResFiles()));
   QObject::connect(ui->actionCloseAllFiles, SIGNAL(triggered()), this, SLOT(closeAllFiles()));
   QObject::connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(quit()));
   QObject::connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
@@ -242,17 +245,17 @@ void MainWindow::updateToolbar(bool status)
   ui->compileCTaskFileButton->setEnabled(status);
   ui->compileSystemcFileButton->setEnabled(status);
   ui->compileVHDLFileButton->setEnabled(status);
-  ui->compileDotProjectButton->setEnabled(project != NULL || status);
-  ui->compileCTaskProjectButton->setEnabled(project != NULL || status);
-  ui->compileSystemcProjectButton->setEnabled(project != NULL || status);
-  ui->compileVHDLProjectButton->setEnabled(project != NULL || status);
-  ui->runSimButton->setEnabled(project != NULL || status);
+  ui->compileDotProjectButton->setEnabled(project != NULL && status);
+  ui->compileCTaskProjectButton->setEnabled(project != NULL && status);
+  ui->compileSystemcProjectButton->setEnabled(project != NULL && status);
+  ui->compileVHDLProjectButton->setEnabled(project != NULL && status);
+  ui->runSimButton->setEnabled(project != NULL && status);
 }
 
 void MainWindow::updateActions(void)
 {
-  int currentTab = ui->filesTab->count() > 0 ? ui->filesTab->currentIndex() : -1;
-  QString currentFile = currentTab >= 0 ? ui->filesTab->tabText(currentTab) : "";
+  int currentSrcTab = ui->filesTab[0]->count() > 0 ? ui->filesTab[0]->currentIndex() : -1;
+  QString currentFile = currentSrcTab >= 0 ? ui->filesTab[0]->tabText(currentSrcTab) : "";
   bool srcFileSelected = !currentFile.isEmpty() && currentFile.endsWith(".fsm");
   updateFileActions(srcFileSelected);
   updateProjectActions(project != NULL);
@@ -341,25 +344,25 @@ void writeInitfile(void)
 
 // TABed file management
 
-QWidget* MainWindow::indexedWidget(int tabIndex)
+QWidget* MainWindow::indexedWidget(int col, int tabIndex)
 {
-  QWidget *r = ui->filesTab->widget(tabIndex);
+  QWidget *r = ui->filesTab[col]->widget(tabIndex);
   return r;
 }
 
-AppFile* MainWindow::indexedFile(int tabIndex)
+AppFile* MainWindow::indexedFile(int col, int tabIndex)
 {
-  QWidget* w = indexedWidget(tabIndex);
+  QWidget* w = indexedWidget(col, tabIndex);
   if ( w == NULL ) return NULL;
   if ( ! openedFiles.contains(w) ) return NULL; 
   return openedFiles.value(w);
 }
 
-void MainWindow::closeIndexedFile(int index)
+void MainWindow::closeIndexedFile(int col, int index)
 {
-  QWidget* w = indexedWidget(index);
+  QWidget* w = indexedWidget(col, index);
   if ( w == NULL ) return;
-  AppFile* f = indexedFile(index);
+  AppFile* f = indexedFile(col, index);
   if ( f == NULL ) return;
   qDebug() << "Closing file " << f->info.canonicalFilePath(); 
   if ( f->upToDate == false ) {
@@ -382,15 +385,28 @@ void MainWindow::closeIndexedFile(int index)
   openedFiles.remove(w);
 }
 
-void MainWindow::closeFileTab(int index)
+void MainWindow::closeFileTab0(int index)
 {
-  closeIndexedFile(index);
-  ui->filesTab->removeTab(index);
+  closeIndexedFile(0,index);
+  ui->filesTab[0]->removeTab(index);
 }
 
-void MainWindow::tabChanged(int index)
+void MainWindow::closeFileTab1(int index)
 {
+  closeIndexedFile(1,index);
+  ui->filesTab[1]->removeTab(index);
+}
+
+void MainWindow::tabChanged0(int index)
+{
+  Q_UNUSED(index);
   updateActions();
+}
+
+void MainWindow::tabChanged1(int index)
+{
+  Q_UNUSED(index);
+  // Nothing - nothing should change in result tabs
 }
 
 QString changeSuffix(QString fname, QString suffix)
@@ -406,7 +422,7 @@ SyntaxHighlighter* makeSyntaxHighlighter(QString suffix, QTextDocument* doc)
     return NULL;
 }
 
-void MainWindow::addFileTab(QString fname, bool ronly, bool isTemp)
+void MainWindow::addFileTab(int col, QString fname, bool ronly, bool isTemp)
 {
   QFile file(fname);
   QFileInfo f(fname);
@@ -419,11 +435,11 @@ void MainWindow::addFileTab(QString fname, bool ronly, bool isTemp)
     ImageViewer *viewer = new ImageViewer();
     viewer->setPixmap(pixmap);
     viewer->setWhatsThis("ImageViewer");
-    ui->filesTab->addTab(viewer, changeSuffix(f.fileName(),".dot"));
+    ui->filesTab[col]->addTab(viewer, changeSuffix(f.fileName(),".dot"));
     //AppFile* openedFile = new AppFile(fname, true, viewer, NULL);
     //openedFiles.insert(edit, openedFile);
     QSize sz1 = pixmap.size();
-    QSize sz2 = ui->filesTab->currentWidget()->size();
+    QSize sz2 = ui->filesTab[col]->currentWidget()->size();
     viewer->scaleImage((double)sz2.height()/sz1.height());
     } 
   else {
@@ -434,13 +450,13 @@ void MainWindow::addFileTab(QString fname, bool ronly, bool isTemp)
     edit->setWhatsThis("TextEditor");
     edit->setPlainText(QString::fromUtf8(file.readAll()));
     edit->setReadOnly(ronly);
-    ui->filesTab->addTab(edit, isTemp ? "new" : f.fileName());
+    ui->filesTab[col]->addTab(edit, isTemp ? "new" : f.fileName());
     SyntaxHighlighter* highlighter = makeSyntaxHighlighter(f.suffix(), edit->document());
     AppFile* openedFile = new AppFile(fname, ronly, edit, highlighter);
     openedFiles.insert(edit, openedFile);
     if ( ! ronly ) QObject::connect(edit, SIGNAL(modificationChanged(bool)), this, SLOT(textHasBeenModified()));
     }
-  ui->filesTab->setCurrentIndex(ui->filesTab->count()-1);
+  ui->filesTab[col]->setCurrentIndex(ui->filesTab[col]->count()-1);
   updateActions();
 }
 
@@ -455,7 +471,7 @@ void MainWindow::newFile()
   QFile f(path);
   f.open(QIODevice::ReadWrite);
   qDebug() << "Created file " << path;
-  addFileTab(path, false, false);
+  addFileTab(0, path, false, false);
   updateActions();
 }
 
@@ -467,34 +483,34 @@ void MainWindow::openFile()
   if ( fileName.isEmpty() ) return;
   QFileInfo f(fileName);
   ui->logText->append("Opening file " + f.canonicalFilePath());
-  addFileTab(f.canonicalFilePath(), false, false);
+  addFileTab(0, f.canonicalFilePath(), false, false);
   updateActions();
 }
 
 void MainWindow::saveCurrentFile()
 {
-  if ( ui->filesTab->count() == 0 ) return;
-  int ind = ui->filesTab->currentIndex();
-  saveIndexedFile(ind, "");
+  if ( ui->filesTab[0]->count() == 0 ) return;
+  int ind = ui->filesTab[0]->currentIndex();
+  saveIndexedFile(0, ind, ""); // Only source files can be saved
 }
 
 void MainWindow::saveCurrentFileAs()
 {
-  if ( ui->filesTab->count() == 0 ) return;
+  if ( ui->filesTab[0]->count() == 0 ) return;
   QString saveName = QFileDialog::getSaveFileName(this, "Select location to save file", initDir);
   if ( saveName.isEmpty() ) return;
-  int ind = ui->filesTab->currentIndex();
-  saveIndexedFile(ind, saveName);
+  int ind = ui->filesTab[0]->currentIndex();
+  saveIndexedFile(0, ind, saveName); // Only source files can be saved
 }
 
-void MainWindow::saveIndexedFile(int ind, QString newSavePath)
+void MainWindow::saveIndexedFile(int col, int ind, QString newSavePath)
 {
-  AppFile *f = indexedFile(ind);
+  AppFile *f = indexedFile(col, ind);
   if ( f == NULL ) return;
   QString path = newSavePath.isEmpty() ? f->info.canonicalFilePath() : newSavePath;
   QPlainTextEdit* text = f->text;
   if ( text == NULL ) return;
-  qDebug() << "Saving " << ui->filesTab->tabText(ind) << " as " << path;
+  qDebug() << "Saving " << ui->filesTab[col]->tabText(ind) << " as " << path;
   QFile save(path);
   if ( ! save.open(QFile::WriteOnly | QFile::Text) ) {
       QMessageBox::warning(this,"Error:","cannot open file:\n"+ path + " for writing");
@@ -505,30 +521,43 @@ void MainWindow::saveIndexedFile(int ind, QString newSavePath)
   save.flush();
   save.close();
   if ( newSavePath.isEmpty() ) {
-    QString t = ui->filesTab->tabText(ind);
+    QString t = ui->filesTab[col]->tabText(ind);
     if ( t.endsWith("*") ) {
       t.replace("*","");
-      ui->filesTab->setTabText(ind,t);
+      ui->filesTab[col]->setTabText(ind,t);
       f->upToDate = true;
       }
     }
   else { // The easiest way to handle this is just to close the current tab and reopen it
-    closeCurrentFile();
+    closeCurrentFile(col);
     QFileInfo ff(newSavePath);
-    addFileTab(ff.canonicalFilePath(), false, false);
+    addFileTab(col, ff.canonicalFilePath(), false, false);
     }
 }
 
-void MainWindow::closeCurrentFile()
+void MainWindow::closeCurrentFile(int col)
 {
-  closeFileTab(ui->filesTab->currentIndex());
+  switch ( col ) {
+  case 0: closeFileTab0(ui->filesTab[0]->currentIndex()); break;
+  case 1: closeFileTab1(ui->filesTab[0]->currentIndex()); break;
+  default: break;
+  }
+  updateActions();
+}
+
+void MainWindow::closeAllResFiles()
+{
+  while ( ui->filesTab[1]->count() > 0 )
+    closeFileTab1(ui->filesTab[1]->currentIndex());
   updateActions();
 }
 
 void MainWindow::closeAllFiles()
 {
-  while ( ui->filesTab->count() > 0 )
-    closeFileTab(ui->filesTab->currentIndex());
+  while ( ui->filesTab[1]->count() > 0 )
+    closeFileTab1(ui->filesTab[1]->currentIndex());
+  while ( ui->filesTab[0]->count() > 0 )
+    closeFileTab0(ui->filesTab[0]->currentIndex());
   updateActions();
 }
 
@@ -628,15 +657,15 @@ void MainWindow::editProject()
   // TODO: bring up form for setting project name ans source files + compiler options
   // Meanwhile: simply the .pro file as text
   if ( project == NULL ) return;
-  addFileTab(project->file, false, false);
+  addFileTab(0, project->file, false, false);
 }
 
 void MainWindow::addCurrentFileToProject()
 {
   if ( project == NULL ) return;
-  if ( ui->filesTab->count() == 0 ) return;
-  int ind = ui->filesTab->currentIndex();
-  AppFile *f = indexedFile(ind);
+  if ( ui->filesTab[0]->count() == 0 ) return;
+  int ind = ui->filesTab[0]->currentIndex();
+  AppFile *f = indexedFile(0, ind);
   if ( f == NULL ) return;
   addFileToProject(f->info.canonicalFilePath());
 }
@@ -673,11 +702,14 @@ void MainWindow::addFileToProject(QString path)
 void MainWindow::closeProject()
 {
   if ( project == NULL ) return;
-  while ( ui->filesTab->count() > 0 ) {
-    int ind = ui->filesTab->currentIndex();
-    QString t = ui->filesTab->tabText(ind);
+  while ( ui->filesTab[1]->count() > 0 ) {
+    closeFileTab1(ui->filesTab[1]->currentIndex());
+    }
+  while ( ui->filesTab[0]->count() > 0 ) {
+    int ind = ui->filesTab[0]->currentIndex();
+    QString t = ui->filesTab[0]->tabText(ind);
     if ( project->srcFiles.contains(t) || t.endsWith(Project::fileSuffix) )
-      closeFileTab(ind);
+      closeFileTab0(ind);
     }
   delete project;
   project = NULL;
@@ -689,7 +721,7 @@ void MainWindow::closeProject()
 
 void MainWindow::keyPressed(int key)
 {
-  if ( ui->filesTab->count() > 0 ) {
+  if ( ui->filesTab[0]->count() > 0 ) {
       QWidget* focused = QApplication::focusWidget();
       if( focused != 0 )
         QApplication::postEvent(focused, new QKeyEvent(QEvent::KeyPress, Qt::CTRL+key, Qt::ControlModifier ));
@@ -742,9 +774,9 @@ void MainWindow::fitToWindow()
 
 ImageViewer* MainWindow::selectedImageViewer()
 {
-  int i = ui->filesTab->currentIndex();
+  int i = ui->filesTab[1]->currentIndex();
   if ( i < 0 ) return NULL;
-  QWidget *tab = ui->filesTab->widget(i);
+  QWidget *tab = ui->filesTab[1]->widget(i);
   return tab->whatsThis() == "ImageViewer" ? (ImageViewer *)tab : NULL;
 }
 
@@ -871,8 +903,8 @@ void MainWindow::compile(QString type, QString baseCmd, QString targetDir, bool 
     wDir = project->dir;
   }
   else {
-    if ( ui->filesTab->count() == 0 ) { QMessageBox::warning(this, "", "No input file selected"); return; }
-    AppFile *af = indexedFile(ui->filesTab->currentIndex());
+    if ( ui->filesTab[0]->count() == 0 ) { QMessageBox::warning(this, "", "No input file selected"); return; }
+    AppFile *af = indexedFile(0, ui->filesTab[0]->currentIndex());
     if ( af == NULL ) {
       QMessageBox::warning(this, "", "The current selected tab is not a valid input file");
       return;
@@ -1028,6 +1060,7 @@ void MainWindow::openGeneratedFiles(QString type, QString dir)
 
 void MainWindow::openOutputFile(QString type, QString fname, QString wDir)
 {
+  Q_UNUSED(type);
   QFileInfo f(wDir + "/" + fname);
   QString fullName = f.canonicalFilePath();
   QString useDotExternalViewer = getOption("-dot_external_viewer");
@@ -1049,7 +1082,7 @@ void MainWindow::openOutputFile(QString type, QString fname, QString wDir)
     if ( useTxtExternalViewer == "on" && f.suffix() != "gif" ) 
       customView("txtViewer", fname, wDir);
     else
-      addFileTab(fullName, true, false);
+      addFileTab(1, fullName, true, false);
     }
 }
 
@@ -1065,7 +1098,7 @@ void MainWindow::customView(QString toolName, QString fname, QString wDir)
      qDebug() << "customView cmd: " << cmd.toString() << endl;
      if ( ! executeCmd(wDir, cmd.toString(), false) ) {
          QMessageBox::warning(this, "", "Could not start " + toolName);
-         addFileTab(fname, true, false);
+         addFileTab(1, fname, true, false);
          }
        }
    else
@@ -1092,14 +1125,14 @@ bool MainWindow::alreadyOpened(QString path)
 
 void MainWindow::textHasBeenModified()
 {
-  int ind = ui->filesTab->currentIndex();
-  QString name = ui->filesTab->tabText(ind);
+  int ind = ui->filesTab[0]->currentIndex();
+  QString name = ui->filesTab[0]->tabText(ind);
   if ( ! name.endsWith("*") ) {
       name += "*";
-      ui->filesTab->setTabText(ind, name);
+      ui->filesTab[0]->setTabText(ind, name);
     }
-  if ( openedFiles.contains(ui->filesTab->currentWidget()) ) {
-    openedFiles[ui->filesTab->currentWidget()]->upToDate = false;
+  if ( openedFiles.contains(ui->filesTab[0]->currentWidget()) ) {
+    openedFiles[ui->filesTab[0]->currentWidget()]->upToDate = false;
     }
 }
 
@@ -1116,7 +1149,7 @@ void MainWindow::select(QModelIndex idx)
       QMessageBox::warning(this, "Error:", "file:\n" + fname + "\n is already open");
       return;
       }
-  addFileTab(path, !editableSuffixes.contains(f.suffix()), false);
+  addFileTab(0, path, !editableSuffixes.contains(f.suffix()), false);
 }
 
 void MainWindow::quit()

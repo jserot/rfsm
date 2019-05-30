@@ -2,8 +2,7 @@ QT       += core gui
 QT 		 += xml
 QT 		 += widgets
 
-QMAKE_CXXFLAGS += -Wno-unused-parameter
-CXXFLAGS += -Wno-unused-parameter
+#QMAKE_CXXFLAGS += -Wno-unused-parameter
 
 CONFIG += c++11
 
