@@ -32,17 +32,14 @@ Options::Options(QString specFile, QWidget *parent)
     if ( items[0] != "ide" ) continue;
     if ( items[3] == "Arg.Unit" ) {
       AppOption opt(items[1], items[2], AppOption::UnitOpt, items[5]);
-      // layout->addRow(new QLabel(opt.desc), opt.checkbox);
       opts.insert(items[2], opt);
     }
     else if ( items[3] == "Arg.String" ) {
       AppOption opt(items[1], items[2], AppOption::StringOpt, items[5]);
-      // layout->addRow(new QLabel(opt.desc), opt.val);
       opts.insert(items[2], opt);
     }
     else if ( items[3] == "Arg.Int" ) {
       AppOption opt(items[1], items[2], AppOption::IntOpt, items[5]);
-      // layout->addRow(new QLabel(opt.desc), opt.val);
       opts.insert(items[2], opt);
     }
     else { /* TO FIX */ }

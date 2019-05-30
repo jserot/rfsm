@@ -2,8 +2,6 @@ QT       += core gui
 QT 		 += xml
 QT 		 += widgets
 
-#QMAKE_CXXFLAGS += -Wno-unused-parameter
-
 CONFIG += c++11
 
 TARGET = rfsm

@@ -341,7 +341,6 @@ void writeInitfile(void)
   fic->close();
 }
 
-
 // TABed file management
 
 QWidget* MainWindow::indexedWidget(int col, int tabIndex)
@@ -573,9 +572,6 @@ void MainWindow::closeAllFiles()
 
 void MainWindow::newProject()
 {
-  // QString dirName = QFileDialog::getExistingDirectory(this, tr("New Project Directory"), initDir,
-  //                                                 QFileDialog::ShowDirsOnly
-  //                                                 | QFileDialog::DontResolveSymlinks);
   QString path = QFileDialog::getSaveFileName(this, "Select location for project file and directory", initDir);
   if ( path.isEmpty() ) return;
   ui->logText->append("Creating project " + path);
@@ -672,7 +668,6 @@ void MainWindow::addCurrentFileToProject()
 
 void MainWindow::addFileToProject()
 {
-  // Get file from dialog, copy to project dir, add to srcs list 
   if ( project == NULL ) return;
   QString path = QFileDialog::getOpenFileName(this, tr("Select Source File"),
                                                 initDir,
@@ -817,7 +812,6 @@ void MainWindow::setGeneralOptions()
 
 QString MainWindow::getOptions(QString category, QStringList exclude)
 {
-  //QMap<QString,AppOption> opts = Options::getInstance()->values;
   QMapIterator<QString, AppOption> i(options->opts);
   QString res;
   while ( i.hasNext() ) {
@@ -835,7 +829,6 @@ QString MainWindow::getOptions(QString category, QStringList exclude)
 
 QString MainWindow::getOption(QString name)
 {
-  //QMap<QString,AppOption> opts = Options::getInstance()->values;
   Q_ASSERT(options->opts.contains(name));
   AppOption opt = options->opts.value(name);
   switch ( opt.kind ) {
@@ -878,19 +871,6 @@ bool MainWindow::executeCmd(QString wDir, QString cmd, bool sync)
     return true;
     }
 }
-
-// void removeFiles(QString dirPath, QStringList filePats)
-// {
-//   QDir dir(dirPath);
-//   dir.setNameFilters(filePats);
-//   dir.setFilter(QDir::Files);
-//   qDebug() << "Removing " << filePats << " in " << dirPath;
-//   foreach ( QString dirFile, dir.entryList()) {
-//     //qDebug() << "Removing " << dirFile;
-//     dir.remove(dirFile);
-//     }
-// }
-
 
 void MainWindow::compile(QString type, QString baseCmd, QString targetDir, bool inProject)
 {
@@ -1044,8 +1024,6 @@ void MainWindow::dotTransform(QFileInfo f, QString wDir)
 
 void MainWindow::openGeneratedFiles(QString type, QString dir)
 {
-  //   while ( ui->outFilesTab->count() > 0 )
-  //     ui->outFilesTab->removeTab(ui->outFilesTab->currentIndex());
   QStringList files = getFileList(dir+"/rfsm.output");
   for ( QStringList::ConstIterator file = files.begin(); file != files.end(); file++ ) {
     QFileInfo f(*file);

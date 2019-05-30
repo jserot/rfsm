@@ -123,16 +123,6 @@ void Ui_MainWindow::setupUi(QMainWindow *MainWindow)
     hSplitter->addWidget(filesTab[i]);
   }
 
-  // filesTab->setObjectName(QStringLiteral("filesTab"));
-  // QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  // sizePolicy1.setHeightForWidth(filesTab->sizePolicy().hasHeightForWidth());
-  // filesTab->setSizePolicy(sizePolicy1);
-  // filesTab->setMinimumSize(QSize(500, 150));
-  // filesTab->setDocumentMode(false);
-  // filesTab->setTabsClosable(true);
-  // filesTab->setMovable(true);
-  // hSplitter->addWidget(filesTab);
-
   vSplitter->addWidget(hSplitter);
 
   logText = new QTextEdit(vSplitter);
@@ -222,30 +212,6 @@ void Ui_MainWindow::createMenus(QMainWindow *MainWindow)
   actionCut = editMenu->addAction("&Cut");
   actionPaste = editMenu->addAction("&Paste");
   actionSelect = editMenu->addAction("&Select all");
-
-  // QString ICON_NEW(":/img/new.png");
-  // QString ICON_OPEN( ":/img/open.png");
-  // QString ICON_SAVE( ":/img/save.png");
-  // QString ICON_SAVEALL( ":/img/saveall.png");
-  // QString ICON_QUIT(":/img/exit.png");
-  // QString ICON_COPY(":/img/copier.png");
-  // QString ICON_CUT(":/img/couper.png");
-  // QString ICON_PASTE(":/img/coller.png");
-  // QString ICON_SELECT(":/img/select_all.png");
-  // QString ICON_COLOR(":/img/color.png");
-  // QString ICON_PREF(":/img/preferences.png");
-  // QString ICON_CLOSEF(":/img/closefile.png");
-
-  // actionOpenProject->setIcon(QIcon(ICON_OPEN));
-  // actionNewFile->setIcon(QIcon(ICON_NEW));
-  // // actionSaveFile->setIcon(QIcon(ICON_SAVE));
-  // // actionSaveAll->setIcon(QIcon(ICON_SAVEALL));
-  // actionQuit->setIcon(QIcon(ICON_QUIT));
-  // actionCopy->setIcon(QIcon(ICON_COPY));
-  // actionCut->setIcon(QIcon(ICON_CUT));
-  // actionPaste->setIcon(QIcon(ICON_PASTE));
-  // actionSelect->setIcon(QIcon(ICON_SELECT));
-  // actionCloseFile->setIcon(QIcon(ICON_CLOSEF));
 
   QMenu *viewMenu = menuBar->addMenu("View");
 

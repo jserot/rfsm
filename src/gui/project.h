@@ -26,10 +26,6 @@ public:
   QString ctaskOptions;
   QString systemcOptions;
   QString vhdlOptions;
-  /* Project(QString dir, QString mainName, QStringList srcFiles, QString dotOptions, QString simOptions, */
-  /*         QString ctaskOptions, QString systemcOptions, QString vhdlOptions) */
-  /*   : dir(dir), file(file), mainName(mainName), srcFiles(srcFiles), dotOptions(dotOptions), simOptions(simOptions), */
-  /*     ctaskOptions(ctaskOptions), systemcOptions(systemcOptions), vhdlOptions(vhdlOptions) { } */
   Project()
     : file(), dir(), mainName(), srcFiles(), dotOptions(), simOptions(), ctaskOptions(), systemcOptions(), vhdlOptions() { }
   Project(QString fname) { readFromFile(fname); };
