@@ -1,8 +1,10 @@
+BUILD
+- ocamlbuild -> dune ?
+- use cmake for building GUI ?
+
 COMPILER
 
-- ocamlbuild -> dune (?)
 - rewrite menhir parser with $sloc+%inline (cf OCaml 4.08 srcs)
-- use cmake for building GUI
 - support for synchronous actions in CTask and SystemC
 - allow arrays as parameters (ex: [fsm model m <t: int array[4]])
 - allow _unsized_ arrays as parameters (ex: [fsm model m <t: int array[], sz: int> (...)])
@@ -12,7 +14,6 @@ COMPILER
 - clarify mechanism for delta-waits insertion in SystemC backend
 - VHDL implementation of models with multiple input events
 - VHDL implementation of event and variable synchronized models
-- man page for rfsmc
 - FreeRTOS (or other RTOS) specialized C-backend
 - SCXML backend (www.w3.org/TR/scxml, Yakindu, ...)
 - SMV backend (with predicated states for connection to model-checking tools)
@@ -24,11 +25,10 @@ COMPILER
 DOC
 - allow doc building in opam
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
+- man page for rfsmc
 
 GUI
-- back to two tab groups : one for source files (.fsm, .pro), one for the generated : not being able to view simultaneously source and graphs for example is really annoying..
 - use a form to edit project
-- update URL in About window
 
 SITE
 - new syntax for examples

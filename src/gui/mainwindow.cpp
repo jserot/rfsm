@@ -90,7 +90,7 @@ MainWindow::MainWindow(QString projFile, QWidget *parent) :
 void MainWindow::about(void)
 {
   QMessageBox::about(this, tr("RFSM"),  // TO FIX
-                     tr("<p>Reactive Finite State Machines</p><p>http://cloud.ip.uca.fr/~serot/rfsm</p><p>(C) 2019, J. Sérot, jocelyn.serot@uca.fr</p>"));
+                     tr("<p>Reactive Finite State Machines</p><p>http://dream.ispr-ip.fr/RFSM</p><p>(C) 2019, J. Sérot, jocelyn.serot@uca.fr</p>"));
 }
 
 MainWindow::~MainWindow()
