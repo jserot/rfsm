@@ -372,7 +372,7 @@ void MainWindow::closeIndexedFile(int col, int index)
       msgBox.setDefaultButton(QMessageBox::Save);
       switch ( msgBox.exec() ) {
         case QMessageBox::Save:
-          //saveOpenedFile(f);
+          saveIndexedFile(col, index, "");
           break;
         case QMessageBox::Discard:
           break;
