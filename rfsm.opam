@@ -1,11 +1,11 @@
 opam-version: "2.0"
 name: "rfsm"
-version: "1.4.2"
+version: "1.5"
 maintainer: "jocelyn.serot@uca.fr"
 authors: [
   "Jocelyn Sérot <jocelyn.serot@uca.fr>"
 ]
-homepage: "http://cloud.ip.uca.fr/~serot/rfsm/"
+homepage: "http://dream.ispr-ip.fr/RFSM"
 dev-repo: "git://github.com/jserot/rfsm.git"
 bug-reports: "jocelyn.serot@uca.fr"
 license: "MIT"
@@ -28,7 +28,7 @@ depends: [
 synopsis:
   "A toolset for describing and simulating StateChart-like state diagrams"
 url {
-  src: "https://github.com/jserot/rfsm/archive/v1.4.2.tar.gz"
-  checksum: "md5=2febda48d5fed77b887778f65d4c2685"
+  src: "http://dream.ispr-ip.fr/RFSM/dist/rfsm.tar.gz"
+  checksum: "md5=1febda48d5fed77b887778f65d4c2685"
 }
 

@@ -291,10 +291,10 @@ win32-installer:
 TMPDIR=/tmp
 DISTNAME=rfsm
 DISTDIR=$(TMPDIR)/rfsm
-EXCLUDES=--exclude .git --exclude .gitignore --exclude .DS_Store
+EXCLUDES=--exclude=*~ --exclude .git --exclude .gitignore --exclude .DS_Store 
 TARBALL=$(DISTNAME).tar
 
-dist: 
+opam-dist: 
 	@make -f Makefile clean
 	@rm -rf $(DISTDIR)
 	@mkdir $(DISTDIR)
@@ -303,10 +303,4 @@ dist:
 	@ echo "** Creating tarball"
 	@(cd $(TMPDIR); tar cf $(TARBALL) $(DISTNAME); gzip -f $(TARBALL))
 	@ echo "** File $(TMPDIR)/$(TARBALL).gz is ready."
-	echo "archive: \"http://cloud.ip.univ-bpclermont.fr/~serot/rfsm/dist/rfsm.tar.gz\"" > url
-	echo "checksum: \""`md5 -q $(TMPDIR)/$(TARBALL).gz`"\"" >> url
-	@echo "Created file ./url"
-
-export:
-	ncftpput -u serot ftp.ip.uca.fr /home/www/rfsm/dist $(TMPDIR)/$(TARBALL).gz
-
+	echo "checksum: \""`md5 -q $(TMPDIR)/$(TARBALL).gz`"\""

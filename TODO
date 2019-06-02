@@ -22,6 +22,10 @@ COMPILER
 - functorization (FSM module is parametized on State, Condition and Action) ?
 - communication via FIFOs (message queues) ?
 
+DIST
+
+- update opam package
+
 DOC
 - allow doc building in opam
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
@@ -29,3 +33,4 @@ DOC
 
 GUI
 - use a form to edit project
+- add About Qt window (see qvge)

@@ -68,3 +68,4 @@ src/gui/options_spec.txt
 src/gui/rsfm.app/
 doc/um/grammar.tex
 doc/um/figs/*.pdf
+lib/etc/platform
