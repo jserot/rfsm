@@ -29,7 +29,6 @@ module Index : sig
   val subst: env -> t -> t 
   val vars_of: t -> VarSet.t
   val to_string: t -> string
-  val to_string: t -> string
 end
 
 type typ =

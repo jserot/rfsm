@@ -78,6 +78,7 @@
 %start program
 
 %{
+open Rfsm
 open Location
 
 let mk_location (p1,p2) = Loc (!input_name, p1, p2)

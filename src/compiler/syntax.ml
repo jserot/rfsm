@@ -13,6 +13,8 @@
 
 (* Type expressions *)
 
+open Rfsm
+   
 type type_expression = {
   te_desc: Type_expr.t;
   te_loc: Location.location;

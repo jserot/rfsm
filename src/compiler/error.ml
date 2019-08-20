@@ -11,6 +11,7 @@
 
 open Printf
 open Location
+open Rfsm
    
 let handle e = match e with
   | Old_parser.Error

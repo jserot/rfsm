@@ -9,6 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
+open Rfsm
 open Syntax
 
 let type_of_type_expression tenv te = Typing.type_of_type_expr tenv te.te_desc

@@ -1,45 +1,35 @@
-include VERSION
 include config
 
 PACKNAME=rfsm
-
-LIB_INSTALLED = \
-  src/lib/_build/*.mli \
-  src/lib/_build/*.cmi \
-  src/lib/_build/*.cma 
-BIN_INSTALLED = etc/rfsmmake src/compiler/rfsmc
-ifeq ($(BUILD_NATIVE),yes)
-	LIB_INSTALLED += \
-      src/lib/_build/*.cmx \
-      src/lib/_build/*.cmxa \
-      src/lib/_build/*.a
-    BIN_INSTALLED += src/compiler/rfsmc.opt
-endif
 
 QMAKE_MACOS = /Developer/Qt5.2.1/5.2.1/clang_64/bin/qmake 
 QMAKE_WIN = C:/Qt/Qt5.8.0/5.8/mingw53_32/bin/qmake.exe
 MAKE_WIN = C:/Qt/Qt5.8.0/Tools/mingw530_32/bin/mingw32-make
 QMAKE_UNIX=qmake
 
-.PHONY: compiler lib gui clean test doc install dist opam opam-doc
+.PHONY: lib compiler gui clean test doc install dist opam opam-doc
 
-all: 		lib compiler libs gui doc
+all: lib compiler # libs gui doc
 
 opam: lib compiler 
 
 lib:
-			(cd src/lib; make byte)
+	dune build ./src/lib/rfsm.cma
 ifeq ($(BUILD_NATIVE),yes)
-			(cd src/lib; make native)
+	dune build ./src/lib/rfsm.cmxa
 endif
 
 compiler:
-			(cd src/compiler; make byte)
-			mv src/compiler/main.byte src/compiler/rfsmc
+	dune build ./src/compiler/rfsmc.bc
 ifeq ($(BUILD_NATIVE),yes)
-			(cd src/compiler; make native)
-			mv src/compiler/main.native src/compiler/rfsmc.opt
+	dune build ./src/compiler/rfsmc.exe
 endif
+
+dune.install:
+	dune build @install
+
+doc.lib:
+	dune build @doc
 
 gui:
 ifeq ($(BUILD_GUI),yes)
@@ -80,17 +70,14 @@ opam-doc:
 	(cd doc/um; make; cp rfsm.pdf ..)
 
 clean:
-	(cd src/lib; make clean)
-	(cd src/compiler; make clean)
+	dune clean
 	(cd src/gui; make clean)
 	(cd lib; make clean)
 	(cd examples; make clean)
 	(cd doc/um; make clean)
 	rm -f doc/lib/*
 
-clobber: 
-	(cd src/lib; make clobber)
-	(cd src/compiler; make clobber)
+clobber: clean
 	(cd src/gui; make clean)
 	(cd lib; make clobber)
 	(cd examples; make clobber)

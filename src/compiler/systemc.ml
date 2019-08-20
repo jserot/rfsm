@@ -11,9 +11,10 @@
 
 (* SystemC backend *)
 
+open Rfsm
 open Types
-open Printf
 open Cmodel
+open Printf
 
 exception Error of string * string  (* where, msg *)
 
@@ -55,7 +56,7 @@ let record_access f = ".repr." ^ f
 
 let need_globals m = m.Static.m_types <> [] || m.Static.m_fns <> [] || m.Static.m_consts <> [] 
 
-let rec string_of_type t = match t with 
+let string_of_type t = match t with 
   | TyEvent -> "bool"
   | TyBool -> "bool"
   | TyChar -> "char"

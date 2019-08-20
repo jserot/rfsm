@@ -19,3 +19,9 @@
   . make win32-gui
   . make win32-install
   . make win32-installer
+
+* publish opm package
+- make opam-dist (this will create /tmp/rfsm.tar.gz)
+- upload the tarball to dream.ispr-ip.fr/RFSM/disr
+- cd .; opam publish https://dream.ispr-ip.fr/RFSM/dist/rfsm.tar.gz .
+- follow PR notifications on Github

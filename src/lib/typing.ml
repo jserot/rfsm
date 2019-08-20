@@ -46,7 +46,7 @@ exception Unbound_type_ctor of string
                              
 let rec type_of_type_expr tenv texpr =
   let open Type_expr in 
-  let rec type_texpr te = match te.te_desc with
+  let type_texpr te = match te.te_desc with
   | TEBool -> Types.TyBool
   | TEInt TA_none -> TyInt (new_size_var())
   | TEInt (TA_size sz) -> Types.TyInt (Types.SzExpr1 (type_index_of_index_expr sz))
@@ -332,7 +332,6 @@ let type_check_fsm_model tenv f =
 
 let type_fsm_model tenv f =
   (* Type checks an FSM model *)
-  let open Fsm in
   let tenv = { tenv with te_vars = types_of_fsm_model f @ tenv.te_vars } in
   type_check_fsm_model tenv f
 

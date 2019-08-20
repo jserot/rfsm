@@ -1,0 +1,9 @@
+(env
+  (dev
+    (flags (:standard -annot) (:standard -w -9-27-32-34-50))))
+
+(library
+  (name rfsm)
+  (public_name rfsm)
+  (libraries ocamlgraph lascar str))
+

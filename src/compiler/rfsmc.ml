@@ -9,8 +9,8 @@
 (*                                                                    *)
 (**********************************************************************)
 
+open Rfsm
 open Printf
-open Location
 
 let usage = "usage: rfsmc [options...] files"
 

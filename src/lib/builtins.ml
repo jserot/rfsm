@@ -34,19 +34,19 @@ exception Unknown_value
         
 let encode_int n =
     Val_int n
-let rec decode_int = function
+let decode_int = function
   | Val_int n -> n
   | Val_unknown -> raise Unknown_value
   | _ -> Misc.fatal_error "Builtins.decode_int" (* should not happen *)
 let encode_bool b =
     Val_bool b
-let rec decode_bool = function
+let decode_bool = function
   | Val_bool b -> b
   | Val_unknown -> raise Unknown_value
   | _ -> Misc.fatal_error "Builtins.decode bool" (* should not happen *)
 let encode_float n =
     Val_float n
-let rec decode_float = function
+let decode_float = function
   | Val_float n -> n
   | Val_unknown -> raise Unknown_value
   | _ -> Misc.fatal_error "Builtins.decode_float" (* should not happen *)

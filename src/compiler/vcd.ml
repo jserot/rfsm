@@ -9,10 +9,11 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Printf
+open Rfsm
 open Types
 open Fsm
 open Simul
+open Printf
 
 type vcd_config = {
     mutable default_int_size: int;

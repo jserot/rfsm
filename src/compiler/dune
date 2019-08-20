@@ -1,0 +1,19 @@
+(env
+  (dev
+    (flags (:standard -annot) (:standard -w -9-27-32-34-35-50))))
+
+(ocamllex
+  (modules main_lexer old_lexer))
+
+(menhir
+  (modules main_parser old_parser))
+
+(rule
+ (target options_spec.ml)
+ (deps   options_spec.txt)
+ (action (run ./build_options_spec %{deps} %{target})))
+  
+(executable 
+  (name rfsmc)
+  (public_name rfsmc)
+  (libraries rfsm))

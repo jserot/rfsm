@@ -9,6 +9,8 @@
 (*                                                                    *)
 (**********************************************************************)
 
+open Rfsm
+   
 (* Static elaboration *)
 
 exception Unbound_fsm of Location.location * string

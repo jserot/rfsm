@@ -11,6 +11,7 @@
 
 (* VHDL backend *)
 
+open Rfsm
 open Fsm
 open Types
 open Printf
@@ -138,7 +139,7 @@ let type_error where what item ty1 ty2 =
        what item (string_of_type ty1) (string_of_type ty2)))
 
 let vhdl_string_of_float x =
-  Printf.sprintf "%#E" x
+  Printf.sprintf "%E" x
   (* let s = string_of_float x in
    * if String.get s (String.length s - 1) = '.' then s ^ "0" else s *)
 
@@ -174,7 +175,7 @@ let string_of_ival = function
     None -> ""
   | Some v -> " = " ^ string_of_value v
 
-let rec type_of_expr e = vhdl_type_of e.Expr.e_typ
+let type_of_expr e = vhdl_type_of e.Expr.e_typ
 
 let string_of_op = function
     "=" -> " = "
@@ -258,7 +259,6 @@ and string_of_range id hi lo = id ^ "(" ^ string_of_int_expr hi ^ " downto " ^ s
 let string_of_action m a =
   let asn id = if List.mem_assoc id m.Cmodel.c_vars && Fsm.cfg.Fsm.act_sem = Sequential then " := " else " <= " in
   let invalid_lhs () = raise (Error (m.Cmodel.c_name, "invalid LHS for action \"" ^ Action.to_string a ^ "\"")) in
-  let open Types in
   match a with
   | Action.Assign ({l_desc=Action.LhsVar id}, expr) ->
      id ^ asn id ^ string_of_expr expr

@@ -303,7 +303,7 @@ and occur_check var ty =
   in test ty
 
 and occur_check_size (ty1,ty2) var sz =
-  let rec test s =
+  let test s =
     match size_repr s with
     | SzVar var' ->
         if var == var' then raise(TypeCircularity(ty1,ty2))
@@ -370,7 +370,7 @@ and name_equal ~strict nm1 nm2 =
     
 (* Accessors *)
                  
-let rec enums_of ty = match ty with
+let enums_of ty = match ty with
   | TyEnum (_,cs) -> List.map (function c -> c, ty) cs
   | _ -> []
 

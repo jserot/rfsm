@@ -11,6 +11,8 @@
 
 (* Target-independent C model *)
 
+open Rfsm
+   
 type c_type_defn = 
     CTyEnum of string list
 

@@ -38,7 +38,7 @@ exception Undeterminate of fsm * string * Types.date
 exception NonDetTrans of fsm * Fsm.transition list * Types.date
 exception NonAtomicIoWrite of fsm * Action.t 
 
-let rec mk_ival ty = match ty with
+let mk_ival ty = match ty with
   | Types.TyArray(TiConst sz, ty') ->
      Expr.mk_array (Utils.ListExt.range (function i -> Expr.mk_val ty' Expr.Val_unknown) 1 sz)
   | Types.TyArray(_, _) -> Misc.fatal_error "Fsm.Dynamic.mk_ival"
@@ -55,7 +55,7 @@ let make_fsm sf = {
     f_has_reacted = false
   }
 
-let rec replace_assoc' k v env =
+let replace_assoc' k v env =
   (* This is a variation on [Utils.ListExt.replace_assoc], where [v=(_,v')] and only [v'] is replaced *)
   let rec repl = function
       [] -> []

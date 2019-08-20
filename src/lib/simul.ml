@@ -101,7 +101,7 @@ let mk_fsm_env ctx =
     fe_vars = ctx.c_vars;
     fe_evs = ctx.c_evs }
 
-let rec react t ctx stimuli =
+let react t ctx stimuli =
   let open Dynamic in
   let is_reentrant =     (* A reentrant stimulus is one which can trigger a micro-reaction *)
     function
@@ -237,6 +237,6 @@ let dump_context c =
     (Utils.ListExt.to_string string_of_comp " " c.c_vars)
     (Utils.ListExt.to_string string_of_comp " " c.c_evs)
     
-let rec dump_reaction (t,evs) =
+let dump_reaction (t,evs) =
   Printf.printf "t=%4d: %s\n" t (Utils.ListExt.to_string string_of_event " " evs)
 
