@@ -34,6 +34,9 @@ grammar.tex: ../src/bin/main_parser.mly
 	@read -p "** About to regenerate ./grammar.tex. Are you sure ? " r;\
 	if [ $$r = "yes" ]; then (cp ./grammar.tex grammar.sav.tex; $(OBELISK) latex -i -prefix rfsm -o grammar.tex -package grammar-defns $<; echo "** Done. Now diff-edit grammar.sav.tex and grammar.tex (resp. sav/grammar-defns.sty and grammar-defns.sty)  to integrate changes"); fi
 
+install: $(DOC).pdf
+	cp $< ../../../../github.io/rfsm-docs
+
 realclean: clobber
 
 clobber: clean
