@@ -13,7 +13,6 @@ config
 config-stamp
 *.dvi
 *.pdf
-!doc/rfsm.pdf
 *.aux
 *.log
 *.rel

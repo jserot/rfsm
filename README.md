@@ -40,9 +40,9 @@ provided separately:
 DOCUMENTATION
 -------------
 
-The compiler user manual can be found [here](http://github.com/jserot/RFSM/doc/rfsm.pdf)
+The compiler user manual can be found [here](http://jserot.github.io/rfsm-docs/rfsm.pdf)
 
-The library API is documented [here](https://jserot.github.io/rfsmc/index.html)
+The library API is documented [here](https://jserot.github.io/rfsm/index.html)
 
 INSTALLATION
 ------------
