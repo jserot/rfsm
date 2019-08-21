@@ -10,5 +10,3 @@ Known bugs and limitations
 
 * The mechanism of binary priority (high/low, "|"/"!") used to resolve non-deterministic situations
   could be refined 
-
-* A portable way of building the GUI on Linux distros is still missing

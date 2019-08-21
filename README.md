@@ -8,8 +8,6 @@ The toolset is composed of
 
 * a command-line compiler (`rfsmc`) 
 
-* a Qt-based standalone application (`Rfsm.app` or `rfsm.exe`)
-
 RFSM tools take
 
 * a description of a system as a set of StateChart-like state diagrams
@@ -18,9 +16,9 @@ RFSM tools take
 
 and generate
 
-* a graphical representation of the system (to be viewed with [Graphviz][graphviz] for example)
+* a graphical representation of the system (to be viewed with [Graphviz](http://www.graphviz.org) for example)
 
-* execution traces as `.vcd` files (to be viewed with [Gtkwave][gtkwave] for example)
+* execution traces as `.vcd` files (to be viewed with [Gtkwave](http://gtkwave.sourceforge.net) for example)
 
 Additionnaly, dedicated backends can generate system descriptions in
 
@@ -32,33 +30,24 @@ Additionnaly, dedicated backends can generate system descriptions in
 
 for simulation of implementation. 
 
-[graphviz]: http://www.graphviz.org
-[gtkwave]: http://gtkwave.sourceforge.net
+The `rfmsc` compiler is intended to be used from the command line. Graphical User Interfaces are
+provided separately:
+
+* [Rfsm](http://dream.ispr-ip.fr/RFSM)
+
+* [RfsmLight](http://github.com/jserot/rfsm-light) 
 
 DOCUMENTATION
 -------------
 
-The project web page (including links for downloading the tools) is 
-[here][web].
+The compiler user manual can be found [here](http://github.com/jserot/RFSM/doc/rfsm.pdf)
 
-The user manual can be found [here][usermanual]
-
-[usermanual]: http://dream.ispr-ip.fr/RFSM/doc/rfsm.pdf
-
-[web]: http://dream.ispr-ip.fr/RFSM
-
-The library API is documented [here][libapi].
-
-[libapi]: http://dream.ispr-ip.fr/RFSM/doc/lib/index.html
+The library API is documented [here](https://jserot.github.io/rfsmc/index.html)
 
 INSTALLATION
 ------------
 
-Prebuilt Windows and MacOS versions can be downloaded from the [project webpage][web].
+The latest stable version is provided as a ready-to-install OPAM
+[package](https://opam.ocaml.org/packages/rfsm). Just type 
 
-Source code is available via [github][] (`git clone https://github.com/jserot/rfsm`).
-
-The library and the compiler are available as an [opam][] package.
-
-[github]: https://github.com/jserot/rfsm
-[opam]: https://opam.ocaml.org/packages/rfsm
+`opam install rfsm`

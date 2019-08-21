@@ -1,7 +1,3 @@
-BUILD
-- ocamlbuild -> dune ?
-- use cmake for building GUI ?
-
 COMPILER
 
 - rewrite menhir parser with $sloc+%inline (cf OCaml 4.08 srcs)
@@ -24,13 +20,8 @@ COMPILER
 
 DIST
 
-- update opam package
+- KNOWN-BUGS -> Issues
 
 DOC
-- allow doc building in opam
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
 - man page for rfsmc
-
-GUI
-- use a form to edit project
-- add About Qt window (see qvge)

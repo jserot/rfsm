@@ -1,7 +1,0 @@
-1. Drag [Rfsm.app] to the [Applications] folder
-2. Drag the [Documentation] and [Examples] folders anywhere on your computer
-3. Launch [Rfsm] by double-clicking on it in the [Applications] folder
-4. Bring up the [Configuration > Compiler and tools] dialog to set the commands for
-   - launching the [dot] command line application
-   - launching the [Graphviz] application
-   - launchning the [Gtkwave] application
