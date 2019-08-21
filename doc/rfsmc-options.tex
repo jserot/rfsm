@@ -1,5 +1,5 @@
--c & compile FSM model(s) without instantiating them\\
 -lib & set location of the support library (default: /usr/local/rfsm/lib)\\
+-main & set prefix for the generated main files\\
 -dump\_static & dump static representation of model(s)/program to stdout\\
 -target\_dir & set target directory (default: .)\\
 -dot & generate .dot representation of model(s)/program\\
@@ -11,7 +11,6 @@
 -dot\_no\_captions & Remove captions in .dot representation(s)\\
 -dot\_actions\_nl & write actions with with a separating newline\\
 -trace & set trace level for simulation (default: 0)\\
--vcd & set name of .vcd output file when running simulation (default: run.vcd)\\
 -synchronous\_actions & interpret actions synchronously\\
 -sc\_time\_unit & set time unit for the SystemC test-bench (default: SC\_NS)\\
 -sc\_trace & set trace mode for SystemC backend (default: false)\\
@@ -23,5 +22,6 @@
 -vhdl\_rst\_duration & set duration of reset signals (default: 1 ns)\\
 -vhdl\_numeric\_std & translate integers as numeric\_std [un]signed (default: false)\\
 -vhdl\_bool\_as\_bool & translate all booleans as boolean (default: false)\\
+-vhdl\_dump\_ghw & make GHDL generate trace files in .ghw format instead of .vcd\\
 -old\_syntax & use old (pre-1.5) syntax\\
 -transl\_syntax & convert old syntax to new syntax\\

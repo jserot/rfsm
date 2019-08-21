@@ -1,13 +1,21 @@
 (lang dune 1.11)
-(version 1.6)
 (name rfsm)
+(source (github jserot/rfsm))
 (license MIT)
-(maintainers "jocelyn.serot@uca.fr")
+(authors "Jocelyn Sérot <jocelyn.serot@uca.fr>")
+(maintainers "Jocelyn Sérot <jocelyn.serot@uca.fr>")
+(bug_reports "jocelyn.serot@uca.fr")
+(homepage "github.com/jserot/rfsm")
+(documentation "http://jserot.github.io/rfsm")
 (using menhir 2.0)
 
 (package
   (name rfsm)
   (synopsis "A toolset for describing and simulating StateChart-like state diagrams")
-  (description ""))
+  (description "A toolset for describing and simulating StateChart-like state diagrams")
+  (depends
+    (dune (>= 1.11))
+    (menhir (>= 2.0))
+    (ocaml (>= 4.06))))
 
 (generate_opam_files true)

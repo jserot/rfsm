@@ -1,5 +1,11 @@
 # Changes
 
+# 1.6 (Aug 21, 2019)
+* _IMPORTANT_ the GUI is now provided as a separate project; this source tree only concerns the `rfsm` library
+  and `rfsmc` compiler (provided as an `opam` package)
+* build and install processes are now handled by the `dune` and `dune-release` tools
+* now uses lascar-v0.6 
+
 # 1.5 (May 30, 2019)
 * New syntax for FSM models. Transitions are now written:
      `| src_state -> dst_state ON ev [WHEN guards] [WITH actions]`
