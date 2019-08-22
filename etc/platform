@@ -2,7 +2,7 @@
 # To be adjusted if necessary
 
 RFSMC=rfsmc
-LIBDIR=`opam config var share`/rfsm/lib
+LIBDIR=$(shell opam config var share)/rfsm
 
 DOT=dot
 DOTVIEWER=graphviz
@@ -13,9 +13,6 @@ CXX=g++
 LD=g++
 CXXFLAGS=-Wall -Wno-deprecated -I.
 LDFLAGS=
-
-SYSTEMC=/usr/local/systemc-2.3.0
-TARGET_ARCH=macosx64
 
 GHDL=ghdl
 GHDLOPTS=-fno-color-diagnostics

@@ -626,7 +626,7 @@ let dump_makefile ?(name="") ?(dir="./systemc") m =
         (Utils.ListExt.to_string (modname ".h")  " " m.m_fsms)
         (Utils.ListExt.to_string (imodname ".h")  " " m.m_inputs)
         tb_name;
-      let objs = sprintf "$(LIBDIR)/systemc/%s.o %s %s %s %s.o"
+      let objs = sprintf "%s.o %s %s %s %s.o"
                    cfg.sc_lib_name
                    (globals ".o")
                    (Utils.ListExt.to_string (modname ".o")  " " m.m_fsms)

@@ -1,6 +1,8 @@
-include $(LIBDIR)/etc/platform
+include $(LIBDIR)/platform
 
-CXXFLAGS += -I. -I$(SYSTEMC)/include -I$(LIBDIR)/systemc
+SYSTEMC=/usr/local/systemc-2.3.0
+TARGET_ARCH=macosx64
+CXXFLAGS += -I$(SYSTEMC)/include -I$(LIBDIR)/lib/systemc
 
 LDFLAGS	 += -L$(SYSTEMC)/lib-$(TARGET_ARCH) 
 
@@ -27,3 +29,6 @@ clobber: clean
 	-rm -f *.cpp *.h
 	-rm -f *.gtkw *.vcd
 	-rm -f Makefile  # Generated
+
+rfsm.cpp: $(LIBDIR)/lib/systemc/rfsm.cpp
+	cp $< $@
