@@ -135,10 +135,8 @@ share_root: [
   "_build/install/default/share/emacs/site-lisp/rfsm-mode.el" {"emacs/site-lisp/rfsm-mode.el"}
 ]
 doc: [
-  "_build/install/default/doc/rfsm/CHANGES.html"
   "_build/install/default/doc/rfsm/CHANGES.md"
   "_build/install/default/doc/rfsm/LICENSE"
-  "_build/install/default/doc/rfsm/README.html"
   "_build/install/default/doc/rfsm/README.md"
   "_build/install/default/doc/rfsm/rfsm.pdf"
 ]

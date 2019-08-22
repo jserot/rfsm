@@ -1,5 +1,6 @@
 (lang dune 1.11)
 (name rfsm)
+(version 1.6)
 (source (github jserot/rfsm))
 (license MIT)
 (authors "Jocelyn Sérot <jocelyn.serot@uca.fr>")
