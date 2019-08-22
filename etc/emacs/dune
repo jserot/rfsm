@@ -1,0 +1,3 @@
+(install
+ (section share_root)
+ (files (rfsm-mode.el as emacs/site-lisp/rfsm-mode.el)))
