@@ -122,7 +122,6 @@ bin: [
   "_build/install/default/bin/rfsmmake"
 ]
 share: [
-  "_build/install/default/share/rfsm/emacs/site-lisp/rfsm-mode.el" {"emacs/site-lisp/rfsm-mode.el"}
   "_build/install/default/share/rfsm/lib/systemc/rfsm.cpp" {"lib/systemc/rfsm.cpp"}
   "_build/install/default/share/rfsm/lib/systemc/rfsm.h" {"lib/systemc/rfsm.h"}
   "_build/install/default/share/rfsm/lib/vhdl/rfsm.vhd" {"lib/vhdl/rfsm.vhd"}
@@ -131,6 +130,9 @@ share: [
   "_build/install/default/share/rfsm/templates/Makefile.templ" {"templates/Makefile.templ"}
   "_build/install/default/share/rfsm/templates/Makefile.test.templ" {"templates/Makefile.test.templ"}
   "_build/install/default/share/rfsm/templates/Makefile.vhdl.templ" {"templates/Makefile.vhdl.templ"}
+]
+share_root: [
+  "_build/install/default/share/emacs/site-lisp/rfsm-mode.el" {"emacs/site-lisp/rfsm-mode.el"}
 ]
 doc: [
   "_build/install/default/doc/rfsm/CHANGES.md"
