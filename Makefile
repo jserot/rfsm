@@ -39,6 +39,9 @@ html: README.md
 	pandoc -t html -o README.html README.md
 	pandoc -t html -o CHANGES.html CHANGES.md
 
+toplevel:
+	dune exec ./src/bin/rfsmtop.exe
+
 test:
 	(cd examples; make)
 

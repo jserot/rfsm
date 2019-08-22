@@ -1,3 +1,9 @@
+OPAM
+- install lib/etc/rfsm-mode.el in $(OPAM)/share/emacs/site-lisp
+- install lib/etc/{Makefile.*,platform} in $(OPAM)/share/rfsm/templs
+- install lib/{systemc,vhdl} in $(OPAM)/share/rfsm/lib
+- install etc/rfsmmake in $(OPAM)/bin
+
 COMPILER
 
 - rewrite menhir parser with $sloc+%inline (cf OCaml 4.08 srcs)

@@ -1,7 +1,3 @@
-(env
-  (dev
-    (flags (:standard -annot) (:standard -w -9-27-32-34-35-50))))
-
 (ocamllex
   (modules main_lexer old_lexer))
 
@@ -16,4 +12,9 @@
 (executable 
   (name rfsmc)
   (public_name rfsmc)
+  (flags (:standard -annot) (:standard -w -9-27-32-34-35-50))
+  (libraries rfsm))
+
+(toplevel
+  (name rfsmtop)
   (libraries rfsm))
