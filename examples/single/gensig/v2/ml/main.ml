@@ -36,9 +36,9 @@ let g = Fsm.build_instance ~name:"g" ~model:gensig ~params:["n",Expr.mk_int 4] ~
 
 (* let _ = Fsm.dump_inst stdout g *)
       
-let m = Sysm.build ~name:"gensig" [g]
+let m = Static.build ~name:"gensig" [gensig] [g]
 
-let _ = Sysm.dot_output "./dot" m
+let _ = Static.dot_output "./dot" m
 
 (* let c, rs = Simul.run p
  * let _ = List.iter Simul.dump_reaction rs *)

@@ -12,7 +12,7 @@ let mk_fneg e = mk_expr (EFapp ("~-.", [e]))
   
 let f_abs = 
   TyArrow (TyProduct [TyFloat], TyFloat),
-  Sysm.MFun (["x"],
+  Static.MFun (["x"],
               mk_expr (ECond (mk_binop ("<", mk_var "x", mk_float 0.0), mk_fneg (mk_var "x"), mk_var "x")))
 
 let heron = Fsm.build_model
@@ -58,10 +58,10 @@ let h1 = Fsm.build_instance
            ~params:["eps", Expr.mk_float 0.0000001]
            ~ios:[h; start; u; rdy; niter; r]
 
-let s = Sysm.build ~name:"heron" ~gfns:["f_abs", f_abs] [h1]
+let s = Static.build ~name:"heron" ~gfns:["f_abs", f_abs] [heron] [h1]
 
-let _ = Sysm.dump stdout s
-let _ = Sysm.dot_output ~with_insts:true ~with_models:true "./dot" s
+let _ = Static.dump stdout s
+let _ = Static.dot_output "./dot" s
 
 (* let c, rs = Simul.run s
  * let _ = List.iter Simul.dump_reaction rs *)

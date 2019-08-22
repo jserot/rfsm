@@ -44,10 +44,10 @@ let outp = Global.GOutp ("S", rle_t)
 
 let r1 = Fsm.build_instance ~name:"r1" ~model:rle ~params:[] ~ios:[h;inp;outp]
 
-let s = Sysm.build ~name:"rle" [r1]
+let s = Static.build ~name:"rle" [rle] [r1]
 
-let _ = Sysm.dump stdout s
-let _ = Sysm.dot_output ~with_insts:true ~with_models:true "./dot" s
+let _ = Static.dump stdout s
+let _ = Static.dot_output "./dot" s
 
 (* let c, rs = Simul.run s
  * let _ = List.iter Simul.dump_reaction rs *)

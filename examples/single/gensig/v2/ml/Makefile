@@ -1,33 +1,21 @@
-OCB_FLAGS=-use-ocamlfind -no-hygiene -package ocamlgraph -package lascar
-OCB = ocamlbuild $(OCB_FLAGS)
+all: build run view.all
 
-all: byte 
+build:
+	dune build ./main.bc
 
 run:
-	./main.byte
+	dune exec ./main.bc
 
 view.all:
 	for i in ./dot/*.dot; do open -a Graphviz $$i; done
 
 view:
-	open -a Graphviz ./dot/rle_top.dot
+	open -a Graphviz ./dot/gensig.dot
 
 .PHONY: tags
 
-tags:
-	otags *.ml *.mli
-
 clean:
-			$(OCB) -clean
-			\rm -f dot/* ctask/* systemc/*
+	\rm -f dot/* ctask/* systemc/* 
 
 clobber: clean 
-			\rm -f *~
-
-byte: main.ml
-			$(OCB) main.byte
-
-debug: 
-			$(OCB) -tag debug main.byte
-
-.PHONY: all clean byte native profile debug test doc
+	\rm -f *~

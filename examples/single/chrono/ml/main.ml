@@ -36,9 +36,9 @@ let aff = Global.GOutp ("Aff", type_int [])
 
 let c1 = Fsm.build_instance ~name:"c1" ~model:chrono ~params:[] ~ios:[h;startstop;aff]
 
-let s = Sysm.build ~name:"chrono" [c1]
+let s = Static.build ~name:"chrono" [chrono] [c1]
 
-let _ = Sysm.dot_output ~with_insts:true ~with_models:true "./dot" s
+let _ = Static.dot_output "./dot" s
 
 let c, rs = Simul.run s
 let _ = List.iter Simul.dump_reaction rs
