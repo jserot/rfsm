@@ -1,0 +1,9 @@
+(install
+ (section share)
+ (files
+   (rfsm-mode.el as emacs/site-lisp/rfsm-mode.el)
+   (Makefile.systemc.templ as templates/Makefile.systemc.templ)
+   (Makefile.vhdl.templ as templates/Makefile.vhdl.templ)
+   (Makefile.test.templ as templates/Makefile.test.templ)
+   (Makefile.templ as templates/Makefile.templ)
+   platform))

@@ -1,0 +1,5 @@
+(install
+ (section share)
+ (files
+   (rfsm.h as lib/systemc/rfsm.h)
+   (rfsm.cpp as lib/systemc/rfsm.cpp)))

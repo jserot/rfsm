@@ -1,0 +1,4 @@
+(install
+  (files rfsmmake)
+  (section bin)
+  (package rfsm)) 
