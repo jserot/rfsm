@@ -600,7 +600,7 @@ let dump_testbench_impl tb_name fname m =
 (* Dumping Makefile *)
 
 let dump_makefile ?(name="") ?(dir="./systemc") m =
-  let templ_fname = cfg.sc_lib_dir ^ "/etc/Makefile.systemc.templ" in
+  let templ_fname = cfg.sc_lib_dir ^ "/templates/Makefile.systemc.templ" in
   if Sys.file_exists templ_fname then begin
       let tb_name = match name with "" -> cfg.sc_tb_name | p -> p in
       let fname = dir ^ "/" ^ "Makefile" in

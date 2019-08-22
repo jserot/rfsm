@@ -727,7 +727,7 @@ and dump_global_type_fns oc (name,ty) =
 (* Dumping Makefile *)
 
 let dump_makefile ?(name="") ?(dir="./vhdl") m =
-  let templ_fname = cfg.vhdl_lib_dir ^ "/etc/Makefile.vhdl.templ" in
+  let templ_fname = cfg.vhdl_lib_dir ^ "/templates/Makefile.vhdl.templ" in
   if Sys.file_exists templ_fname then begin
       let prefix = match name with "" -> cfg.vhdl_tb_prefix | p -> p in
       let tb_name = prefix ^ "_tb" in
