@@ -86,7 +86,7 @@ probably to be adjusted according to your system.
 
 The generated SystemC (resp. VHDL) code is written in
 sub-directory `./systemc` (resp. `./vhdl`). Also generated in these directories is a dedicated
-`Makefile` for compiling and running the generated code. This `Makefile` is derived from a template
+`Makefile` for compiling and running the generated code and viewing the results. This `Makefile` is derived from a template
 located in directory `<opam_prefix>/share/rfsm/templates/`. These templates will also probably have to be
 adjusted to suit your local `SystemC` or `VHDL` installation.
 

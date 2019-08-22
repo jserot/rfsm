@@ -1,6 +1,7 @@
-include $(LIBDIR)/etc/platform
+include $(LIBDIR)/platform
 
-GHDLOPTS += -P$(LIBDIR)/vhdl
+GHDL=ghdl
+GHDLOPTS=-fno-color-diagnostics -P$(LIBDIR)/lib/vhdl
 
 all: run
 
@@ -20,3 +21,6 @@ clean:
 clobber: clean
 	\rm -f *~
 	\rm -rf html
+
+rfsm.vhd: $(LIBDIR)/lib/vhdl/rfsm.vhd
+	cp $< $@
