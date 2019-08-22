@@ -18,12 +18,9 @@ INSTALL_DOCDIR=`opam config var doc`
 
 opam.install: 
 	opam install .
-	rm -rf $(INSTALL_DOCDIR)/rfsm
-	cp -r _build/default/_doc/_html/ $(INSTALL_DOCDIR)/rfsm
 
 opam.remove:
 	opam remove .
-	rm -rf $(INSTALL_DOCDIR)/rfsm
 
 opam.show:
 	opam info rfsm
@@ -42,8 +39,9 @@ html: README.md
 toplevel:
 	dune exec ./src/bin/rfsmtop.exe
 
-test:
-	(cd examples; make)
+tests:
+	(cd examples; ./do_tests dot)
+	(cd examples; ./do_tests sim)
 
 clean:
 	dune clean
