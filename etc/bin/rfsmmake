@@ -66,6 +66,6 @@ if [[ $go = "yes" ]]; then
         echo "" >> $generated_file
         cat $libdir/templates/Makefile.test.templ >> $generated_file
     fi
+    echo "Wrote $generated_file"
 fi
 
-echo "Wrote $generated_file"
