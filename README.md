@@ -61,10 +61,10 @@ built from a single state diagram, the latter systems built from several diagram
 
 For compiling and running an example
 
-* clone the corresponding directory somewhere on your file system (ex: `/tmp/rfsm-examples/single/chrono`)
-
-* cd to the cloned directory (`cd /tmp/rfsm-examples/single/chrono`)
-
+* get a copy of the source tree and go to the selected example directory
+  * `git clone https://github.com/jserot/rfsm`
+  * `cd rfsm/examples/single/chrono` (for example)
+  
 * build the top `Makefile` by invoking: `rfsmmake main.pro` 
   (this supposes that the `rfsm` package has been properly installed; in particular that the `rfsmc`
   and `rfsmmake` executables are available on your path)
