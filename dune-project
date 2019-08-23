@@ -16,6 +16,8 @@
   (depends
     (dune (>= 1.11))
     (menhir (>= 2.0))
+    (lascar (>= 0.6))
+    (ocamlgraph (>= 1.8)
     (ocaml (>= 4.06))))
 
 (generate_opam_files true)
