@@ -38,6 +38,7 @@ let g = Fsm.build_instance ~name:"g" ~model:gensig ~params:["n",Expr.mk_int 4] ~
       
 let m = Static.build ~name:"gensig" [gensig] [g]
 
+let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" m
 
 (* let c, rs = Simul.run p

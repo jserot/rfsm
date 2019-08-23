@@ -39,6 +39,7 @@ let build_counter n =
 
 let p = build_counter 3
 
+let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" p
 
 (* let c, rs = Simul.run p

@@ -46,7 +46,8 @@ let r1 = Fsm.build_instance ~name:"r1" ~model:rle ~params:[] ~ios:[h;inp;outp]
 
 let s = Static.build ~name:"rle" [rle] [r1]
 
-let _ = Static.dump stdout s
+(* let _ = Static.dump stdout s *)
+let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" s
 
 (* let c, rs = Simul.run s

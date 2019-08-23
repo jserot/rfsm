@@ -61,6 +61,7 @@ let h1 = Fsm.build_instance
 let s = Static.build ~name:"heron" ~gfns:["f_abs", f_abs] [heron] [h1]
 
 let _ = Static.dump stdout s
+let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" s
 
 (* let c, rs = Simul.run s

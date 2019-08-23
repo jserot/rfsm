@@ -38,6 +38,7 @@ let c1 = Fsm.build_instance ~name:"c1" ~model:chrono ~params:[] ~ios:[h;startsto
 
 let s = Static.build ~name:"chrono" [chrono] [c1]
 
+let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" s
 
 let c, rs = Simul.run s
