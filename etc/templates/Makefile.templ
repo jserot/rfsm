@@ -9,6 +9,7 @@ all: dot sim ctask systemc vhdl
 dot: dot.run dot.view
 
 dot.run:
+	mkdir -p ./dot
 	$(RFSMC) -dot -target_dir ./dot $(DOT_OPTS) $(SRCS)
 
 dot.view:
@@ -22,6 +23,7 @@ dot.view:
 sim: sim.run sim.view
 
 sim.run:
+	mkdir -p ./sim
 	$(RFSMC) $(SIM_OPTS) -sim -target_dir ./sim $(SRCS)
 
 sim.view:
@@ -30,6 +32,7 @@ sim.view:
 ctask: ctask.code
 
 ctask.code:
+	mkdir -p ./ctask
 	$(RFSMC) -ctask -target_dir ./ctask $(CTASK_OPTS) $(SRCS)
 
 ctask.view:
@@ -43,6 +46,7 @@ ctask.view:
 systemc: systemc.run systemc.view
 
 systemc.code:
+	mkdir -p ./systemc
 	$(RFSMC) -systemc -target_dir ./systemc -lib $(LIBDIR) $(SYSTEMC_OPTS) $(SRCS)
 
 systemc.run: systemc.code
@@ -54,6 +58,7 @@ systemc.view:
 vhdl: vhdl.run vhdl.view
 
 vhdl.code:
+	mkdir -p ./vhdl
 	$(RFSMC) -vhdl -target_dir ./vhdl -lib $(LIBDIR) $(VHDL_OPTS) $(SRCS)
 
 vhdl.run: vhdl.code
