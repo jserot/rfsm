@@ -8,9 +8,6 @@ build:
 	dune build src/bin/rfsmc.bc
 	dune build src/bin/rfsmc.exe
 
-utop:
-	dune utop src
-
 install:
 	dune build @install
 
@@ -45,7 +42,7 @@ tests:
 
 clean:
 	dune clean
-	#(cd examples; make clean)
+	(cd examples; make clean)
 	\rm -f README.html CHANGES.html
 
 clobber: clean
