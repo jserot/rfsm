@@ -13,7 +13,7 @@ type date = int
 
 type dir = IO_In | IO_Out | IO_Inout
 
-module VarSet = Set.Make(struct type t = string let compare = Pervasives.compare end)
+module VarSet = Set.Make(struct type t = string let compare = Stdlib.compare end)
                  
 (* Type indexes *)
 

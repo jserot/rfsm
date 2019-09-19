@@ -88,7 +88,7 @@ let record_update id r f v = Utils.ListExt.replace_assoc f v r
 let unset_event = { v_desc=Val_bool false; v_typ=TyEvent }
 let set_event = { v_desc=Val_bool true; v_typ=TyEvent }
 
-module VarSet = Set.Make(struct type t = string let compare = Pervasives.compare end)
+module VarSet = Set.Make(struct type t = string let compare = Stdlib.compare end)
                  
 let rec vars_of expr =
   match expr.e_desc with

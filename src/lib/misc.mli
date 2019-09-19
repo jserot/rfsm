@@ -29,9 +29,6 @@ val collect_assoc: ('a -> ('k * 'v) list) -> 'a list -> ('k * 'v) list
 val fold_left: ('a -> 'b -> 'a) -> 'b list -> 'a -> 'a
   (** This variant of [List.fold_left] allows [fold_left]s to be chained with [|>] *)
 
-val id: 'a -> 'a
-  (** [id x] is simply x *)
-
 val list_split_at: int -> 'a list -> 'a list * 'a list
   (** [list_split_at k [x1;...;xn]] returns [[x1;...;xk],[xk+1;...;xn]] if 1<=k<=n. Raises [Invalid_argument] otherwise *)
                 

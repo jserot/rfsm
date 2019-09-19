@@ -9,8 +9,6 @@
 (*                                                                    *)
 (**********************************************************************)
 
-let id x = x
-
 let add_assoc l (k,v) = if List.mem_assoc k l then l else (k,v)::l
                                                                    
 let collect_assoc f l =  

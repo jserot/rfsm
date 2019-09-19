@@ -34,7 +34,7 @@ module TransLabel = struct
    (* Cond will be ([],[]) for initial transitions,
       [int] is the priority level (used to resolve non-deterministic transitions)
       [bool] is true for "implicit" transitions *)
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
   let to_string (cond,acts,_,_) =  (* This function is used for .dot representations *)
     let s1 = Condition.to_string cond in
     let sep = match cfg.act_sem with
@@ -64,7 +64,7 @@ end
 
 module State = struct
   type t = string
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
   let to_string s = s
 end
 

@@ -232,7 +232,7 @@ let rec react t genv f =
      cross_transition t1
   | ts ->                                                                 (* Several found *)
      let priority_of (_,(_,_,p,_),_) = p in
-     let compare_priority t1 t2 = Pervasives.compare (priority_of t2) (priority_of t1) in (* reverse order *)
+     let compare_priority t1 t2 = Stdlib.compare (priority_of t2) (priority_of t1) in (* reverse order *)
      begin match List.sort compare_priority ts with
        t1::t2::_ ->
         if priority_of t1 > priority_of t2 then begin
