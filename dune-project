@@ -5,7 +5,7 @@
 (authors "Jocelyn Sérot <jocelyn.serot@uca.fr>")
 (maintainers "Jocelyn Sérot <jocelyn.serot@uca.fr>")
 (bug_reports "jocelyn.serot@uca.fr")
-(homepage "github.com/jserot/rfsm")
+(homepage "http://github.com/jserot/rfsm")
 (documentation "http://jserot.github.io/rfsm")
 (using menhir 2.0)
 
@@ -17,7 +17,7 @@
     (dune (>= 1.11))
     (menhir (>= 2.0))
     (lascar (>= 0.6))
-    (ocamlgraph (>= 1.8)
-    (ocaml (>= 4.06))))
+    (ocamlgraph (>= 1.8))
+    (ocaml (>= 4.08))))
 
 (generate_opam_files true)
