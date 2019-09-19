@@ -274,7 +274,7 @@ let dump_fsm_model mode oc { fsm_desc=m } =
                  m.fd_name
                  (string_of_opt (Utils.ListExt.to_string string_of_comp_t ", ") "<" ">" m.fd_params)
                  (Utils.ListExt.to_string (string_of_io "  ") ",\n" m.fd_ios);
-  Printf.fprintf oc "  states: %s;\n" (Utils.ListExt.to_string Misc.id ", " m.fd_states);
+  Printf.fprintf oc "  states: %s;\n" (Utils.ListExt.to_string Fun.id ", " m.fd_states);
   if m.fd_vars <> [] then 
     Printf.fprintf oc "  vars: %s;\n" (Utils.ListExt.to_string string_of_comp_t ", " m.fd_vars);
   Printf.fprintf oc "  trans:\n%s;\n" (string_of_transitions mode m.fd_trans);
@@ -291,7 +291,7 @@ let dump_fsm_inst mode oc {fi_desc=f} =
     f.fi_name
     f.fi_model
     (string_of_opt (Utils.ListExt.to_string Expr.to_string ",") "<" ">" f.fi_params)
-    (Utils.ListExt.to_string Misc.id "," f.fi_args)
+    (Utils.ListExt.to_string Fun.id "," f.fi_args)
   
 let dump_program oc mode p =
   List.iter (dump_type_decl mode oc) p.p_type_decls;

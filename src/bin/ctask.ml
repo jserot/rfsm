@@ -232,7 +232,7 @@ let dump_record_type_defn oc name fields =
 
 let dump_enum_type_defn oc name vs = 
   fprintf oc "typedef enum { %s } %s;\n"
-    (Utils.ListExt.to_string Misc.id "," vs)
+    (Utils.ListExt.to_string Fun.id "," vs)
     name
 
 let dump_global_type_defn oc (name,ty) = match ty with

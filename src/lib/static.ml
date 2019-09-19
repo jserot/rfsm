@@ -14,7 +14,7 @@ module DepG =
     (struct type t = string end)  (* Only abstract vertices allow imperative marking .. *)
     (struct
       type t = string
-      let compare = Pervasives.compare
+      let compare = Stdlib.compare
       let default = ""
     end)
 
@@ -224,12 +224,12 @@ let dump_global oc (name,(ty,g_desc)) =
        name
        (Types.string_of_type ty)
        (Global.string_of_stim sd)
-       (ListExt.to_string Misc.id "," rdrs)
+       (ListExt.to_string Fun.id "," rdrs)
   | MOutp wrs ->
      Printf.fprintf oc "OUTPUT %s : %s [<- %s]\n"
        name
        (Types.string_of_type ty)
-       (ListExt.to_string Misc.id "," wrs)
+       (ListExt.to_string Fun.id "," wrs)
   | MFun (args,body) ->
      Printf.fprintf oc "FUNCTION %s : %s\n"
        name
@@ -242,8 +242,8 @@ let dump_global oc (name,(ty,g_desc)) =
      Printf.fprintf oc "SHARED %s : %s [<- %s] [-> %s])\n"
        name
        (Types.string_of_type ty)
-       (ListExt.to_string Misc.id "," wrs)
-       (ListExt.to_string Misc.id "," rrs)
+       (ListExt.to_string Fun.id "," wrs)
+       (ListExt.to_string Fun.id "," rrs)
 
 let dump_dependencies m =
   let module G = struct
