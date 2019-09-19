@@ -33,7 +33,7 @@ for simulation of implementation.
 The `rfmsc` compiler is intended to be used from the command line. Graphical User Interfaces are
 provided separately:
 
-* [Rfsm](http://dream.ispr-ip.fr/RFSM)
+* [Rfsm](http://github.com/jserot/rfsm-gui) 
 
 * [RfsmLight](http://github.com/jserot/rfsm-light) 
 
