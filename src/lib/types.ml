@@ -234,7 +234,8 @@ let rec unify ty1 ty2 =
       unify ty2 ty2'
   | TyProduct ts1, TyProduct ts2 when List.length ts1 = List.length ts2 ->
       List.iter2 unify ts1 ts2
-  | TyArray (sz1, ty1), TyArray (sz2, ty2) when sz1 = sz2 ->
+  | TyArray (sz1, ty1), TyArray (sz2, ty2) ->
+     unify_index (ty1,ty2) sz1 sz2;
      unify ty1 ty2
   | TyInt sz1, TyInt sz2 ->
      unify_size (val1,val2) sz1 sz2
@@ -278,6 +279,11 @@ and unify_size (ty1,ty2) sz1 sz2 =
         ()
     | _, _ ->
         raise (TypeConflict(ty1, ty2))
+
+and unify_index (ty1,ty2) idx1 idx2 =
+  match idx1, idx2 with 
+  | TiConst n1, TiConst n2 when n1<>n2 -> raise (TypeConflict(ty1, ty2))
+  | _, _ -> ()  (* TO BE FIXED ! *)
 
 and unify_name (ty1,ty2) nm1 nm2 =
   let val1 = real_name nm1
