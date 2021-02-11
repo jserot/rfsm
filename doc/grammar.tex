@@ -56,7 +56,7 @@
                                                \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmio*{}}
                                                \rfsmRPAREN*{} \rfsmLBRACE*{} \\ & &
                                                \rfsmSTATES*{} \rfsmCOLON*{}
-                                               \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmUID*{}}
+                                               \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmstate*{}}
                                                \rfsmSEMICOLON*{} \\ & &
                                                \rfsmgramopt{\rfsmvars*{}} \\ & &
                                                \rfsmTRANS*{} \rfsmCOLON*{}
@@ -66,6 +66,13 @@
                                                \rfsmitransition*{}
                                                \rfsmSEMICOLON*{} \\ & &
                                                \rfsmRBRACE*{}
+  \\& & \\
+
+\rfsmgramfunc{\rfsmstate{}}& \rfsmgramdef & \rfsmUID*{} \rfsmgramopt{\rfsmWHERE*
+  \rfsmgramseplist{\rfsmCOMMA*{}}{\rfsmoval*{}}}
+  \\& & \\
+
+\rfsmgramfunc{\rfsmoval{}}& \rfsmgramdef & \rfsmLID*{} \rfsmEQUAL*{} \rfsmconstant*{}
   \\& & \\
 
 \rfsmgramfunc{\rfsmparams{}}& \rfsmgramdef & \rfsmLT*{}

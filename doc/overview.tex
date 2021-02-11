@@ -121,8 +121,8 @@ program in Listing~\ref{lst:rfsm-gensig}, as explained in Chap.~\ref{cha:rfsmc}}
 \label{sec:simulating-1}
 
 Simulating the program means computing the reaction of the system to the input stimuli. Simulation
-can be performed the RFSM command-line compiler or the IDE (see Chap.~\ref{cha:rfsmc} and
-\ref{cha:gui} resp.). It produces a set of
+can be performed the RFSM command-line compiler or the IDE (see Chap.~\ref{cha:rfsmc} and \ref{cha:gui} resp.).
+It produces a set of
 \emph{traces} in VCD (Value Change Dump) format which can visualized using \emph{waveform viewers}
 such as \texttt{gtkwave}. The simulation results for the program in Listing~\ref{lst:rfsm-gensig}
 are illustrated in Fig.~\ref{fig:rfsm-gensig-chrono}.
@@ -172,6 +172,47 @@ synthetized to be implemented hardware using hardware-specific tools\footnote{We
 \medskip
 Appendices C1, C2 and C3 respectively give the C and SystemC code generated from the example in
 Listing~\ref{lst:rfsm-gensig}. 
+
+\subsection*{Variant formulation}
+\label{sec:variant-formulation}
+
+In the automata described in Fig.~\ref{fig:rfsm-gensig-model} and Listing~\ref{lst:rfsm-gensig}, the
+\texttt{s} output is defined by modifiying its value when some transitions are taken (namely,
+\texttt{s} is set to 0 on the initial transition and on the transition from \texttt{E1} to
+\texttt{E0} and set to 1 on the transition from \texttt{E0} to \texttt{E1}). This is typical of a
+so-called \emph{Mealy}-style description. Sometimes, a description in which the value of the outputs
+are attached to \texttt{states} rather than to transitions is more natural. This style of
+description, often called \emph{Moore}-style, is illustrated in Fig.~\ref{fig:rfsm-gensig-moore} and
+Listing~\ref{lst:rfsm-gensig-moore} for the calibrated pulse generator. Associating the value of the
+\texttt{s} output to the states is done line~\ref{gensigm-1}, using the \texttt{where}
+clause. Correlatively, the update of this output have been removed from the actions attached to the
+transitions described lines~\ref{gensigm-2a}, \ref{gensigm-2b} and \ref{gensigm-3}.
+
+\begin{figure}[!h]
+   \includegraphics[height=7cm]{figs/gensig-model}
+   \centering
+  \caption{A Moore-style reformulation of the model defined in Fig.~\ref{fig:rfsm-gensig-model}}
+  \label{fig:rfsm-gensig-moore}
+\end{figure}
+
+
+\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=Transcription in RFSM of the
+  model given in Fig.~\ref{fig:rfsm-gensig-moore},label={lst:rfsm-gensig-moore},float]
+fsm model gensig <n: int> (
+  in h: event,
+  in e: bool,
+  out s: bool)
+{
+@\label{gensigm-1}@  states: E0 where s=0, E1 where s=1;
+  vars: k: int<0:n>;
+  trans:
+@\label{gensigm-2a}@  | E0 -> E1 on h when e=1 with k:=1
+  | E1 -> E1 on h when k<n with k:=k+1
+@\label{gensigm-2b}@  | E1 -> E0 on h when k=n
+  itrans:
+@\label{gensigm-3}@  | -> E0
+}
+\end{lstlisting}
 
 \clearpage
 \section{The RFSM language}
@@ -338,12 +379,17 @@ Each section starts with the corresponding keyword (\verb|states:|, \verb|vars:|
 \subsubsection*{States}
 \label{sec:states}
 
-
 The \verb|states:| section gives the set of internal states, as a comma-separated list of
 identifiers (each starting with a uppercase letter). Example :
 
 \begin{center}
 \example{\lstinline[language=Rfsm]|states: Idle, Wait1, Wait2, Done;|}
+\end{center}
+
+Values for outputs can be attached to states using the \verb|where| keyword.
+
+\begin{center}
+\example{\lstinline[language=Rfsm]|states: Idle, Wait1 where s1=0, Wait2 where s1=1,s2=0, Done;|}
 \end{center}
 
 \subsubsection*{Variables}
@@ -486,6 +532,27 @@ denoted~:
 \begin{center}
 \framebox{\lstinline[language=Rfsm]{| -> init_state}}
 \end{center}
+
+\medskip
+\textbf{Note}. Output values can be set by either attaching them to states or by updating them on
+transitions. For a given output \texttt{o}, attaching a value \texttt{v} to a state \texttt{S}, by writing
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{states: S where o=v, ...}}
+\end{center}
+
+is equivalent to adding the action
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{o:=v}}
+\end{center}
+
+to each transition ending at state \texttt{S}.
+
+The semantics of a model in which the value of an output deduced from the former formulation is
+different from that deduced from the latter is undefined. This condition is statically
+undecidable in general. This said, the RFSM compiler emits a warning when both formulations are
+present in a given model for a given output.
 
 \subsection{Globals}
 \label{sec:globals}
