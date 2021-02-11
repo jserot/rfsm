@@ -45,6 +45,7 @@ examples/*/*/*/vhdl/
 !examples/*/*/*/vhdl/*.{gtkw,sav}
 examples/*/*/ml/dot/
 examples/*/*/*/ml/dot/
+tests/
 lib/ml/
 *.dot
 *.o
