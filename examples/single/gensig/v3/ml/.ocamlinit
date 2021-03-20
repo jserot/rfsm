@@ -1,0 +1,7 @@
+#use "topfind"
+#require "ocamlgraph"
+#require "lascar"
+#directory "../../../../../lib/ml"
+#load "rfsm.cma"
+open Rfsm
+open RfsmApi

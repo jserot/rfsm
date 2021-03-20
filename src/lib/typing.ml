@@ -305,9 +305,22 @@ let type_check_fsm_condition name tenv (evs,gs) =
   List.iter (type_check_fsm_guard name tenv) gs
 
 let type_check_fsm_state name r s =
-  if not (List.mem s (Fsm.Repr.states' r))
+  let open Fsm.Repr in
+  if not (States.mem s (states r))
    then raise (Fsm.Invalid_state (s,name))
                                 
+let type_check_output_assignment name r s acts =
+  (* For each transition [_ -> _ / acts -> s] check that, if an output [o] is modified in the set [acts],
+     then this output is not listed in the set attributes of state [s].
+     Since v 1.7.0 *)
+  let assigned_outps = List.assoc s (Fsm.Repr.states' r) in  
+  List.iter
+    (function
+     | (Action.Assign ({l_desc=LhsVar id}, _) as act) when List.mem_assoc id assigned_outps ->
+        raise (Fsm.Dubious_output_assignment (id,s,act,name))
+     | _ -> ())
+    acts
+  
 let type_check_fsm_transition name repr tenv (s,(cond,acts,_,_),s') =
   (* For each transition [s -> cond / acts -> s'] check that
      - [s] are [s'] are listed as states if [f] declaration
@@ -316,14 +329,16 @@ let type_check_fsm_transition name repr tenv (s,(cond,acts,_,_),s') =
   type_check_fsm_state name repr s;
   type_check_fsm_state name repr s';
   type_check_fsm_condition name tenv cond;
-  List.iter (type_check_fsm_action name tenv) acts
+  List.iter (type_check_fsm_action name tenv) acts;
+  type_check_output_assignment name repr s' acts
 
 let type_check_fsm_itransition name repr tenv ((_,acts,_,_),s) =
   (* For the initial transitio [/ acts -> s'] check that
      - [s'] is listed as state if [f] declaration
      - for each [act]=[lhs:=rhs] in [acts], [type(rhs)=type(lhs)] *)
   type_check_fsm_state name repr s;
-  List.iter (type_check_fsm_action name tenv) acts
+  List.iter (type_check_fsm_action name tenv) acts;
+  type_check_output_assignment name repr s acts
           
 let type_check_fsm_model tenv f =
   let open Fsm in

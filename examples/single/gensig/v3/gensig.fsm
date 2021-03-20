@@ -1,0 +1,18 @@
+-- This is a variation on ../v2/gensig.fsm
+-- using Moore-style description (with output [s] assigned in states rather than transitions)
+-- This style of description requires version >= 1.7 of the [rfsmc] compiler
+
+fsm model gensig <n: int> (
+  in h: event,
+  in e: bool,
+  out s: bool)
+{
+  states: E0 where s=0, E1 where s=1;
+  vars: k: int<0:n>;
+  trans:
+  | E0 -> E1 on h when e=1 with k:=1
+  | E1 -> E1 on h when k<n with k:=k+1
+  | E1 -> E0 on h when k=n;
+  itrans:
+  | -> E0;
+}

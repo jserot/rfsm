@@ -242,7 +242,7 @@ fsm_model:
           ($symbolstartofs,$endofs)
           { Syntax.fd_name=name;
             Syntax.fd_params=params;
-            Syntax.fd_states=states;
+            Syntax.fd_states=List.map (fun s -> s, []) states;
             Syntax.fd_ios=ios;
             Syntax.fd_vars=vars;
             Syntax.fd_trans=trans;

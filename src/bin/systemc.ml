@@ -272,7 +272,7 @@ let dump_module_intf with_globals fname m =
   fprintf oc "{\n";
   fprintf oc "  // Types\n";
   (* if List.length m.c_states > 1 then  *)
-  fprintf oc "  typedef enum { %s } t_%s;\n" (Utils.ListExt.to_string (function s -> s) ", " m.c_states) cfg.sc_state_var;
+  fprintf oc "  typedef enum { %s } t_%s;\n" (Utils.ListExt.to_string (function (s,_) -> s) ", " m.c_states) cfg.sc_state_var;
   fprintf oc "  // IOs\n";
   List.iter (fun (id,ty) -> fprintf oc "  sc_in<%s> %s;\n" (string_of_type ty) id) m.c_inps;
   List.iter (fun (id,ty) -> fprintf oc "  sc_out<%s> %s;\n" (string_of_type ty) id) m.c_outps;

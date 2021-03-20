@@ -81,7 +81,7 @@ type fsm_model = {
 
 and fsm_desc = { 
   fd_name: string;
-  fd_states: string list;
+  fd_states: (string * state_attr) list;
   fd_params: (string * type_expression) list;
   fd_ios: (Types.dir * (string * type_expression)) list;
   fd_vars: (string * type_expression) list;
@@ -89,6 +89,8 @@ and fsm_desc = {
   fd_itrans: string * action list;
   }
 
+and state_attr = (string * Expr.t) list (* List of output valuations *)
+             
 and condition = {
   cond_desc: Condition.t;
   cond_loc: Location.location;
@@ -274,7 +276,7 @@ let dump_fsm_model mode oc { fsm_desc=m } =
                  m.fd_name
                  (string_of_opt (Utils.ListExt.to_string string_of_comp_t ", ") "<" ">" m.fd_params)
                  (Utils.ListExt.to_string (string_of_io "  ") ",\n" m.fd_ios);
-  Printf.fprintf oc "  states: %s;\n" (Utils.ListExt.to_string Fun.id ", " m.fd_states);
+  Printf.fprintf oc "  states: %s;\n" (Utils.ListExt.to_string Fsm.string_of_attr_state ", " m.fd_states);
   if m.fd_vars <> [] then 
     Printf.fprintf oc "  vars: %s;\n" (Utils.ListExt.to_string string_of_comp_t ", " m.fd_vars);
   Printf.fprintf oc "  trans:\n%s;\n" (string_of_transitions mode m.fd_trans);

@@ -60,6 +60,8 @@
 %token ON
 %token WHEN
 %token WITH
+%token WHERE
+%token AND
 %token BAR
 %token COLONCOLON
 (* %token BARBAR *)
@@ -236,7 +238,7 @@ fsm_model:
       params=optional(params)
       LPAREN ios=my_separated_list(COMMA, io) RPAREN
       LBRACE
-      STATES COLON states=terminated(my_separated_list(COMMA, UID),SEMICOLON)
+      STATES COLON states=terminated(my_separated_list(COMMA, state),SEMICOLON)
       vars = optional(vars)
       TRANS COLON trans=terminated(my_list(transition),SEMICOLON)
       ITRANS COLON itrans=terminated(itransition,SEMICOLON)
@@ -265,6 +267,13 @@ io:
 io_desc:
   | id=LID COLON ty=type_expr { (id, mk_type_expression ($symbolstartofs,$endofs) ty) }
 
+state:
+  | id=UID { id, [] }
+  | id=UID WHERE attrs=my_separated_nonempty_list(AND,state_attr) { id, attrs }
+                      
+state_attr:
+  | id=LID EQUAL e=constant { (id, mk_expr e) }
+                   
 vars:
   | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { List.flatten vars }
 

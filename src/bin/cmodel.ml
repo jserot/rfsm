@@ -18,7 +18,7 @@ type c_type_defn =
 
 type c_model = {
   c_name: string;
-  c_states: string list;
+  c_states: (string * Fsm.attr) list;
   c_types: (string * c_type_defn) list;
   c_params: (string * Types.typ) list;
   c_consts: (string * (Types.typ * Expr.value)) list;
@@ -53,7 +53,7 @@ let update_assoc k v l =
   | (k',vs)::l -> if k=k' then (k,v::vs) :: l else (k',vs) :: h l in
   h l
 
-let mk_state_case succs q = 
+let mk_state_case succs (q,_) = 
   let module EventSet = Set.Make(String) in
   let ts = succs q in 
   let tss = List.fold_left
@@ -95,7 +95,7 @@ let c_model_of_fsm_model f =
     }
 
 let c_model_of_fsm_inst m f = 
-  let states = Fsm.states_of_inst f in
+  let states = Fsm.attr_states_of_inst f in
   let open Static in
   let open Fsm in
   { c_name = f.f_name;

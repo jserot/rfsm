@@ -1,0 +1,5 @@
+input H : event = periodic (10,0,80)
+input E : bool = value_changes (0:0, 25:1, 35:0)
+output S : bool 
+
+fsm g = gensig<4>(H,E,S)

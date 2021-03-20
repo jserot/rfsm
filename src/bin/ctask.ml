@@ -157,7 +157,7 @@ let dump_transitions oc src after evs tss =
        fprintf oc "%swait_ev(%s);\n" tab ev;
        Utils.ListExt.iter_fst (fun is_first t -> dump_transition oc tab is_first src t) ts;
     | _ ->
-       fprintf oc "%s%s = wait_evs(%s);\n" tab cfg.recvd_ev_name (Utils.ListExt.to_string (function id -> id) "," evs);
+       fprintf oc "%s%s = wait_evs(%s);\n" tab cfg.recvd_ev_name (Utils.ListExt.to_string Fun.id "," evs);
        fprintf oc "%sswitch ( %s ) {\n" tab cfg.recvd_ev_name;
        List.iter (dump_ev_transition oc (tab^"  ") src) tss;
        fprintf oc "%s  }\n" tab
@@ -194,7 +194,7 @@ let dump_model fname m =
   List.iter (fun (id,ty) -> fprintf oc "  %s;\n" (string_of_typed_item (id,ty))) m.c_vars;
   if List.length m.c_states > 1 then 
     fprintf oc "  %s %s = %s;\n"
-      (string_of_type (Types.TyEnum (Types.new_name_var(),m.c_states)))
+      (string_of_type (Types.TyEnum (Types.new_name_var(), List.map fst m.c_states)))
       cfg.state_var_name
       (fst m.c_init);
   if List.exists (function c -> List.length c.st_sensibility_list > 1) m.c_body then
@@ -216,11 +216,11 @@ let dump_model fname m =
 
 let dump_fsm_model ?(prefix="") ?(dir="./ctask") m f =
   let prefix = match prefix with "" -> f.Fsm.fm_name | p -> p in
-  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_model f)
+  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_model (Fsm.unmoore_model f))
 
 let dump_fsm_inst ?(prefix="") ?(dir="./ctask") m f =
   let prefix = match prefix with "" -> f.Fsm.f_name | p -> p in
-  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_inst m f)
+  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_inst m (Fsm.unmoore_inst f))
 
 (* Dumping global type declarations, functions and constants *)
 

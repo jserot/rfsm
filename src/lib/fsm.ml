@@ -28,6 +28,7 @@ let cfg = {
 exception Undef_symbol of string * string * string (** FSM, kind, name *)
 exception Invalid_state of string * string (** FSM, id *)
 exception Typing_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
+exception Dubious_output_assignment of string * string * Action.t * string (** output name, state, action, where *)
 
 module TransLabel = struct
   type t = Condition.t * Action.t list * int * bool
@@ -68,13 +69,24 @@ module State = struct
   let to_string s = s
 end
 
-module Repr = Lts.Make(State)(TransLabel)
+module Attr = struct
+  type t = (string * Expr.t) list (** List of output valuations *)
+  let string_of_oval (o,v) = o ^ "=" ^ Expr.to_string v
+  let to_string ovs = Utils.ListExt.to_string string_of_oval "," ovs
+end
+
+module Repr = Ltsa.Make(State)(TransLabel)(Attr)
 
 type state = State.t
+type attr = Attr.t
 type transition = State.t * TransLabel.t * State.t
 type itransition = TransLabel.t * State.t
 
 let string_of_state s = State.to_string s
+let string_of_attr_state (s,ovs) =
+  match ovs with
+  | [] -> string_of_state s
+  | _ -> string_of_state s ^ "[" ^ Attr.to_string ovs ^ "]"
                       
 let string_of_transition (s,(cond,acts,prio,_),s') =
   let lbl = 
@@ -108,7 +120,8 @@ type inst = {
 
 (* Inspectors *)
 
-let states_of_inst m = Repr.states' m.f_repr
+let states_of_inst m = Repr.states m.f_repr |> Repr.States.elements
+let attr_states_of_inst m = Repr.states' m.f_repr
 let istate_of_inst m = match Repr.istates' m.f_repr with [] -> None | qs -> Some (List.hd qs)
 let transitions_of_inst m = Repr.transitions m.f_repr
 let itransitions_of_inst m = Repr.itransitions m.f_repr
@@ -124,7 +137,8 @@ let is_rtl_inst f =
   List.for_all (function (_,t,_) -> TransLabel.is_rtl t) (transitions_of_inst f)
   && List.for_all (function (t,_) -> TransLabel.is_rtl t) (itransitions_of_inst f)
 
-let states_of_model m = Repr.states' m.fm_repr
+let states_of_model m = Repr.states m.fm_repr |> Repr.States.elements
+let attr_states_of_model m = Repr.states' m.fm_repr
 let istate_of_model m = match Repr.istates' m.fm_repr with [] -> None | qs -> Some (List.hd qs)
 let transitions_of_model m = Repr.transitions m.fm_repr
 let itransitions_of_model m = Repr.itransitions m.fm_repr
@@ -285,6 +299,13 @@ let build_instance (*~tenv*) ~name ~model ~params ~ios =
     } in
   r
 
+(* Transformers *)
+
+let normalize_model m = 
+  { m with fm_repr = } 
+
+let normalize_inst m = m
+
 (* DOT OUTPUT *)
 
 let string_of_io f (id,(ty,gl)) = id ^ ": " ^ Types.string_of_type ty ^ " (->" ^ Global.global_id gl ^ ")"
@@ -358,7 +379,7 @@ let dump_model oc f =
   Printf.fprintf oc "FSM MODEL %s{\n" f.fm_name;
   if f.fm_params <> []  then
     Printf.fprintf oc "  PARAMS = { %s }\n" (of_list string_of_var f.fm_params);
-  Printf.fprintf oc "  STATES = { %s }\n" (of_list (function n -> n) (Repr.states' f.fm_repr));
+  Printf.fprintf oc "  STATES = { %s }\n" (of_list string_of_attr_state (Repr.states' f.fm_repr));
   Printf.fprintf oc "  INPS = { %s }\n" (of_list string_of_io (inputs_of f));
   Printf.fprintf oc "  OUTPS = { %s }\n" (of_list string_of_io (outputs_of f));
   Printf.fprintf oc "  INOUTS = { %s }\n" (of_list string_of_io (inouts_of f));

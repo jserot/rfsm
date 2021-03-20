@@ -39,6 +39,8 @@ let keyword_table = [
   "on", ON;
   "when", WHEN;
   "with", WITH;
+  "where", WHERE;
+  "and", AND;
   (* "true", TRUE;
    * "false", FALSE; *)
 ]

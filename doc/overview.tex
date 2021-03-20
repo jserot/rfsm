@@ -386,10 +386,11 @@ identifiers (each starting with a uppercase letter). Example :
 \example{\lstinline[language=Rfsm]|states: Idle, Wait1, Wait2, Done;|}
 \end{center}
 
-Values for outputs can be attached to states using the \verb|where| keyword.
+Values for outputs can be attached to states using the \verb|where| keyword. When several
+assignements are attached to the same state, they are separated using the \verb|and| keyword.
 
 \begin{center}
-\example{\lstinline[language=Rfsm]|states: Idle, Wait1 where s1=0, Wait2 where s1=1,s2=0, Done;|}
+\example{\lstinline[language=Rfsm]|states: Idle, Wait1 where s1=0, Wait2 where s1=1 and s2=0, Done;|}
 \end{center}
 
 \subsubsection*{Variables}
@@ -549,10 +550,10 @@ is equivalent to adding the action
 
 to each transition ending at state \texttt{S}.
 
-The semantics of a model in which the value of an output deduced from the former formulation is
-different from that deduced from the latter is undefined. This condition is statically
-undecidable in general. This said, the RFSM compiler emits a warning when both formulations are
-present in a given model for a given output.
+The compiler rejects models for which the value of an output is specified both with the former and
+latter formulation. Stricly speaking, models for which the values specified by each formulation are
+equivalent could be accepted, but this condition is statically undecidable in general (because
+values assigned to outputs in transitions may depend of inputs).
 
 \subsection{Globals}
 \label{sec:globals}

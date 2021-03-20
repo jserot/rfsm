@@ -337,7 +337,7 @@ let dump_module_arch oc m =
   | [h,_] -> h
   | _ -> Misc.not_implemented (m.c_name ^ ": translation to VHDL of FSM with more than one input events") in
   fprintf oc "architecture RTL of %s is\n" modname;
-  fprintf oc "  type t_%s is ( %s );\n" cfg.vhdl_state_var (Utils.ListExt.to_string (function s -> s) ", " m.c_states);
+  fprintf oc "  type t_%s is ( %s );\n" cfg.vhdl_state_var (Utils.ListExt.to_string (function (s,_) -> s) ", " m.c_states);
   fprintf oc "  signal %s: t_state;\n" cfg.vhdl_state_var;
   dump_array_types oc m.c_vars;
   if Fsm.cfg.Fsm.act_sem = Fsm.Synchronous then 
@@ -370,7 +370,7 @@ let dump_module_arch oc m =
       Utils.ListExt.to_string
         (function (s,i) -> string_of_int i ^ " when " ^ cfg.vhdl_state_var ^ "=" ^ s)
         " else "
-        (List.mapi (fun i s -> s,i) m.Cmodel.c_states) in
+        (List.mapi (fun i (s,_) -> s,i) m.Cmodel.c_states) in
     fprintf oc "  %s <= %s;\n" cfg.vhdl_trace_state_var (int_of_vhdl_state m)
     end;
   fprintf oc "end architecture;\n"
