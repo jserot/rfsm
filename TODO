@@ -6,7 +6,6 @@ COMPILER
 - allow _unsized_ arrays as parameters (ex: [fsm model m <t: int array[], sz: int> (...)])
 - bound check for ranged integers
 - check for coherency in reaction responses (see src/lib/simul.ml)
-- var and output attr on states (Moore-style)
 - clarify mechanism for delta-waits insertion in SystemC backend
 - VHDL implementation of models with multiple input events
 - VHDL implementation of event and variable synchronized models
@@ -15,8 +14,10 @@ COMPILER
 - SMV backend (with predicated states for connection to model-checking tools)
 - foreign function interfacing
 - defactorisation wrt. variable(s) ?
-- functorization (FSM module is parametized on State, Condition and Action) ?
 - communication via FIFOs (message queues) ?
+
+EXAMPLES
+- rewrite examples with Moore-style when appropriate
 
 DIST
 
