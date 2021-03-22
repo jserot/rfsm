@@ -35,25 +35,24 @@ SC_MODULE(G)
 void G::react()
 {
   state = E0;
-  s.write(0);
   while ( 1 ) {
     switch ( state ) {
     case E1:
+      s.write(1);
       wait(h.posedge_event());
       if ( k<4 ) {
         k=k+1;
         }
       else if ( k==4 ) {
-        s.write(0);
         state = E0;
         }
       wait(SC_ZERO_TIME);
       break;
     case E0:
+      s.write(0);
       wait(h.posedge_event());
-      if ( e.read()==1 ) {
+      if ( e.read()==true ) {
         k=1;
-        s.write(1);
         state = E1;
         }
       wait(SC_ZERO_TIME);

@@ -20,14 +20,15 @@ used to describe and simulate the model of a calibrated pulse generator. Given a
   in e: bool,
   out s: bool)
 {
+@\label{gensig-1}@  states: E0 where s=0, E1 where s=1;
   states: E0, E1;
 @\label{gensig-3}@  vars: k: int<0:n>;
   trans:
-  | E0 -> E1 on h when e=1 with k:=1,s:=1
+  | E0 -> E1 on h when e=1 with k:=1
 @\label{gensig-4}@  | E1 -> E1 on h when k<n with k:=k+1
-@\label{gensig-5}@  | E1 -> E0 on h when k=n with s:=0;
+@\label{gensig-5}@  | E1 -> E0 on h when k=n;
   itrans:
-  | -> E0 with s:=0;
+  | -> E0;
 @\label{gensig-1b}@}
 
 @\label{gensig-2a}@input H : event = periodic (10,0,80)
@@ -46,8 +47,7 @@ type \verb|bool|. Its behavior is specified as a reactive FSM with two states, \
 \verb|E1|, and one internal variable \verb|k|. The transitions of this FSM are given after the
 \verb|trans:| keyword in the form :
 \begin{center}
-  \framebox{\lstinline[language=Rfsm]{| source_state -> destination_state on ev when guard with
-    actions}}
+  \framebox{\lstinline[language=Rfsm]{| source_state -> destination_state on ev when guard with actions}}
 \end{center}
 where
 \begin{itemize}
@@ -55,18 +55,28 @@ where
 \item \emph{guard} is a set of (boolean) conditions,
 \item \emph{actions} is a set of actions performed when the transition is enabled.
 \end{itemize}
+
 The semantics is that the transition is enabled
 whenever the FSM is in the source state, the event \emph{ev} occurs and all the conditions in the
 guard are true. The associated actions
 are then performed and the FSM moves to the destination state. For example, the first transition is
 enabled whenever an event occurs on input \verb|h| and, at this instant, the value of input \verb|e|
 is 1. The FSM then goes from state \verb|E0| to state \verb|E1| and sets its internal variable 
-\verb|k| and its output \verb|s| to 1. The \emph{initial transition} of the FSM is given 
+\verb|k|.
+   
+The \emph{initial transition} of the FSM is given 
 after the \verb|itrans:| keyword in the form :
 \begin{center}
   \framebox{\lstinline[language=Rfsm]{| -> initial_state with actions}}
 \end{center}
-Here the FSM is initially in state \verb|E0| with output \verb|s| set to 0.
+Here the FSM is initially in state \verb|E0|.
+
+The value of the \texttt{s} output is attached to states, using
+the \lstinline[language=Rfsm]{where} keyword~: this value is 0 when the
+system is in state \texttt{E0} and 1 when the system is in state \texttt{E1}.
+
+\textbf{Note}. In the transitions, the \lstinline[language=Rfsm]{when guard} and
+\lstinline[language=Rfsm]{with actions} are optional and may be omitted.
 
 A graphical representation of the \verb|gensig| model is given in
 Fig.~\ref{fig:rfsm-gensig-model} (this representation was actually automatically generated from the
@@ -177,47 +187,51 @@ Listing~\ref{lst:rfsm-gensig}.
 \label{sec:variant-formulation}
 
 In the automata described in Fig.~\ref{fig:rfsm-gensig-model} and Listing~\ref{lst:rfsm-gensig}, the
-\texttt{s} output is defined by modifiying its value when some transitions are taken (namely,
+\texttt{s} output is defined by attaching its value to states.
+This is typical of a so-called \emph{Moore}-style description.
+Iy is also possible to specify these values by indicating how they are \emph{modified} when some
+transitions are taken. A equivalent description of that given in Listing~\ref{lst:rfsm-gensig} is
+obtained, for example, by specifying that
 \texttt{s} is set to 0 on the initial transition and on the transition from \texttt{E1} to
-\texttt{E0} and set to 1 on the transition from \texttt{E0} to \texttt{E1}). This is typical of a
-so-called \emph{Mealy}-style description. Sometimes, a description in which the value of the outputs
-are attached to \texttt{states} rather than to transitions is more natural. This style of
-description, often called \emph{Moore}-style, is illustrated in Fig.~\ref{fig:rfsm-gensig-moore} and
-Listing~\ref{lst:rfsm-gensig-moore} for the calibrated pulse generator. Associating the value of the
-\texttt{s} output to the states is done line~\ref{gensigm-1}, using the \texttt{where}
-clause. Correlatively, the update of this output have been removed from the actions attached to the
-transitions described lines~\ref{gensigm-2a}, \ref{gensigm-2b} and \ref{gensigm-3}.
-
-\medskip \textbf{Note}. The \verb|-normalize| option of the \texttt{rfsmc} compiler allows to
-automatically transform a Moore-style description into a Mealy-style one. This option is
-automatically inserted when simulating a system\footnote{\emph{I.e.} simulation is always performed
-  on Mealy-style FSMs.}. 
+\texttt{E0}, and set to 1 on the transition from \texttt{E0} to \texttt{E1}. 
+This style of description, often called \emph{Mealy}-style, is illustrated in
+Fig.~\ref{fig:rfsm-gensig-mealy} and
+Listing~\ref{lst:rfsm-gensig-mealy}. Note the absence of the \texttt{where} clause in the
+declarations of states at line~\ref{gensigm-1} and, conversely, the presence of the action
+\lstinline[language=Rfsm]{s:=0} and \lstinline[language=Rfsm]{s:=1} at lines~\ref{gensigm-3} and
+\ref{gensigm-2b}, and \ref{gensigm-2a} respectively.
 
 \begin{figure}[!h]
-   \includegraphics[height=7cm]{figs/gensig-model}
+   \includegraphics[height=6cm]{figs/gensig-model-mealy}
    \centering
-  \caption{A Moore-style reformulation of the model defined in Fig.~\ref{fig:rfsm-gensig-model}}
-  \label{fig:rfsm-gensig-moore}
+  \caption{A Mealy-style reformulation of the model defined in Fig.~\ref{fig:rfsm-gensig-model}}
+  \label{fig:rfsm-gensig-mealy}
 \end{figure}
 
-
 \begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=Transcription in RFSM of the
-  model given in Fig.~\ref{fig:rfsm-gensig-moore},label={lst:rfsm-gensig-moore},float]
+  model given in Fig.~\ref{fig:rfsm-gensig-mealy},label={lst:rfsm-gensig-mealy},float]
 fsm model gensig <n: int> (
   in h: event,
   in e: bool,
   out s: bool)
 {
-@\label{gensigm-1}@  states: E0 where s=0, E1 where s=1;
+@\label{gensigm-1}@  states: E0, E1;
   vars: k: int<0:n>;
   trans:
-@\label{gensigm-2a}@  | E0 -> E1 on h when e=1 with k:=1
+@\label{gensigm-2a}@  | E0 -> E1 on h when e=1 with k:=1, s:=1
   | E1 -> E1 on h when k<n with k:=k+1
-@\label{gensigm-2b}@  | E1 -> E0 on h when k=n
+@\label{gensigm-2b}@  | E1 -> E0 on h when k=n, s:=0
   itrans:
-@\label{gensigm-3}@  | -> E0
+@\label{gensigm-3}@  | -> E0 with s:=0
 }
 \end{lstlisting}
+
+\medskip \textbf{Note}. An option of the \texttt{rfsmc} compiler (\verb|-normalize|) allows to
+automatically transform a Moore-style description into a Mealy-style one.
+% This option is
+% automatically inserted when simulating a system\footnote{\emph{I.e.} simulation is always performed
+%   on Mealy-style FSMs.}. 
+
 
 \clearpage
 \section{The RFSM language}

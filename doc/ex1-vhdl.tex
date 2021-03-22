@@ -7,8 +7,6 @@ This is the code generated from program given in Listing~\ref{lst:rfsm-gensig}
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-library rfsm;
-use rfsm.core.all;
 
 entity g is
   port(
@@ -17,37 +15,43 @@ entity g is
         s: out std_logic;
         rst: in std_logic
         );
-end g;
+end entity;
 
 architecture RTL of g is
   type t_state is ( E0, E1 );
   signal state: t_state;
-  signal k: unsigned(2 downto 0);
 begin
   process(rst, h)
+    variable k: unsigned(2 downto 0);
   begin
     if ( rst='1' ) then
       state <= E0;
-      s <= '0';
     elsif rising_edge(h) then 
       case state is
       when E1 =>
         if ( k<to_unsigned(4,3) ) then
-          k <= k+to_unsigned(1,3);
+          k := k+to_unsigned(1,3);
         elsif  ( k = to_unsigned(4,3) ) then
-          s <= '0';
           state <= E0;
         end if;
       when E0 =>
         if ( e = '1' ) then
-          k <= to_unsigned(1,3);
-          s <= '1';
+          k := to_unsigned(1,3);
           state <= E1;
         end if;
     end case;
     end if;
   end process;
-end RTL;
+  process(state)
+  begin
+    case state is
+    when E0 =>
+      s <= '0';
+    when E1 =>
+      s <= '1';
+    end case;
+  end process;
+end architecture;
 \end{lstlisting}
 
 \begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File tb.vhd]
