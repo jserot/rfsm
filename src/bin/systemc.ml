@@ -215,7 +215,7 @@ let dump_state oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
    dump_transitions oc q false evs m tss
 
 let dump_output_valuation oc m (o,e) = 
-  fprintf oc "      %s = %s;\n" o (string_of_expr m e)
+  fprintf oc "      %s.write(%s);\n" o (string_of_expr m e)
 
 let dump_state_case oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   fprintf oc "    case %s:\n" q;
