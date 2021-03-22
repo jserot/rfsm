@@ -10,7 +10,7 @@ dot: dot.run dot.view
 
 dot.run:
 	mkdir -p ./dot
-	$(RFSMC) -dot -target_dir ./dot $(DOT_OPTS) $(SRCS)
+	$(RFSMC) $(GEN_OPTS) -dot -target_dir ./dot $(DOT_OPTS) $(SRCS)
 
 dot.view:
 	@$(eval files=`cat ./rfsm.output`)
@@ -24,7 +24,7 @@ sim: sim.run sim.view
 
 sim.run:
 	mkdir -p ./sim
-	$(RFSMC) $(SIM_OPTS) -sim -target_dir ./sim $(SRCS)
+	$(RFSMC) $(GEN_OPTS) -sim $(SIM_OPTS) -target_dir ./sim $(SRCS)
 
 sim.view:
 	$(VCDVIEWER) ./sim/$(MAIN).vcd ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1; echo $$?
@@ -33,7 +33,7 @@ ctask: ctask.code
 
 ctask.code:
 	mkdir -p ./ctask
-	$(RFSMC) -ctask -target_dir ./ctask $(CTASK_OPTS) $(SRCS)
+	$(RFSMC) $(GEN_OPTS) -ctask $(CTASK_OPTS) -target_dir ./ctask $(SRCS)
 
 ctask.view:
 	@$(eval files=`cat ./rfsm.output`)
@@ -47,7 +47,7 @@ systemc: systemc.run systemc.view
 
 systemc.code:
 	mkdir -p ./systemc
-	$(RFSMC) -systemc -target_dir ./systemc -lib $(LIBDIR) $(SYSTEMC_OPTS) $(SRCS)
+	$(RFSMC) $(GEN_OPTS) -systemc $(SYSTEMC_OPTS) -target_dir ./systemc -lib $(LIBDIR) $(SRCS)
 
 systemc.run: systemc.code
 	if [ -d ./systemc ]; then cd ./systemc; make; make run; fi
@@ -59,7 +59,7 @@ vhdl: vhdl.run vhdl.view
 
 vhdl.code:
 	mkdir -p ./vhdl
-	$(RFSMC) -vhdl -target_dir ./vhdl -lib $(LIBDIR) $(VHDL_OPTS) $(SRCS)
+	$(RFSMC) $(GEN_OPTS) -vhdl $(VHDL_OPTS) -target_dir ./vhdl -lib $(LIBDIR) $(SRCS)
 
 vhdl.run: vhdl.code
 	if [ -d ./vhdl ]; then cd ./vhdl; make; make run; fi
