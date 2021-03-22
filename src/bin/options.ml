@@ -22,6 +22,7 @@ let print_version = ref false
 let do_run = ref false
 let dump_static = ref false
 let dot_captions = ref true
+let normalize = ref false
 
 let set_main_prefix p = main_prefix := p
 let set_old_syntax () = use_old_syntax := true
@@ -38,6 +39,7 @@ let set_lib_dir d =
   Vhdl.cfg.Vhdl.vhdl_lib_dir <- d
 let set_target_dir name = target_dir := name
 let set_main_name name = main_name := name
+let set_normalize () = normalize := true
 
 let set_systemc_time_unit u = Systemc.cfg.Systemc.sc_time_unit <- u
 

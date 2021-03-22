@@ -33,6 +33,8 @@ exception Typing_error of string * string * Types.typ * Types.typ (** what, wher
 
 exception Dubious_output_assignment of string * string * Action.t * string (** output name, state, action, where *)
 
+exception Illegal_state_output of string * string * string (** FSM, state, name *)
+
 (** {2 States} *)
 
 module State :

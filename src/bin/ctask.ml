@@ -164,8 +164,12 @@ let dump_transitions oc src after evs tss =
    end;
    if after then fprintf oc "      }\n"
      
+let dump_output_valuation oc (o,e) = 
+  fprintf oc "      %s = %s;\n" o (string_of_expr e)
+ 
 let dump_state_case oc m { st_src=q; st_sensibility_list=evs; st_transitions=tss } =
   fprintf oc "    case %s:\n" q;
+  List.iter (dump_output_valuation oc) (List.assoc q m.c_states);
   dump_transitions oc q false evs tss;
   fprintf oc "      break;\n"
 
@@ -216,11 +220,11 @@ let dump_model fname m =
 
 let dump_fsm_model ?(prefix="") ?(dir="./ctask") m f =
   let prefix = match prefix with "" -> f.Fsm.fm_name | p -> p in
-  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_model (Fsm.unmoore_model f))
+  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_model f)
 
 let dump_fsm_inst ?(prefix="") ?(dir="./ctask") m f =
   let prefix = match prefix with "" -> f.Fsm.f_name | p -> p in
-  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_inst m (Fsm.unmoore_inst f))
+  dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_inst m f)
 
 (* Dumping global type declarations, functions and constants *)
 

@@ -55,7 +55,8 @@ let compile name =
       (fun p f -> Syntax.add_program p (parse f))
       Syntax.empty_program
       !source_files in
-  let s, has_testbench = Elab.process name p in
+  let s', has_testbench = Elab.process name p in
+  let s = if !Options.normalize then Static.normalize s' else s' in
   if !Options.dump_static then Static.dump stdout s;
   Logfile.start ();
   begin match !Options.target with

@@ -29,6 +29,7 @@ exception Undef_symbol of string * string * string (** FSM, kind, name *)
 exception Invalid_state of string * string (** FSM, id *)
 exception Typing_error of string * string * Types.typ * Types.typ (** what, where, type, type *)
 exception Dubious_output_assignment of string * string * Action.t * string (** output name, state, action, where *)
+exception Illegal_state_output of string * string * string (** FSM, state, name *)
 
 module TransLabel = struct
   type t = Condition.t * Action.t list * int * bool
@@ -83,10 +84,12 @@ type transition = State.t * TransLabel.t * State.t
 type itransition = TransLabel.t * State.t
 
 let string_of_state s = State.to_string s
+let string_of_ovs = Utils.ListExt.to_string (fun (o,e) -> o ^ "=" ^ Expr.string_of_typed_expr e) ","
 let string_of_attr_state (s,ovs) =
   match ovs with
   | [] -> string_of_state s
-  | _ -> string_of_state s ^ "[" ^ Attr.to_string ovs ^ "]"
+  (* | _ -> string_of_state s ^ "[" ^ Attr.to_string ovs ^ "]" *)
+  | _ -> string_of_state s ^ "[" ^ string_of_ovs ovs ^ "]"
                       
 let string_of_transition (s,(cond,acts,prio,_),s') =
   let lbl = 
@@ -119,6 +122,10 @@ type inst = {
   }
 
 (* Inspectors *)
+
+let inputs_of_model m = List.filter (function (_,(Types.IO_In,_)) -> true | _ -> false) m.fm_ios
+let outputs_of_model m = List.filter (function (_,(Types.IO_Out,_)) -> true | _ -> false) m.fm_ios
+let inouts_of_model m = List.filter (function (_,(Types.IO_Inout,_)) -> true | _ -> false) m.fm_ios
 
 let states_of_inst m = Repr.states m.f_repr |> Repr.States.elements
 let attr_states_of_inst m = Repr.states' m.f_repr
@@ -301,10 +308,37 @@ let build_instance (*~tenv*) ~name ~model ~params ~ios =
 
 (* Transformers *)
 
-let normalize_model m = 
-  { m with fm_repr = } 
+let mealy_outp r o =
+  let updated_states = (* The list of states having [o] in their attached valuation ... *)
+    Repr.fold_states  
+      (fun s ovs acc ->
+        match List.assoc_opt o ovs with
+        | Some e -> (s,e)::acc
+        | None -> acc)
+      r
+      [] in
+  let remove_output_valuation (s,ovs) = s, List.remove_assoc o ovs in
+  let add_output_assignation ((s,(conds,acts,p,i),s') as t) =
+    match List.assoc_opt s' updated_states with
+    | Some e ->
+       let act = Action.Assign(Action.mk_lhs o,e) in 
+       (s, (conds,act::acts,p,i), s')
+    | None -> t in
+  r
+  |> Repr.map_state_attr remove_output_valuation 
+  |> Repr.map_transition add_output_assignation
+  
+  
+let mealy_outps outps m =
+  List.fold_left mealy_outp m outps
 
-let normalize_inst m = m
+let normalize_model m = 
+  let outps = m |> outputs_of_model |> List.map fst in
+  { m with fm_repr = mealy_outps outps m.fm_repr } 
+
+let normalize_inst m =
+  let outps = List.map fst m.f_outps in 
+  { m with f_repr = mealy_outps outps m.f_repr }
 
 (* DOT OUTPUT *)
 
@@ -330,13 +364,17 @@ let dot_output_oc oc ?(dot_options=[]) ?(options=[]) f =
     if List.mem OmitImplicitTransitions opts
     then List.filter (function (_,(_,_,_,is_impl),_) -> is_impl) (Repr.transitions f.f_repr)
     else [] in
+  let rename f = { f with f_repr = f.f_repr
+                                   |> Repr.map_label (TransLabel.rename f.f_l2g)
+                                   |> Repr.map_attr (List.map (fun (o,e) -> f.f_l2g  o, e)) } in
+  let f' = f |> (if List.mem GlobalNames options then rename else Fun.id) in
   Repr.dot_output_oc
     f.f_name
     oc
     ~options:dot_options
     ~extra_nodes:(if caption <> "" && not (List.mem NoCaption options) then [caption,caption_style] else [])
     ~implicit_transitions:(impl_ts f options)
-    (if List.mem GlobalNames options then Repr.map_label (TransLabel.rename f.f_l2g) f.f_repr else f.f_repr)
+    f'.f_repr
 
 let dot_output ?(fname="") ?(dot_options=[]) ?(options=[]) ~dir f =
   let fname = if fname = "" then Filename.concat dir (f.f_name ^ ".dot") else fname in
@@ -367,10 +405,6 @@ let dot_output_model ?(fname="") ?(dot_options=[]) ?(options=[]) ~dir f =
 
 (* TXT OUTPUT *)
 
-let inputs_of m = List.filter (function (_,(Types.IO_In,_)) -> true | _ -> false) m.fm_ios
-let outputs_of m = List.filter (function (_,(Types.IO_Out,_)) -> true | _ -> false) m.fm_ios
-let inouts_of m = List.filter (function (_,(Types.IO_Inout,_)) -> true | _ -> false) m.fm_ios
-
 let dump_model oc f =
   let of_list f xs = Utils.ListExt.to_string f ", " xs in
   let string_of_io (id,(_,ty)) = id  ^ ":" ^ Types.string_of_type ty in
@@ -380,9 +414,9 @@ let dump_model oc f =
   if f.fm_params <> []  then
     Printf.fprintf oc "  PARAMS = { %s }\n" (of_list string_of_var f.fm_params);
   Printf.fprintf oc "  STATES = { %s }\n" (of_list string_of_attr_state (Repr.states' f.fm_repr));
-  Printf.fprintf oc "  INPS = { %s }\n" (of_list string_of_io (inputs_of f));
-  Printf.fprintf oc "  OUTPS = { %s }\n" (of_list string_of_io (outputs_of f));
-  Printf.fprintf oc "  INOUTS = { %s }\n" (of_list string_of_io (inouts_of f));
+  Printf.fprintf oc "  INPS = { %s }\n" (of_list string_of_io (inputs_of_model f));
+  Printf.fprintf oc "  OUTPS = { %s }\n" (of_list string_of_io (outputs_of_model f));
+  Printf.fprintf oc "  INOUTS = { %s }\n" (of_list string_of_io (inouts_of_model f));
   Printf.fprintf oc "  VARS = { %s }\n" (of_list string_of_var f.fm_vars);
   Printf.fprintf oc "  TRANS = {\n";
   List.iter 
@@ -397,11 +431,11 @@ let dump_model oc f =
 let dump_inst oc f =
   let of_list f xs = Utils.ListExt.to_string f ", " xs in
   let string_of_acts = Utils.ListExt.to_string Action.to_string "; " in
-  Printf.fprintf oc "FSM %s{\n" f.f_name;
+  Printf.fprintf oc "FSM %s {\n" f.f_name;
   Printf.fprintf oc "  MODEL = %s\n" f.f_model.fm_name;
   if f.f_params <> []  then
     Printf.fprintf oc "  PARAMS = { %s }\n" (of_list string_of_param f.f_params);
-  Printf.fprintf oc "  STATES = { %s }\n" (of_list (function n -> n) (states_of_inst f));
+  Printf.fprintf oc "  STATES = { %s }\n" (of_list string_of_attr_state (attr_states_of_inst f));
   Printf.fprintf oc "  INPS = { %s }\n" (of_list (string_of_io f) f.f_inps);
   Printf.fprintf oc "  OUTPS = { %s }\n" (of_list (string_of_io f) f.f_outps);
   (* Printf.fprintf oc "  INOUTS = { %s }\n" (of_list (string_of_io f) f.f_inouts); *)

@@ -304,11 +304,31 @@ let type_check_fsm_condition name tenv (evs,gs) =
   end;
   List.iter (type_check_fsm_guard name tenv) gs
 
-let type_check_fsm_state name r s =
+let check_fsm_state name r s =
   let open Fsm.Repr in
   if not (States.mem s (states r))
    then raise (Fsm.Invalid_state (s,name))
                                 
+let type_check_output_valuation f s tenv (o,e) = 
+  let open Fsm in
+  let t =
+    try fst @@ List.assoc o f.f_outps
+    with Not_found -> raise (Illegal_state_output (f.f_name, s, o)) in
+  let t' =
+    try type_expression tenv e
+    with Type_error (expr, ty, ty') ->
+      raise (Typing_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty')) in
+  try type_check
+             ("assignation of output " ^ o ^ " in state " ^ s)
+             ("FSM \"" ^ f.f_name ^ "\"")
+             t' t
+  with
+  | Type_error (expr, ty, ty') ->
+     raise (Typing_error ("action \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
+
+let type_check_fsm_state f tenv (s,ovs) =
+  List.iter (type_check_output_valuation f s tenv) ovs
+
 let type_check_output_assignment name r s acts =
   (* For each transition [_ -> _ / acts -> s] check that, if an output [o] is modified in the set [acts],
      then this output is not listed in the set attributes of state [s].
@@ -326,8 +346,8 @@ let type_check_fsm_transition name repr tenv (s,(cond,acts,_,_),s') =
      - [s] are [s'] are listed as states if [f] declaration
      - [cond] has form [e.[guard1]...[guardn]] where [e] has type [event] and each [guardi] type [bool]
      - for each [act]=[lhs:=rhs] in [acts], [type(rhs)=type(lhs)] *)
-  type_check_fsm_state name repr s;
-  type_check_fsm_state name repr s';
+  check_fsm_state name repr s;
+  check_fsm_state name repr s';
   type_check_fsm_condition name tenv cond;
   List.iter (type_check_fsm_action name tenv) acts;
   type_check_output_assignment name repr s' acts
@@ -336,7 +356,7 @@ let type_check_fsm_itransition name repr tenv ((_,acts,_,_),s) =
   (* For the initial transitio [/ acts -> s'] check that
      - [s'] is listed as state if [f] declaration
      - for each [act]=[lhs:=rhs] in [acts], [type(rhs)=type(lhs)] *)
-  type_check_fsm_state name repr s;
+  check_fsm_state name repr s;
   List.iter (type_check_fsm_action name tenv) acts;
   type_check_output_assignment name repr s acts
           
@@ -374,10 +394,12 @@ let type_fsm_inst tenv f =
    List.iter (check_type "output") (List.map type_of f.f_outps);
    List.iter (check_type "inout") (List.map type_of f.f_inouts);
    List.iter (check_type "variable") f.f_vars;
+   (* Type check output assignations in states *)
+   List.iter (type_check_fsm_state f tenv) (Fsm.attr_states_of_inst f); 
    (* Type check conditions and actions on transitions *)
    let tenv = { tenv with te_vars = types_of_fsm_inst f @ tenv.te_vars } in
-   List.iter (type_check_fsm_transition f.f_name f.f_repr tenv) (Fsm.Repr.transitions f.f_repr);
-   List.iter (type_check_fsm_itransition f.f_name f.f_repr tenv) (Fsm.Repr.itransitions f.f_repr)
+   List.iter (type_check_fsm_transition f.f_name f.f_repr tenv) (Fsm.transitions_of_inst f);
+   List.iter (type_check_fsm_itransition f.f_name f.f_repr tenv) (Fsm.itransitions_of_inst f)
 
 (* Typing globals *)
   

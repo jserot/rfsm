@@ -172,6 +172,11 @@ let build ~name ?(gtyps=[]) ?(gfns=[]) ?(gcsts=[]) models fsms =
     m_deps = build_dependencies fsms shared;
    }
 
+(* Transformations *)
+
+let normalize m = { m with m_models = List.map Fsm.normalize_model m.m_models;
+                           m_fsms = List.map Fsm.normalize_inst m.m_fsms }
+
 (* DOT output *)
 
 let string_of_global (name, (ty, desc)) =

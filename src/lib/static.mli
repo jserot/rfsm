@@ -56,6 +56,12 @@ val build : name:string
   (** [build name gtyps gfns gcsts models fsms] builds a system description from a list of global types, function
       and constant declarations, FSM models and instances *)
 
+(** {2 Transformers} *)
+
+val normalize: t -> t
+(** Transform a Moore-style description to a Mealy-style one, by moving output assignations from states
+    to transitions in all models and instances *)
+
 (** {2 Printers} *)
   
 val dot_output :

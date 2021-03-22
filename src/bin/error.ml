@@ -71,6 +71,8 @@ let handle e = match e with
      eprintf "Error when binding %s for FSM %s:  %s\n" what fsm id; flush stderr; exit 4
   | Fsm.Invalid_parameter (fsm, id) ->
      eprintf "Invalid parameter value for FSM %s:  %s\n" fsm id; flush stderr; exit 4
+  | Fsm.Illegal_state_output (fsm, s, o) ->
+     eprintf "In FSM %s, the symbol %s, assigned in state %s, is not an output\n" fsm s o;  flush stderr; exit 4
   | Fsm.Dubious_output_assignment (o, s, a, fsm) ->
      eprintf "In FSM %s, output %s cannot be assigned both in state %s and in action %s\n" fsm o s (Action.to_string a);  flush stderr; exit 4
   | Typing.Typing_error (what, where, ty, ty') ->

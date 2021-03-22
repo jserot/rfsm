@@ -12,6 +12,7 @@ ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot re
 ide;dot;-dot_actions_nl;Arg.Unit;set_dot_actions_nl;write actions with with a separating newline
 noide;sim;-trace;Arg.Int;set_trace;set trace level for simulation (default: 0)
 ide;general;-synchronous_actions;Arg.Unit;set_synchronous_actions;interpret actions synchronously
+ide;general;-normalize;Arg.Unit;set_normalize;move output assignations from states to transitions
 ide;systemc;-sc_time_unit;Arg.String;set_systemc_time_unit;set time unit for the SystemC test-bench (default: SC_NS)
 ide;systemc;-sc_trace;Arg.Unit;set_sc_trace;set trace mode for SystemC backend (default: false)
 ide;systemc;-stop_time;Arg.Int;set_stop_time;set stop time for the SystemC and VHDL test-bench (default: 100)

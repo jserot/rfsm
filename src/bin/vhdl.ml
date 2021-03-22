@@ -329,6 +329,12 @@ let dump_array_types oc vs =
      | _ -> ())
       array_types
 
+let dump_state_outputs oc (s,oval) = 
+  fprintf oc "    when %s =>\n" s;
+  List.iter
+    (fun (o,e) -> fprintf oc "      %s <= %s;\n" o (string_of_expr e))
+    oval
+
 let dump_module_arch oc m =
   let open Cmodel in
   let modname = m.c_name in
@@ -364,6 +370,12 @@ let dump_module_arch oc m =
       fprintf oc "    end case;\n"
   end;
   fprintf oc "    end if;\n";
+  fprintf oc "  end process;\n";
+  fprintf oc "  process(%s)\n" cfg.vhdl_state_var;
+  fprintf oc "  begin\n";
+  fprintf oc "    case %s is\n" cfg.vhdl_state_var;
+  List.iter (dump_state_outputs oc) m.c_states;
+  fprintf oc "    end case;\n";
   fprintf oc "  end process;\n";
   if cfg.vhdl_trace then begin
     let int_of_vhdl_state m =

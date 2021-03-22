@@ -31,6 +31,11 @@ let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } =
   let type_of id =
     try List.assoc id local_types
     with Not_found -> Misc.fatal_error ("Static.mk_fsm_model: cannot retrieve type for identifier " ^ id) in
+  let mk_typed_state (s,ovs) =
+    s,
+    List.map
+      (fun (o,e) -> o, match type_of o with Types.TyBool -> mk_bool_expr e | _ -> e)
+      ovs in
   let pp_action a = match a with
     (* Replace all assignations [v:=0/1], where [v:bool] by [v:=false/true] *)
     | Action.Assign ({l_desc=LhsVar v}, e) ->
@@ -64,7 +69,7 @@ let mk_fsm_model tenv { fsm_desc = f; fsm_loc = loc } =
   let mk_act a = pp_action a.act_desc in
   let m = Fsm.build_model
     ~name:f.fd_name
-    ~states:f.fd_states
+    ~states:(List.map mk_typed_state f.fd_states)
     ~params:(List.map (mk_typed "parameter") f.fd_params)
     ~ios:(List.map (function (dir,desc) -> let id,ty = mk_typed "input/output" desc in dir,id,ty) f.fd_ios)
     ~vars:(List.map (mk_typed "variable") f.fd_vars)
