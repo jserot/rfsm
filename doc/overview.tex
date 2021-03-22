@@ -189,7 +189,9 @@ clause. Correlatively, the update of this output have been removed from the acti
 transitions described lines~\ref{gensigm-2a}, \ref{gensigm-2b} and \ref{gensigm-3}.
 
 \medskip \textbf{Note}. The \verb|-normalize| option of the \texttt{rfsmc} compiler allows to
-automatically transform a Moore-style description into a Mealy-style one.
+automatically transform a Moore-style description into a Mealy-style one. This option is
+automatically inserted when simulating a system\footnote{\emph{I.e.} simulation is always performed
+  on Mealy-style FSMs.}. 
 
 \begin{figure}[!h]
    \includegraphics[height=7cm]{figs/gensig-model}

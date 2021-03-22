@@ -154,6 +154,9 @@ let react t ctx stimuli =
 (* RUN *)
 
 let run m =
+  let m = Static.normalize m in
+    (* Since v 1.7.0. The easiest way. We do not want to reformulate the simulation algorithm to take account
+       output assignation on states... *)
   let open Static in
   let extract_shared (vars,evs) (name,(ty,desc)) = match desc, ty with
     | MShared _, Types.TyEvent -> vars, (name,(ty,Expr.unset_event))::evs  (* Initially not set *)

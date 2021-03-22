@@ -88,8 +88,8 @@ let string_of_ovs = Utils.ListExt.to_string (fun (o,e) -> o ^ "=" ^ Expr.string_
 let string_of_attr_state (s,ovs) =
   match ovs with
   | [] -> string_of_state s
-  (* | _ -> string_of_state s ^ "[" ^ Attr.to_string ovs ^ "]" *)
-  | _ -> string_of_state s ^ "[" ^ string_of_ovs ovs ^ "]"
+  | _ -> string_of_state s ^ "[" ^ Attr.to_string ovs ^ "]"
+  (* | _ -> string_of_state s ^ "[" ^ string_of_ovs ovs ^ "]" *)
                       
 let string_of_transition (s,(cond,acts,prio,_),s') =
   let lbl = 
