@@ -5,10 +5,10 @@ fsm model cntmod2(
   out s: int<0:1>,
   out r: event)
 {
-  states: E0, E1;
+  states: E0 where s=0, E1 where s=1;
   trans:
-  | E0 -> E1 on h with s:=1
-  | E1 -> E0 on h with r, s:=0;
+  | E0 -> E1 on h
+  | E1 -> E0 on h with r;
   itrans:
-  | -> E0 with s:=0;
+  | -> E0;
 }

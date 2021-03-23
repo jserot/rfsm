@@ -9,12 +9,12 @@ fsm model mult(
   out r: int<16>,
   out rdy: bool)
 {
-  states: Repos, Calcul;
+  states: Repos where rdy=1, Calcul where rdy=0;
   vars: a: int<8>, b: int<8>, acc: int<16>;
   trans:
-  | Repos -> Calcul on h when start=1 with a:=n1, b:=n2, acc:=0, rdy:=0
+  | Repos -> Calcul on h when start=1 with a:=n1, b:=n2, acc:=0
   | Calcul -> Calcul on h when b>0 with b:=b-1, acc:=acc+a::int<16>
-  | Calcul -> Repos on h when b=0 with r:=acc, rdy:=1;
+  | Calcul -> Repos on h when b=0 with r:=acc;
   itrans:
-  | -> Repos with rdy:=1;
+  | -> Repos;
 }

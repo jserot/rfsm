@@ -8,12 +8,12 @@ fsm model Heron<niter: int>(
   out rdy: bool,
   out r: float)
 {
-  states: Idle, Iter;
+  states: Idle where rdy=1, Iter where rdy=0;
   vars: a: float, x: float, n: int;
   trans:
-  | Idle -> Iter on h when start=1 with a:=u, x:=u, rdy:=0, n:=0
+  | Idle -> Iter on h when start=1 with a:=u, x:=u, n:=0
   | Iter -> Iter on h when n<niter with x:=(x+.a/.x)/.2., n:=n+1
-  | Iter -> Idle on h when n=niter with r:=x, rdy:=1;
+  | Iter -> Idle on h when n=niter with r:=x;
   itrans:
-  | -> Idle with rdy:=1;
+  | -> Idle;
 }

@@ -17,7 +17,6 @@ COMPILER
 - communication via FIFOs (message queues) ?
 
 EXAMPLES
-- rewrite examples with Moore-style when appropriate
 
 DIST
 
