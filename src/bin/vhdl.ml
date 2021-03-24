@@ -619,6 +619,7 @@ let dump_fsm_model ?(prefix="") ?(dir="./vhdl") fsm =
   if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
   (* fprintf oc "library %s;\n" cfg.vhdl_support_library;
    * fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package; *)
+  fprintf oc "use work.%s.all;\n" cfg.vhdl_support_package;
   fprintf oc "\n";
   dump_module_intf "entity" oc f;
   fprintf oc "\n";
@@ -636,6 +637,7 @@ let dump_fsm_inst ?(prefix="") ?(dir="./vhdl") m fsm =
   if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
   (* fprintf oc "library %s;\n" cfg.vhdl_support_library;
    * fprintf oc "use %s.%s.all;\n" cfg.vhdl_support_library cfg.vhdl_support_package; *)
+  fprintf oc "use work.%s.all;\n" cfg.vhdl_support_package;
   if need_globals m then fprintf oc "use work.%s.all;\n" cfg.vhdl_globals_name;
   fprintf oc "\n";
   dump_module_intf "entity" oc f;
