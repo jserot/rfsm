@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-package core is
+package rfsm is
 
   function cond(e1: boolean; e2: signed; e3: signed) return signed;
   function cond(e1: boolean; e2: unsigned; e3: unsigned) return unsigned;
@@ -60,7 +60,7 @@ use ieee.numeric_std.all;
 
 -- use STD.textio.all;   -- FOR DEBUG ONLY
 
-package body core is
+package body rfsm is
 
   function cond(e1: boolean; e2: signed; e3: signed) return signed is
   begin

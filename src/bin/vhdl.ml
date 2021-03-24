@@ -35,8 +35,8 @@ type vhdl_config = {
   mutable vhdl_ev_duration: int;
   mutable vhdl_use_numeric_std: bool;
   mutable vhdl_bool_as_bool: bool;
-  (* mutable vhdl_support_library: string;
-   * mutable vhdl_support_package: string; *)
+  (* mutable vhdl_support_library: string; *)
+  mutable vhdl_support_package: string;
   mutable vhdl_trace: bool;
   mutable vhdl_dump_format: dump_format;
   mutable vhdl_trace_state_var: string
@@ -57,8 +57,9 @@ let cfg = {
   vhdl_ev_duration = 1;
   vhdl_use_numeric_std = false;
   vhdl_bool_as_bool = false;
-  (* vhdl_support_library = "rfsm";
-   * vhdl_support_package = "core"; *)
+  (* vhdl_support_library = "rfsm"; *)
+  (* vhdl_support_package = "core"; *)
+  vhdl_support_package = "rfsm";
   vhdl_trace = false;
   vhdl_dump_format = Vcd;
   vhdl_trace_state_var = "st";
@@ -678,8 +679,9 @@ let rec dump_globals ?(name="") ?(dir="./vhdl") m =
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
   if cfg.vhdl_use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
-  (* fprintf oc "library %s;\n" cfg.vhdl_support_library;
-   * fprintf oc "use %s.%s.all;\n\n" cfg.vhdl_support_library cfg.vhdl_support_package; *)
+  (* fprintf oc "library %s;\n" cfg.vhdl_support_library; *)
+  (* fprintf oc "use %s.%s.all;\n\n" cfg.vhdl_support_library cfg.vhdl_support_package; *)
+  fprintf oc "use work.%s.all;\n\n" cfg.vhdl_support_package;
   dump_globals_intf oc prefix m; 
   fprintf oc "\n";
   dump_globals_impl oc prefix m;

@@ -9,7 +9,7 @@ RFSMC=/Users/jserot/Dev/ml/rfsmc/_build/default/src/bin/rfsmc.exe
 SRCS=heron.fsm main.fsm
 SIM_OPTS=
 SYSTEMC_OPTS=-sc_time_unit "SC_NS" -stop_time 200 -sc_double_float
-VHDL_OPTS=-vhdl_time_unit "ns" -stop_time 200 
+VHDL_OPTS=-vhdl_time_unit "ns" -stop_time 200
 
 .PHONY: dot sim ctask systemc vhdl clean clobber test
 
