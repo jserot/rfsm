@@ -4,6 +4,7 @@
 TMP=/tmp/do_test.out
 RFSMMAKE=`pwd`/../etc/bin/rfsmmake
 RFSMLIB=`pwd`/../etc
+RFSMC=`pwd`/../_build/default/src/bin/rfsmc.exe
 
 try_make () 
 {
@@ -19,7 +20,7 @@ make_makefile ()
 pro_files=(`find ./ -maxdepth 1 -name "*.pro"`)
 echo "N=${#pro_files[@]}"
 if [ ${#pro_files[@]} -gt 0 ]; then 
-    $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm ${pro_files[0]}
+    $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC ${pro_files[0]}
 fi
 }
 
