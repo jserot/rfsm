@@ -11,11 +11,11 @@ homepage: "http://github.com/jserot/rfsm"
 doc: "http://jserot.github.io/rfsm"
 bug-reports: "jocelyn.serot@uca.fr"
 depends: [
-  "dune" {>= "1.11"}
+  "dune" {>= "2.6"}
   "menhir" {>= "2.0"}
-  "lascar" {>= "0.6"}
+  "lascar" {>= "0.7"}
   "ocamlgraph" {>= "1.8"}
-  "ocaml" {>= "4.08"}
+  "ocaml" {>= "4.10"}
 ]
 build: [
   ["dune" "subst"] {pinned}

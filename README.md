@@ -63,7 +63,7 @@ For compiling and running an example
 
 * get a copy of the source tree and go to the selected example directory
   * `git clone https://github.com/jserot/rfsm`
-  * `cd rfsm/examples/single/chrono` (for example)
+  * `cd rfsm/examples/single/gensig/v2` (for example)
   
 * build the top `Makefile` by invoking: `rfsmmake main.pro` 
   (this supposes that the `rfsm` package has been properly installed; in particular that the `rfsmc`
