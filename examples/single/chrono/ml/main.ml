@@ -9,7 +9,7 @@ let mk_int n = mk_expr (EInt n)
   
 let chrono = Fsm.build_model
   ~name:"chrono"
-  ~states:["Stopped"; "Running"]
+  ~states:["Stopped", []; "Running", []]
   ~params:[]
   ~ios:[
     IO_In, "h", TyEvent;

@@ -9,7 +9,7 @@ let mk_int n = mk_expr (EInt n)
           
 let ctrmod2 = Fsm.build_model
   ~name:"ctrmod2"
-  ~states:["E0"; "E1"]
+  ~states:["E0", ["s", mk_int 0]; "E1", ["s", mk_int 1]]
   ~params:[]
   ~ios:[
     IO_In, "h", TyEvent;
@@ -18,10 +18,10 @@ let ctrmod2 = Fsm.build_model
     ]
   ~vars:[]
   ~trans:[
-    ("E0", ("h",[]), [mk_asn ("s", mk_int 1)], "E1", 0);
-    ("E1", ("h",[]), [Emit "r"; mk_asn ("s", mk_int 0)], "E0", 0);
+    ("E0", ("h",[]), [], "E1", 0);
+    ("E1", ("h",[]), [Emit "r"], "E0", 0);
     ]
-  ~itrans:("E0",[mk_asn ("s", mk_int 0)])
+  ~itrans:("E0",[])
 
 let rec pow2 n = if n=0 then 1 else 2 * pow2 (n-1)
            
@@ -42,6 +42,6 @@ let p = build_counter 3
 let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" p
 
-(* let c, rs = Simul.run p
- * let _ = List.iter Simul.dump_reaction rs *)
+let c, rs = Simul.run p
+let _ = List.iter Simul.dump_reaction rs
 

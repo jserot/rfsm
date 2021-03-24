@@ -17,7 +17,7 @@ let f_abs =
 
 let heron = Fsm.build_model
   ~name:"Heron"
-  ~states:["Idle"; "Iter"]
+  ~states:["Idle", ["rdy", mk_bool true]; "Iter", ["rdy", mk_bool false]]
   ~params:["eps", TyFloat]
   ~ios:[
     IO_In, "h", TyEvent;
@@ -31,7 +31,7 @@ let heron = Fsm.build_model
   ~trans:[
     ("Idle",
      ("h",[mk_binop ("=", mk_var "start", mk_bool true)]),
-     [mk_asn ("a", mk_var "u"); mk_asn ("x", mk_var "u"); mk_asn ("rdy", mk_bool false); mk_asn ("n", mk_int 0)],
+     [mk_asn ("a", mk_var "u"); mk_asn ("x", mk_var "u"); mk_asn ("n", mk_int 0)],
      "Iter", 0);
     ("Iter",
      ("h",[mk_binop (">=", mk_expr (EFapp ("f_abs", [mk_binop ("-.", mk_binop("*.", mk_var "x", mk_var "x"), mk_var "a")])), mk_var "eps")]),
@@ -40,10 +40,10 @@ let heron = Fsm.build_model
      "Iter", 0);
     ("Iter",
      ("h",[mk_binop ("<", mk_expr (EFapp ("f_abs", [mk_binop ("-.", mk_binop("*.", mk_var "x", mk_var "x"), mk_var "a")])), mk_var "eps")]),
-     [mk_asn ("r", mk_var "x"); mk_asn ("niter", mk_var "n"); mk_asn ("rdy", mk_bool true)], 
+     [mk_asn ("r", mk_var "x"); mk_asn ("niter", mk_var "n")], 
      "Idle", 0);
     ]
-  ~itrans:("Idle",[mk_asn ("rdy", mk_bool true)])
+  ~itrans:("Idle",[])
 
 let h = Global.GInp ("H", TyEvent, Periodic (10,10,200))
 let u = Global.GInp ("U", TyFloat, ValueChange [5, Expr.mk_float 2.0])
@@ -64,6 +64,6 @@ let _ = Static.dump stdout s
 let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" s
 
-(* let c, rs = Simul.run s
- * let _ = List.iter Simul.dump_reaction rs *)
+let c, rs = Simul.run s
+let _ = List.iter Simul.dump_reaction rs
 

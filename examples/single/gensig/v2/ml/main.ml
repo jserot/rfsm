@@ -13,7 +13,7 @@ let mk_int n = mk_expr (EInt n)
 
 let gensig = Fsm.build_model
   ~name:"gensig"
-  ~states:["E0"; "E1"]
+  ~states:["E0", ["s", mk_int 0]; "E1", ["s", mk_int 1]]
   ~params:["n",type_int []]
   ~ios:[
     IO_In, "h",TyEvent;
@@ -22,11 +22,11 @@ let gensig = Fsm.build_model
     ]
   ~vars:["k", TyInt (SzExpr2 (TiConst 0, TiVar "n"))] 
   ~trans:[
-    ("E0", ("h",[mk_binop("=", mk_var "e", mk_int 1)]), [mk_asn("k", mk_int 1); mk_asn("s", mk_int 1)], "E1", 0);
+    ("E0", ("h",[mk_binop("=", mk_var "e", mk_int 1)]), [mk_asn("k", mk_int 1)], "E1", 0);
     ("E1", ("h",[mk_binop("<", mk_var "k", mk_var "n")]), [mk_asn("k", mk_binop ("+", mk_var "k", mk_int 1))], "E1", 0);
-    ("E1", ("h",[mk_binop("=", mk_var "k", mk_var "n")]), [mk_asn("s", mk_int 0)], "E0", 0)
+    ("E1", ("h",[mk_binop("=", mk_var "k", mk_var "n")]), [], "E0", 0)
     ]
-  ~itrans:("E0",[mk_asn("s", mk_int 0)])
+  ~itrans:("E0",[])
 
 let h = Global.GInp ("H", TyEvent, Periodic (10,0,80))
 let e = Global.GInp ("E", t_bit, ValueChange [0,Expr.mk_int 0; 25,Expr.mk_int 1; 35,Expr.mk_int 0])
@@ -41,5 +41,5 @@ let m = Static.build ~name:"gensig" [gensig] [g]
 let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" m
 
-(* let c, rs = Simul.run p
- * let _ = List.iter Simul.dump_reaction rs *)
+let c, rs = Simul.run m
+let _ = List.iter Simul.dump_reaction rs

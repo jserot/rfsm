@@ -13,7 +13,7 @@ let mk_rec (r,f) = mk_expr (ERecord (r,f))
   
 let rle = Fsm.build_model
   ~name:"rle"
-  ~states:["E0"; "E1"]
+  ~states:["E0", []; "E1", []]
   ~params:[]
   ~ios:[
     IO_In, "h", TyEvent;
@@ -50,6 +50,6 @@ let s = Static.build ~name:"rle" [rle] [r1]
 let _ = Sys.command "mkdir -p dot" 
 let _ = Static.dot_output "./dot" s
 
-(* let c, rs = Simul.run s
- * let _ = List.iter Simul.dump_reaction rs *)
+let c, rs = Simul.run s
+let _ = List.iter Simul.dump_reaction rs
 

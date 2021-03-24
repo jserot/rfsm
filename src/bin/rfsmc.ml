@@ -22,10 +22,10 @@ let check_dir path =
   if not (Sys.is_directory path) then raise (Sys_error ("file " ^ " is not a directory"))
 
 let print_banner () = 
-  Printf.printf "------------------------------------------------------------------\n";
+  Printf.printf "-------------------------------------------------------------------\n";
   Printf.printf "Reactive Finite State Machine compiler and simulator, version %s\n" Version.version;
   Printf.printf "For information: github.com/jserot/rfsm\n"; 
-  Printf.printf "------------------------------------------------------------------\n";
+  Printf.printf "-------------------------------------------------------------------\n";
   flush stdout
 
 let parse fname = 
