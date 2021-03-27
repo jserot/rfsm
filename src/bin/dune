@@ -13,6 +13,7 @@
   (name rfsmc)
   (public_name rfsmc)
   (flags (:standard -annot) (:standard -w -9-27-32-34-35-50))
+  (modes byte exe)
   (libraries rfsm))
 
 (toplevel
