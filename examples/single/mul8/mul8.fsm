@@ -1,4 +1,4 @@
--- A naive model of a multiplier implemented with successive additions
+-- A 2x8 bit multiplier implemented with the classical shift-and-add algorithm
 -- The generated VHDL code is a good starting point for hardware implementation
 
 fsm model mult(
@@ -9,12 +9,19 @@ fsm model mult(
   out r: int<16>,
   out rdy: bool)
 {
-  states: Repos where rdy=1, Calcul where rdy=0;
-  vars: a: int<8>, b: int<8>, acc: int<16>;
+  states:
+    Idle where rdy=1,
+    Comp where rdy=0;
+  vars:
+    a: int<16>,
+    b: int<8>,
+    i: int<0:8>,
+  acc: int<16>;
   trans:
-  | Repos -> Calcul on h when start=1 with a:=n1, b:=n2, acc:=0
-  | Calcul -> Calcul on h when b>0 with b:=b-1, acc:=acc+a::int<16>
-  | Calcul -> Repos on h when b=0 with r:=acc;
+  | Idle -> Comp on h when start=1 with a:=n1::int<16>, b:=n2, acc:=0, i:=0
+  | Comp -> Comp on h when (i<8).(b[0]=1) with acc:=acc+a, a:=a<<1, b:=b>>1, i:=i+1
+  | Comp -> Comp on h when (i<8).(b[0]=0) with a:=a<<1, b:=b>>1, i:=i+1
+  | Comp -> Idle on h when i=8 with r:=acc;
   itrans:
-  | -> Repos;
+  | -> Idle;
 }

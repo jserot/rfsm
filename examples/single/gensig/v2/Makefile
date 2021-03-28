@@ -4,10 +4,8 @@ LIBDIR=/Users/jserot/Dev/ml/rfsmc/examples/../etc
 
 include /Users/jserot/Dev/ml/rfsmc/examples/../etc/platform
 
-
-RFSMC=/Users/jserot/Dev/ml/rfsmc/examples/../_build/default/src/bin/rfsmc.exe
 SRCS=gensig.fsm main.fsm
-GEN_OPTS=-normalize
+GEN_OPTS=#-normalize
 DOT_OPTS=
 SIM_OPTS=
 SYSTEMC_OPTS=-sc_time_unit "SC_NS"
