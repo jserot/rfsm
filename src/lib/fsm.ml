@@ -123,9 +123,12 @@ type inst = {
 
 (* Inspectors *)
 
-let inputs_of_model m = List.filter (function (_,(Types.IO_In,_)) -> true | _ -> false) m.fm_ios
-let outputs_of_model m = List.filter (function (_,(Types.IO_Out,_)) -> true | _ -> false) m.fm_ios
-let inouts_of_model m = List.filter (function (_,(Types.IO_Inout,_)) -> true | _ -> false) m.fm_ios
+let inputs_of_model, outputs_of_model, inouts_of_model = 
+  let get_type (n,(_,t)) = n, t in
+  let collect f l = l |> List.filter f |> List.map get_type in
+  (fun m -> collect (function (_,(Types.IO_In,_)) -> true | _ -> false) m.fm_ios),
+  (fun m -> collect (function (_,(Types.IO_Out,_)) -> true | _ -> false) m.fm_ios),
+  (fun m -> collect (function (_,(Types.IO_Inout,_)) -> true | _ -> false) m.fm_ios)
 
 let states_of_inst m = Repr.states m.f_repr |> Repr.States.elements
 let attr_states_of_inst m = Repr.states' m.f_repr
@@ -407,7 +410,7 @@ let dot_output_model ?(fname="") ?(dot_options=[]) ?(options=[]) ~dir f =
 
 let dump_model oc f =
   let of_list f xs = Utils.ListExt.to_string f ", " xs in
-  let string_of_io (id,(_,ty)) = id  ^ ":" ^ Types.string_of_type ty in
+  let string_of_io (id,ty) = id  ^ ":" ^ Types.string_of_type ty in
   let string_of_var (id,ty) = id  ^ ":" ^ Types.string_of_type ty in
   let string_of_acts = Utils.ListExt.to_string Action.to_string "; " in
   Printf.fprintf oc "FSM MODEL %s{\n" f.fm_name;

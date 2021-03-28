@@ -309,25 +309,29 @@ let check_fsm_state name r s =
   if not (States.mem s (states r))
    then raise (Fsm.Invalid_state (s,name))
                                 
-let type_check_output_valuation f s tenv (o,e) = 
+let type_check_output_valuation kind name outps s tenv (o,e) = 
   let open Fsm in
   let t =
-    try fst @@ List.assoc o f.f_outps
-    with Not_found -> raise (Illegal_state_output (f.f_name, s, o)) in
+    try List.assoc o outps
+    with Not_found -> raise (Illegal_state_output (name, s, o)) in
   let t' =
     try type_expression tenv e
     with Type_error (expr, ty, ty') ->
-      raise (Typing_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty')) in
+      raise (Typing_error ("expression \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ name ^ "\"", ty, ty')) in
   try type_check
              ("assignation of output " ^ o ^ " in state " ^ s)
-             ("FSM \"" ^ f.f_name ^ "\"")
+             ("FSM " ^ kind ^ " \"" ^ name ^ "\"")
              t' t
   with
   | Type_error (expr, ty, ty') ->
-     raise (Typing_error ("action \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ f.f_name ^ "\"", ty, ty'))
+     raise (Typing_error ("action \"" ^ Expr.to_string expr ^ "\"", "FSM \"" ^ name ^ "\"", ty, ty'))
 
-let type_check_fsm_state f tenv (s,ovs) =
-  List.iter (type_check_output_valuation f s tenv) ovs
+let type_check_fsm_inst_state f tenv (s,ovs) =
+  let outps = List.map (fun (o,(t,_)) -> o,t) f.Fsm.f_outps in
+  List.iter (type_check_output_valuation "instance" f.Fsm.f_name outps s tenv) ovs
+
+let type_check_fsm_model_state m tenv (s,ovs) =
+  List.iter (type_check_output_valuation "model" m.Fsm.fm_name (Fsm.outputs_of_model m) s tenv) ovs
 
 let type_check_output_assignment name r s acts =
   (* For each transition [_ -> _ / acts -> s] check that, if an output [o] is modified in the set [acts],
@@ -362,6 +366,7 @@ let type_check_fsm_itransition name repr tenv ((_,acts,_,_),s) =
           
 let type_check_fsm_model tenv f =
   let open Fsm in
+  List.iter (type_check_fsm_model_state f tenv) (Fsm.attr_states_of_model f);
   List.iter (type_check_fsm_transition f.fm_name f.fm_repr tenv) (Fsm.Repr.transitions f.fm_repr);
   List.iter (type_check_fsm_itransition f.fm_name f.fm_repr tenv) (Fsm.Repr.itransitions f.fm_repr)
 
@@ -395,7 +400,7 @@ let type_fsm_inst tenv f =
    List.iter (check_type "inout") (List.map type_of f.f_inouts);
    List.iter (check_type "variable") f.f_vars;
    (* Type check output assignations in states *)
-   List.iter (type_check_fsm_state f tenv) (Fsm.attr_states_of_inst f); 
+   List.iter (type_check_fsm_inst_state f tenv) (Fsm.attr_states_of_inst f); 
    (* Type check conditions and actions on transitions *)
    let tenv = { tenv with te_vars = types_of_fsm_inst f @ tenv.te_vars } in
    List.iter (type_check_fsm_transition f.f_name f.f_repr tenv) (Fsm.transitions_of_inst f);

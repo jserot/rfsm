@@ -155,6 +155,9 @@ val output_events_of_inst : inst -> string list
 val is_rtl_inst : inst -> bool
   (** [is_rtl f] is [true] iff all [is_rtl a] for all actions [a] of [f] *)
 
+val outputs_of_model : model -> (string * Types.typ) list
+val inputs_of_model : model -> (string * Types.typ) list
+val inouts_of_model : model -> (string * Types.typ) list
 val states_of_model : model -> state list
 val attr_states_of_model : model -> (state * attr) list
 val istate_of_model : model -> state option
