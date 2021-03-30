@@ -19,9 +19,8 @@ doc.view:
 doc:
 	dune build @doc
 	(cd ./doc; make)
-	rm -rf ../../github.io/rfsm
-	cp -r _build/default/_doc/_html ../../github.io/rfsm
-	cp doc/rfsm.pdf ../../github.io/rfsm
+	cp -r _build/default/_doc/_html/* ./docs
+	cp doc/rfsm.pdf ./docs
 
 
 html: README.md
