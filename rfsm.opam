@@ -31,5 +31,3 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/jserot/rfsm.git"
-name: "rfsm"
-version: "1.7.0"

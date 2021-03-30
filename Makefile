@@ -13,21 +13,16 @@ install:
 
 INSTALL_DOCDIR=`opam config var doc`
 
-opam.install: 
-	opam install .
-
-opam.remove:
-	opam remove .
-
-opam.show:
-	opam info rfsm
-
 doc.view:
 	open -a Safari _build/default/_doc/_html/index.html
 
 doc:
 	dune build @doc
 	(cd ./doc; make)
+	rm -rf ../../github.io/rfsm
+	cp -r _build/default/_doc/_html ../../github.io/rfsm
+	cp doc/rfsm.pdf ../../github.io/rfsm
+
 
 html: README.md
 	pandoc -t html -o README.html README.md
