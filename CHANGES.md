@@ -1,10 +1,11 @@
 # Changes
 
-# 1.7 (Mar XX, 2021)
+# 1.7 (Mar 30, 2021)
 
 * Outputs can now be specifed using Moore style (i.e. attached to states); many examples have been
   rewritten accordingly (see for ex. `examples/single/gensig/v1`)
 * Bug fixes
+* Many examples added
   
 # 1.6 (Aug 21, 2019)
 * _IMPORTANT_ the GUI is now provided as a separate project; this source tree only concerns the `rfsm` library
