@@ -40,11 +40,9 @@ provided separately:
 Documentation
 -------------
 
-The user manual can be found
-[here](https://github.com/jserot/jserot.github.io/blob/master/rfsm/rfsm.pdf)
+The user manual can be found [here](http://jserot.github.io/rfsm/rfsm.pdf)
 
-The library API is documented
-[here](https://github.com/jserot/jserot.github.io/blob/master/rfsm/index.html)
+The library API is documented [here](https://jserot.github.io/rfsm/index.html)
 
 Installation
 ------------
