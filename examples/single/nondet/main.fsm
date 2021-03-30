@@ -1,0 +1,19 @@
+-- This example illustrates the use of the [!] transition annotation to 
+-- resolve non-determinism
+
+fsm model F(
+  in h: event)
+{
+  states: P0, P1, P2;
+  trans:
+  ! P0 -> P1 on h -- replacing [!] by [|] makes the FSM non-deterministic !
+  | P0 -> P2 on h
+  | P1 -> P0 on h
+  | P2 -> P0 on h;
+  itrans:
+  | -> P0 ;
+}
+
+input H : event = periodic(10, 10, 100)
+
+fsm f = F(H)

@@ -1,0 +1,35 @@
+-- Event-based synchronisation
+-- The first occurence of [e] is lost here because events are _not_ memorized
+-- As a result transition A2.B->A2.C only occurs at second occurrence of [e]
+-- To be contrasted with the example where [e] is replaced by a shared variable
+
+fsm model A1(
+  in h: event,
+  out e: event)
+{
+  states: A, B, C;
+  trans:
+  | A -> B on h with e
+  | B -> C on h
+  | C -> A on h;
+  itrans:
+  | -> A ;
+}
+fsm model A2(
+  in h: event,
+  in e: event)
+{
+  states: A, B, C;
+  trans:
+  | A -> B on h
+  | B -> C on e
+  | C -> A on h;
+  itrans:
+  | -> A ;
+}
+
+input H : event = sporadic(10, 20, 30, 40, 50)
+shared e : event
+
+fsm a1 = A1(H,e)
+fsm a2 = A2(H,e)

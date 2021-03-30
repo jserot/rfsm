@@ -1,0 +1,32 @@
+-- Automatic acknowledge system
+-- Goal : receive and acknowledge Req events between Top events
+-- The first Req received after a Top generates Ok
+-- The following Req(s) (before the next Top) will generate NOk
+-- If no Req is received btw two Tops, the second Top generates Alarm
+-- From F. Boussinot's lecture "L'approche réactive synchrone"
+-- Sep 29, 2019 - JS
+
+fsm model topreq (
+  in top: event,
+  in req: event,
+  out ok: event,
+  out nok: event,
+  out alarm: event)
+  {
+  states: E0, E1, E2;
+  trans:
+    | E0 -> E1 on top -- init
+    | E1 -> E2 on req with ok
+    | E1 -> E1 on top with alarm
+    | E2 -> E2 on req with nok
+    | E2 -> E1 on top;
+  itrans: | -> E0;
+  }
+
+input Top: event = sporadic (10, 60, 80)
+input Req: event = sporadic (20, 40)
+output Ok: event
+output NOk: event
+output Alarm: event
+
+fsm f = topreq(Top,Req,Ok,NOk,Alarm)

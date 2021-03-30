@@ -1,0 +1,34 @@
+--  Synchronisation using a shared (global) variable
+--  Second case : asynchronous signalisation
+--  Shared variable [v] here plays the role of a buffered event
+
+fsm model A1(
+  in h: event,
+  out v: bool)
+{
+  states: S1, S2, S3;
+  trans:
+  | S1 -> S2 on h with v:=1
+  | S2 -> S3 on h
+  | S3 -> S1 on h;
+  itrans:
+  | -> S1 with v:=0;
+}
+fsm model A2(
+  in h: event,
+  inout v: bool)
+{
+  states: S1, S2, S3;
+  trans:
+  | S1 -> S2 on h
+  | S2 -> S3 on h when v=1 with v:=0
+  | S3 -> S1 on h;
+  itrans:
+  | -> S1 ;
+}
+
+input H : event = sporadic(10, 20, 30)
+shared v : bool
+
+fsm a1 = A1(H,v)
+fsm a2 = A2(H,v)

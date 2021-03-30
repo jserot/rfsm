@@ -1,0 +1,32 @@
+-- Event-based synchronisation
+-- The occurence of [H] causes the emission of [e] and hence the
+--   simultaneous transitions A1.A->A1.B and A2.A->A2.B
+
+fsm model A1(
+  in h: event,
+  out e: event)
+{
+  states: A, B;
+  trans:
+  | A -> B on h with e
+  | B -> A on h;
+  itrans:
+  | -> A ;
+}
+fsm model A2(
+  in h: event,
+  in e: event)
+{
+  states: A, B;
+  trans:
+  | A -> B on e
+  | B -> A on h;
+  itrans:
+  | -> A ;
+}
+
+input H : event = sporadic(10, 20)
+shared e : event
+
+fsm a1 = A1(H,e)
+fsm a2 = A2(H,e)

@@ -1,0 +1,29 @@
+-- Computes $\sqrt(x)$
+-- Note that the interpretation of actions _must_ be sequential here !
+
+fsm model sqrt(
+  in h: event,
+  in start: bool,
+  in x: int,
+  out rdy: bool,
+  out r: int)
+{
+  states: Repos where rdy=1, Calcul1 where rdy=0, Calcul2 where rdy=0;
+  vars: u: int, z: int, y: int, t: bool;
+  trans:
+  | Repos -> Calcul1 on h when start=1 with y:=x, u:=1
+  | Calcul1 -> Calcul1 on h when u<=y with u:=u*4
+  | Calcul1 -> Calcul2 on h when u>y with z:=u
+  | Calcul2 -> Calcul2 on h when u>1 with u:=u/4, z:=z/2-u, t:=z<=y?1:0, y:=t?y-z:y, z:=t?z+u*2:z
+  | Calcul2 -> Repos on h when u<=1 with r:=z/2;
+  itrans:
+  | -> Repos;
+}
+
+input H : event = periodic(10, 0, 1000)
+input x : int = value_changes(25:100, 245:200, 465:0, 605:65535)
+input Start : bool = value_changes(0:0, 35:1, 45:0, 255:1, 265:0, 475:1, 485:0, 615:1, 625:0)
+output Rdy : bool
+output r : int
+
+fsm s = sqrt(H,Start,x,Rdy,r)

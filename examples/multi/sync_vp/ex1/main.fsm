@@ -1,0 +1,33 @@
+--  Synchronisation using a shared (global) variable
+--  First case : synchronous (instantaneous) broadcast
+--  The modification of (shared) variable [v] operated by transtion A1:s1->s2 immediately 
+--  causes the simultaneous transition A2:s1->s2
+
+fsm model A1(
+  in h: event,
+  out v: bool)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h with v:=1
+  | S2 -> S1 on h;
+  itrans:
+  | -> S1 with v:=0;
+}
+fsm model A2(
+  in h: event,
+  inout v: bool)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h when v=1
+  | S2 -> S1 on h with v:=0;
+  itrans:
+  | -> S1 ;
+}
+
+input H : event = sporadic(10, 20, 30)
+shared V : bool
+
+fsm a1 = A1(H,V)
+fsm a2 = A2(H,V)

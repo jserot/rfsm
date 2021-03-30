@@ -1,0 +1,20 @@
+-- This example illustrates the use of user-defined enum types
+
+type tau = enum { On, Off }
+
+fsm model foo(
+  in h: event,
+  in e: tau)
+{
+  states: E0, E1;
+  trans:
+  | E0 -> E1 on h when e=On
+  | E1 -> E0 on h when e=Off;
+  itrans:
+  | -> E0 ;
+}
+
+input h : event = periodic(10, 10, 200)
+input inp : tau = value_changes(5:On, 15:Off)
+
+fsm f = foo(h,inp)

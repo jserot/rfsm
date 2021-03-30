@@ -1,0 +1,30 @@
+--  Synchronisation using a shared (global) variable
+
+fsm model A1(
+  in h: event,
+  out v: int<0:1>)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h
+  | S2 -> S1 on h with v:=1;
+  itrans:
+  | -> S1 with v:=0;
+}
+fsm model A2(
+  in h: event,
+  inout v: int<0:1>)
+{
+  states: S3, S4;
+  trans:
+  | S3 -> S4 on h when v=1
+  | S4 -> S3 on h with v:=0;
+  itrans:
+  | -> S3 ;
+}
+
+input H : event = periodic(10, 10, 50)
+shared v : int<0:1>
+
+fsm a1 = A1(H,v)
+fsm a2 = A2(H,v)

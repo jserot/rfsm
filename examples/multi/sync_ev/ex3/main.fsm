@@ -1,0 +1,32 @@
+
+
+fsm model A1(
+  in h: event,
+  out e: event)
+{
+  states: A, B, C;
+  trans:
+  | A -> B on h with e
+  | B -> C on h
+  | C -> A on h;
+  itrans:
+  | -> A ;
+}
+fsm model A2(
+  in h: event,
+  in e: event)
+{
+  states: D, E, F;
+  trans:
+  | D -> E on e
+  | E -> F on h
+  | F -> D on e;
+  itrans:
+  | -> D ;
+}
+
+input H : event = sporadic(10, 20, 30, 40, 50)
+shared e : event
+
+fsm a1 = A1(H,e)
+fsm a2 = A2(H,e)
