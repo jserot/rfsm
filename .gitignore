@@ -21,7 +21,7 @@ config-stamp
 Info.plist
 examples/others/
 examples/tofix/
-examples/scxmlcc/
+examples/tosee/
 examples/*/*/Makefile
 examples/*/*/*/Makefile
 examples/*/*/rfsm.output
