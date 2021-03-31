@@ -13,7 +13,6 @@
 (package
   (name rfsm)
   (synopsis "A toolset for describing and simulating StateChart-like state diagrams")
-  (description "A toolset for describing and simulating StateChart-like state diagrams")
   (depends
     (menhir (>= 2.0))
     (lascar (>= 0.7))
