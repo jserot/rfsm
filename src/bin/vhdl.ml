@@ -372,12 +372,14 @@ let dump_module_arch oc m =
   end;
   fprintf oc "    end if;\n";
   fprintf oc "  end process;\n";
-  fprintf oc "  process(%s)\n" cfg.vhdl_state_var;
-  fprintf oc "  begin\n";
-  fprintf oc "    case %s is\n" cfg.vhdl_state_var;
-  List.iter (dump_state_outputs oc) m.c_states;
-  fprintf oc "    end case;\n";
-  fprintf oc "  end process;\n";
+  if List.exists (fun (s,oval) -> oval <> []) m.c_states then begin
+      fprintf oc "  process(%s)\n" cfg.vhdl_state_var;
+      fprintf oc "  begin\n";
+      fprintf oc "    case %s is\n" cfg.vhdl_state_var;
+      List.iter (dump_state_outputs oc) m.c_states;
+      fprintf oc "    end case;\n";
+      fprintf oc "  end process;\n";
+  end;
   if cfg.vhdl_trace then begin
     let int_of_vhdl_state m =
       Utils.ListExt.to_string
