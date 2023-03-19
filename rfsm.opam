@@ -2,8 +2,6 @@
 opam-version: "2.0"
 synopsis:
   "A toolset for describing and simulating StateChart-like state diagrams"
-description:
-  "A toolset for describing and simulating StateChart-like state diagrams"
 maintainer: ["Jocelyn Sérot <jocelyn.serot@uca.fr>"]
 authors: ["Jocelyn Sérot <jocelyn.serot@uca.fr>"]
 license: "MIT"

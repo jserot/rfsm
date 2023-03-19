@@ -37,6 +37,7 @@ exception IllegalTrans of fsm * string
 exception Undeterminate of fsm * string * Types.date
 exception NonDetTrans of fsm * Fsm.transition list * Types.date
 exception NonAtomicIoWrite of fsm * Action.t 
+exception MultipleWrite of int * loc * Expr.value * Expr.value
 
 let mk_ival ty = match ty with
   | Types.TyArray(TiConst sz, ty') ->
@@ -270,3 +271,11 @@ let init genv f =
   | _ ->
      raise (IllegalTrans (f, "muliple initial transitions"))
 
+let string_of_loc lhs = 
+  match lhs with
+  | LVar id -> Ident.to_string id 
+  | LArrInd (id,k) -> Ident.to_string id ^ "[" ^ string_of_int k ^ "]"
+  | LRField (id,f) -> Ident.to_string id ^ "." ^ f
+
+let string_of_event (lhs,v) = 
+  string_of_loc lhs ^ ":=" ^ Expr.string_of_value v

@@ -1,4 +1,4 @@
-.PHONY: doc
+.PHONY: doc tests
 
 all: build doc
 
@@ -11,7 +11,7 @@ build:
 install:
 	dune build @install
 
-INSTALL_DOCDIR=`opam config var doc`
+INSTALL_DOCDIR=`opam var doc`
 
 doc.view:
 	open -a Safari _build/default/_doc/_html/index.html
@@ -19,6 +19,7 @@ doc.view:
 doc:
 	dune build @doc
 	(cd ./doc; make)
+	rm -rf ./docs/*
 	cp -r _build/default/_doc/_html/* ./docs
 	cp doc/rfsm.pdf ./docs
 

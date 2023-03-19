@@ -2,7 +2,7 @@
 # To be adjusted if necessary
 
 RFSMC=rfsmc
-LIBDIR=$(shell opam config var share)/rfsm
+LIBDIR=$(shell opam var share)/rfsm
 
 DOT=dot
 DOTVIEWER=graphviz

@@ -14,15 +14,21 @@ open Lascar
 type act_semantics =  (** Interpretation of actions associated to transitions *)
   | Sequential        (** sequential (ex: [x:=x+1;y:=x] with [x=1] gives [x=2,y=2]) *)
   | Synchronous       (** synchronous (ex: [x:=x+1:y=x] with [x=1] gives [x=2,y=1]) *)
+
+type bcast_semantics =
+  | Instantaneous
+  | Defered 
   
 type fsm_config = {
     mutable act_sep: string;         (** Default value: [" "] *)
     mutable act_sem: act_semantics;  (** Default value: [Sequential] *)
+    mutable bcast_sem: bcast_semantics;  (** Default value: [Instantaneous] *)
   }
 
 let cfg = {
     act_sep = " ";
     act_sem = Sequential;
+    bcast_sem = Instantaneous;
     }
 
 exception Undef_symbol of string * string * string (** FSM, kind, name *)

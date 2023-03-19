@@ -1,10 +1,10 @@
 include $(LIBDIR)/platform
 
-SYSTEMC=/usr/local/systemc-2.3.0
+SYSTEMC=/opt/systemc
 TARGET_ARCH=macosx64
 CXXFLAGS += -I$(SYSTEMC)/include -I$(LIBDIR)/lib/systemc
 
-LDFLAGS	 += -L$(SYSTEMC)/lib-$(TARGET_ARCH) 
+LDFLAGS	 += -L$(SYSTEMC)/lib
 
 SOURCES     = $(wildcard *.cpp)
 OBJS        = $(SOURCES:.cpp=.o)

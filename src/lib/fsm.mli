@@ -17,10 +17,16 @@ open Lascar
 type act_semantics =
   | Sequential        (** sequential (ex: [x:=x+1;y:=x] with [x=1] gives [x=2,y=2]) *)
   | Synchronous       (** synchronous (ex: [x:=x+1:y=x] with [x=1] gives [x=2,y=1]) *)
+
+(** Whether updates of shared variables are instantaneously broadcasted (default) or not *)
+type bcast_semantics =
+  | Instantaneous
+  | Defered 
   
 type fsm_config = {
     mutable act_sep: string;         (** Default value: [" "] *)
     mutable act_sem: act_semantics;  (** Default value: [Sequential] *)
+    mutable bcast_sem: bcast_semantics;  (** Default value: [Instantaneous] *)
   }
 
 val cfg: fsm_config

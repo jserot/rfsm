@@ -55,6 +55,7 @@ exception IllegalAction of fsm * Action.t
 exception Undeterminate of fsm * string * Types.date
 exception NonDetTrans of fsm * Fsm.transition list * Types.date
 exception NonAtomicIoWrite of fsm * Action.t
+exception MultipleWrite of int * loc * Expr.value * Expr.value
 
 (** {2 Accessors} *)
 
@@ -79,3 +80,8 @@ val react: Types.date -> genv -> fsm -> fsm * event list
   (** [react t env f] compute the reaction, at time [t] of FSM [f] in global environment [env].
      The global environment contains the values of global inputs, shared objects and global functions/constants.
      As for [init], returns an updated fsm and list of events. *)
+
+(** {2 Printers} *)
+
+val string_of_loc: loc -> string
+val string_of_event: event -> string

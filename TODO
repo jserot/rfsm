@@ -1,5 +1,6 @@
 COMPILER
 
+- support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite the ML examples (using the RFSM library) using PPX parsers
 - rewrite menhir parser with $sloc+%inline (cf OCaml 4.08 srcs)
 - support for synchronous actions in CTask and SystemC
