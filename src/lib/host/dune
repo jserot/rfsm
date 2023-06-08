@@ -1,0 +1,10 @@
+(library
+  (flags (:standard -annot) (:standard -w -27-32-37))
+  (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_deriving.map))
+  (libraries ocamlgraph)
+  (name rfsm))
+
+(rule
+ (target options.ml)
+ (deps   options_spec.txt options.cppo.ml)
+ (action (run ./build_options_spec %{deps} %{target})))

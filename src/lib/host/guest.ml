@@ -1,0 +1,103 @@
+module type INFO = sig
+  val version: string
+end
+
+module type TYPES = sig 
+  type typ
+  type typ_scheme
+  val mk_type_constr0: string -> typ
+  val is_type_constr0: string -> typ -> bool
+  val mk_type_fun: typ list -> typ -> typ
+  val pp_typ: Format.formatter -> typ -> unit
+  val pp_typ_scheme: Format.formatter -> typ_scheme -> unit
+end
+                 
+module type SYNTAX = sig 
+  module Types : TYPES
+  type type_decl_desc
+  type type_decl = (type_decl_desc,Types.typ) Annot.t
+  type expr_desc
+  type expr = (expr_desc,Types.typ) Annot.t
+  type type_expr_desc
+  type type_expr = (type_expr_desc,Types.typ) Annot.t
+  type lhs_desc
+  type lhs = (lhs_desc,Types.typ) Annot.t
+  val lhs_name: lhs -> string
+  val mk_simple_lhs: string -> lhs
+  val subst_expr: (string * string) list -> expr -> expr
+  val subst_lhs: (string * string) list -> lhs -> lhs
+  val vars_of_expr: expr -> string list
+  val vars_of_lhs: lhs -> string list
+  val vcd_name: lhs -> string
+  val pp_type_decl: Format.formatter -> type_decl -> unit
+  val pp_type_expr: Format.formatter -> type_expr -> unit
+  val pp_expr: ?with_type:bool -> Format.formatter -> expr -> unit
+  val pp_lhs: ?with_type:bool -> Format.formatter -> lhs -> unit
+end
+  
+module type TYPING = sig 
+  module Syntax : SYNTAX
+  module Types : TYPES
+  type env
+  val mk_env: unit -> env
+  val lookup_var: loc:Location.t -> string -> env -> Types.typ
+  val add_var: env -> string * Types.typ -> env
+  (* TODO : add_prim, add_constr, ... *)
+  val pp_env: Format.formatter -> env -> unit
+  (* Low-level interface to the the type-checking engine *)
+  val type_check: loc:Location.t -> Types.typ -> Types.typ -> unit
+  (* High-level interface *)
+  val type_type_decl: env -> Syntax.type_decl -> env
+  val type_expression: env -> Syntax.expr -> Types.typ
+  val type_of_type_expr: env -> Syntax.type_expr -> Types.typ
+  val type_lhs: env -> Syntax.lhs -> Types.typ
+  (* TODO : type_type_decl, type_fun_decl, ... ? *)
+end
+  
+(* The values of the guest language must match the following signature *)
+
+module type VALUE = sig 
+  type value
+  type typ
+  val default_value: typ option -> value 
+  (** VCD interface *)
+  exception Unsupported_vcd of value
+  val vcd_type: value -> Vcd_types.vcd_typ
+  val vcd_value: value -> Vcd_types.vcd_value
+  (** Printing *)
+  val pp_value: Format.formatter -> value -> unit
+end
+
+(* The evaluator for the guest language must match the following signature *)
+
+module type EVAL = sig 
+  module Syntax : SYNTAX
+  module Value : VALUE
+  type env = Value.value Env.t
+  val mk_env: unit -> env
+  val upd_env: Syntax.lhs -> Value.value -> env -> env
+  val pp_env: Format.formatter -> env -> unit
+  val eval_expr: env -> Syntax.expr -> Value.value
+  val eval_bool: env -> Syntax.expr -> bool
+end
+
+module type ERROR = sig
+  val handle: exn -> unit
+end
+
+module type OPTIONS = sig
+   val specs: (string * Arg.spec * string) list
+end
+
+(* The guest language must match the following signature *)
+                 
+module type T = sig
+  module Info : INFO
+  module Types : TYPES
+  module Syntax : SYNTAX with module Types = Types
+  module Typing : TYPING with module Types = Types and module Syntax = Syntax
+  module Value : VALUE with type typ = Types.typ
+  module Eval : EVAL with module Syntax = Syntax and module Value = Value
+  module Error : ERROR
+  module Options : OPTIONS
+end

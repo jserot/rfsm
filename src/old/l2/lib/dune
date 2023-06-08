@@ -1,0 +1,6 @@
+(library
+  (flags (:standard -annot) (:standard -w -27))
+  (preprocess (pps ppx_deriving.show))
+  (libraries msic) 
+  (name guest2))
+

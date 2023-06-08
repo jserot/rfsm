@@ -1,0 +1,26 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Wed Apr  3 10:20:11 2019
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/working/examples/single/heron/v1/sim/.vcd"
+[dumpfile_mtime] "Wed Apr  3 10:19:37 2019"
+[dumpfile_size] 1045
+[savefile] "/Users/jserot/Dev/ml/rfsm/working/examples/single/heron/v1/sim/.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] 43 11
+*-5.902590 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 198
+[signals_width] 78
+[sst_expanded] 1
+[sst_vpaned_height] 166
+@28
+top.H
+top.U
+@29
+top.Start
+@28
+top.Rdy
+top.R
+[pattern_trace] 1
+[pattern_trace] 0

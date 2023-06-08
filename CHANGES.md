@@ -1,5 +1,10 @@
 # Changes
 
+# 2.0 (Jun XX, 2023)
+
+* Entirely recrafted (modular) implementation
+* Formal semantics 
+
 # 1.7 (Mar 30, 2021)
 
 * Outputs can now be specifed using Moore style (i.e. attached to states); many examples have been

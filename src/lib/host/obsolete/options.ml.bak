@@ -1,0 +1,38 @@
+(** Host CL options *)
+
+type target = Dot | Sim
+
+let target = ref None
+let target_dir = ref "."
+let print_version = ref false
+let do_run = ref false
+let dump_parsed = ref false
+let dump_tenv = ref false
+let dump_static = ref false
+let dump_typed = ref false
+let trace_level = ref 0
+let dump_backtrace = ref false
+
+let set_sim () = target := Some Sim
+let set_dot () = target := Some Dot
+let set_print_version () = print_version := true
+let set_dump_parsed () = dump_parsed := true
+let set_dump_tenv () = dump_tenv := true
+let set_dump_typed () = dump_typed := true
+let set_dump_static () = dump_static := true
+let set_target_dir name = target_dir := name
+let set_trace level = trace_level := level
+let set_dump_backtrace () = dump_backtrace := true
+
+let specs = [
+"-dump_parsed", Arg.Unit (set_dump_parsed), "dump the parsed program representation (for debug only)";
+"-dump_tenv", Arg.Unit (set_dump_tenv), "dump the initial typing environment program to stdout";
+"-dump_typed", Arg.Unit (set_dump_typed), "dump typed program to stdout";
+"-dump_static", Arg.Unit (set_dump_static), "dump static representation of model(s)/program to stdout";
+"-target_dir", Arg.String (set_target_dir), "set target directory (default: .)";
+"-dot", Arg.Unit (set_dot), "generate .dot representation of model(s)/program";
+"-sim", Arg.Unit (set_sim), "run simulation (generating .vcd file)";
+"-version", Arg.Unit (set_print_version), "print version of the compiler and quit";
+"-trace", Arg.Int (set_trace), "set trace level for simulation (default: 0)";
+"-dump_backtrace", Arg.Unit (set_dump_backtrace), "dump backtrace in case of error (debug only)";
+];
