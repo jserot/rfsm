@@ -1,6 +1,6 @@
 module type DOT = sig
   module Static: Static.STATIC
-  val output_static: dir:string -> name:string -> Static.t -> string list
+  val output_static: dir:string -> name:string -> with_models:bool -> Static.t -> string list
 end
 
 type cfg = {
@@ -89,13 +89,16 @@ struct
     close_out oc;
     fname
 
-  let output_static ~dir ~name (sd: Static.t) =
+  let output_static ~dir ~name ~with_models (sd: Static.t) =
     let open Static in
     let open Format in
     let fnames = (* Dump all FSM models *)
-      List.map
-        (function m -> output_model ~dir ~name:m.Annot.desc.Syntax.name m)
-        sd.models in
+      if with_models then 
+        List.map
+          (function m -> output_model ~dir ~name:m.Annot.desc.Syntax.name m)
+          sd.models
+      else 
+        [] in
     match sd.fsms with
     | [] -> (* No instance, that's all folks *)
        fnames
@@ -107,12 +110,12 @@ struct
        List.iter
          (function f -> outp_model ocf ~kind:"subgraph" f.Static.model.Annot.desc)
          sd.fsms;
-       let pp_io ocf kind io = 
-         fprintf ocf "%s: %s\\r" kind io in (* TO FIX: add type *)
+       let pp_io ocf kind (id,ty) = 
+         fprintf ocf "%s %s: %a\\r" kind id Typing.Types.pp_typ ty in (* TO FIX: add type *)
        let pp_ios ocf ctx = 
-         List.iter (pp_io ocf "input") (ctx.inputs_e @ ctx.inputs_v); 
-         List.iter (pp_io ocf "output") (ctx.outputs_e @ ctx.outputs_v); 
-         List.iter (pp_io ocf "shared") (ctx.shared_e @ ctx.shared_v) in
+         List.iter (pp_io ocf "input") ctx.inputs; 
+         List.iter (pp_io ocf "output") ctx.outputs; 
+         List.iter (pp_io ocf "shared") ctx.shared in
        fprintf ocf "%s_ios [label=\"%a\", shape=rect, style=rounded]\n" name pp_ios sd.Static.ctx;
        fprintf ocf "}\n";
        close_out oc;

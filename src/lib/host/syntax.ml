@@ -89,6 +89,7 @@ module type SYNTAX = sig
         - [l3] is the list of events possibly emitted by [m] when exiting state [q]
         - [l4] is the list of variables possibly modified by [m] when exiting state [q] *)
 
+  val pp_action: Format.formatter -> action -> unit
   val pp_transition: Format.formatter -> transition -> unit
   val pp_model: Format.formatter -> model -> unit
   val pp_model_name: Format.formatter -> model -> unit

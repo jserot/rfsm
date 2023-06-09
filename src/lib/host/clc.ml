@@ -67,6 +67,7 @@ struct
          L.Dot.output_static 
            ~dir:!Options.target_dir
            ~name:!Options.main_prefix
+           ~with_models:!Options.dot_show_models
            s in
        List.iter Logfile.write fs
     | Some Options.CTask ->

@@ -81,7 +81,7 @@ struct
     match act with
     | Syntax.Emit e ->
        Trace.add (Evset.mk t [Event.Ev e]) trace;
-       if List.mem e sd.Static.shared_e then  (* ActEmitL *)
+       if List.mem_assoc e sd.Static.shared then  (* ActEmitL *)
          (vars, env),
          (Evset.mk t [Ev e])
        else                                   (* ActEmitG *)
@@ -180,13 +180,17 @@ struct
       Format.pp_print_int t Evset.pp r_e pp_fsms m' pp_env env';
     (m',env'), r_e
   
+  let is_event_type ty = Static.Typing.Types.is_type_constr0 "event" ty
+
   let r_init sd m = (* Rule INIT *)
     (* M --> M_0, \Gamma_0 *)
     let env0 =
       Env.init
         (List.map
-           (fun v -> v, Eval.Value.default_value None)
-           (sd.Static.inputs_v @ sd.Static.outputs_v @ sd.Static.shared_v)) in
+           (fun (v,_) -> v, Eval.Value.default_value None)
+           (List.filter
+              (fun (_,ty) -> not (is_event_type ty))
+              (sd.Static.inputs @ sd.Static.outputs @ sd.Static.shared))) in
     let m', env' =
       List.fold_left_map 
         (fun env mu ->
@@ -203,12 +207,16 @@ struct
   let is_input ctx evs =
     let check ev = match ev with
       | Event.Ev x ->
-         if not @@ List.mem x ctx.Static.inputs_e then
+         if List.mem_assoc x ctx.Static.inputs && is_event_type (List.assoc x ctx.Static.inputs) then
+           ()
+         else
            Misc.fatal_error ("Dynamic.is_input: " ^ x ^ " is not an event typed input")
       | Event.Upd (l,_) ->
          let x = Syntax.Guest.lhs_name l in
-         if not @@ List.mem x ctx.Static.inputs_v then
-           Misc.fatal_error ("Dynamic.is_input: " ^ x ^ " is not an non-event typed input")
+         if List.mem_assoc x ctx.Static.inputs && not (is_event_type (List.assoc x ctx.Static.inputs)) then
+           ()
+         else
+           Misc.fatal_error ("Dynamic.is_input: " ^ x ^ " is an event typed input")
       | Event.StateMove _ -> () in
     List.iter check (Evset.events evs)
     

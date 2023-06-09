@@ -1,6 +1,5 @@
 COMPILER
 
-- add types to Static.ctx (and merge _x/_e cats) (revise formal semantics accordingly)
 - add model parameters
 - move typing env defn from guest to host ?
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??

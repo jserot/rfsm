@@ -20,4 +20,6 @@ val upd : ident -> 'a -> 'a t -> 'a t
 
 val filter : (string -> 'a -> bool) -> 'a t -> 'a t
 
+val fold : (string -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+
 val pp: ?sep:string -> (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit

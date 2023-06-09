@@ -11,13 +11,10 @@ module type STATIC = sig
       vars: Value.value Env.t;
     }
   
-  type ctx = {  (* TODO : replace x_e+x_v lists by (x,ty) list; update formal semantics accordingly *)
-    inputs_e: string list;  
-    inputs_v: string list;  
-    outputs_e: string list;
-    outputs_v: string list;
-    shared_e: string list;
-    shared_v: string list;
+  type ctx = {  (* TODO : update formal semantics accordingly *)
+    inputs: (string * Typing.Types.typ) list;  
+    outputs: (string * Typing.Types.typ) list;  
+    shared: (string * Typing.Types.typ) list;  
     }
 
   type t = {
@@ -70,13 +67,18 @@ struct
          (Env.pp Value.pp_value) f.vars
 
   type ctx = {
-    inputs_e: string list;  
-    inputs_v: string list;  
-    outputs_e: string list;
-    outputs_v: string list;
-    shared_e: string list;
-    shared_v: string list;
-    } [@@deriving show {with_path=false}]
+    inputs: (string * Typing.Types.typ) list;  
+    outputs: (string * Typing.Types.typ) list;  
+    shared: (string * Typing.Types.typ) list;  
+    } 
+
+  let pp_ctx fmt ctx =
+    let open Format in
+    let pp_io fmt (id,ty) = Format.fprintf fmt "%s: %a" id Typing.Types.pp_typ ty in
+    fprintf fmt "@[<v>[inputs=[%a]@,outputs=[%a]@,shared=[%a]]@]"
+    (Misc.pp_list_h ~sep:", " pp_io) ctx.inputs
+    (Misc.pp_list_h ~sep:", " pp_io) ctx.outputs
+    (Misc.pp_list_h ~sep:", " pp_io) ctx.shared
 
   type t = {
     ctx: ctx;
@@ -86,7 +88,7 @@ struct
 
   let pp fmt s = 
     let open Format in
-    fprintf fmt "@[<v>[@,ctx=%a@,models=[%a]@,fsms=%a]@]@."
+    fprintf fmt "@[<v>[ctx=%a@,models=[%a]@,fsms=[%a]@]@."
     pp_ctx s.ctx
     (Misc.pp_list_h Syntax.pp_model_name) s.models
     (Misc.pp_list_v (pp_fsm ~verbose_level:1)) s.fsms
@@ -122,17 +124,21 @@ struct
 
   let build_ctx senv_i =  (* \mathcal{L} *)
     let open Syntax in
-    let is_event_type te =
+    (* let f cat h senv = senv |> Env.filter (fun id v -> match v with cat', t -> cat'=cat && h t) |> Env.dom in *)
+    let type_of te =
       match te.Annot.typ with
-      | Some ty -> Typing.Types.is_type_constr0 "event" ty
-      | _ -> false in
-    let f cat h senv = senv |> Env.filter (fun id v -> match v with cat', t -> cat'=cat && h t) |> Env.dom in
-    { inputs_e = f Input is_event_type senv_i;
-      inputs_v = f Input (Misc.neg is_event_type) senv_i;
-      outputs_e = f Output is_event_type senv_i;
-      outputs_v = f Output (Misc.neg is_event_type) senv_i;
-      shared_e = f Shared is_event_type senv_i;
-      shared_v = f Shared (Misc.neg is_event_type) senv_i }
+      | Some ty -> ty
+      | _ -> Misc.fatal_error "Static.build_ctx" in
+    let extract cat acc senv =
+      Env.fold 
+      (fun id (cat',te) acc ->
+        if cat'= cat then (id,type_of te)::acc 
+        else acc)
+      senv
+      [] in
+    { inputs = extract Input [] senv_i;
+      outputs = extract Output [] senv_i;
+      shared = extract Shared [] senv_i; }
 
   let r_program p =
     let senv_m = r_models p.Syntax.models in

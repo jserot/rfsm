@@ -5,6 +5,7 @@ noide;general;-target_dir;Arg.String;set_target_dir;set target directory (defaul
 noide;general;-dot;Arg.Unit;set_dot;generate .dot representation of model(s)/program
 noide;general;-sim;Arg.Unit;set_sim;run simulation (generating .vcd file)
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
+noide;dot;-dot_show_models;Arg.Unit;set_dot_show_models;generated separate .dot representations for FSM models
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
 ide;dot;-dot_actions_nl;Arg.Unit;set_dot_actions_nl;write actions with with a separating newline
 noide;sim;-trace;Arg.Int;set_sim_trace;set trace level for simulation (default: 0)

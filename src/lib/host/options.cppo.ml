@@ -21,6 +21,7 @@ let do_run = ref false
 let dump_tenv = ref false
 let dump_typed = ref false
 let dump_static = ref false
+let dot_show_models = ref false
 let dot_captions = ref true
 let normalize = ref false
 let sim_trace_level = ref 0
@@ -67,3 +68,4 @@ let set_sim_trace level = Dynamic.cfg.verbose_level <- level
 
 let set_dot_no_captions () = dot_captions := false
 let set_dot_actions_nl () = let open Dot in cfg.act_sep <- "\\n"
+let set_dot_show_models () = dot_show_models := true
