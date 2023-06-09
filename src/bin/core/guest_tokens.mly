@@ -1,6 +1,6 @@
 %token <bool> BOOL
 %token PLUS MINUS TIMES DIV
-%token NOTEQUAL GT LT
+%token NOTEQUAL
 %token RPAREN LPAREN
 %token TYPE
 %token ENUM

@@ -1,6 +1,6 @@
 module type DOT = sig
   module Static: Static.STATIC
-  val output_static: dir:string -> name:string -> with_models:bool -> Static.t -> string list
+  val output_static: dir:string -> name:string -> with_models:bool -> with_caption:bool -> Static.t -> string list
 end
 
 type cfg = {
@@ -49,7 +49,7 @@ struct
     | [] -> Format.fprintf fmt "%a" pp_cond cond;
     | _ -> Format.fprintf fmt "%a/%a" pp_cond cond pp_actions acts
     
-  let outp_model ocf ~kind m = 
+  let outp_model ocf ~kind ~with_caption m = 
     let open Syntax in
     let open Format in
     let node_id i = m.name ^ "_" ^ string_of_int i in
@@ -79,23 +79,44 @@ struct
     List.iter dump_state m.states;
     dump_itransition m.itrans;
     List.iter dump_transition m.trans;
-    fprintf ocf "}"
+    if with_caption then begin
+        let pp_io ocf kind (id,te) =
+          fprintf ocf "%s %s: %a\\r" kind id (Misc.pp_opt Static.Syntax.Guest.Types.pp_typ) (te.Annot.typ) in
+        let pp_ios ocf m = 
+         List.iter (pp_io ocf "param") m.params; 
+         List.iter (pp_io ocf "input") m.inps; 
+         List.iter (pp_io ocf "output") m.outps in 
+        fprintf ocf "%s_ios [label=\"%a\", shape=rect, style=rounded]\n" m.name pp_ios m
+      end
 
-  let output_model ~dir ~name { Annot.desc=m; _ } = 
+  let output_model ~dir ~name ~with_caption { Annot.desc=m; _ } = 
     let fname = Filename.concat dir (name ^ ".dot") in
     let oc = open_out fname in
     let ocf = Format.formatter_of_out_channel oc in
-    outp_model ocf ~kind:"digraph" m;
+    outp_model ocf ~kind:"digraph" ~with_caption m;
+    Format.fprintf ocf "}";
     close_out oc;
     fname
 
-  let output_static ~dir ~name ~with_models (sd: Static.t) =
+  let output_fsm ocf f = 
+    outp_model ocf ~kind:"subgraph" ~with_caption:false f.Static.model.Annot.desc;
+    let pp_param fmt (id,v) = Format.fprintf fmt "%s = %a" id Static.Value.pp_value v in      
+    let pp_params fmt params =
+      Format.pp_print_list
+        ~pp_sep:(fun fmt () -> Format.pp_print_string fmt "\rr")
+        pp_param 
+        fmt
+        params in
+    Format.fprintf ocf "%s_params [label=\"%a\", shape=rect, style=rounded]\n" f.name pp_params (Env.bindings f.params);
+    Format.fprintf ocf "}"
+
+  let output_static ~dir ~name ~with_models ~with_caption (sd: Static.t) =
     let open Static in
     let open Format in
     let fnames = (* Dump all FSM models *)
       if with_models then 
         List.map
-          (function m -> output_model ~dir ~name:m.Annot.desc.Syntax.name m)
+          (function m -> output_model ~dir ~name:m.Annot.desc.Syntax.name ~with_caption m)
           sd.models
       else 
         [] in
@@ -107,11 +128,9 @@ struct
        let oc = open_out fname in
        let ocf = formatter_of_out_channel oc in
        fprintf ocf "digraph %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" name cfg.layout cfg.rankdir cfg.mindist;
-       List.iter
-         (function f -> outp_model ocf ~kind:"subgraph" f.Static.model.Annot.desc)
-         sd.fsms;
+       List.iter (output_fsm ocf) sd.fsms;
        let pp_io ocf kind (id,ty) = 
-         fprintf ocf "%s %s: %a\\r" kind id Typing.Types.pp_typ ty in (* TO FIX: add type *)
+         fprintf ocf "%s %s: %a\\r" kind id Typing.Types.pp_typ ty in
        let pp_ios ocf ctx = 
          List.iter (pp_io ocf "input") ctx.inputs; 
          List.iter (pp_io ocf "output") ctx.outputs; 

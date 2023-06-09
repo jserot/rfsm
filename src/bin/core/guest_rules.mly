@@ -31,6 +31,9 @@ constant:
   | c = int_const { mk ~loc:($symbolstartofs,$endofs) (EInt c) }
   | c = bool_const { mk ~loc:($symbolstartofs,$endofs) (EBool c) }
 
+param_value:
+  | v = constant { v }
+
 int_const:
   | v = INT { v }
   | MINUS v = INT { -v }

@@ -6,6 +6,8 @@ val empty: 'a t
 
 val dom: 'a t -> string list
 
+val bindings: 'a t -> (string * 'a) list
+
 val init: (string * 'a) list -> 'a t
   
 val add : ident -> 'a -> 'a t -> 'a t

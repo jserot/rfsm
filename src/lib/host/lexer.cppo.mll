@@ -54,6 +54,8 @@ rule main = parse
   | ")" { RPAREN }
   | "{" { LBRACE }
   | "}" { RBRACE }
+  | "<" { LT }
+  | ">" { GT }
   | "," { COMMA }
   | "." { DOT }
   | "->" { ARROW }

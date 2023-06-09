@@ -32,6 +32,7 @@
 %token CONSTANT
 %token FUNCTION
 %token RETURN
+%token LT GT
 %token EOF
 #include "guest_tokens.mly"
 
@@ -97,6 +98,7 @@ farg:
 fsm_model:
   | FSM MODEL
       name=LID 
+      params=optional(params)
       LPAREN ios=separated_list(COMMA, io) RPAREN
       LBRACE
       STATES COLON states=terminated(separated_list(COMMA, state),SEMICOLON)
@@ -107,12 +109,19 @@ fsm_model:
         mk
           ~loc:($symbolstartofs,$endofs)
           Lang.L.Syntax.{ name = name;
+            params = params;
             states = states;
             inps = ios |> List.filter (function (Out,_) -> false | _ -> true) |> List.map snd;
             outps = ios |> List.filter (function (In,_) -> false | _ -> true) |> List.map snd;
             vars = vars;
             trans = trans;
             itrans = itrans } }
+
+params:
+  | LT params=separated_list(COMMA, param) GT { params }
+
+param:
+  | id=LID COLON ty=type_expr { (id, ty) }
 
 io:
   | IN d=io_desc { (In, d) }
@@ -181,8 +190,11 @@ value_change:
 (* FSM INSTANCES *)
 
 fsm_inst:
-  | FSM name=LID EQUAL model=LID args=paren(separated_list(COMMA,id))
-      { mk ~loc:($symbolstartofs,$endofs) (name,model,args) }  
+  | FSM name=LID EQUAL model=LID params=optional(inst_params) args=paren(separated_list(COMMA,id))
+      { mk ~loc:($symbolstartofs,$endofs) (name,model,params,args) }  
+
+inst_params:
+  |  LT params=separated_nonempty_list(COMMA, param_value) GT { params }
 
 id:
   | i = LID { i }

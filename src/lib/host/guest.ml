@@ -68,6 +68,13 @@ module type VALUE = sig
   val pp_value: Format.formatter -> value -> unit
 end
 
+module type STATIC = sig
+  type expr
+  type value
+  exception Non_static_value of expr
+  val eval: expr -> value  (* Static evaluation of constant expressions *)
+end
+
 (* The evaluator for the guest language must match the following signature *)
 
 module type EVAL = sig 
@@ -97,6 +104,7 @@ module type T = sig
   module Syntax : SYNTAX with module Types = Types
   module Typing : TYPING with module Types = Types and module Syntax = Syntax
   module Value : VALUE with type typ = Types.typ
+  module Static : STATIC with type expr = Syntax.expr and type value = Value.value
   module Eval : EVAL with module Syntax = Syntax and module Value = Value
   module Error : ERROR
   module Options : OPTIONS

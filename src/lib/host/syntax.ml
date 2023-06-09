@@ -24,6 +24,7 @@ module type SYNTAX = sig
   and model_desc = {
       name: string;
       states: state list;
+      params: (string * type_expr) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
       vars: (string * type_expr) list;
@@ -60,6 +61,7 @@ module type SYNTAX = sig
   and inst_desc =
       string  (** Name *)
     * string  (** Model *)
+    * expr list (** Actual parameters *)
     * string list (** Args *)
 
   and fun_decl = (fun_decl_desc,typ) Annot.t
@@ -112,7 +114,11 @@ struct
   let pp_expr = Guest.pp_expr
   let pp_lhs = Guest.pp_lhs
 
-  type inst_desc = string * string * string list [@@deriving show {with_path=false}]
+  type inst_desc =
+      string  
+    * string 
+    * expr list
+    * string list [@@deriving show {with_path=false}]
   type inst = (inst_desc,typ) Annot.t
   let pp_inst fmt i = pp_inst_desc fmt i.Annot.desc
 
@@ -151,6 +157,7 @@ struct
   type model_desc = {
       name: string;
       states: state list;
+      params: (string * type_expr) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
       vars: (string * type_expr) list;

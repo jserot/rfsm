@@ -199,7 +199,7 @@ struct
           let nu',env', r_e = r_acts sd (nu, env) (acts,0) in
           Trace.add (mk_event 0 (Event.StateMove (state_name mu,q0))) trace; 
           Trace.add r_e trace; 
-          env', { mu with Static.q=q0 ; Static.vars=nu' })
+          env', { mu with Static.q=q0 ; Static.vars = Env.union nu' mu.Static.params })
         env0
         m in
     m', env'

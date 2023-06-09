@@ -5,5 +5,3 @@
   | "*"  { TIMES }
   | "/"  { DIV }
   | "!=" { NOTEQUAL }
-  | ">" { GT }
-  | "<" { LT }

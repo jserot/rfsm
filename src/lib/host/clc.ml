@@ -68,6 +68,7 @@ struct
            ~dir:!Options.target_dir
            ~name:!Options.main_prefix
            ~with_models:!Options.dot_show_models
+           ~with_caption:!Options.dot_captions
            s in
        List.iter Logfile.write fs
     | Some Options.CTask ->

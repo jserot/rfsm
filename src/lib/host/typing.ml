@@ -92,10 +92,10 @@ struct
 
   let types_of_fsm_model env { Annot.desc = m; _ } = 
     (* Computes the "local" typing environment associated to an FSM model, containing
-     *    the types of inputs, outputs and local variables *)
+       the types of parameters, inputs, outputs and local variables *)
     List.map
       (function (id, te) -> id, GuestTyping.type_of_type_expr env te)
-      (m.HostSyntax.inps @ m.HostSyntax.outps @ m.HostSyntax.vars)
+      (m.HostSyntax.params @ m.HostSyntax.inps @ m.HostSyntax.outps @ m.HostSyntax.vars)
 
   let type_fsm_ios env { Annot.desc = m; Annot.loc = loc; _ } =
     (* Check that there's exactly one input with type event *)
@@ -116,7 +116,7 @@ struct
 
   (* Typing FSM instances *)
 
-  let type_fsm_inst env p { Annot.desc=name,model,args; Annot.loc=loc; _ } =
+  let type_fsm_inst env p { Annot.desc=name,model,params,args; Annot.loc=loc; _ } =
     let open HostSyntax in
     let lookup_model name =
       try List.find (fun { Annot.desc = m; _ } -> m.name = name) p.models
@@ -133,13 +133,21 @@ struct
       | Some ty -> ty
       | None -> Misc.fatal_error "Typing.type_check_fsm_inst" in
     let m = (lookup_model model).Annot.desc in
-    let inps = List.map (fun (id,te) -> id, Input, type_of te) m.inps in
-    let outps = List.map (fun (id,te) -> id, Output, type_of te) m.outps in
-    let bind (id,cat,ty) id' =
+    let m_inps = List.map (fun (id,te) -> id, Input, type_of te) m.inps in
+    let m_outps = List.map (fun (id,te) -> id, Output, type_of te) m.outps in
+    let m_params = List.map (fun (id,te) -> id, type_of te) m.params in
+    let bind_arg (id,cat,ty) id' =
       let _,cat',te',_ = (lookup_io id').Annot.desc in
       unify_cat cat cat';
       GuestTyping.type_check ~loc ty (type_of te') in
-    try List.iter2 bind (inps @ outps) args
+    let bind_param (id,ty) e =
+      GuestTyping.type_check
+        ~loc:loc
+        ty
+        (GuestTyping.type_expression env e) in
+    try
+      List.iter2 bind_param m_params params;
+      List.iter2 bind_arg (m_inps @ m_outps) args;
     with Invalid_argument _ -> raise (Illegal_inst loc)
 
   (* Typing IOs *)

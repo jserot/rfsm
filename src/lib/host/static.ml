@@ -7,6 +7,7 @@ module type STATIC = sig
   type fsm = {
       name: string;
       model: Syntax.model;
+      params: Value.value Env.t;
       q: string;
       vars: Value.value Env.t;
     }
@@ -35,7 +36,8 @@ end
 module Make
          (HS: Syntax.SYNTAX)
          (GT: Guest.TYPING with type Types.typ = HS.typ)
-         (GV: Guest.VALUE with type typ = HS.typ) =
+         (GV: Guest.VALUE with type typ = HS.typ)
+         (GS: Guest.STATIC with type expr = HS.expr and type value = GV.value) = 
 struct
 
   module Syntax = HS
@@ -45,18 +47,20 @@ struct
   type fsm = {
       name: string;
       model: Syntax.model;
+      params: Value.value Env.t;
       q: string;
       vars: Value.value Env.t;
     } [@@deriving show {with_path=false}]
 
-  let pp_fsm ?(verbose_level=2) fmt f = 
+  let pp_fsm ?(verbose_level=2) fmt f  = 
     let open Format in
     match verbose_level with
     | 0 -> Format.fprintf fmt "%s" f.name  (* Name only *)
     | 1 -> (* With model name only *)
-       Format.fprintf fmt "{name=%s; model=%s; q=%s; vars=%a}"
+       Format.fprintf fmt "{name=%s; model=%s; params=%a; q=%s; vars=%a}"
          f.name
          f.model.Annot.desc.name
+         (Env.pp Value.pp_value) f.params
          f.q
          (Env.pp Value.pp_value) f.vars
     | _ -> (* Full *)
@@ -95,7 +99,7 @@ struct
 
   (* Rules *)
          
-  let r_inst (senv_m,senv_i) { Annot.desc=name,model,args; Annot.loc=loc; _ } =
+  let r_inst (senv_m,senv_i) { Annot.desc=name,model,params,args; Annot.loc=loc; _ } =
     let open Syntax in
     let mm = 
       try Env.find model senv_m
@@ -105,8 +109,11 @@ struct
       try List.map2 (fun (io',_) io -> io', io) (m.inps @ m.outps) args
       with Invalid_argument _ -> Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
     { name = name;
+      params =
+        (try List.fold_left2 (fun env (id,_) expr -> Env.add id (GS.eval expr) env) Env.empty m.params params
+        with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (* should not happen after TC *)
       model = subst_model ~phi mm;
-      q = fst m.itrans.Annot.desc; (* q0 *)
+      q = fst m.itrans.Annot.desc;
       vars = List.fold_left (fun env (id,te) -> Env.add id (Value.default_value te.Annot.typ) env) Env.empty m.vars
     }
 

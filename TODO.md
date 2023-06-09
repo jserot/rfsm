@@ -1,6 +1,7 @@
 COMPILER
 
-- add model parameters
+- add state valuation
+- Value.value -> Value.t
 - move typing env defn from guest to host ?
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)

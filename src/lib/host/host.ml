@@ -23,7 +23,7 @@ module Make (G: Guest.T)
     module Guest = G
     module Syntax = Syntax.Make(G.Syntax)
     module Typing = Typing.Make(Syntax)(G.Typing)
-    module Static = Static.Make(Syntax)(G.Typing)(G.Value)
+    module Static = Static.Make(Syntax)(G.Typing)(G.Value)(G.Static)
     module Dot = Dot.Make(Static)
     module Dynamic = Dynamic.Make(Syntax)(Static)(G.Eval)
     module Vcd = Vcd.Make(Dynamic.Seq)
