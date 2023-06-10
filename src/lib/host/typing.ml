@@ -12,6 +12,7 @@ module type TYPING = sig
   exception Duplicate_state of Location.t * string
   exception No_event_input of Location.t
   exception Illegal_inst of Location.t
+  exception Illegal_state_output of Location.t * string * string
 end
 
 module Make
@@ -28,6 +29,7 @@ struct
   exception Duplicate_state of Location.t * string
   exception No_event_input of Location.t
   exception Illegal_inst of Location.t
+  exception Illegal_state_output of Location.t * string * string
 
   let mk_env () = GuestTyping.mk_env ()
 
@@ -66,7 +68,7 @@ struct
     List.iter (type_fsm_guard t env) gs 
 
   let check_fsm_state ~loc { Annot.desc=m; _} q = 
-    if not (List.mem q m.HostSyntax.states) then raise (Invalid_state (loc, q))
+    if not (List.mem_assoc q m.HostSyntax.states) then raise (Invalid_state (loc, q))
 
   let type_fsm_transition env m ({ Annot.desc= q,cond,acts,q'; Annot.loc=loc; _ } as t) =
     (* For each transition [q -> cond / acts -> q'] check that
@@ -85,10 +87,24 @@ struct
     check_fsm_state ~loc m q;
     List.iter (type_fsm_action env m) acts
 
-  let check_fsm_states { Annot.desc=m; Annot.loc=loc; _ } =
-    match Misc.list_find_dupl m.HostSyntax.states with
+  let type_fsm_state_valuation env (m:HostSyntax.model) q (o,expr) = 
+    let te =
+      try List.assoc o m.Annot.desc.HostSyntax.outps
+      with Not_found -> raise (Illegal_state_output (expr.Annot.loc, q, o)) in
+    GuestTyping.type_check
+      ~loc:expr.Annot.loc 
+      (GuestTyping.type_of_type_expr env te)
+      (GuestTyping.type_expression env expr)
+
+  let type_fsm_state env m (q,ovals) = 
+    List.iter (type_fsm_state_valuation env m q) ovals
+
+  let type_fsm_states env m = 
+    let states = m.Annot.desc.HostSyntax.states in
+    begin match Misc.list_find_dupl (List.map fst states) with
     | None -> ()
-    | Some q -> raise (Duplicate_state (loc,q))
+    | Some q -> raise (Duplicate_state (m.Annot.loc,q)) end;
+    List.iter (type_fsm_state env m) states
 
   let types_of_fsm_model env { Annot.desc = m; _ } = 
     (* Computes the "local" typing environment associated to an FSM model, containing
@@ -108,7 +124,7 @@ struct
     | _ -> ()
          
   let type_fsm_model env m =
-    check_fsm_states m;
+    type_fsm_states env m;
     let env' = List.fold_left GuestTyping.add_var env (types_of_fsm_model env m) in
     type_fsm_ios env' m;
     List.iter (type_fsm_transition env' m) m.Annot.desc.trans;

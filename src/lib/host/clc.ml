@@ -31,10 +31,10 @@ struct
   let anonymous fname = source_files := !source_files @ [fname]
 
   let print_banner () = 
-    Printf.printf "-------------------------------------------------------------------\n";
+    Printf.printf "---------------------------------------------------------------------------\n";
     Printf.printf "Reactive Finite State Machine compiler and simulator, version %s(%s)\n" Version.version L.Guest.Info.version;
     Printf.printf "For information: github.com/jserot/rfsm\n"; 
-    Printf.printf "-------------------------------------------------------------------\n";
+    Printf.printf "---------------------------------------------------------------------------\n";
     flush stdout
 
   let parse fname = 
@@ -58,7 +58,7 @@ struct
     if !Options.dump_typed then Format.printf "tp=%a" L.pp_program p;
     let s = L.elab p in
     (* let s = if !Options.normalize then Static.normalize s' else s' in *) (* TODO *)
-    if !Options.dump_static then Format.printf "s=%a" L.Static.pp s;
+    if !Options.dump_static then Format.printf "s=%a" (L.Static.pp ~verbose_level:2) s;
     Logfile.start ();
     begin match !Options.target with
     | Some Options.Dot ->
@@ -143,6 +143,8 @@ struct
        eprintf "%aCannot instantiate model: formal and actual parameters do not match\n" pp_location loc; exit 2
     | L.Typing.No_event_input loc ->
        eprintf "%aThere must be at least one input with type event for this model\n" pp_location loc; exit 2
+    | L.Typing.Illegal_state_output (loc,q,o) ->
+       eprintf "%aIllegal valuation for output %s in state %s\n" pp_location loc o q; exit 2
     | L.Dynamic.Illegal_stimulus_value loc ->
        eprintf "%aIllegal stimulus value\n" pp_location loc; exit 2
     | L.Dynamic.Non_deterministic_transition (f, t, ts) ->

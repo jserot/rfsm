@@ -48,31 +48,47 @@ struct
   let pp_cond_acts fmt (cond,acts) = match acts with
     | [] -> Format.fprintf fmt "%a" pp_cond cond;
     | _ -> Format.fprintf fmt "%a/%a" pp_cond cond pp_actions acts
+
+  let pp_list_r pp fmt l = 
+    match l with 
+    | [] -> ()
+    | _ ->
+       Format.pp_print_list
+         ~pp_sep:(fun fmt () -> Format.pp_print_string fmt "\rr")
+         pp
+         fmt
+         l
     
+  let pp_ovs fmt ovs =
+    let open Format in
+    let pp_ov fmt (o,v) = fprintf fmt "%s=%a" o (Syntax.Guest.pp_expr ~with_type:false) v in
+    pp_list_r pp_ov fmt ovs
+ 
   let outp_model ocf ~kind ~with_caption m = 
     let open Syntax in
     let open Format in
     let node_id i = m.name ^ "_" ^ string_of_int i in
-    let string_of_state q = q in
     let ini_id = m.name ^ "_ini" in
-    let ndescs, _ = 
+    let nodes, _ = 
       List.fold_left
-        (fun (acc,n) q ->
-          (q,(node_id n,string_of_state q))::acc, n+1)
+        (fun (acc,n) (q,ovs) ->
+          (q,node_id n)::acc, n+1)
         ([],0)
         m.states in
-    let ndesc q =
-      try List.assoc q ndescs 
-      with Not_found -> Misc.fatal_error ("Dot.output_fsm_model: cannot find state " ^ (string_of_state q)) in
-    let dump_state q =
-      let id, lbl = ndesc q in
-      fprintf ocf "%s [label = \"%s\", shape = %s, style = %s]\n" id lbl (cfg.node_shape) (cfg.node_style) in
+    let node_of q =
+      try List.assoc q nodes 
+      with Not_found -> Misc.fatal_error ("Dot.output_fsm_model: cannot find state " ^ q) in
+    let dump_state (q,ovs) =
+      let id = node_of q in
+      begin match ovs with
+      | [] -> fprintf ocf "%s [label = \"%s\", shape = %s, style = %s]\n" id q cfg.node_shape cfg.node_style
+      | _ ->  fprintf ocf "%s [label = \"%s\n%a\", shape = %s, style = %s]\n" id q pp_ovs ovs cfg.node_shape cfg.node_style end in
     let dump_itransition { Annot.desc=(q,a); _ } =
-      let id, _ = ndesc q in
+      let id = node_of q in
       fprintf ocf "%s -> %s [label=\"%a\"];\n" ini_id id pp_actions a in
     let dump_transition { Annot.desc=(q,c,a,q'); _ } =
-      let id, _ = ndesc q in
-      let id', _ = ndesc q' in
+      let id = node_of q in
+      let id' = node_of q' in
       fprintf ocf "%s -> %s [label = \"%a\"];\n" id id' pp_cond_acts (c,a) in
     fprintf ocf "%s %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" kind m.name cfg.layout cfg.rankdir cfg.mindist;
     fprintf ocf "%s [shape=point; label=\"\"; style = invis]\n" ini_id;
@@ -101,12 +117,7 @@ struct
   let output_fsm ocf f = 
     outp_model ocf ~kind:"subgraph" ~with_caption:false f.Static.model.Annot.desc;
     let pp_param fmt (id,v) = Format.fprintf fmt "%s = %a" id Static.Value.pp_value v in      
-    let pp_params fmt params =
-      Format.pp_print_list
-        ~pp_sep:(fun fmt () -> Format.pp_print_string fmt "\rr")
-        pp_param 
-        fmt
-        params in
+    let pp_params fmt params = pp_list_r pp_param fmt params in
     Format.fprintf ocf "%s_params [label=\"%a\", shape=rect, style=rounded]\n" f.name pp_params (Env.bindings f.params);
     Format.fprintf ocf "}"
 

@@ -29,6 +29,8 @@ let keyword_table = [
   "on", ON;
   "when", WHEN;
   "with", WITH;
+  "where", WHERE;
+  "and", AND;
   "constant", CONSTANT;
 #include "guest_kw.mll"
 ]

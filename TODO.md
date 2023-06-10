@@ -1,7 +1,8 @@
 COMPILER
 
-- add state valuation
+- bool -> int implicit conv
 - Value.value -> Value.t
+- check exn catching (both at host and guest level)
 - move typing env defn from guest to host ?
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)

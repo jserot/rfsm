@@ -6,7 +6,7 @@ module type STATIC = sig
 
   type fsm = {
       name: string;
-      model: Syntax.model;
+      model: Syntax.model;    (* Normalized model (without output valuations) *)
       params: Value.value Env.t;
       q: string;
       vars: Value.value Env.t;
@@ -20,7 +20,7 @@ module type STATIC = sig
 
   type t = {
     ctx: ctx;
-    models: Syntax.model list;
+    models: Syntax.model list; (* original, un-normalized models *)
     fsms: fsm list;
     }
 
@@ -28,7 +28,7 @@ module type STATIC = sig
 
   val dep_sort: fsm list -> fsm list (** Dependency-based sorting *)
 
-  val pp: Format.formatter -> t -> unit
+  val pp: ?verbose_level:int -> Format.formatter -> t -> unit
   val pp_fsm: ?verbose_level:int -> Format.formatter -> fsm -> unit
 
 end
@@ -90,12 +90,13 @@ struct
     fsms: fsm list;
     }
 
-  let pp fmt s = 
+  let pp ?(verbose_level=1) fmt s = 
     let open Format in
     fprintf fmt "@[<v>[ctx=%a@,models=[%a]@,fsms=[%a]@]@."
     pp_ctx s.ctx
-    (Misc.pp_list_h Syntax.pp_model_name) s.models
-    (Misc.pp_list_v (pp_fsm ~verbose_level:1)) s.fsms
+    (Misc.pp_list_h Syntax.pp_model) s.models
+    (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
+
 
   (* Rules *)
          
@@ -112,7 +113,7 @@ struct
       params =
         (try List.fold_left2 (fun env (id,_) expr -> Env.add id (GS.eval expr) env) Env.empty m.params params
         with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (* should not happen after TC *)
-      model = subst_model ~phi mm;
+      model = mm |> normalize_model |> subst_model ~phi;
       q = fst m.itrans.Annot.desc;
       vars = List.fold_left (fun env (id,te) -> Env.add id (Value.default_value te.Annot.typ) env) Env.empty m.vars
     }

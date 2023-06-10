@@ -23,7 +23,7 @@ module type SYNTAX = sig
   and model = (model_desc,typ) Annot.t
   and model_desc = {
       name: string;
-      states: state list;
+      states: (state * (string * expr) list) list; (* Id, output valuations *)
       params: (string * type_expr) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
@@ -91,6 +91,8 @@ module type SYNTAX = sig
         - [l3] is the list of events possibly emitted by [m] when exiting state [q]
         - [l4] is the list of variables possibly modified by [m] when exiting state [q] *)
 
+  val normalize_model: model -> model
+
   val pp_action: Format.formatter -> action -> unit
   val pp_transition: Format.formatter -> transition -> unit
   val pp_model: Format.formatter -> model -> unit
@@ -156,7 +158,7 @@ struct
 
   type model_desc = {
       name: string;
-      states: state list;
+      states: (state * (string * expr) list) list; 
       params: (string * type_expr) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
@@ -212,6 +214,8 @@ struct
 
   let pp_model_name fmt m = Format.fprintf fmt "%s" m.Annot.desc.name
     
+  (* Substitutions *)
+
   let subst_cond phi c = match c.Annot.desc with 
     | (ev,guards) -> { c with desc = Misc.subst_id phi ev, List.map (Guest.subst_expr phi) guards }
 
@@ -238,7 +242,36 @@ struct
       itrans = subst_itransition phi m.itrans })
     (Fun.id)
     m
-                 
+
+  (* Moore-Mealy conversion *)
+
+  let normalize_outp m (o,_) = (* Remove output [o] from valuations and update transitions accordingly *)
+    let updated_states = (* The list of states having [o] in their attached valuation ... *)
+      List.fold_left 
+        (fun acc (q,ovs) ->
+          match List.assoc_opt o ovs with
+          | Some e -> (q,e)::acc
+          | None -> acc)
+        []
+        m.states in
+    let remove_output_valuation (q,ovs) = q, List.remove_assoc o ovs in
+    let add_act e acts = Annot.make (Assign(Guest.mk_simple_lhs o, e)) :: acts in 
+    let add_output_assignation ({ Annot.desc=q,conds,acts,q'; _ } as t) =
+      match List.assoc_opt q' updated_states with
+      | Some e -> { t with Annot.desc = q,conds,add_act e acts,q' }
+      | None -> t in
+    let add_output_iassignation ({ Annot.desc=q',acts; _ } as t) =
+      match List.assoc_opt q' updated_states with
+      | Some e -> { t with Annot.desc = q',add_act e acts }
+      | None -> t in
+    { m with states = List.map remove_output_valuation m.states;
+             trans = List.map add_output_assignation m.trans;
+             itrans = add_output_iassignation m.itrans }
+    
+  let normalize_model m = 
+    let md = m.Annot.desc in 
+    { m with Annot.desc = List.fold_left normalize_outp md md.outps }
+
   module S = Set.Make(String)
 
   let rvars_of_action a =
@@ -291,10 +324,15 @@ struct
   let pp_model_desc fmt p = 
     let open Format in
     let pp_iov fmt (x,t) = fprintf fmt "%s:%a" x pp_type_expr t in
-    fprintf fmt "@[<v>[@,name=%s@,inps=%a@,outps=%a@,vars=%a@,trans=%a@,itrans=%a@,]@]"
+    let pp_ov fmt (o,e) = fprintf fmt "%s=%a" o (pp_expr ~with_type:false) e in
+    let pp_ovs fmt ovs = match ovs with [] -> () | _ -> fprintf fmt "{%a}" (Misc.pp_list_h pp_ov) ovs in
+    let pp_state fmt (x,ovs) = fprintf fmt "%s%a" x pp_ovs ovs in
+    fprintf fmt "@[<v>[@,name=%s@,params=[%a]@,inps=%a@,outps=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,]@]"
       p.name
+      (Misc.pp_list_h ~sep:"," pp_iov) p.params
       (Misc.pp_list_v pp_iov) p.inps
       (Misc.pp_list_v pp_iov) p.outps
+      (Misc.pp_list_h ~sep:"," pp_state) p.states
       (Misc.pp_list_v pp_iov) p.vars
       (Misc.pp_list_v pp_transition) p.trans
       pp_itransition p.itrans

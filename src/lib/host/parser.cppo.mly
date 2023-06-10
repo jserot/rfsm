@@ -34,6 +34,8 @@
 %token RETURN
 %token LT GT
 %token EOF
+%token WHERE
+%token AND
 #include "guest_tokens.mly"
 
 %type <Lang.L.Syntax.program> program
@@ -132,7 +134,11 @@ io_desc:
   | id=LID COLON ty=type_expr { id,ty }
 
 state:
-  | id=UID { id }
+  | id=UID { id, [] }
+  | id=UID WHERE attrs=separated_nonempty_list(AND,state_attr) { id, attrs }
+                      
+state_attr:
+  | id=LID EQUAL e=constant { (id, e) }
                    
 vars:
   | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { List.flatten vars }
