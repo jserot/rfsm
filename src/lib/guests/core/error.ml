@@ -6,10 +6,13 @@ let handle e =
   let open Format in
   let pp_loc = Location.pp_location in
   match e with
-  | Typing.Undefined (what,loc,s) -> 
-      eprintf "%aUndefined %s: %s\n" pp_loc loc what s; exit 2
+  | Builtins.Unknown_value -> 
+      eprintf "Cannot operate o undefined values\n"; exit 2
+  | Types.Type_circularity (loc,ty,ty')
   | Types.Type_conflict (loc,ty,ty') ->
       eprintf "%aTyping error: cannot unify types %a and %a\n" pp_loc loc Types.pp_typ ty Types.pp_typ ty'; exit 2
+  | Typing.Undefined (what,loc,s) -> 
+      eprintf "%aUndefined %s: %s\n" pp_loc loc what s; exit 2
   | Typing.Duplicate (what,loc,x) -> 
       eprintf "%aDuplicate %s: %s\n" pp_loc loc what x; exit 2
   | Eval.Uninitialized loc -> 

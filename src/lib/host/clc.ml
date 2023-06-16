@@ -142,7 +142,7 @@ struct
     | L.Typing.Invalid_state (loc,name) ->
        eprintf "%aNo state named %s\n" pp_location loc name; exit 2
     | L.Typing.Illegal_inst loc ->
-       eprintf "%aCannot instantiate model: formal and actual parameters do not match\n" pp_location loc; exit 2
+       eprintf "%aCannot instantiate model: formavl and actual parameters do not match\n" pp_location loc; exit 2
     | L.Typing.No_event_input loc ->
        eprintf "%aThere must be at least one input with type event for this model\n" pp_location loc; exit 2
     | L.Typing.Illegal_state_output (loc,q,o) ->
@@ -152,6 +152,10 @@ struct
     | L.Dynamic.Non_deterministic_transition (f, t, ts) ->
        eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d: %a\n" 
          f t (Misc.pp_list_v L.Syntax.pp_transition) ts
+    | L.Guest.Value.Unsupported_vcd v ->
+       eprintf "No VCD conversion for value %a\n" L.Guest.Value.pp v; exit 2
+    | L.Guest.Static.Non_static_value e ->
+       eprintf "The expression %a cannot be statically evaluated\n" (L.Guest.Syntax.pp_expr ~with_type:false) e; exit 2
     | L.Vcd.Unsupported (ty,v) ->
        eprintf "No representation for VCD type/value: %a:%a\n" Vcd_types.pp_vcd_typ ty Vcd_types.pp_vcd_value v; exit 2
     | Misc.Not_implemented msg ->
