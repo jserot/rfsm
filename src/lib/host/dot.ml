@@ -117,7 +117,7 @@ struct
   let output_fsm ocf f = 
     outp_model ocf ~kind:"subgraph" ~with_caption:false f.Static.model.Annot.desc;
     if not (Env.is_empty f.params) then begin
-        let pp_param fmt (id,v) = Format.fprintf fmt "%s = %a" id Static.Value.pp_value v in      
+        let pp_param fmt (id,v) = Format.fprintf fmt "%s = %a" id Static.Value.pp v in      
         let pp_params fmt params = pp_list_r pp_param fmt params in
         Format.fprintf ocf "%s_params [label=\"%a\", shape=rect, style=rounded]\n" f.name pp_params (Env.bindings f.params)
       end;

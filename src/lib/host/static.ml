@@ -7,9 +7,9 @@ module type STATIC = sig
   type fsm = {
       name: string;
       model: Syntax.model;    (* Normalized model (without output valuations) *)
-      params: Value.value Env.t;
+      params: Value.t Env.t;
       q: string;
-      vars: Value.value Env.t;
+      vars: Value.t Env.t;
     }
   
   type ctx = {  (* TODO : update formal semantics accordingly *)
@@ -37,7 +37,7 @@ module Make
          (HS: Syntax.SYNTAX)
          (GT: Guest.TYPING with type Types.typ = HS.typ)
          (GV: Guest.VALUE with type typ = HS.typ)
-         (GS: Guest.STATIC with type expr = HS.expr and type value = GV.value) = 
+         (GS: Guest.STATIC with type expr = HS.expr and type value = GV.t) = 
 struct
 
   module Syntax = HS
@@ -47,9 +47,9 @@ struct
   type fsm = {
       name: string;
       model: Syntax.model;
-      params: Value.value Env.t;
+      params: Value.t Env.t;
       q: string;
-      vars: Value.value Env.t;
+      vars: Value.t Env.t;
     } [@@deriving show {with_path=false}]
 
   let pp_fsm ?(verbose_level=2) fmt f  = 
@@ -60,15 +60,15 @@ struct
        Format.fprintf fmt "{name=%s; model=%s; params=%a; q=%s; vars=%a}"
          f.name
          f.model.Annot.desc.name
-         (Env.pp Value.pp_value) f.params
+         (Env.pp Value.pp) f.params
          f.q
-         (Env.pp Value.pp_value) f.vars
+         (Env.pp Value.pp) f.vars
     | _ -> (* Full *)
        fprintf fmt "@[<v>[@,name=%s@,model=%a@,q=%s@,vars=%a@,]@]@."
          f.name
          Syntax.pp_model f.model
          f.q
-         (Env.pp Value.pp_value) f.vars
+         (Env.pp Value.pp) f.vars
 
   type ctx = {
     inputs: (string * Typing.Types.typ) list;  

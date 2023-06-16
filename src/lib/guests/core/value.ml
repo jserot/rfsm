@@ -1,4 +1,4 @@
-type value =
+type t =
   | Val_int of int
   | Val_bool of bool
   | Val_enum of string
@@ -9,7 +9,7 @@ type typ = Types.typ
 let default_value ty = match ty with
   | _ -> Val_unknown
 
-exception Unsupported_vcd of value
+exception Unsupported_vcd of t
                            
 let vcd_type v = match v with
   | Val_int _ -> Rfsm.Vcd_types.TyInt
@@ -23,7 +23,7 @@ let vcd_value v = match v with
   | Val_enum c -> Rfsm.Vcd_types.Val_string c
   | _ -> raise (Unsupported_vcd v)
 
-let pp_value fmt v = 
+let pp fmt v = 
   let open Format in
   match v with
   | Val_int v -> fprintf fmt "%d" v

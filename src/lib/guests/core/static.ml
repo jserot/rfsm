@@ -1,5 +1,5 @@
 type expr = Syntax.expr
-type value = Value.value
+type value = Value.t
 
 exception Non_static_value of expr
 

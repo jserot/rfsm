@@ -15,7 +15,7 @@ let handle e =
   | Eval.Uninitialized loc -> 
       eprintf "%aUninitialized value\n" pp_loc loc; exit 2
   | Value.Unsupported_vcd v ->
-      eprintf "No VCD conversion for value %a\n" Value.pp_value v; exit 2
+      eprintf "No VCD conversion for value %a\n" Value.pp v; exit 2
   | e ->
      eprintf "Internal error: %s.\n" (Printexc.to_string e);
      flush stderr; exit 100

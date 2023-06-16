@@ -7,7 +7,7 @@ module Location = Rfsm.Location
 
 open Value
 
-type env = value Env.t
+type env = Value.t Env.t
 
 let mk_env () = Env.empty 
 
@@ -42,4 +42,4 @@ let eval_bool env e =
   | _ -> Rfsm.Misc.fatal_error "Core.eval_bool" (* Should not occur after TC *)
 
 let pp_env fmt env = 
-  Format.fprintf fmt "%a\n" (Env.pp ~sep:"=" Value.pp_value) env
+  Format.fprintf fmt "%a\n" (Env.pp ~sep:"=" Value.pp) env

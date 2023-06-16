@@ -44,7 +44,7 @@ let tprim2 op =
       end
    | _ -> Rfsm.Misc.fatal_error "Builtins.tprim2"
 
-type prim = Value.value list -> Value.value
+type prim = Value.t list -> Value.t
           
 type desc = Types.typ_scheme * prim  (** type, value *)
 

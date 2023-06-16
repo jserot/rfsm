@@ -166,7 +166,7 @@ struct
     ms', env', rho
   
   let r_react sd (m,env) st =  (* Rule REACT *) 
-    let pp_env = Env.pp Eval.Value.pp_value in
+    let pp_env = Env.pp Eval.Value.pp in
     let pp_fsms = Misc.pp_list_v (Static.pp_fsm ~verbose_level:1) in
     let t = Evset.date st in
     (* M, \Gamma -- \sigma | \rho_e --> M', \Gamma' *)

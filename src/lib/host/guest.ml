@@ -61,15 +61,15 @@ end
 (* The values of the guest language must match the following signature *)
 
 module type VALUE = sig 
-  type value
+  type t
   type typ
-  val default_value: typ option -> value 
+  val default_value: typ option -> t 
   (** VCD interface *)
-  exception Unsupported_vcd of value
-  val vcd_type: value -> Vcd_types.vcd_typ
-  val vcd_value: value -> Vcd_types.vcd_value
+  exception Unsupported_vcd of t
+  val vcd_type: t -> Vcd_types.vcd_typ
+  val vcd_value: t -> Vcd_types.vcd_value
   (** Printing *)
-  val pp_value: Format.formatter -> value -> unit
+  val pp: Format.formatter -> t -> unit
 end
 
 module type STATIC = sig
@@ -84,11 +84,11 @@ end
 module type EVAL = sig 
   module Syntax : SYNTAX
   module Value : VALUE
-  type env = Value.value Env.t
+  type env = Value.t Env.t
   val mk_env: unit -> env
-  val upd_env: Syntax.lhs -> Value.value -> env -> env
+  val upd_env: Syntax.lhs -> Value.t -> env -> env
   val pp_env: Format.formatter -> env -> unit
-  val eval_expr: env -> Syntax.expr -> Value.value
+  val eval_expr: env -> Syntax.expr -> Value.t
   val eval_bool: env -> Syntax.expr -> bool
 end
 
@@ -108,7 +108,7 @@ module type T = sig
   module Syntax : SYNTAX with module Types = Types
   module Typing : TYPING with module Types = Types and module Syntax = Syntax
   module Value : VALUE with type typ = Types.typ
-  module Static : STATIC with type expr = Syntax.expr and type value = Value.value
+  module Static : STATIC with type expr = Syntax.expr and type value = Value.t
   module Eval : EVAL with module Syntax = Syntax and module Value = Value
   module Error : ERROR
   module Options : OPTIONS

@@ -20,11 +20,11 @@ module type SEQ = sig
 
 end
  
-module Make (ES: Evset.T) : SEQ with module Evset = ES and type value = ES.Event.Value.value =
+module Make (ES: Evset.T) : SEQ with module Evset = ES and type value = ES.Event.Value.t =
 struct
   module Evset = ES
 
-  type value = Evset.Event.Value.value
+  type value = Evset.Event.Value.t
              
   type t = Evset.t list
 
