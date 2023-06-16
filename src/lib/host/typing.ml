@@ -68,7 +68,8 @@ struct
     List.iter (type_fsm_guard t env) gs 
 
   let check_fsm_state ~loc { Annot.desc=m; _} q = 
-    if not (List.mem_assoc q m.HostSyntax.states) then raise (Invalid_state (loc, q))
+    let states = List.map (function s -> s.Annot.desc) m.HostSyntax.states in 
+    if not (List.mem_assoc q states) then raise (Invalid_state (loc, q))
 
   let type_fsm_transition env m ({ Annot.desc= q,cond,acts,q'; Annot.loc=loc; _ } as t) =
     (* For each transition [q -> cond / acts -> q'] check that
@@ -96,14 +97,18 @@ struct
       (GuestTyping.type_of_type_expr env te)
       (GuestTyping.type_expression env expr)
 
-  let type_fsm_state env m (q,ovals) = 
-    List.iter (type_fsm_state_valuation env m q) ovals
+  let type_fsm_state env m { Annot.desc = q,ovs; _ } = 
+    List.iter (type_fsm_state_valuation env m q) ovs
 
   let type_fsm_states env m = 
     let states = m.Annot.desc.HostSyntax.states in
-    begin match Misc.list_find_dupl (List.map fst states) with
-    | None -> ()
-    | Some q -> raise (Duplicate_state (m.Annot.loc,q)) end;
+    let rec check_dupl states = match states with
+      | [] -> ()
+      | { Annot.desc = q, _; Annot.loc = loc; _ } :: rest ->
+         if List.exists (function { Annot.desc = q', _; _ } ->  q=q' ) rest 
+         then raise (Duplicate_state (loc,q))
+         else check_dupl rest in
+    check_dupl states;
     List.iter (type_fsm_state env m) states
 
   let types_of_fsm_model env { Annot.desc = m; _ } = 

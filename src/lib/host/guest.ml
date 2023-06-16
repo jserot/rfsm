@@ -22,6 +22,8 @@ module type SYNTAX = sig
   type type_expr = (type_expr_desc,Types.typ) Annot.t
   type lhs_desc
   type lhs = (lhs_desc,Types.typ) Annot.t
+  val is_bool_type: type_expr -> bool
+  val mk_bool_expr: type_expr -> expr -> expr
   val lhs_name: lhs -> string
   val mk_simple_lhs: string -> lhs
   val subst_expr: (string * string) list -> expr -> expr
@@ -29,6 +31,8 @@ module type SYNTAX = sig
   val vars_of_expr: expr -> string list
   val vars_of_lhs: lhs -> string list
   val vcd_name: lhs -> string
+  val ppr_expr: (string * type_expr) list -> expr -> expr
+  val ppr_lhs: (string * type_expr) list -> lhs -> lhs
   val pp_type_decl: Format.formatter -> type_decl -> unit
   val pp_type_expr: Format.formatter -> type_expr -> unit
   val pp_expr: ?with_type:bool -> Format.formatter -> expr -> unit

@@ -4,6 +4,8 @@ type 'a t
 
 val empty: 'a t
 
+val is_empty: 'a t -> bool
+
 val dom: 'a t -> string list
 
 val bindings: 'a t -> (string * 'a) list

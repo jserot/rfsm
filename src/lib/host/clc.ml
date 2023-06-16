@@ -46,11 +46,12 @@ struct
     Parser.program Lexer.main !Location.input_lexbuf
 
   let compile f =
-    let p =
+    let p0 =
       List.fold_left
         (fun p f -> L.Syntax.add_program p (parse f))
         L.Syntax.empty_program
         !source_files in
+    let p = L.Syntax.ppr_program p0 in
     (* if !Options.dump_parsed then Format.printf "parsed=%a" L.pp_program p; *)
     let tenv0 = L.Typing.mk_env () in
     if !Options.dump_tenv then Format.printf "tenv=%a" L.pp_tenv tenv0;
@@ -133,6 +134,7 @@ struct
        flush stderr; exit 1
     | Lexer.Lexical_error(Lexer.Illegal_character, pos1, pos2) ->
        eprintf "%aIllegal character.\n" pp_location (Loc(!input_name,pos1, pos2)); flush stderr; exit 1
+    | L.Syntax.Undefined_symbol (loc,s)
     | L.Typing.Undefined_symbol (loc,s) -> 
        eprintf "%aUndefined symbol: %s\n" pp_location loc s; exit 2
     | L.Typing.Duplicate_state (loc,name) ->

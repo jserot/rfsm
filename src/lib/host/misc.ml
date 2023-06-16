@@ -26,12 +26,6 @@ let subst_id phi id =
 
 let neg f x = not (f x)
 
-let rec list_find_dupl = function
-  | [] -> None
-  | hd::tl ->
-     if List.exists ((=) hd) tl then Some hd
-     else list_find_dupl tl
-
 let list_cart_prod2 l1 l2 =
   List.map (fun x1 -> List.map (fun x2 -> x1,x2) l2) l1 |> List.flatten
 

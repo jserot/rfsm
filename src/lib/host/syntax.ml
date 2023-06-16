@@ -4,8 +4,6 @@ module type SYNTAX = sig
 
   module Guest: Guest.SYNTAX
   
-  type state = string
-  type event = string
   type typ = Guest.Types.typ
   type expr = Guest.expr
   type type_expr = Guest.type_expr
@@ -23,7 +21,7 @@ module type SYNTAX = sig
   and model = (model_desc,typ) Annot.t
   and model_desc = {
       name: string;
-      states: (state * (string * expr) list) list; (* Id, output valuations *)
+      states: state list;
       params: (string * type_expr) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
@@ -32,19 +30,22 @@ module type SYNTAX = sig
       itrans: itransition 
     }
   
+  and state = (state_desc,unit) Annot.t
+  and state_desc = string * (string * expr) list (* Name, output valuations *)
+
   and cond = (cond_desc,typ) Annot.t
-  and cond_desc = event * expr list
+  and cond_desc = string * expr list (** event, guards *)
   
   and action = (action_desc,typ) Annot.t
   and action_desc =
-    Emit of event
+    Emit of string
   | Assign of lhs * expr
             
   and transition = (transition_desc,typ) Annot.t
-  and transition_desc = state * cond * action list * state
+  and transition_desc = string * cond * action list * string  (** source state, condition, actions, destination state *)
 
   and itransition = (itransition_desc,typ) Annot.t
-  and itransition_desc = state * action list
+  and itransition_desc = string * action list  (** state, actions *)
                  
   and io = (io_desc,typ) Annot.t
   and io_desc = string * io_cat * type_expr * stimulus option
@@ -84,7 +85,7 @@ module type SYNTAX = sig
 
   val subst_model: phi:(string * string) list -> model -> model (** Name substitution *)
     
-  val state_ios: model -> state -> string list * string list * string list * string list
+  val state_ios: model -> string -> string list * string list * string list * string list
     (** [state_ios m q] is [l1,l2,l3,l4] where
         - [l1] is the list of events triggering an exit from state [q] 
         - [l2] is the list of variables occuring in guards when exiting from state [q] 
@@ -93,6 +94,9 @@ module type SYNTAX = sig
 
   val normalize_model: model -> model
 
+  val ppr_program: program -> program
+  exception Undefined_symbol of Location.t * string
+    
   val pp_action: Format.formatter -> action -> unit
   val pp_transition: Format.formatter -> transition -> unit
   val pp_model: Format.formatter -> model -> unit
@@ -104,9 +108,6 @@ module Make(B: Guest.SYNTAX) : SYNTAX with module Guest=B =
 struct
   module Guest = B
                
-  type state = string [@@deriving show {with_path=false}]
-  type event = string [@@deriving show {with_path=false}]
-
   type typ = Guest.Types.typ
   type expr = Guest.expr
   type type_expr = Guest.type_expr
@@ -138,27 +139,30 @@ struct
   type io = (io_desc,typ) Annot.t
   let pp_io fmt i = pp_io_desc fmt i.Annot.desc
 
-  type cond_desc = event * expr list [@@deriving show {with_path=false}]
+  type cond_desc = string * expr list [@@deriving show {with_path=false}]
   type cond = (cond_desc,typ) Annot.t
   let pp_cond fmt i = pp_cond_desc fmt i.Annot.desc
 
   type action_desc =
-    Emit of event
+    Emit of string
   | Assign of lhs * expr [@@deriving show {with_path=false}]
   type action = (action_desc,typ) Annot.t
   let pp_action fmt a = pp_action_desc fmt a.Annot.desc
             
-  type transition_desc = state * cond * action list * state [@@deriving show {with_path=false}]
+  type transition_desc = string * cond * action list * string [@@deriving show {with_path=false}]
   type transition = (transition_desc,typ) Annot.t 
   let pp_transition fmt t = pp_transition_desc fmt t.Annot.desc
 
-  type itransition_desc = state * action list [@@deriving show {with_path=false}]
+  type itransition_desc = string * action list [@@deriving show {with_path=false}]
   type itransition = (itransition_desc,typ) Annot.t
   let pp_itransition fmt t = pp_itransition_desc fmt t.Annot.desc
 
+  type state_desc = (string * (string * expr) list)
+  type state = (state_desc,unit) Annot.t
+
   type model_desc = {
       name: string;
-      states: (state * (string * expr) list) list; 
+      states: state list;
       params: (string * type_expr) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
@@ -248,13 +252,13 @@ struct
   let normalize_outp m (o,_) = (* Remove output [o] from valuations and update transitions accordingly *)
     let updated_states = (* The list of states having [o] in their attached valuation ... *)
       List.fold_left 
-        (fun acc (q,ovs) ->
+        (fun acc { Annot.desc = q,ovs; _ } ->
           match List.assoc_opt o ovs with
           | Some e -> (q,e)::acc
           | None -> acc)
         []
         m.states in
-    let remove_output_valuation (q,ovs) = q, List.remove_assoc o ovs in
+    let remove_output_valuation ({ Annot.desc=q, ovs; _} as s) = { s with Annot.desc = q, List.remove_assoc o ovs } in
     let add_act e acts = Annot.make (Assign(Guest.mk_simple_lhs o, e)) :: acts in 
     let add_output_assignation ({ Annot.desc=q,conds,acts,q'; _ } as t) =
       match List.assoc_opt q' updated_states with
@@ -271,6 +275,68 @@ struct
   let normalize_model m = 
     let md = m.Annot.desc in 
     { m with Annot.desc = List.fold_left normalize_outp md md.outps }
+
+  (* Pre-processing *)
+
+  exception Undefined_symbol of Location.t * string
+
+  let type_of ~loc env v =
+      (* Since pre-processing is carried out _before_ typing, the only type-related available information
+         is given by the type expressions assigned to identifiers in the enclosing model *)
+      try List.assoc v env
+      with Not_found -> raise (Undefined_symbol (loc,v)) 
+
+  let rec ppr_model m = { m with Annot.desc = ppr_model_desc m.Annot.desc }
+  and ppr_model_desc m =
+    let env = m.inps @ m.outps @ m.vars in
+    { m with states = List.map (ppr_state env) m.states;
+             trans = List.map (ppr_transition env) m.trans;
+             itrans = ppr_itransition env m.itrans }
+
+  and ppr_state env s = { s with Annot.desc = ppr_state_desc ~loc:s.Annot.loc env s.Annot.desc }
+  and ppr_state_desc ~loc env (q,ovs) = q, List.map (ppr_ov ~loc env) ovs
+
+  and ppr_ov ~loc env (o,expr) = 
+    let typ = type_of ~loc env o in
+    if Guest.is_bool_type typ 
+    then (o, Guest.mk_bool_expr typ expr)
+    else (o, expr)
+
+  and ppr_transition env t = { t with Annot.desc = ppr_trans_desc env t.Annot.desc }
+  and ppr_trans_desc env (q,cond,acts,q') = (q, ppr_cond env cond, List.map (ppr_action env) acts, q')
+
+  and ppr_itransition env t = { t with Annot.desc = ppr_itrans_desc env t.Annot.desc }
+  and ppr_itrans_desc env (q,acts) = (q, List.map (ppr_action env) acts)
+
+  and ppr_cond env c = { c with Annot.desc = ppr_cond_desc env c.Annot.desc }
+  and ppr_cond_desc env (ev,exprs) = (ev, List.map (Guest.ppr_expr env) exprs)
+
+  and ppr_action env a = { a with Annot.desc = ppr_action_desc env a.Annot.desc }
+  and ppr_action_desc env act =
+    (* Replace all assignations [v:=0/1], where [v:bool] by [v:=false/true] *)
+    match act with
+    | Emit _ -> act
+    | Assign (lhs, expr) ->
+       let typ = type_of ~loc:lhs.Annot.loc env (Guest.lhs_name lhs) in
+        if Guest.is_bool_type typ 
+        then Assign (lhs, Guest.mk_bool_expr typ expr)
+        else Assign (Guest.ppr_lhs env lhs, expr) (* In case pre-processing should be carried out _inside_ LHS sub-exprs *)
+
+  let rec ppr_io io = { io with Annot.desc = ppr_io_desc io.Annot.desc }
+  and ppr_io_desc ((id,cat,te,stim) as io) = 
+    match stim with 
+    | None -> io
+    | Some st -> (id, cat, te, Some (ppr_stim te st))
+
+  and ppr_stim te st = { st with Annot.desc = ppr_stim_desc te st.Annot.desc }
+  and ppr_stim_desc te st = 
+    match st with 
+    | Value_change vcs -> Value_change (List.map (function (t,expr) -> t, Guest.mk_bool_expr te expr) vcs)
+    | _ -> st
+
+  let ppr_program p =
+    { p with models = List.map ppr_model p.models;
+             ios = List.map ppr_io p.ios }
 
   module S = Set.Make(String)
 
@@ -326,7 +392,7 @@ struct
     let pp_iov fmt (x,t) = fprintf fmt "%s:%a" x pp_type_expr t in
     let pp_ov fmt (o,e) = fprintf fmt "%s=%a" o (pp_expr ~with_type:false) e in
     let pp_ovs fmt ovs = match ovs with [] -> () | _ -> fprintf fmt "{%a}" (Misc.pp_list_h pp_ov) ovs in
-    let pp_state fmt (x,ovs) = fprintf fmt "%s%a" x pp_ovs ovs in
+    let pp_state fmt { Annot.desc=x,ovs; _ } = fprintf fmt "%s%a" x pp_ovs ovs in
     fprintf fmt "@[<v>[@,name=%s@,params=[%a]@,inps=%a@,outps=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,]@]"
       p.name
       (Misc.pp_list_h ~sep:"," pp_iov) p.params

@@ -134,10 +134,10 @@ io_desc:
   | id=LID COLON ty=type_expr { id,ty }
 
 state:
-  | id=UID { id, [] }
-  | id=UID WHERE attrs=separated_nonempty_list(AND,state_attr) { id, attrs }
-                      
-state_attr:
+  | id=UID { mk ~loc:($symbolstartofs,$endofs) (id,[]) }
+  | id=UID WHERE ovs=separated_nonempty_list(AND,outp_valuation) { mk ~loc:($symbolstartofs,$endofs) (id,ovs) }
+
+outp_valuation:
   | id=LID EQUAL e=constant { (id, e) }
                    
 vars:

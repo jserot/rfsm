@@ -1,6 +1,5 @@
 COMPILER
 
-- bool -> int implicit conv
 - Value.value -> Value.t
 - check exn catching (both at host and guest level)
 - move typing env defn from guest to host ?

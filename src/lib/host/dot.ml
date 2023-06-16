@@ -71,14 +71,14 @@ struct
     let ini_id = m.name ^ "_ini" in
     let nodes, _ = 
       List.fold_left
-        (fun (acc,n) (q,ovs) ->
+        (fun (acc,n) { Annot.desc= q,ovs; _ } ->
           (q,node_id n)::acc, n+1)
         ([],0)
         m.states in
     let node_of q =
       try List.assoc q nodes 
       with Not_found -> Misc.fatal_error ("Dot.output_fsm_model: cannot find state " ^ q) in
-    let dump_state (q,ovs) =
+    let dump_state {Annot.desc=q,ovs; _} =
       let id = node_of q in
       begin match ovs with
       | [] -> fprintf ocf "%s [label = \"%s\", shape = %s, style = %s]\n" id q cfg.node_shape cfg.node_style
@@ -116,9 +116,11 @@ struct
 
   let output_fsm ocf f = 
     outp_model ocf ~kind:"subgraph" ~with_caption:false f.Static.model.Annot.desc;
-    let pp_param fmt (id,v) = Format.fprintf fmt "%s = %a" id Static.Value.pp_value v in      
-    let pp_params fmt params = pp_list_r pp_param fmt params in
-    Format.fprintf ocf "%s_params [label=\"%a\", shape=rect, style=rounded]\n" f.name pp_params (Env.bindings f.params);
+    if not (Env.is_empty f.params) then begin
+        let pp_param fmt (id,v) = Format.fprintf fmt "%s = %a" id Static.Value.pp_value v in      
+        let pp_params fmt params = pp_list_r pp_param fmt params in
+        Format.fprintf ocf "%s_params [label=\"%a\", shape=rect, style=rounded]\n" f.name pp_params (Env.bindings f.params)
+      end;
     Format.fprintf ocf "}"
 
   let output_static ~dir ~name ~with_models ~with_caption (sd: Static.t) =
