@@ -6,10 +6,10 @@ end
 type cfg = {
     mutable node_shape: string;
     mutable node_style: string;
-    mutable act_sep: string;
     mutable layout: string;
     mutable rankdir: string;
     mutable mindist: float;
+    mutable trans_vlayout: bool;
   }
              
 let cfg = {
@@ -18,7 +18,7 @@ let cfg = {
     layout = "dot";
     rankdir = "UD";
     mindist = 1.0;
-    act_sep = " ";
+    trans_vlayout = false;
   }
 
 module Make(S: Static.STATIC) : DOT with module Static = S =
@@ -41,13 +41,21 @@ struct
     let open Format in
     match a with
     | Syntax.Emit e -> fprintf fmt "%s" e
-    | Syntax.Assign (lhs,expr) -> fprintf fmt "%a:=%a" (Syntax.Guest.pp_lhs ~with_type:false) lhs (Syntax.Guest.pp_expr ~with_type:false) expr
+    | Syntax.Assign (lhs,expr) ->
+       fprintf fmt "%a:=%a" (Syntax.Guest.pp_lhs ~with_type:false) lhs (Syntax.Guest.pp_expr ~with_type:false) expr
 
-  let pp_actions fmt acts = Misc.pp_list_h ~sep:";" pp_action fmt acts
+  let pp_actions fmt acts = Misc.pp_list_h ~sep:(if cfg.trans_vlayout then "\n" else ";") pp_action fmt acts
 
-  let pp_cond_acts fmt (cond,acts) = match acts with
-    | [] -> Format.fprintf fmt "%a" pp_cond cond;
-    | _ -> Format.fprintf fmt "%a/%a" pp_cond cond pp_actions acts
+  let pp_cond_acts fmt (cond,acts) =
+    match acts, cfg.trans_vlayout with
+    | [], _ -> Format.fprintf fmt "%a" pp_cond cond;
+    | _, true ->
+      let s1 = Misc.to_string pp_cond cond in
+      let s2 = Misc.to_string pp_actions acts in
+      let l = String.make (max (String.length s1) (String.length s2)) '_' in
+      Format.fprintf fmt "%s\n%s\n%s" s1 l s2
+    | _, _ ->
+         Format.fprintf fmt "%a / %a" pp_cond cond pp_actions acts
 
   let pp_list_r pp fmt l = 
     match l with 
@@ -85,7 +93,12 @@ struct
       | _ ->  fprintf ocf "%s [label = \"%s\n%a\", shape = %s, style = %s]\n" id q pp_ovs ovs cfg.node_shape cfg.node_style end in
     let dump_itransition { Annot.desc=(q,a); _ } =
       let id = node_of q in
-      fprintf ocf "%s -> %s [label=\"%a\"];\n" ini_id id pp_actions a in
+      if cfg.trans_vlayout then 
+        let s = Misc.to_string pp_actions a in
+        let l = String.make (String.length s) '_' in
+        fprintf ocf "%s -> %s [label=\"%s\n%s\"];\n" ini_id id l s
+      else 
+        fprintf ocf "%s -> %s [label=\"/ %a\"];\n" ini_id id pp_actions a in
     let dump_transition { Annot.desc=(q,c,a,q'); _ } =
       let id = node_of q in
       let id' = node_of q' in

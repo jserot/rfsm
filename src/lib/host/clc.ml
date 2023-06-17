@@ -142,7 +142,7 @@ struct
     | L.Typing.Invalid_state (loc,name) ->
        eprintf "%aNo state named %s\n" pp_location loc name; exit 2
     | L.Typing.Illegal_inst loc ->
-       eprintf "%aCannot instantiate model: formavl and actual parameters do not match\n" pp_location loc; exit 2
+       eprintf "%aCannot instantiate model: formal and actual parameters do not match\n" pp_location loc; exit 2
     | L.Typing.No_event_input loc ->
        eprintf "%aThere must be at least one input with type event for this model\n" pp_location loc; exit 2
     | L.Typing.Illegal_state_output (loc,q,o) ->
