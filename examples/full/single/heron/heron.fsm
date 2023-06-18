@@ -1,0 +1,42 @@
+-- Iterative computing of \sqrt{a} using Heron's algorithm
+
+-- v1: fixed number of iterations
+
+fsm model heron1<niter: int>(
+  in h: event,
+  in start: bool,
+  in u: float,
+  out rdy: bool,
+  out r: float)
+{
+  states: Idle where rdy=1, Iter where rdy=0;
+  vars: a: float, x: float, n: int;
+  trans:
+  | Idle -> Iter on h when start=1 with a:=u, x:=u, n:=0
+  | Iter -> Iter on h when n<niter with x:=(x+.a/.x)/.2., n:=n+1
+  | Iter -> Idle on h when n=niter with r:=x;
+  itrans:
+  | -> Idle;
+}
+
+-- v2: stop when $|x^2-a|<=\epsilon$
+
+function f_abs(x: float) : float { return x < 0.0 ? -.x : x }
+
+fsm model heron2<eps: float>(
+  in h: event,
+  in start: bool,
+  in u: float,
+  out rdy: bool,
+  out niter: int,
+  out r: float)
+{
+  states: Idle where rdy=1, Iter where rdy=0;
+  vars: a: float, x: float, n: int;
+  trans:
+  | Idle -> Iter on h when start=1 with a:=u, x:=u, n:=0
+  | Iter -> Iter on h when f_abs(x*.x-.a)>=eps with x:=(x+.a/.x)/.2., n:=n+1
+  | Iter -> Idle on h when f_abs(x*.x-.a)<eps with r:=x, niter:=n;
+  itrans:
+  | -> Idle;
+}

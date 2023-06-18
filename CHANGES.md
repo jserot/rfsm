@@ -3,6 +3,7 @@
 # 2.0 (Jun XX, 2023)
 
 * Entirely recrafted (modular) implementation
+* No longer depends on [Lascar]
 * Formal semantics 
 
 # 1.7 (Mar 30, 2021)

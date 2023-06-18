@@ -12,7 +12,7 @@ fsm model chrono(
   trans:
   | Stopped -> Running on startstop with ctr:=0, aff:=0
   | Running -> Running on h with ctr:=ctr+1, aff:=ctr
-  ! Running -> Stopped on startstop;
+  | Running -> Stopped on startstop;
   itrans:
   | -> Stopped;
 }

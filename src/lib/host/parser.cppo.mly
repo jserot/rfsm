@@ -99,7 +99,7 @@ farg:
 
 fsm_model:
   | FSM MODEL
-      name=LID 
+      name=id 
       params=optional(params)
       LPAREN ios=separated_list(COMMA, io) RPAREN
       LBRACE
@@ -179,7 +179,7 @@ global_io:
       { [mk ~loc:($symbolstartofs,$endofs) (id, Lang.L.Syntax.Input, ty, Some st)] }
   | OUTPUT ids=separated_nonempty_list(COMMA,id) COLON ty=type_expr
       { List.map (fun id -> mk ~loc:($symbolstartofs, $endofs) (id, Lang.L.Syntax.Output, ty, None)) ids }
-  | SHARED ids=separated_nonempty_list(COMMA,LID) COLON ty=type_expr
+  | SHARED ids=separated_nonempty_list(COMMA,id) COLON ty=type_expr
       { List.map (fun id -> mk ~loc:($symbolstartofs, $endofs) (id, Lang.L.Syntax.Shared, ty, None)) ids }
 
 stimuli:
@@ -196,7 +196,7 @@ value_change:
 (* FSM INSTANCES *)
 
 fsm_inst:
-  | FSM name=LID EQUAL model=LID params=optional(inst_params) args=paren(separated_list(COMMA,id))
+  | FSM name=id EQUAL model=id params=optional(inst_params) args=paren(separated_list(COMMA,id))
       { mk ~loc:($symbolstartofs,$endofs) (name,model,params,args) }  
 
 inst_params:

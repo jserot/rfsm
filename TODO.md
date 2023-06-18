@@ -1,8 +1,10 @@
 COMPILER
 
+- transition priority
 - reinstall Systemc backend
 - reinstall VHDL backend
 - full language and examples
+- rename src/lib/host/seq.ml
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)
 - support for synchronous actions

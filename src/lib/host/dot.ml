@@ -62,7 +62,7 @@ struct
     | [] -> ()
     | _ ->
        Format.pp_print_list
-         ~pp_sep:(fun fmt () -> Format.pp_print_string fmt "\rr")
+         ~pp_sep:(fun fmt () -> Format.pp_print_string fmt "\n")
          pp
          fmt
          l

@@ -1,7 +1,7 @@
 -- This example illustrates the use of the [!] transition annotation to 
 -- resolve non-determinism
 
-fsm model F(
+fsm model f(
   in h: event)
 {
   states: P0, P1, P2;
@@ -16,4 +16,4 @@ fsm model F(
 
 input H : event = periodic(10, 10, 100)
 
-fsm f = F(H)
+fsm f = f(H)

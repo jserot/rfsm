@@ -1,4 +1,4 @@
-input StartStop: event = sporadic(25,70)
+input StartStop: event = sporadic(25,75)
 input H:event = periodic(10,10,110)
 output Aff: int
 

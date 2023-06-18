@@ -2,7 +2,7 @@
 -- Counts [n] occurences of [h] when [start] is received and emits [done]
 -- The counter is value is available on IO [t]
 
-fsm model Timer<n: int>(
+fsm model timer<n: int>(
   in h: event,
   in start: event,
   out done: event,

@@ -1,0 +1,52 @@
+-- Generates an impulsion of duration N.Th on output [s] whenever [e=1] when [h] occurs
+
+-- First version : N=3 hardcoded, Moore-style output
+
+fsm model gensig1(
+  in h: event, 
+  in e: bool,
+  out s: bool)
+  {
+  states: E0 where s=0, E1 where s=1, E2 where s=1, E3 where s=1;
+  trans:
+  | E0 -> E1 on h when e=1
+  | E1 -> E2 on h
+  | E2 -> E3 on h
+  | E3 -> E0 on h;
+  itrans:
+  | -> E0;
+  }
+
+-- Second version :  N is given as a parameter (generalisation of [gensig1])
+
+fsm model gensig2 <n: int> (
+  in h: event,
+  in e: bool,
+  out s: bool)
+{
+  states: E0 where s=0, E1 where s=1;
+  vars: k: int;
+  trans:
+  | E0 -> E1 on h when e=1 with k:=1
+  | E1 -> E1 on h when k<n with k:=k+1
+  | E1 -> E0 on h when k=n;
+  itrans:
+  | -> E0;
+}
+
+-- Third version. Reformulation of [gensig2] using Mealy-style description (with output [s] assigned in transitions rather than states)
+
+fsm model gensig3 <n: int> (
+  in h: event,
+  in e: bool,
+  out s: bool)
+{
+  states: E0, E1;
+  vars: k: int;
+  trans:
+  | E0 -> E1 on h when e=1 with k:=1,s:=1
+  | E1 -> E1 on h when k<n with k:=k+1
+  | E1 -> E0 on h when k=n with s:=0;
+  itrans:
+  | -> E0 with s:=0;
+}
