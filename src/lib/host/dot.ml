@@ -99,7 +99,7 @@ struct
         fprintf ocf "%s -> %s [label=\"%s\n%s\"];\n" ini_id id l s
       else 
         fprintf ocf "%s -> %s [label=\"/ %a\"];\n" ini_id id pp_actions a in
-    let dump_transition { Annot.desc=(q,c,a,q'); _ } =
+    let dump_transition { Annot.desc=(q,c,a,q',_); _ } =
       let id = node_of q in
       let id' = node_of q' in
       fprintf ocf "%s -> %s [label = \"%a\"];\n" id id' pp_cond_acts (c,a) in

@@ -36,3 +36,18 @@ let to_string pp x =
 
 let check_dir path = 
   if not (Sys.is_directory path) then raise (Sys_error ("file " ^ " is not a directory"))
+
+let add_assoc k v l = 
+  let v' = List.assoc k l in
+  (k,v::v') :: List.remove_assoc k l
+
+let list_scatter f l = 
+  let add k v l = 
+    let v' = List.assoc k l in
+    (k,v::v') :: List.remove_assoc k l in
+  List.fold_left
+    (fun acc x ->
+      let k = f x in
+      if List.mem_assoc k acc then add k x acc else (k,[x])::acc)
+    []
+    l

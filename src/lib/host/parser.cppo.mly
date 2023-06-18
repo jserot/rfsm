@@ -26,6 +26,7 @@
 %token WHEN
 %token WITH
 %token BAR
+%token EMARK
 %token <string> LID
 %token <string> UID
 %token <int> INT
@@ -148,8 +149,12 @@ var:
       { List.map (fun id -> (id, ty)) ids }
 
 transition:
-  | BAR src=UID ARROW dst=UID cond=cond acts=actions
-      { mk ~loc:($symbolstartofs,$endofs) (src, cond, acts, dst) }
+  | p=prio src=UID ARROW dst=UID cond=cond acts=actions
+      { mk ~loc:($symbolstartofs,$endofs) (src, cond, acts, dst, p) }
+
+prio:
+  | BAR { 1 }  /* Low priority */
+  | EMARK { 0 }  /* High priority */
 
 cond: 
   | ON ev=LID gds=guards

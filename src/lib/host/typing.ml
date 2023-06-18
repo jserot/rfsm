@@ -71,7 +71,7 @@ struct
     let states = List.map (function s -> s.Annot.desc) m.HostSyntax.states in 
     if not (List.mem_assoc q states) then raise (Invalid_state (loc, q))
 
-  let type_fsm_transition env m ({ Annot.desc= q,cond,acts,q'; Annot.loc=loc; _ } as t) =
+  let type_fsm_transition env m ({ Annot.desc= q,cond,acts,q',_; Annot.loc=loc; _ } as t) =
     (* For each transition [q -> cond / acts -> q'] check that
      *    - [q] and [q'] are listed as states in the model declaration
      *    - [cond] has form [e.[guard1]...[guardn]] where [e] has type [event] and each [guardi] type [bool]

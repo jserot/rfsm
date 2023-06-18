@@ -64,6 +64,7 @@ rule main = parse
   | ":" { COLON }
   | ":=" { COLEQ }
   | "|" { BAR }
+  | "!" { EMARK }
   | "=" { EQUAL }
 #include "guest_tokens.mll"
   | eof { EOF }

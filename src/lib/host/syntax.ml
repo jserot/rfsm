@@ -42,7 +42,7 @@ module type SYNTAX = sig
   | Assign of lhs * expr
             
   and transition = (transition_desc,typ) Annot.t
-  and transition_desc = string * cond * action list * string  (** source state, condition, actions, destination state *)
+  and transition_desc = string * cond * action list * string * int  (** source state, condition, actions, destination state, priority *)
 
   and itransition = (itransition_desc,typ) Annot.t
   and itransition_desc = string * action list  (** state, actions *)
@@ -149,7 +149,7 @@ struct
   type action = (action_desc,typ) Annot.t
   let pp_action fmt a = pp_action_desc fmt a.Annot.desc
             
-  type transition_desc = string * cond * action list * string [@@deriving show {with_path=false}]
+  type transition_desc = string * cond * action list * string * int [@@deriving show {with_path=false}]
   type transition = (transition_desc,typ) Annot.t 
   let pp_transition fmt t = pp_transition_desc fmt t.Annot.desc
 
@@ -229,8 +229,8 @@ struct
     | Emit ev -> { act with desc = Emit (Misc.subst_id phi ev) }
     | Assign (lhs,expr) -> { act with desc = Assign (Guest.subst_lhs phi lhs, Guest.subst_expr phi expr) }
                         
-  let subst_transition phi ({Annot.desc=(q,cond,acts,q'); _} as t)  =
-   { t with desc = (q, subst_cond phi cond, List.map (subst_action phi) acts, q') }
+  let subst_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
+   { t with desc = (q, subst_cond phi cond, List.map (subst_action phi) acts, q', p) }
 
   let subst_itransition phi ({Annot.desc=(q,acts); _} as t)  =
     { t with desc = (q, List.map (subst_action phi) acts) }
@@ -260,9 +260,9 @@ struct
         m.states in
     let remove_output_valuation ({ Annot.desc=q, ovs; _} as s) = { s with Annot.desc = q, List.remove_assoc o ovs } in
     let add_act e acts = Annot.make (Assign(Guest.mk_simple_lhs o, e)) :: acts in 
-    let add_output_assignation ({ Annot.desc=q,conds,acts,q'; _ } as t) =
+    let add_output_assignation ({ Annot.desc=q,conds,acts,q',p; _ } as t) =
       match List.assoc_opt q' updated_states with
-      | Some e -> { t with Annot.desc = q,conds,add_act e acts,q' }
+      | Some e -> { t with Annot.desc = q,conds,add_act e acts,q',p }
       | None -> t in
     let add_output_iassignation ({ Annot.desc=q',acts; _ } as t) =
       match List.assoc_opt q' updated_states with
@@ -303,7 +303,7 @@ struct
     else (o, expr)
 
   and ppr_transition env t = { t with Annot.desc = ppr_trans_desc env t.Annot.desc }
-  and ppr_trans_desc env (q,cond,acts,q') = (q, ppr_cond env cond, List.map (ppr_action env) acts, q')
+  and ppr_trans_desc env (q,cond,acts,q',p) = (q, ppr_cond env cond, List.map (ppr_action env) acts, q', p)
 
   and ppr_itransition env t = { t with Annot.desc = ppr_itrans_desc env t.Annot.desc }
   and ppr_itrans_desc env (q,acts) = (q, List.map (ppr_action env) acts)
@@ -355,27 +355,27 @@ struct
     | Emit e -> S.singleton e
     | Assign _ -> S.empty
 
-  let triggering_event { Annot.desc=(_,{Annot.desc=(e,_);_},_,_); _} = S.singleton e 
+  let triggering_event { Annot.desc=(_,{Annot.desc=(e,_);_},_,_,_); _} = S.singleton e 
 
-  let read_vars { Annot.desc=(_,{Annot.desc=(_,guards);_},acts,_); _} = 
+  let read_vars { Annot.desc=(_,{Annot.desc=(_,guards);_},acts,_,_); _} = 
     S.union
       (List.fold_left (fun acc e -> S.union (S.of_list (Guest.vars_of_expr e)) acc) S.empty guards)
       (List.fold_left (fun acc a -> S.union (rvars_of_action a) acc) S.empty acts)
 
-  let emitted_events { Annot.desc=(_,_,acts,_); _ } =
+  let emitted_events { Annot.desc=(_,_,acts,_,_); _ } =
     List.fold_left
       (fun acc a -> S.union (events_of_action a) acc)
       S.empty
       acts
 
-  let written_vars { Annot.desc=(_,_,acts,_); _ } =
+  let written_vars { Annot.desc=(_,_,acts,_,_); _ } =
     List.fold_left
       (fun acc g -> S.union (wvars_of_action g) acc)
       S.empty
       acts
                     
   let state_ios { Annot.desc=m; _ } q =
-    let ts = List.filter (fun { Annot.desc=q',_,_,_; _ } -> q'=q) m.trans in
+    let ts = List.filter (fun { Annot.desc=q',_,_,_,_; _ } -> q'=q) m.trans in
     let accum f ts =
       List.fold_left
         (fun acc t -> S.union (f t) acc)

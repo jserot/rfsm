@@ -1,6 +1,5 @@
 COMPILER
 
-- transition priority
 - reinstall Systemc backend
 - reinstall VHDL backend
 - full language and examples

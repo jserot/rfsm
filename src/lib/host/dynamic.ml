@@ -64,7 +64,7 @@ struct
   let is_fireable env m e = (* \Delta(M,q,e) *)
     let open Static in
     List.filter
-      (fun {Annot.desc=(q,{Annot.desc=e',gs; _},_,_); _} ->  
+      (fun {Annot.desc=(q,{Annot.desc=e',gs; _},_,_,_); _} ->  
         q = m.Static.q
         && e = Event.Ev e'
         && List.for_all (fun g -> Eval.eval_bool env g = true) gs)
@@ -74,7 +74,15 @@ struct
     List.map (is_fireable env m) evs |> List.concat
   
   let choose_transition (f,t,trs) = (* Function CHOICE *)
-    raise (Non_deterministic_transition (f,t,trs))
+    match
+      trs 
+      |> Misc.list_scatter (function { Annot.desc = _,_,_,_,p; _ } -> p) (* Transitions, scattered by priority levels ... *)
+      |> List.sort (fun (p1,_) (p2,_) -> Stdlib.compare p1 p2) (* ... then sorted by descending order of priority level ...*)
+      |> List.hd |> snd (* ... gives all transitions with the highest priority level *)
+    with 
+    | [] -> Misc.fatal_error "Dynamic.choose_transition" (* Should not happen *)
+    | [tr] -> tr 
+    | trs' -> raise (Non_deterministic_transition (f,t,trs'))
   
   let r_act sd (vars,env) ({Annot.desc=act; _},t) =  (* Rules ActUpdL, ActUpdG, ActEmitL and ActEmitG *)
   (* \Nu, \Gamma -- act,t | \rho_e --> \Nu', \Gamma' *)
@@ -112,7 +120,7 @@ struct
         (List.map (fun act -> (act,t)) acts) in
     vars', env', Evset.union_all t rs
   
-  let r_trans sd (m,env) ({Annot.desc=q,_,acts,q'; _},t) =  (* Rule TRANS *)
+  let r_trans sd (m,env) ({Annot.desc=q,_,acts,q',_; _},t) =  (* Rule TRANS *)
     (* \mu, \Gamma -- \tau,t | \rho_e --> \mu', \Gamma' *)
     let vars', env', r_e = r_acts sd (m.Static.vars,env) (acts,t) in
     let m' = { m with q=q'; vars = vars' } in
