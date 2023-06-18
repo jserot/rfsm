@@ -1,6 +1,6 @@
 #!/bin/bash
 
-libdir=`opam config var share`/rfsm
+libdir=`opam var share`/rfsm
 main='main'
 with_test_targets=''
 project_file=''

@@ -6,7 +6,8 @@ LIBDIR=$(shell opam var share)/rfsm
 
 DOT=dot
 DOTVIEWER=graphviz
-VCDVIEWER=gtkwave
+#VCDVIEWER=gtkwave
+VCDVIEWER=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin > /tmp/gtkwave.log 2>&1
 TXTVIEWER=nano
 
 CXX=g++

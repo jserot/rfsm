@@ -27,7 +27,7 @@ sim.run:
 	$(RFSMC) $(GEN_OPTS) -sim $(SIM_OPTS) -target_dir ./sim $(SRCS)
 
 sim.view:
-	$(VCDVIEWER) ./sim/$(MAIN).vcd ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1; echo $$?
+	$(VCDVIEWER) -f ./sim/$(MAIN).vcd -a ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1; echo $$?
 
 ctask: ctask.code
 
