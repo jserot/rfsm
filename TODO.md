@@ -1,9 +1,16 @@
 COMPILER
 
+- type synonyms
+- bit range
+- records
+- full language and examples
+- info/version naming 
 - reinstall Systemc backend
 - reinstall VHDL backend
-- full language and examples
 - rename src/lib/host/seq.ml
+- banner
+- output formatting when using -trace option
+- VCD hierarchy (gtkwave format ?)
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)
 - support for synchronous actions

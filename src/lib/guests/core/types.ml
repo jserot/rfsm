@@ -179,10 +179,3 @@ let pp_typ_scheme fmt t =
      fprintf fmt "@[<h>%a@]" pp_typ t.ts_body
   | _ ->
      fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_tvar) t.ts_params pp_typ t.ts_body
-
-(* let vcd_type t =
- *   match t with
- *   | Types.TyConstr ("int", []) -> Rfsm.Vcd_types.TyInt
- *   | Types.TyConstr ("bool", []) -> Rfsm.Vcd_types.TyBool
- *   | _ -> raise Rfsm.Vcd_types.Unsupported *)
-

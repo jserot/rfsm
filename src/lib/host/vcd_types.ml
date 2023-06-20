@@ -1,6 +1,7 @@
 type vcd_typ =
-  | TyInt
+  | TyInt of int option (** width in bits *)
   | TyBool
+  (* | TyFloat *)
   | TyEvent
   | TyString
 [@@deriving show]

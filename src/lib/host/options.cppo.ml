@@ -24,8 +24,8 @@ let dump_static = ref false
 let dot_show_models = ref false
 let dot_captions = ref true
 let normalize = ref false
-let sim_trace_level = ref 0
-let dump_backtrace = ref false
+(* let sim_trace_level = ref 0 *)
+let dump_backtrace = ref true
 
 let set_main_prefix p = main_prefix := p
 let set_old_syntax () = use_old_syntax := true
@@ -69,3 +69,5 @@ let set_sim_trace level = Dynamic.cfg.verbose_level <- level
 let set_dot_no_captions () = dot_captions := false
 let set_dot_vert_trans () =  Dot.cfg.Dot.trans_vlayout <- true
 let set_dot_show_models () = dot_show_models := true
+
+let set_vcd_default_int_size s = Vcd.cfg.Vcd.default_int_size <- s

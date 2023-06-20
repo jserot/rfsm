@@ -80,7 +80,7 @@ program:
 (* CONSTANT DECLS *)
 
 cst_decl:
-  | CONSTANT name=LID COLON ty=type_expr EQUAL v=constant
+  | CONSTANT name=LID COLON ty=type_expr EQUAL v=const
      { mk ~loc:($symbolstartofs,$endofs) Lang.L.Syntax.{cc_name=name; cc_typ=ty; cc_val=v} }
 
 (* FUNCTION DECLS *)
@@ -139,7 +139,7 @@ state:
   | id=UID WHERE ovs=separated_nonempty_list(AND,outp_valuation) { mk ~loc:($symbolstartofs,$endofs) (id,ovs) }
 
 outp_valuation:
-  | id=LID EQUAL e=constant { (id, e) }
+  | id=LID EQUAL e=scalar_const { (id, e) }
                    
 vars:
   | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { List.flatten vars }
@@ -196,7 +196,7 @@ stimuli:
       { mk ~loc:($symbolstartofs,$endofs) (Lang.L.Syntax.Value_change(vcs)) }
   
 value_change:
-  | t=INT COLON v=constant { (t,v) }
+  | t=INT COLON v=scalar_const { (t,v) }
   
 (* FSM INSTANCES *)
 

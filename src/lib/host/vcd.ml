@@ -1,5 +1,16 @@
 (** VCD output *)
 
+type cfg = {
+    mutable default_int_size: int;
+    mutable float_precision: int;
+  }
+
+let cfg = {
+    default_int_size = 8;
+    float_precision = 8;
+  }
+
+
 module type VCD = sig
   type seq
   exception Unsupported of Vcd_types.vcd_typ * Vcd_types.vcd_value
@@ -13,18 +24,20 @@ struct
   module Event = Seq.Evset.Event
 
   open Printf
-
+ 
   exception Unsupported of Vcd_types.vcd_typ * Vcd_types.vcd_value
      
   let vcd_kind_of ty =
     match ty with
     | Vcd_types.TyEvent -> "event", 1
     | Vcd_types.TyBool  -> "wire", 1
-    | Vcd_types.TyInt -> "wire", 8
+    | Vcd_types.TyInt (Some w) -> "wire", w
+    | Vcd_types.TyInt None -> "wire", cfg.default_int_size
     | Vcd_types.TyString -> "real", 1
 
   let vcd_repr ty v = match ty, v with
-  | Vcd_types.TyInt, Vcd_types.Val_int v -> Printf.sprintf "b%s" (Bits.of_int 8 v)
+  | Vcd_types.TyInt (Some w), Vcd_types.Val_int v -> Printf.sprintf "b%s" (Bits.of_int w v)
+  | Vcd_types.TyInt None, Vcd_types.Val_int v -> Printf.sprintf "b%s" (Bits.of_int (cfg.default_int_size) v)
   | Vcd_types.TyBool, Vcd_types.Val_bool v -> Printf.sprintf "b%d" (if v then 1 else 0)
   | Vcd_types.TyString, Vcd_types.Val_string s -> Printf.sprintf "s%s" s
   | _, _ -> raise (Unsupported (ty,v))

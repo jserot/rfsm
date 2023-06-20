@@ -3,7 +3,7 @@
 (* The [Guest] modules should provide functions to convert types (resp. values) to [vcd_typ] and [vcd_value] *)
 
 type vcd_typ =
-  | TyInt
+  | TyInt of int option
   | TyBool
   | TyEvent
   | TyString

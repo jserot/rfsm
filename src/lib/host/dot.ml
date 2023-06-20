@@ -30,7 +30,7 @@ struct
   let pp_cond fmt { Annot.desc=e,gs; _ } =  
     let open Format in
     let pp_guards fmt gs =
-      let pp_guard' fmt g = fprintf fmt "(%a)" (Syntax.Guest.pp_expr ~with_type:false) g in
+      let pp_guard' fmt g = fprintf fmt "(%a)" Syntax.Guest.pp_expr g in
       let pp_guard_list fmt gs = Misc.pp_list_h ~sep:"." pp_guard' fmt gs in
       match gs with
       | [] -> pp_print_text fmt ""
@@ -42,7 +42,7 @@ struct
     match a with
     | Syntax.Emit e -> fprintf fmt "%s" e
     | Syntax.Assign (lhs,expr) ->
-       fprintf fmt "%a:=%a" (Syntax.Guest.pp_lhs ~with_type:false) lhs (Syntax.Guest.pp_expr ~with_type:false) expr
+       fprintf fmt "%a:=%a" Syntax.Guest.pp_lhs lhs Syntax.Guest.pp_expr expr
 
   let pp_actions fmt acts = Misc.pp_list_h ~sep:(if cfg.trans_vlayout then "\n" else ";") pp_action fmt acts
 
@@ -69,7 +69,7 @@ struct
     
   let pp_ovs fmt ovs =
     let open Format in
-    let pp_ov fmt (o,v) = fprintf fmt "%s=%a" o (Syntax.Guest.pp_expr ~with_type:false) v in
+    let pp_ov fmt (o,v) = fprintf fmt "%s=%a" o Syntax.Guest.pp_expr v in
     pp_list_r pp_ov fmt ovs
  
   let outp_model ocf ~kind ~with_caption m = 

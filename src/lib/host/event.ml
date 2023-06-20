@@ -39,6 +39,6 @@ struct
     let open Format in
     match s with
     | Ev e -> fprintf fmt "%s" e
-    | Upd (lhs,v) -> fprintf fmt "%a<-%a" (Syntax.pp_lhs ~with_type:false) lhs Value.pp v
+    | Upd (lhs,v) -> fprintf fmt "%a<-%a" Syntax.pp_lhs lhs Value.pp v
     | StateMove (f,q) -> fprintf fmt "%s<-%s" f q
 end

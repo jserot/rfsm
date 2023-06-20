@@ -14,7 +14,7 @@ fsm model sqrt(
   | Repos -> Calcul1 on h when start=1 with y:=x, u:=1
   | Calcul1 -> Calcul1 on h when u<=y with u:=u*4
   | Calcul1 -> Calcul2 on h when u>y with z:=u
-  | Calcul2 -> Calcul2 on h when u>1 with u:=u/4, z:=z/2-u, t:=z<=y?1:0, y:=t?y-z:y, z:=t?z+u*2:z
+  | Calcul2 -> Calcul2 on h when u>1 with u:=u/4, z:=z/2-u, t:=z<=y, y:=t?y-z:y, z:=t?z+u*2:z
   | Calcul2 -> Repos on h when u<=1 with r:=z/2;
   itrans:
   | -> Repos;

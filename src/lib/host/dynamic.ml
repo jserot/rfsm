@@ -1,6 +1,5 @@
 (** Dynamic semantics *)
 
-
 type act_semantics =
   | Sequential
   | Synchronous
@@ -12,7 +11,7 @@ type cfg = {
          
 let cfg = {
     act_semantics = Sequential;
-    verbose_level = 2;
+    verbose_level = 0;
   }
 
 module type DYNAMIC = sig
@@ -24,7 +23,7 @@ module type DYNAMIC = sig
   exception Illegal_stimulus_value of Location.t
   exception Non_deterministic_transition of string * int * Syntax.transition list (** FSM name, date, transitions *)
 
-  val run: verbose_level:int -> Syntax.program -> Static.t -> Seq.t
+  val run: Syntax.program -> Static.t -> Seq.t
 end
 
 module Make
@@ -101,6 +100,12 @@ struct
        let upd env =
          let v = Eval.eval_expr genv expr in
          Trace.add (mk_event t (Event.Upd (lhs,v))) trace; 
+         (* Format.printf "** t=%d: %a <- \"%a\" / %a = %a\n"
+          *   t
+          *   (Syntax.Guest.pp_lhs ~with_type:false) lhs
+          *   (Syntax.Guest.pp_expr ~with_type:false) expr
+          *   (Env.pp Eval.Value.pp) genv
+          *   Eval.Value.pp v; *)
          Eval.upd_env lhs v env in
        if Env.mem x vars then (* ActUpdL *)
          (upd vars, env),
@@ -259,8 +264,7 @@ struct
           p.Syntax.ios in
       Seq.merge_all sts
 
-   let run ~verbose_level (p: Syntax.program) (s: Static.t) =
-     cfg.verbose_level <- verbose_level;
+   let run (p: Syntax.program) (s: Static.t) =
      let sts = extract_stimuli p in
      match cfg.act_semantics with
      | Sequential -> r_exec s sts

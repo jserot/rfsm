@@ -35,8 +35,8 @@ module type SYNTAX = sig
   val ppr_lhs: (string * type_expr) list -> lhs -> lhs
   val pp_type_decl: Format.formatter -> type_decl -> unit
   val pp_type_expr: Format.formatter -> type_expr -> unit
-  val pp_expr: ?with_type:bool -> Format.formatter -> expr -> unit
-  val pp_lhs: ?with_type:bool -> Format.formatter -> lhs -> unit
+  val pp_expr: Format.formatter -> expr -> unit
+  val pp_lhs: Format.formatter -> lhs -> unit
 end
   
 module type TYPING = sig 

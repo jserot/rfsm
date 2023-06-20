@@ -107,7 +107,7 @@ struct
     | Some Options.Sim ->
        if s.fsms <> [] then
          let vcd_file = !Options.target_dir ^ "/" ^ !Options.main_prefix ^ ".vcd" in
-         L.run ~verbose_level:!Options.sim_trace_level ~vcd_file p s
+         L.run ~vcd_file p s
        else begin
            Printf.eprintf "No testbench to simulate.\n"; flush stderr;
            exit 1
@@ -155,7 +155,7 @@ struct
     | L.Guest.Value.Unsupported_vcd v ->
        eprintf "No VCD conversion for value %a\n" L.Guest.Value.pp v; exit 2
     | L.Guest.Static.Non_static_value e ->
-       eprintf "The expression %a cannot be statically evaluated\n" (L.Guest.Syntax.pp_expr ~with_type:false) e; exit 2
+       eprintf "%aThis expression cannot be statically evaluated\n" pp_location e.Annot.loc; exit 2
     | L.Vcd.Unsupported (ty,v) ->
        eprintf "No representation for VCD type/value: %a:%a\n" Vcd_types.pp_vcd_typ ty Vcd_types.pp_vcd_value v; exit 2
     | Misc.Not_implemented msg ->

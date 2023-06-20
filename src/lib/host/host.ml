@@ -11,7 +11,7 @@ module type T = sig
   val type_program: Typing.env -> Syntax.program -> unit
   val elab: Syntax.program -> Static.t
   (* val draw: dir:string -> name:string -> Static.t -> unit *)
-  val run: ?verbose_level:int -> ?vcd_file:string -> Syntax.program -> Static.t -> unit
+  val run: ?vcd_file:string -> Syntax.program -> Static.t -> unit
   val pp_program: Format.formatter -> Syntax.program -> unit
   val pp_tenv: Format.formatter -> Typing.env -> unit
 end
@@ -36,8 +36,8 @@ module Make (G: Guest.T)
      *   let fnames = Dot.output_static ~dir ~name s in
      *   List.iter *)
 
-    let run ?(verbose_level=0) ?(vcd_file="") p s =
-      let rs = Dynamic.run ~verbose_level p s in
+    let run ?(vcd_file="") p s =
+      let rs = Dynamic.run p s in
       if vcd_file <> "" then begin
           Vcd.output ~fname:vcd_file rs;
           Printf.fprintf stdout "Wrote %s\n" vcd_file

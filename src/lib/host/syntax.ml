@@ -113,7 +113,8 @@ struct
   type type_expr = Guest.type_expr
   type lhs = Guest.lhs
 
-  let pp_type_expr = Guest.pp_type_expr
+  let pp_type_expr fmt te = Misc.pp_opt Guest.Types.pp_typ fmt (te.Annot.typ)
+  (* let pp_type_expr = Guest.pp_type_expr *)
   let pp_expr = Guest.pp_expr
   let pp_lhs = Guest.pp_lhs
 
@@ -390,7 +391,7 @@ struct
   let pp_model_desc fmt p = 
     let open Format in
     let pp_iov fmt (x,t) = fprintf fmt "%s:%a" x pp_type_expr t in
-    let pp_ov fmt (o,e) = fprintf fmt "%s=%a" o (pp_expr ~with_type:false) e in
+    let pp_ov fmt (o,e) = fprintf fmt "%s=%a" o pp_expr e in
     let pp_ovs fmt ovs = match ovs with [] -> () | _ -> fprintf fmt "{%a}" (Misc.pp_list_h pp_ov) ovs in
     let pp_state fmt { Annot.desc=x,ovs; _ } = fprintf fmt "%s%a" x pp_ovs ovs in
     fprintf fmt "@[<v>[@,name=%s@,params=[%a]@,inps=%a@,outps=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,]@]"
