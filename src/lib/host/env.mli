@@ -26,4 +26,6 @@ val filter : (string -> 'a -> bool) -> 'a t -> 'a t
 
 val fold : (string -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
 
+val map : ('a -> 'b) -> 'a t -> 'b t
+
 val pp: ?sep:string -> ?vlayout:bool -> (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit

@@ -34,12 +34,14 @@ struct
     | Vcd_types.TyInt (Some w) -> "wire", w
     | Vcd_types.TyInt None -> "wire", cfg.default_int_size
     | Vcd_types.TyString -> "real", 1
+    | Vcd_types.TyFloat -> "real", cfg.float_precision
 
   let vcd_repr ty v = match ty, v with
   | Vcd_types.TyInt (Some w), Vcd_types.Val_int v -> Printf.sprintf "b%s" (Bits.of_int w v)
   | Vcd_types.TyInt None, Vcd_types.Val_int v -> Printf.sprintf "b%s" (Bits.of_int (cfg.default_int_size) v)
   | Vcd_types.TyBool, Vcd_types.Val_bool v -> Printf.sprintf "b%d" (if v then 1 else 0)
   | Vcd_types.TyString, Vcd_types.Val_string s -> Printf.sprintf "s%s" s
+  | Vcd_types.TyFloat, Vcd_types.Val_float n -> Printf.sprintf "r%.*f\n" cfg.float_precision n
   | _, _ -> raise (Unsupported (ty,v))
 
   let register_event acc e =

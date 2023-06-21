@@ -22,3 +22,4 @@
   | "*." { FTIMES }
   | "/." { FDIV }
   | "?" { QMARK }
+  | "::" { COLONCOLON }

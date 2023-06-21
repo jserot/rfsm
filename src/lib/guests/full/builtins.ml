@@ -56,12 +56,12 @@ let decode_bool = function
   | Value.Val_bool b -> b
   | Value.Val_unknown -> raise Unknown_value
   | _ -> Rfsm.Misc.fatal_error "Full.Builtins.decode_bool" (* Should not occur after TC *)
-(* let encode_float n =
- *     Value.Val_float n
- * let decode_float = function
- *   | Value.Val_float n -> n
- *   | Value.Val_unknown -> raise Unknown_value
- *   | _ -> Rfsm.Misc.fatal_error "Full.Builtins.decode_float" (\* Should not occur after TC *\) *)
+let encode_float n =
+    Value.Val_float n
+let decode_float = function
+  | Value.Val_float n -> n
+  | Value.Val_unknown -> raise Unknown_value
+  | _ -> Rfsm.Misc.fatal_error "Full.Builtins.decode_float" (* Should not occur after TC *)
 
 let prim2 encode op decode =
   function
@@ -109,11 +109,11 @@ let env = [
     "&", (type_arithm2 (), prim2 encode_int  ( land ) decode_int);
     "|", (type_arithm2 (), prim2 encode_int  ( lor ) decode_int);
     "^", (type_arithm2 (), prim2 encode_int  ( lxor ) decode_int);
-    (* "+.", (type_farithm2 (), prim2 encode_float  ( +. ) decode_float);
-     * "-.", (type_farithm2 (), prim2 encode_float  ( -. ) decode_float);
-     * "*.", (type_farithm2 (), prim2 encode_float  ( *. ) decode_float);
-     * "/.", (type_farithm2 (), prim2 encode_float  ( /. ) decode_float);
-     * "~-.", (type_farithm1 (), prim1 encode_float  ( ~-. ) decode_float); *)
+    "+.", (type_farithm2 (), prim2 encode_float  ( +. ) decode_float);
+    "-.", (type_farithm2 (), prim2 encode_float  ( -. ) decode_float);
+    "*.", (type_farithm2 (), prim2 encode_float  ( *. ) decode_float);
+    "/.", (type_farithm2 (), prim2 encode_float  ( /. ) decode_float);
+    "~-.", (type_farithm1 (), prim1 encode_float  ( ~-. ) decode_float);
     "=", (type_compar () , tprim2 ( = ));
     "!=", (type_compar (), tprim2 ( <> ));
     "<", (type_compar (), tprim2 ( < ));

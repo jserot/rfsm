@@ -135,7 +135,10 @@ struct
   let r_reaction sd (m,env) s_e = (* Rules React1, React0 and ReactN *)
     (*  \mu, \Gamma -- \sigma_e | \rho_e --> \mu', \Gamma' *)
     let t = Evset.date s_e in
-    match fireable (Env.union env m.Static.vars) m (Evset.events s_e) with
+    let env' = List.fold_left Env.union Env.empty [m.Static.vars; m.Static.params; env] in
+      (* The folding order in the previous defn forces the _local_ definitions (vars and params) to
+         shadow the global ones. *)
+    match fireable env' m (Evset.events s_e) with
     | [tr] -> r_trans sd (m,env) (tr,t)   (* REACT_1 *)
     | [] -> m, env, Evset.empty t (* REACT_0 *)
     | trs -> r_trans sd (m,env) (choose_transition (m.name,t,trs), t) (* REACT_N *)
@@ -204,7 +207,7 @@ struct
            (List.filter
               (fun (_,ty) -> not (is_event_type ty))
               (sd.Static.inputs @ sd.Static.outputs @ sd.Static.shared))) in
-    let m', env' =
+    let env', m' =
       List.fold_left_map 
         (fun env mu ->
           let nu = mu.Static.vars in
@@ -238,8 +241,9 @@ struct
     (* First check that all stimuli refer to input signals listed in H *)
     List.iter (is_input h.Static.ctx) sts;
     Trace.reset trace;
-    let env0, m0 = r_init h.ctx h.fsms in
-    let _, _ = List.fold_left_map (r_react h.ctx) (m0,env0) sts in
+    let m0, env0 = r_init h.ctx h.fsms in
+    let env1 = Env.union env0 h.globals in
+    let _, _ = List.fold_left_map (r_react h.ctx) (m0,env1) sts in
     Trace.events trace
   
     let extract_stimuli p = 

@@ -9,3 +9,5 @@ let rec eval e = match e.Rfsm.Annot.desc with
   | Syntax.EFloat f -> Value.Val_float f
   | Syntax.EArrExt es -> Value.Val_array (Array.of_list (List.map eval es))
   | _ -> raise (Non_static_value e)
+
+let eval_fn args body = Value.Val_fn (args,body)

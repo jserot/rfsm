@@ -76,6 +76,7 @@ module type STATIC = sig
   type expr
   type value
   exception Non_static_value of expr
+  val eval_fn: string list -> expr -> value (* Args, body *)
   val eval: expr -> value  (* Static evaluation of constant expressions *)
 end
 

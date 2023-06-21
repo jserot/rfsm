@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# A script for automated testing 
+
+function try_make
+{
+case $1 in
+type) make type;;
+dot) make dot.run;;
+sim) make sim.run;;
+*) false;;
+esac
+case $? in
+0) echo "OK";;
+*) echo "FAILED";;
+esac
+}
+
+function run
+{
+echo -n "  -> making $2 in $1 ... "
+(cd $1; make $2) > /dev/null 2>&1
+case $? in
+0) echo -e "\033[32mOK\033[0m";;
+*) failed=true; echo -e "\033[31mFAILED\033[0m"; (cd $1; make $2.clobber) > /dev/null 2>&1;;
+esac
+}
+
+function check_results
+{
+echo -n "  -> checking $1 results ... "
+(cd $1; make $2.check) > /dev/null 2>&1
+case $? in
+0)
+  echo -e "\033[32mOK\033[0m";;
+*)
+ failed=true; echo -e "\033[31m** Checking of $2 results FAILED in $1\033[0m";;
+esac
+}
+
+function make_test 
+{
+    failed=false
+    (cd $1; make clobber) > $TMP 2>&1
+    run $1 dot 
+    run $1 sim
+#    check_results $1 sim
+    (cd $1; make clobber) > $TMP 2>&1
+}
+
+TMP=/tmp/do_test.out
+
+if [ $1 = "all" ]
+then
+    shift
+    echo "** Testing all in $1... "
+    make_test $1 2>&1
+    if $failed ; then
+        exit 0
+    else
+        exit 1
+    fi
+else 
+    echo -n "Testing $1 in $2... "
+    (cd $2; if [ -e Makefile ]; then make clobber > $TMP 2>&1; fi)
+    (cd $2; try_make $1 && make clean) > $TMP 2>&1
+    grep "OK" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
+    grep "FAILED" $TMP >/dev/null && echo -e "\033[31mFAILED\033[0m"
+    grep "OK" $TMP >/dev/null && exit 1
+    exit 0
+fi

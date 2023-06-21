@@ -108,7 +108,7 @@ and eval env exp =
        | { v_desc=Val_int x }, { v_desc=Val_int i } -> 
           mk (Val_int (Intbits.get_bits i i x))
        | _ -> raise (Illegal_bit_range_access exp)
-     end
+     endl
   | EBitrange (a,idx1,idx2) ->
      begin
        match lookup env a, eval env idx1, eval env idx2 with

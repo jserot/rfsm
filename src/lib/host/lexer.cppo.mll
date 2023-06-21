@@ -31,7 +31,10 @@ let keyword_table = [
   "with", WITH;
   "where", WHERE;
   "and", AND;
+  "type", TYPE;
   "constant", CONSTANT;
+  "function", FUNCTION;
+  "return", RETURN;
 #include "guest_kw.mll"
 ]
 

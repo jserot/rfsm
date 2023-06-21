@@ -21,10 +21,14 @@ let handle e =
       eprintf "%aUndefined %s: %s\n" pp_loc loc what s; exit 2
   | Typing.Duplicate (what,loc,x) -> 
       eprintf "%aDuplicate %s: %s\n" pp_loc loc what x; exit 2
+  | Typing.Illegal_cast e -> 
+      eprintf "%aIllegal cast\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Eval.Uninitialized loc -> 
       eprintf "%aUninitialized value\n" pp_loc loc; exit 2
   | Eval.Out_of_bound (loc,i) -> 
       eprintf "%aOut of bound array access (%d)\n" pp_loc loc i; exit 2
+  | Eval.Illegal_application e -> 
+      eprintf "%aIllegal application\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Value.Unsupported_vcd v ->
       eprintf "No VCD conversion for value %a\n" Value.pp v; exit 2
   | e ->

@@ -2,8 +2,10 @@ type t =
   | Val_int of int
   | Val_bool of bool
   | Val_float of float
+  (* | Val_char of char *)
   | Val_array of t array
   | Val_enum of string
+  | Val_fn of string list * Syntax.expr   (** args, body *)
   | Val_unknown
 
 type typ = Types.typ
@@ -21,14 +23,14 @@ exception Unsupported_vcd of t
 let vcd_type v = match v with
   | Val_int _ -> Rfsm.Vcd_types.TyInt None
   | Val_bool _ -> Rfsm.Vcd_types.TyBool
-  (* | Val_float _ -> Rfsm.Vcd_types.TyReal *)
+  | Val_float _ -> Rfsm.Vcd_types.TyFloat
   | Val_enum _ -> Rfsm.Vcd_types.TyString
   | _ -> raise (Unsupported_vcd v)
 
 let vcd_value v = match v with
   | Val_int v -> Rfsm.Vcd_types.Val_int v
   | Val_bool v -> Rfsm.Vcd_types.Val_bool v
-  (* | Val_float v -> Rfsm.Vcd_types.Val_real v *)
+  | Val_float v -> Rfsm.Vcd_types.Val_float v
   | Val_enum c -> Rfsm.Vcd_types.Val_string c
   | _ -> raise (Unsupported_vcd v)
 
@@ -40,4 +42,5 @@ let rec pp fmt v =
   | Val_float v -> fprintf fmt "%f" v
   | Val_array vs -> fprintf fmt "[%a]" (Rfsm.Misc.pp_list_h ~sep:"," pp) (Array.to_list vs)
   | Val_enum c -> fprintf fmt "%s" c
+  | Val_fn _ -> fprintf fmt "<fun>"
   | Val_unknown -> fprintf fmt "?"

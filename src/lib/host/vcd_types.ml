@@ -1,7 +1,7 @@
 type vcd_typ =
   | TyInt of int option (** width in bits *)
   | TyBool
-  (* | TyFloat *)
+  | TyFloat
   | TyEvent
   | TyString
 [@@deriving show]
@@ -9,6 +9,7 @@ type vcd_typ =
 type vcd_value =
   | Val_int of int
   | Val_bool of bool
+  | Val_float of float
   | Val_string of string
 [@@deriving show]
 

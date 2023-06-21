@@ -52,7 +52,7 @@ struct
         L.Syntax.empty_program
         !source_files in
     let p = L.Syntax.ppr_program p0 in
-    (* if !Options.dump_parsed then Format.printf "parsed=%a" L.pp_program p; *)
+    (* Format.printf "parsed=%a" L.pp_program p; *)
     let tenv0 = L.Typing.mk_env () in
     if !Options.dump_tenv then Format.printf "tenv=%a" L.pp_tenv tenv0;
     L.type_program tenv0 p;

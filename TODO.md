@@ -9,7 +9,9 @@ COMPILER
 - reinstall VHDL backend
 - rename src/lib/host/seq.ml
 - banner
+- clean code (remove debug printf)
 - output formatting when using -trace option
+- prefix local vars in VCD output
 - VCD hierarchy (gtkwave format ?)
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)

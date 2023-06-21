@@ -12,7 +12,7 @@
 %token QMARK
 %token LTE
 %token GTE
-/* %token COLONCOLON */
+%token COLONCOLON
 %token TYINT
 %token TYARRAY
 
@@ -24,5 +24,6 @@
 %left TIMES DIV MOD
 %left FPLUS FMINUS
 %left FTIMES FDIV
-/* %nonassoc COLONCOLON */
+%nonassoc COLONCOLON
+%nonassoc prec_unary_minus         (* Highest precedence *)
 

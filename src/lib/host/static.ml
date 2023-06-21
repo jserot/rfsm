@@ -20,8 +20,9 @@ module type STATIC = sig
 
   type t = {
     ctx: ctx;
-    models: Syntax.model list; (* original, un-normalized models *)
+    models: Syntax.model list; (** Original, un-normalized models *)
     fsms: fsm list;
+    globals: Value.t Env.t; (** Functions and constants *)
     }
 
   val build: Syntax.program -> t
@@ -57,16 +58,17 @@ struct
     match verbose_level with
     | 0 -> Format.fprintf fmt "%s" f.name  (* Name only *)
     | 1 -> (* With model name only *)
-       Format.fprintf fmt "{name=%s; model=%s; params=%a; q=%s; vars=%a}"
+       fprintf fmt "@[<v>[@,name=%s@,model=%s@,params=%a@,q=%s@,vars=%a@,]@]@."
          f.name
-         f.model.Annot.desc.name
+         f.model.Annot.desc.Syntax.name
          (Env.pp Value.pp) f.params
          f.q
          (Env.pp Value.pp) f.vars
     | _ -> (* Full *)
-       fprintf fmt "@[<v>[@,name=%s@,model=%a@,q=%s@,vars=%a@,]@]@."
+       fprintf fmt "@[<v>[@,name=%s@,model=%s@,params=%a@,q=%s@,vars=%a@,]@]@."
          f.name
-         Syntax.pp_model f.model
+         f.model.Annot.desc.name
+         (Env.pp Value.pp) f.params
          f.q
          (Env.pp Value.pp) f.vars
 
@@ -88,15 +90,16 @@ struct
     ctx: ctx;
     models: Syntax.model list;
     fsms: fsm list;
+    globals: Value.t Env.t;
     }
 
   let pp ?(verbose_level=1) fmt s = 
     let open Format in
-    fprintf fmt "@[<v>[ctx=%a@,models=[%a]@,fsms=[%a]@]@."
+    fprintf fmt "@[<v>[ctx=%a@,models=[%a]@,fsms=[%a]@,globals=%a@]@."
     pp_ctx s.ctx
     (Misc.pp_list_h Syntax.pp_model) s.models
     (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
-
+    (Env.pp Value.pp) s.globals
 
   (* Rules *)
          
@@ -155,9 +158,25 @@ struct
     let c = build_ctx senv_i in
     m, c
     
+  let r_const env { Annot.desc = c; _ } = 
+    let open Syntax in
+     Env.add c.cc_name (GS.eval c.cc_val) env  (* TODO: fold env so that a defn can depend on a previous one *)
+
+  let r_fun env { Annot.desc = f; _ } = 
+    let open Syntax in
+    Env.add f.ff_name (GS.eval_fn (List.map fst f.ff_args) f.ff_body) env 
+
+  let r_globals p = 
+    let env_c = List.fold_left r_const Env.empty p.Syntax.cst_decls in
+    let env_f = List.fold_left r_fun env_c p.Syntax.fun_decls in
+    Env.union env_c env_f
+
   let build p =
     let m, c = r_program p in
-    { ctx = c; models = p.Syntax.models; fsms = m }
+    { ctx = c;
+      models = p.Syntax.models;
+      fsms = m;
+      globals = r_globals p }
               
   (* Dependency-based sorting *)
     

@@ -64,8 +64,11 @@ and expr_desc =
   | EBinop of string * expr * expr
   | ECon0 of string             (** Enum value *)
   | EArr of string * expr       (** t[i] when t is an array *)
+  | EBit of string * expr       (** t[i] when t is an int *)
   | EArrExt of expr list        
   | ECond of expr * expr * expr  (** e1 ? e2 : e3 *)
+  | ECast of expr * type_expr
+  | EFapp of string * expr list  (** f(arg1,...,argn) *)
 
 let rec pp_expr_desc fmt e = 
   let open Format in
@@ -76,9 +79,12 @@ let rec pp_expr_desc fmt e =
   | EFloat f -> fprintf fmt "%f" f
   | EBinop (op,e1,e2) -> fprintf fmt "%a%s%a" pp_expr e1 op pp_expr e2
   | ECon0 c -> fprintf fmt "%s" c
-  | EArr (a,i) -> fprintf fmt "%s[%a]" a pp_expr i
+  | EArr (a,i) 
+  | EBit (a,i) -> fprintf fmt "%s[%a]" a pp_expr i
   | EArrExt vs -> fprintf fmt "[%a]" (Rfsm.Misc.pp_list_h ~sep:"," pp_expr) vs
   | ECond (e1,e2,e3) -> fprintf fmt "%a?%a:%a" pp_expr e1 pp_expr e2 pp_expr e3
+  | ECast (e,t) -> fprintf fmt "%a::%a" pp_expr e pp_type_expr t
+  | EFapp (f,es) -> fprintf fmt "%s(%a)" f (Rfsm.Misc.pp_list_h ~sep:"," pp_expr) es
 and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc;
 
 (** Assignations LHS *)
@@ -102,8 +108,14 @@ let lhs_name l = match l.Annot.desc with
               
 let rec vars_of_expr e = match e.Annot.desc with
   | EVar v -> [v]
+  | EInt _ | EBool _ | EFloat _ -> []
   | EBinop (_,e1,e2) -> vars_of_expr e1 @ vars_of_expr e2
-  | _ -> []
+  | ECon0 _ -> []
+  | EArr (a,i) | EBit (a,i) -> a :: vars_of_expr i
+  | EArrExt vs -> List.concat (List.map vars_of_expr vs)
+  | ECond (e1,e2,e3) -> vars_of_expr e1 @ vars_of_expr e2 @ vars_of_expr e3
+  | ECast (e,_) -> vars_of_expr e
+  | EFapp (f,es) -> List.concat (List.map vars_of_expr es)
 
 let vars_of_lhs l = match l.Annot.desc with
   | LhsVar v -> [v]
@@ -114,10 +126,18 @@ let vars_of_lhs l = match l.Annot.desc with
 let subst_var phi v = Rfsm.Misc.subst_id phi v
                     
 let rec subst_expr phi e =
+  let subst e d = { e with Annot.desc = d } in
   match e.Annot.desc with
-  | EVar v -> { e with Annot.desc = EVar (subst_var phi v) }
-  | EBinop (op,e1,e2) -> { e with Annot.desc = EBinop (op, subst_expr phi e1, subst_expr phi e2) }
-  | _ -> e
+  | EVar v -> subst e (EVar (subst_var phi v))
+  | EInt _ | EBool _ | EFloat _ -> e
+  | EBinop (op,e1,e2) -> subst e (EBinop (op, subst_expr phi e1, subst_expr phi e2))
+  | ECon0 _ -> e
+  | EArr (a,i) -> subst e (EArr (subst_var phi a, subst_expr phi i))
+  | EBit (a,i) -> subst e (EBit (subst_var phi a, subst_expr phi i))
+  | EArrExt vs -> subst e (EArrExt (List.map (subst_expr phi) vs))
+  | ECond (e1,e2,e3) -> subst e (ECond (subst_expr phi e1, subst_expr phi e2, subst_expr phi e3))
+  | ECast (e,t) -> subst e (ECast (subst_expr phi e, t))
+  | EFapp (f,es) -> subst e (EFapp (f, List.map (subst_expr phi) es))
 
 let subst_lhs phi l = 
   match l.Annot.desc with
@@ -142,6 +162,12 @@ let mk_bool_expr te e = match e.Annot.desc with
   | EInt 0 when is_bool_type te -> { e with Annot.desc = EBool false }
   | EInt 1 when is_bool_type te -> { e with Annot.desc = EBool true }
   | _ -> e 
+
+let mkuminus name e =
+  match name, e.Annot.desc with
+  | "-", EInt n -> { e with Annot.desc = EInt (-n) }
+  | ("-."|"-"), EFloat n -> { e with Annot.desc = EFloat (-.n) }
+  | _ -> { e with Annot.desc = EFapp ("~"^name, [e]) }
 
 let ppr_expr (env: (string * type_expr) list) e =
   (* Replace all bool expr [e op 0/1], where [e:bool] and [op] is [=] or [!=] by [e op false/true] *)

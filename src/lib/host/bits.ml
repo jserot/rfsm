@@ -18,3 +18,4 @@ let of_int s v =
   then of_uint s (cpl2 s (-v))
   else of_uint s v
 
+let get_bits hi lo n = (n lsr lo) mod (1 lsl (hi-lo+1))

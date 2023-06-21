@@ -2,6 +2,8 @@ module Location = Rfsm.Location
 
 module VarSet = Set.Make(struct type t = string let compare = Stdlib.compare end)
                  
+let print_full_types = ref false (* for debug only *)
+
 (* Type indexes *)
 
 module Index = struct 
@@ -395,7 +397,7 @@ let rec pp_typ fmt t =
   match real_type t with
   | TyVar v -> fprintf fmt "_%d" v.stamp
   | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" pp_typ t1 pp_typ t2 
-  | TyProduct [t] -> pp_typ fmt t
+  | TyProduct [t] -> if !print_full_types then fprintf fmt "(%a)" pp_typ t else pp_typ fmt t
   | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" pp_typ fmt ts
   | TyConstr (c,[],sz) -> fprintf fmt "%s%a" c (pp_siz c) sz
   | TyConstr (c,[t'],sz) -> fprintf fmt "%a %s%a" pp_typ t' c (pp_siz c) sz
@@ -408,9 +410,9 @@ let rec pp_typ fmt t =
 
 and pp_siz c fmt sz = 
   match c, size_repr sz with
-  | _, SzNone -> ()
-  | "int", SzVar v -> ()
-  | "array", SzVar v -> Format.fprintf fmt "[]"
+  | _, SzNone -> if !print_full_types then Format.fprintf fmt "<none>" else ()
+  | "int", SzVar v -> if !print_full_types then Format.fprintf fmt "<%a>" pp_var v else ()
+  | "array", SzVar v -> if !print_full_types then Format.fprintf fmt "[%a]" pp_var v else Format.fprintf fmt "[]"
   | _, SzVar v -> Format.fprintf fmt "%a" pp_var v
   | "array", SzExpr1 sz -> Format.fprintf fmt "[%a]" Index.pp sz
   | _, SzExpr1 sz -> Format.fprintf fmt "<%a>" Index.pp sz

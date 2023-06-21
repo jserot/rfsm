@@ -19,6 +19,7 @@ let mk_env () =
 
 exception Undefined of string * Location.t * string 
 exception Duplicate of string * Location.t * string
+exception Illegal_cast of Syntax.expr
 
 let lookup ~exc v env = 
   try Env.find v env 
@@ -77,6 +78,9 @@ and type_index_of_index_expr e =
 
 let rec type_expression env e =
   let loc = e.Annot.loc in
+  let type_of e = match e.Annot.typ with
+    | Some t -> t
+    | None -> Rfsm.Misc.fatal_error "Full.Typing.type_of" in
   let ty = match e.Annot.desc with
     | Syntax.EVar v -> lookup ~exc:(Undefined ("symbol",e.Annot.loc,v)) v env.te_vars
     | Syntax.EInt _ -> Types.type_unsized_int ()
@@ -85,9 +89,17 @@ let rec type_expression env e =
     | Syntax.EBinop (op,e1,e2) ->
        let ty_fn = Types.type_instance (lookup ~exc:(Undefined("operator",e.Annot.loc,op)) op env.te_prims) in
        let ty_args = List.map (type_expression env) [e1;e2] in
-       type_application e env ty_fn ty_args
+       type_application ~loc:e.Annot.loc env ty_fn ty_args
     | Syntax.ECon0 c -> lookup ~exc:(Undefined ("value constructor",e.Annot.loc,c)) c env.te_ctors
-    | Syntax.EArr (a,i) -> type_array_access ~loc env a i
+    | Syntax.EArr (a,i) ->
+       begin match lookup ~exc:(Undefined ("symbol",e.Annot.loc,a)) a env.te_vars with
+       | TyConstr("int",_,_) -> (* Special case *)
+          e.Annot.desc <- Syntax.EBit (a,i);
+          Types.type_sized_int 1
+       | _ ->
+          type_array_access ~loc env a i
+       end
+    | Syntax.EBit (a,i) -> type_of e  (* Typing has been carried out by the above case *)
     | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 
        let ty_e1 = type_expression env e1 in
@@ -100,16 +112,28 @@ let rec type_expression env e =
        Types.unify ~loc ty_e1 (Types.type_bool ());
        Types.unify ~loc ty_e2 ty_e3;
        ty_e2
-
+  | Syntax.ECast (e,te) ->
+      let ty_e = type_expression env e in
+      let ty_t = type_of_type_expr env te in
+      type_cast e ty_e ty_t 
+  | Syntax.EFapp (f,es) ->
+      let ty_args = List.map (type_expression env) es in
+      let env' = 
+        { env with te_vars =
+                     Env.union
+                       env.te_vars
+                       (Env.map Types.type_instance env.te_prims) } in 
+      let ty_fn = lookup ~exc:(Undefined ("symbol",e.Annot.loc,f)) f env'.te_vars in
+      type_application ~loc:e.Annot.loc env' ty_fn ty_args
   in
   e.Annot.typ <- Some ty;
   ty
 
-and type_application expr env ty_fn ty_args =
+and type_application ~loc env ty_fn ty_args =
   let open Types in
-  let ty_arg = TyProduct ty_args in
+  let ty_arg = match ty_args with [t] -> t | ts -> TyProduct ts in
   let ty_result = new_type_var () in
-  unify ~loc:expr.Annot.loc ty_fn (TyArrow (ty_arg,ty_result));
+  unify ~loc ty_fn (TyArrow (ty_arg,ty_result));
   Types.real_type ty_result
 
 and type_array_access ~loc env a i =
@@ -122,6 +146,18 @@ and type_array_access ~loc env a i =
     | _ -> raise (Types.Type_conflict (loc, ty_arg, Types.TyConstr ("array", [], SzNone)))
     end in
   ty_res
+
+and type_cast e t1 t2 = match t1, t2 with
+  | TyConstr("int",_,_), TyConstr("int",_,_)
+  | TyConstr("int",_,_), TyConstr("bool",_,_)
+  | TyConstr("int",_,_), TyConstr ("char",_,_)
+  | TyConstr ("char",_,_), TyConstr("int",_,_)
+  | TyConstr("int",_,_), TyConstr ("float",_,_)
+  | TyConstr("bool",_,_), TyConstr("bool",_,_)
+  | TyConstr("bool",_,_), TyConstr("int",_,_)
+  | TyConstr ("float",_,_), TyConstr ("float",_,_)
+  | TyConstr ("float",_,_), TyConstr("int",_,_) -> t2
+  | _, _ -> raise (Illegal_cast e)
 
 let type_lhs env l =
   let ty = match l.Annot.desc with

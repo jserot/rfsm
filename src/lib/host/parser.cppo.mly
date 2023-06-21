@@ -196,7 +196,7 @@ stimuli:
       { mk ~loc:($symbolstartofs,$endofs) (Lang.L.Syntax.Value_change(vcs)) }
   
 value_change:
-  | t=INT COLON v=scalar_const { (t,v) }
+  | t=INT COLON v=stim_const { (t,v) }
   
 (* FSM INSTANCES *)
 

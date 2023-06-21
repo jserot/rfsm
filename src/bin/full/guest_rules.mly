@@ -64,16 +64,17 @@ expr:
   | e1 = expr FMINUS e2 = expr { mk ~loc:($symbolstartofs,$endofs)  (EBinop ("-.", e1, e2)) }
   | e1 = expr FTIMES e2 = expr { mk ~loc:($symbolstartofs,$endofs)  (EBinop ("*.", e1, e2)) }
   | e1 = expr FDIV e2 = expr { mk ~loc:($symbolstartofs,$endofs)  (EBinop ("/.", e1, e2)) }
-  /* | s=subtractive e=expr %prec prec_unary_minus { mkuminus s e } */
+  | s=subtractive e=expr %prec prec_unary_minus { mkuminus s e }
   | a = LID LBRACKET i=expr RBRACKET { mk ~loc:($symbolstartofs,$endofs) (EArr (a,i)) }
+  | f = LID LPAREN args=separated_list(COMMA,expr) RPAREN { mk ~loc:($symbolstartofs,$endofs) (EFapp (f,args)) }
   /* | a = LID DOT f = LID */
   /*     { mk_expr (ERecord (a,f)) } */
   /* | a = LID LBRACKET i1=expr COLON i2=expr RBRACKET  */
   /*     { mk_expr (EBitrange (a,i1,i2)) } */
   | e1 = expr QMARK e2 = expr COLON e3 = expr
       { mk ~loc:($symbolstartofs,$endofs) (ECond (e1, e2, e3)) }
-  /* | e = expr COLONCOLON t = type_expr */
-  /*     { mk_expr (ECast (e, t)) } */
+  | e = expr COLONCOLON t = type_expr
+      { mk ~loc:($symbolstartofs,$endofs) (ECast (e,t)) }
 
 simple_expr:
   | v = LID { mk ~loc:($symbolstartofs,$endofs) (EVar v) }
@@ -100,15 +101,23 @@ const:
   | c = array_const { c }
   /* | c = record_const { c } */
 
+stim_const: 
+  | c = scalar_const { c }
+  | c = UID { mk ~loc:($symbolstartofs,$endofs) (ECon0 c) }
+  
 int_const:
   | v = INT { v }
-  | MINUS v = INT { -v }
+  /* | MINUS v = INT { -v } */
 
 bool_const:
   | v = BOOL { v }
 
 float_const:
   | v = FLOAT { v }
+
+subtractive:
+  | MINUS                                       { "-" }
+  | FMINUS                                      { "-." }
 
 array_const:
   | LBRACKET vs = separated_nonempty_list(COMMA,const) RBRACKET

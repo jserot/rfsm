@@ -1,0 +1,12 @@
+#!/bin/bash
+
+nt=0
+ns=0
+for i in ./{single,multi}/[a-z]*
+do
+  (( nt = nt + 1 ))
+  ./do_test $flag $1 $i
+  (( ns = ns + $? ))
+done
+
+echo "***" $ns"/"$nt "test(s) OK"

@@ -1,12 +1,10 @@
 -- PWM generator
 
-type bit = int<0:1>
-
 fsm model pwm(
   in startstop: event,
   in h: event,
   in r: int<0:10>,
-  out s: bit)
+  out s: bool)
 {
   states: Stopped, Running;
   vars: c: int;
@@ -23,6 +21,6 @@ fsm model pwm(
 input H : event = periodic(10, 10, 510)
 input r : int<0:10> = value_changes(0:7, 300:9)
 input StartStop : event = sporadic(15, 235, 305)
-output s : bit
+output s : bool
 
 fsm pwm1 = pwm(StartStop,H,r,s)
