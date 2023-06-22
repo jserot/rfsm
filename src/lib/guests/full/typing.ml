@@ -81,6 +81,7 @@ let rec type_expression env e =
     | Syntax.EInt _ -> Types.type_unsized_int ()
     | Syntax.EBool _ -> Types.type_bool ()
     | Syntax.EFloat _ -> Types.type_float ()
+    | Syntax.EChar _ -> Types.type_char ()
     | Syntax.EBinop (op,e1,e2) ->
        let ty_fn = Types.type_instance (lookup ~exc:(Undefined("operator",e.Annot.loc,op)) op env.te_prims) in
        let ty_args = List.map (type_expression env) [e1;e2] in
@@ -184,6 +185,10 @@ let type_type_decl env td =
        ty,
        { env with te_tycons = add_tycon ty env.te_tycons (name,0);
                   te_rfields = List.fold_left (add_rfield ty) env.te_rfields fields }
+    | Syntax.TD_Alias (name,te) ->
+       let ty = type_of_type_expr env te in 
+       ty, 
+       { env with te_tycons = add_tycon ty env.te_tycons (name,0) }
   in
   td.Annot.typ <- Some ty;
   env'

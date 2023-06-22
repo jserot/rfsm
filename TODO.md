@@ -13,6 +13,7 @@ COMPILER
 - output formatting when using -trace option
 - prefix local vars in VCD output
 - VCD hierarchy (gtkwave format ?)
+- in DOT repr, do not print type defns but type names (optionnaly ?)
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)
 - support for synchronous actions

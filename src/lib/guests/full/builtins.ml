@@ -134,6 +134,7 @@ let typing_env =
       "int", (0, Types.type_unsized_int ());
       "bool", (0, Types.type_bool ());
       "float", (0, Types.type_float ());
+      "char", (0, Types.type_char ());
       "array", (1, Types.type_unsized_array (Types.new_type_var ()));
       ];
     ctors = [

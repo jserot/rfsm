@@ -27,6 +27,7 @@ let rec eval_expr env e = match e.Annot.desc with
   | Syntax.EInt i -> Val_int i 
   | Syntax.EBool i -> Val_bool i 
   | Syntax.EFloat f -> Val_float f 
+  | Syntax.EChar c -> Val_char c 
   | Syntax.EBinop (op,e1,e2) -> 
      let f = Builtins.lookup op Builtins.eval_env in
      f [eval_arg env e1; eval_arg env e2]

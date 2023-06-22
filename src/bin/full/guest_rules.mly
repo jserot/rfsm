@@ -3,8 +3,8 @@ type_decl:
      { mk ~loc:($symbolstartofs,$endofs) (TD_Enum (id,ctors)) }
   | TYPE id=LID EQUAL RECORD LBRACE fs=separated_nonempty_list(COMMA,record_field) RBRACE
       { mk ~loc:($symbolstartofs,$endofs) (TD_Record (id,fs)) }
-  /* | TYPE id=LID EQUAL t=type_expr */
-  /*     { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Alias (id,t)) } */
+  | TYPE id=LID EQUAL t=type_expr
+      { mk ~loc:($symbolstartofs,$endofs) (TD_Alias (id,t)) }
 
 record_field:
   | n=LID COLON t=type_expr { (n,t) }
@@ -32,7 +32,7 @@ array_size:
     | sz = type_index_expr { [sz] }
 
 type_index_expr:
-  | c = int_const
+  | c = INT
       { mk ~loc:($symbolstartofs,$endofs) (TiConst c) }
   | i = LID
       { mk ~loc:($symbolstartofs,$endofs) (TiVar i) }
@@ -100,14 +100,16 @@ param_value:
   | v = LID { mk ~loc:($symbolstartofs,$endofs) (EVar v) }
 
 scalar_const:
-  | c = int_const { mk ~loc:($symbolstartofs,$endofs) (EInt c) }
-  | c = bool_const { mk ~loc:($symbolstartofs,$endofs) (EBool c) }
-  | c = float_const { mk ~loc:($symbolstartofs,$endofs) (EFloat c) }
+  | c = INT { mk ~loc:($symbolstartofs,$endofs) (EInt c) }
+  | MINUS c = INT { mk ~loc:($symbolstartofs,$endofs) (EInt (-c)) }
+  | c = BOOL { mk ~loc:($symbolstartofs,$endofs) (EBool c) }
+  | c = FLOAT { mk ~loc:($symbolstartofs,$endofs) (EFloat c) }
+  | MINUS c = FLOAT { mk ~loc:($symbolstartofs,$endofs) (EFloat (-.c)) }
+  | c = CHAR { mk ~loc:($symbolstartofs,$endofs) (EChar c) }
 
 const:
   | c = scalar_const { c }
   | c = array_const { c }
-  /* | c = record_const { c } */
 
 stim_const: 
   | c = scalar_const { c }
@@ -116,21 +118,10 @@ stim_const:
 
 record_const:
   | LBRACE vs = separated_nonempty_list(COMMA,record_field_const) RBRACE { ERecordExt vs }
-      /* { Expr.mk_record (Types.new_name_var()) (List.map (function (n,v) -> (n, Types.new_type_var(), v)) vs) } */
 
 record_field_const:
   | id = LID EQUAL v = scalar_const { (id, v) }
   
-int_const:
-  | v = INT { v }
-  /* | MINUS v = INT { -v } */
-
-bool_const:
-  | v = BOOL { v }
-
-float_const:
-  | v = FLOAT { v }
-
 subtractive:
   | MINUS                                       { "-" }
   | FMINUS                                      { "-." }

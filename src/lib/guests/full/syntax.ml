@@ -47,6 +47,7 @@ and pp_type_index_expr fmt ie =
 type type_decl_desc =
   | TD_Enum of string * string list (** Name, constructors *)
   | TD_Record of string * rfield_desc list (** Name, fields *)
+  | TD_Alias of string * type_expr  (** Name, aliased type *)
 and type_decl = (type_decl_desc,Types.typ) Annot.t
 
 and rfield_desc = string * type_expr 
@@ -57,6 +58,7 @@ let rec pp_type_decl_desc fmt td =
   match td with
   | TD_Enum (name,ctors) -> fprintf fmt "(\"%s\", enum { %a })" name (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors
   | TD_Record (name,fields) -> fprintf fmt "(\"%s\", record { %a })" name (Rfsm.Misc.pp_list_h ~sep:";" pp_rfield) fields
+  | TD_Alias (name,t) -> fprintf fmt "(\"%s\", alias %a)" name pp_type_expr t
 and pp_type_decl fmt td = Format.fprintf fmt "%a" pp_type_decl_desc td.Annot.desc
 
 (** Expressions *)
@@ -67,6 +69,7 @@ and expr_desc =
   | EInt of int
   | EBool of bool
   | EFloat of float
+  | EChar of char
   | EBinop of string * expr * expr
   | ECon0 of string              (** Enum value *)
   | EArr of string * expr        (** t[i] when t is an array *)
@@ -86,6 +89,7 @@ let rec pp_expr_desc fmt e =
   | EInt i -> fprintf fmt "%d" i
   | EBool b -> fprintf fmt "%b" b
   | EFloat f -> fprintf fmt "%f" f
+  | EChar c -> fprintf fmt "%c" c
   | EBinop (op,e1,e2) -> fprintf fmt "%a%s%a" pp_expr e1 op pp_expr e2
   | ECon0 c -> fprintf fmt "%s" c
   | EArr (a,i) 
@@ -123,7 +127,7 @@ let lhs_name l = match l.Annot.desc with
               
 let rec vars_of_expr e = match e.Annot.desc with
   | EVar v -> [v]
-  | EInt _ | EBool _ | EFloat _ -> []
+  | EInt _ | EBool _ | EFloat _ | EChar _ -> []
   | EBinop (_,e1,e2) -> vars_of_expr e1 @ vars_of_expr e2
   | ECon0 _ -> []
   | EArr (a,i) | EBit (a,i) -> a :: vars_of_expr i
@@ -147,7 +151,7 @@ let rec subst_expr phi e =
   let subst e d = { e with Annot.desc = d } in
   match e.Annot.desc with
   | EVar v -> subst e (EVar (subst_var phi v))
-  | EInt _ | EBool _ | EFloat _ -> e
+  | EInt _ | EBool _ | EFloat _ | EChar _ -> e
   | EBinop (op,e1,e2) -> subst e (EBinop (op, subst_expr phi e1, subst_expr phi e2))
   | ECon0 _ -> e
   | EArr (a,i) -> subst e (EArr (subst_var phi a, subst_expr phi i))

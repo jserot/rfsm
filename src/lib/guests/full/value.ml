@@ -2,7 +2,7 @@ type t =
   | Val_int of int
   | Val_bool of bool
   | Val_float of float
-  (* | Val_char of char *)
+  | Val_char of char
   | Val_array of t array
   | Val_enum of string
   | Val_fn of string list * Syntax.expr   (** args, body *)
@@ -44,6 +44,7 @@ let rec pp fmt v =
   | Val_int v -> fprintf fmt "%d" v
   | Val_bool v -> fprintf fmt "%b" v
   | Val_float v -> fprintf fmt "%f" v
+  | Val_char c -> fprintf fmt "'%c'" c
   | Val_array vs -> fprintf fmt "[%a]" (Rfsm.Misc.pp_list_h ~sep:"," pp) (Array.to_list vs)
   | Val_enum c -> fprintf fmt "%s" c
   | Val_fn _ -> fprintf fmt "<fun>"

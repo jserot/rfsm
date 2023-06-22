@@ -132,6 +132,7 @@ let type_sized_array t sz = TyConstr ("array", [t], SzExpr1 (TiConst sz))
 let type_event () = TyConstr ("event", [], SzNone)
 let type_bool () = TyConstr ("bool", [], SzNone)
 let type_float () = TyConstr ( "float", [], SzNone)
+let type_char () = TyConstr ( "char", [], SzNone)
 
 let mk_type_constr0 c = TyConstr (c, [], SzNone)
 let is_type_constr0 c ty = match ty with

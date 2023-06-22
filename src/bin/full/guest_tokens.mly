@@ -1,5 +1,6 @@
 %token <bool> BOOL
 %token <float> FLOAT
+%token <char> CHAR
 %token PLUS MINUS TIMES DIV MOD
 %token FPLUS FMINUS FTIMES FDIV
 %token LAND LOR LXOR
