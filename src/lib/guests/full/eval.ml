@@ -67,6 +67,18 @@ let rec eval_expr env e = match e.Annot.desc with
             r
          | _ -> raise (Illegal_application e)
        end
+    | Syntax.ERecord (r,f) ->
+       begin 
+         match lookup ~loc:e.Annot.loc r env with
+         | Val_record vs -> 
+            begin
+              try List.assoc f vs
+              with Not_found -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERrecord"
+            end
+         | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERrecord"
+       end
+    | Syntax.ERecordExt fs ->
+       Val_record (List.map (fun (n,e) -> n, eval_expr env e) fs)
 
 and eval_arg env e = match eval_expr env e with
     | Val_unknown -> raise (Uninitialized e.Annot.loc)
@@ -110,6 +122,12 @@ let upd_env lhs v env =
            env (* In-place update *)
         | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
         end
+  | Syntax.LhsRField (r,f) ->
+     begin match lookup ~loc:lhs.Annot.loc r env with
+     | Val_record fs ->
+        Env.upd r (Val_record (Rfsm.Misc.replace_assoc f v fs)) env
+     | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
+     end
 
 
 let pp_env fmt env = 

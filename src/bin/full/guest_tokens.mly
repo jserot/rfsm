@@ -9,6 +9,7 @@
 %token LBRACKET RBRACKET
 %token TYPE
 %token ENUM
+%token RECORD
 %token QMARK
 %token LTE
 %token GTE

@@ -7,19 +7,23 @@ module Location = Rfsm.Location
 
 type env =
   { te_vars: Types.typ Env.t;
+    te_tycons: (int * Types.typ) Env.t;  (** Type constructors, with arity and associated type *)
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
-    te_tycons: int Env.t;  (** Type constructors, with arity. Ex: "array"->(1, 'a array) *)
+    te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *) 
     te_prims: Types.typ_scheme Env.t }
+[@@deriving show {with_path=false}]
 
 let mk_env () =
   { te_vars = Env.empty;
-    te_ctors = Env.init Builtins.typing_env.ctors;
     te_tycons = Env.init Builtins.typing_env.tycons;
+    te_ctors = Env.init Builtins.typing_env.ctors;
+    te_rfields = Env.empty;
     te_prims = Env.init Builtins.typing_env.prims; }
 
 exception Undefined of string * Location.t * string 
 exception Duplicate of string * Location.t * string
 exception Illegal_cast of Syntax.expr
+exception Illegal_record_access of string * Types.typ * Location.t
 
 let lookup ~exc v env = 
   try Env.find v env 
@@ -31,33 +35,24 @@ let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
 
 let pp_env fmt e = 
   let open Format in
-  fprintf fmt "@[<v>[@,vars=%a@,ctors=%a@,tycons=%a@,prims=%a]@]@."
-    (Env.pp ~sep:" : " Types.pp_typ) e.te_vars
-    (Env.pp ~sep:" : " Types.pp_typ) e.te_ctors
-    (Env.pp ~sep:" : " pp_print_int) e.te_tycons
-    (Env.pp ~sep:" : " Types.pp_typ_scheme) e.te_prims
+  let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity Types.pp_typ ty in
+  fprintf fmt "@[<v>[@,vars=%a@,tycons=%a@,ctors=%a@,prims=%a]@]@."
+    (Env.pp ~sep:":" Types.pp_typ) e.te_vars
+    (Env.pp ~sep:":" pp_tycon) e.te_tycons
+    (Env.pp ~sep:":" Types.pp_typ) e.te_ctors
+    (Env.pp ~sep:":" Types.pp_typ_scheme) e.te_prims
 
 let add_env exc env (k,v)  =
   if not (Env.mem k env) then Env.add k v env  
   else raise exc
 
-let type_type_decl env td =
-  let ty,env' = match td.Annot.desc with
-    | Syntax.TD_Enum (name, ctors) -> 
-       let ty = Types.TyConstr (name, [], SzNone) in
-       let add_ctor env name = add_env (Duplicate ("value constructor", td.Annot.loc, name)) env (name,ty) in
-       let add_tycon env (name,arity) = add_env (Duplicate ("type constructor", td.Annot.loc, name)) env (name,arity) in
-       ty,
-       { env with te_tycons = add_tycon env.te_tycons (name,0);
-                  te_ctors = List.fold_left add_ctor env.te_ctors ctors }
-  in
-  td.Annot.typ <- Some ty;
-  env'
-
 let rec type_of_type_expr env te =
   let ty =
     match te.Annot.desc with
-    | Syntax.TeConstr (c,args,sz) -> Types.TyConstr (c, List.map (type_of_type_expr env) args, size_of_size_expr c sz) in
+    | Syntax.TeConstr (c,[],[]) ->
+       lookup ~exc:(Undefined ("type constructor",te.Annot.loc,c)) c env.te_tycons |> snd
+    | Syntax.TeConstr (c,args,sz) ->
+       Types.TyConstr (c, List.map (type_of_type_expr env) args, size_of_size_expr c sz) in
   te.Annot.typ <- Some ty;
   ty
 
@@ -125,6 +120,19 @@ let rec type_expression env e =
                        (Env.map Types.type_instance env.te_prims) } in 
       let ty_fn = lookup ~exc:(Undefined ("symbol",e.Annot.loc,f)) f env'.te_vars in
       type_application ~loc:e.Annot.loc env' ty_fn ty_args
+  | Syntax.ERecord (r,f) ->
+     begin match lookup ~exc:(Undefined ("symbol",e.Annot.loc,r)) r env.te_vars with
+       | TyRecord (_,fs) ->
+          begin
+            try List.assoc f fs
+            with Not_found -> raise (Undefined ("record field",e.Annot.loc,f))
+          end
+       | ty ->
+          raise (Illegal_record_access (r,ty,e.Annot.loc))
+     end 
+  | Syntax.ERecordExt fs -> 
+     let ty_fs = List.map (fun (n,e) -> n, type_expression env e) fs in
+     Types.TyRecord ("", ty_fs) (* Anonymous record *)
   in
   e.Annot.typ <- Some ty;
   ty
@@ -159,10 +167,41 @@ and type_cast e t1 t2 = match t1, t2 with
   | TyConstr ("float",_,_), TyConstr("int",_,_) -> t2
   | _, _ -> raise (Illegal_cast e)
 
+let type_type_decl env td =
+  let add_tycon ty env (name,arity) = add_env (Duplicate ("type constructor", td.Annot.loc, name)) env (name,(arity,ty)) in
+  let add_ctor ty env name = add_env (Duplicate ("value constructor", td.Annot.loc, name)) env (name,ty) in
+  let add_rfield ty lenv (name,te) =
+    let ty' = type_of_type_expr env te in 
+    add_env (Duplicate ("record field name", td.Annot.loc, name)) lenv (name,(ty',ty)) in
+  let ty,env' = match td.Annot.desc with
+    | Syntax.TD_Enum (name, ctors) -> 
+       let ty = Types.TyConstr (name, [], SzNone) in
+       ty,
+       { env with te_tycons = add_tycon ty env.te_tycons (name,0);
+                  te_ctors = List.fold_left (add_ctor ty) env.te_ctors ctors }
+    | Syntax.TD_Record (name, fields) -> 
+       let ty = Types.TyRecord (name, List.map (function (n,te) -> (n, type_of_type_expr env te)) fields) in
+       ty,
+       { env with te_tycons = add_tycon ty env.te_tycons (name,0);
+                  te_rfields = List.fold_left (add_rfield ty) env.te_rfields fields }
+  in
+  td.Annot.typ <- Some ty;
+  env'
+
 let type_lhs env l =
   let ty = match l.Annot.desc with
     | Syntax.LhsVar x -> lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars
-    | Syntax.LhsArrInd (a,i) -> type_array_access ~loc:l.Annot.loc env a i  in
+    | Syntax.LhsArrInd (a,i) -> type_array_access ~loc:l.Annot.loc env a i
+    | Syntax.LhsRField (x,f) -> 
+       begin match lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars with
+       | TyRecord (_,fs) -> 
+          begin
+            try List.assoc f fs 
+            with Not_found -> raise (Undefined ("record field",l.Annot.loc,f))
+          end
+       | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_lhs"
+       end
+  in
   l.Annot.typ <- Some ty;
   ty
 

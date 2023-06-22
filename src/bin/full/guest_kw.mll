@@ -4,3 +4,4 @@
 "false", BOOL(false);
 "type", TYPE;
 "enum", ENUM;
+"record", RECORD;

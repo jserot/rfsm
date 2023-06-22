@@ -51,3 +51,5 @@ let list_scatter f l =
       if List.mem_assoc k acc then add k x acc else (k,[x])::acc)
     []
     l
+
+let replace_assoc k v l = (k,v) :: List.remove_assoc k l 

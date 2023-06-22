@@ -6,18 +6,6 @@ module Annot = Rfsm.Annot
 let mk_location (p1,p2) = Location.Loc (!Location.input_name, p1, p2)
 let mk ~loc:l x = Annot.make ~loc:(mk_location l) x
 
-(** Type declarations *)
-                
-type type_decl_desc =
-  | TD_Enum of string * string list (* Name, constructors *)
-and type_decl = (type_decl_desc,Types.typ) Annot.t
-
-let rec pp_type_decl_desc fmt td = 
-  let open Format in
-  match td with
-  | TD_Enum (name,ctors) -> fprintf fmt "(\"%s\", enum { %a })" name (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors
-and pp_type_decl fmt td = Format.fprintf fmt "%a" pp_type_decl_desc td.Annot.desc
-
 (** Type expressions *)
 
 type type_expr = (type_expr_desc,Types.typ) Annot.t
@@ -53,6 +41,24 @@ and pp_type_index_expr_desc fmt ie =
 and pp_type_index_expr fmt ie = 
   Format.fprintf fmt "%a" pp_type_index_expr_desc ie.Annot.desc 
 
+
+(** Type declarations *)
+                
+type type_decl_desc =
+  | TD_Enum of string * string list (** Name, constructors *)
+  | TD_Record of string * rfield_desc list (** Name, fields *)
+and type_decl = (type_decl_desc,Types.typ) Annot.t
+
+and rfield_desc = string * type_expr 
+
+let rec pp_type_decl_desc fmt td = 
+  let open Format in
+  let pp_rfield fmt (n,t) = fprintf fmt "%s: %a" n pp_type_expr t in
+  match td with
+  | TD_Enum (name,ctors) -> fprintf fmt "(\"%s\", enum { %a })" name (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors
+  | TD_Record (name,fields) -> fprintf fmt "(\"%s\", record { %a })" name (Rfsm.Misc.pp_list_h ~sep:";" pp_rfield) fields
+and pp_type_decl fmt td = Format.fprintf fmt "%a" pp_type_decl_desc td.Annot.desc
+
 (** Expressions *)
   
 type expr = (expr_desc,Types.typ) Annot.t
@@ -62,16 +68,19 @@ and expr_desc =
   | EBool of bool
   | EFloat of float
   | EBinop of string * expr * expr
-  | ECon0 of string             (** Enum value *)
-  | EArr of string * expr       (** t[i] when t is an array *)
-  | EBit of string * expr       (** t[i] when t is an int *)
+  | ECon0 of string              (** Enum value *)
+  | EArr of string * expr        (** t[i] when t is an array *)
+  | EBit of string * expr        (** t[i] when t is an int *)
   | EArrExt of expr list        
   | ECond of expr * expr * expr  (** e1 ? e2 : e3 *)
   | ECast of expr * type_expr
   | EFapp of string * expr list  (** f(arg1,...,argn) *)
+  | ERecord of string * string   (** v.name when v is a record *)
+  | ERecordExt of (string * expr) list  
 
 let rec pp_expr_desc fmt e = 
   let open Format in
+  let pp_rfield fmt (n,v) = fprintf fmt "%s=%a" n pp_expr v in
   match e with
   | EVar v -> fprintf fmt "%s" v
   | EInt i -> fprintf fmt "%d" i
@@ -85,24 +94,30 @@ let rec pp_expr_desc fmt e =
   | ECond (e1,e2,e3) -> fprintf fmt "%a?%a:%a" pp_expr e1 pp_expr e2 pp_expr e3
   | ECast (e,t) -> fprintf fmt "%a::%a" pp_expr e pp_type_expr t
   | EFapp (f,es) -> fprintf fmt "%s(%a)" f (Rfsm.Misc.pp_list_h ~sep:"," pp_expr) es
+  | ERecord (r,f) -> fprintf fmt "%s.%s" r f
+  | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_rfield) fs
 and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc;
 
-(** Assignations LHS *)
+(** Assignation LHS *)
   
 type lhs = (lhs_desc,Types.typ) Annot.t
 and lhs_desc = 
   | LhsVar of string
   | LhsArrInd of string * expr (* a[i] *)
+  (* | LhsArrRange of string * expr * expr  (\* v[hi:lo] := ... when v is an int *\) *)
+  | LhsRField of string * string             (* v.field_name when v has a record type *)
 
 let rec pp_lhs_desc fmt l = match l with
   | LhsVar v -> Format.fprintf fmt "%s" v
   | LhsArrInd (a,i) -> Format.fprintf fmt "%s[%a]" a pp_expr i
+  | LhsRField (r,f) -> Format.fprintf fmt "%s.%s" r f
 and pp_lhs fmt l = pp_lhs_desc fmt l.Annot.desc
 
 let mk_simple_lhs v = Annot.make (LhsVar v)
 let lhs_name l = match l.Annot.desc with
   | LhsVar v -> v
   | LhsArrInd (a,_) -> a 
+  | LhsRField (a,_) -> a 
 
 (** Inspectors *)
               
@@ -116,10 +131,13 @@ let rec vars_of_expr e = match e.Annot.desc with
   | ECond (e1,e2,e3) -> vars_of_expr e1 @ vars_of_expr e2 @ vars_of_expr e3
   | ECast (e,_) -> vars_of_expr e
   | EFapp (f,es) -> List.concat (List.map vars_of_expr es)
+  | ERecord (r,f) -> [r]
+  | ERecordExt fs -> List.concat (List.map (fun (_,e) -> vars_of_expr e) fs)
 
 let vars_of_lhs l = match l.Annot.desc with
   | LhsVar v -> [v]
   | LhsArrInd (a,i) -> a :: vars_of_expr i 
+  | LhsRField (r,f) -> [r]
 
 (** Substitution *)
               
@@ -138,11 +156,14 @@ let rec subst_expr phi e =
   | ECond (e1,e2,e3) -> subst e (ECond (subst_expr phi e1, subst_expr phi e2, subst_expr phi e3))
   | ECast (e,t) -> subst e (ECast (subst_expr phi e, t))
   | EFapp (f,es) -> subst e (EFapp (f, List.map (subst_expr phi) es))
+  | ERecord (r,f) -> subst e (ERecord (subst_var phi r, f))
+  | ERecordExt fs -> subst e (ERecordExt (List.map (fun (n,e) -> n, subst_expr phi e) fs))
 
 let subst_lhs phi l = 
   match l.Annot.desc with
   | LhsVar v -> { l with Annot.desc = LhsVar (subst_var phi v) }
   | LhsArrInd (a,i) -> { l with Annot.desc = LhsArrInd (subst_var phi a, subst_expr phi i) } 
+  | LhsRField (r,f) -> { l with Annot.desc = LhsRField (subst_var phi r, f) } 
 
 (** VCD interface *)
               
@@ -150,6 +171,7 @@ let vcd_name lhs =
   match lhs.Annot.desc with
   | LhsVar v -> v
   | LhsArrInd (a,i) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr i (* Note: syntax "a[i]" is not compatible with VCD format *)
+  | LhsRField (r,f) -> r ^ "." ^ f
 
 (** Pre-processing *)
 

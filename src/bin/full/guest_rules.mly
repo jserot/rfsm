@@ -1,6 +1,13 @@
 type_decl:
-  | TYPE id = LID EQUAL ENUM LBRACE ctors=separated_nonempty_list(COMMA,ctor) RBRACE
+  | TYPE id=LID EQUAL ENUM LBRACE ctors=separated_nonempty_list(COMMA,ctor) RBRACE
      { mk ~loc:($symbolstartofs,$endofs) (TD_Enum (id,ctors)) }
+  | TYPE id=LID EQUAL RECORD LBRACE fs=separated_nonempty_list(COMMA,record_field) RBRACE
+      { mk ~loc:($symbolstartofs,$endofs) (TD_Record (id,fs)) }
+  /* | TYPE id=LID EQUAL t=type_expr */
+  /*     { mk_type_decl ($symbolstartofs,$endofs) (Syntax.TD_Alias (id,t)) } */
+
+record_field:
+  | n=LID COLON t=type_expr { (n,t) }
 
 ctor:
   | c = UID { c }
@@ -67,8 +74,7 @@ expr:
   | s=subtractive e=expr %prec prec_unary_minus { mkuminus s e }
   | a = LID LBRACKET i=expr RBRACKET { mk ~loc:($symbolstartofs,$endofs) (EArr (a,i)) }
   | f = LID LPAREN args=separated_list(COMMA,expr) RPAREN { mk ~loc:($symbolstartofs,$endofs) (EFapp (f,args)) }
-  /* | a = LID DOT f = LID */
-  /*     { mk_expr (ERecord (a,f)) } */
+  | a = LID DOT f = LID { mk ~loc:($symbolstartofs,$endofs) (ERecord (a,f)) }
   /* | a = LID LBRACKET i1=expr COLON i2=expr RBRACKET  */
   /*     { mk_expr (EBitrange (a,i1,i2)) } */
   | e1 = expr QMARK e2 = expr COLON e3 = expr
@@ -85,6 +91,8 @@ simple_expr:
 lhs:
   | v = LID { mk ~loc:($symbolstartofs,$endofs) (LhsVar v) }
   | id = LID LBRACKET idx = expr RBRACKET { mk ~loc:($symbolstartofs,$endofs) (LhsArrInd (id, idx)) }
+  | a=LID DOT f=LID { mk ~loc:($symbolstartofs,$endofs) (LhsRField (a, f)) }
+  /* | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { Action.LhsArrRange (a,hi,lo) } */
 
 param_value:
   | v = scalar_const { v }
@@ -104,6 +112,14 @@ const:
 stim_const: 
   | c = scalar_const { c }
   | c = UID { mk ~loc:($symbolstartofs,$endofs) (ECon0 c) }
+  | c = record_const { mk ~loc:($symbolstartofs,$endofs) c }
+
+record_const:
+  | LBRACE vs = separated_nonempty_list(COMMA,record_field_const) RBRACE { ERecordExt vs }
+      /* { Expr.mk_record (Types.new_name_var()) (List.map (function (n,v) -> (n, Types.new_type_var(), v)) vs) } */
+
+record_field_const:
+  | id = LID EQUAL v = scalar_const { (id, v) }
   
 int_const:
   | v = INT { v }

@@ -123,17 +123,18 @@ let env = [
 ]
 
 type typing_env = {
-    tycons: (string * int) list; (* name, arity *)
+    tycons: (string * (int * Types.typ)) list; (* name, arity *)
     ctors: (string * Types.typ) list; (* name, target type *)
     prims: (string * Types.typ_scheme) list; (* name, type scheme *)
   }
 
 let typing_env =
   { tycons = [
-      "int", 0;
-      "bool", 0;
-      "float", 0;
-      "array", 1;
+      "event", (0, Types.type_event ());
+      "int", (0, Types.type_unsized_int ());
+      "bool", (0, Types.type_bool ());
+      "float", (0, Types.type_float ());
+      "array", (1, Types.type_unsized_array (Types.new_type_var ()));
       ];
     ctors = [
       "true", Types.type_bool ();

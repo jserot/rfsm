@@ -66,7 +66,7 @@ type typ =
   | TyProduct of typ list
   | TyConstr of string * typ list * siz (** name, args, size annotation *)
               (* For ints: bit width or range, for arrays: dimension *)
-  | TyRecord of name * (string * typ) list    (** Name, fields *)
+  | TyRecord of string * (string * typ) list    (** Name, fields *)
 
 and siz =
   | SzNone 
@@ -129,6 +129,7 @@ let type_unsized_array t = TyConstr ("array", [t], new_size_var ())
 let type_sized_array t sz = TyConstr ("array", [t], SzExpr1 (TiConst sz))
 (* let type_sized_array2 t sz1 sz2 = TyConstr ("array", [t], SzExpr2 (TiConst sz1, TiConst sz2)) *)
 
+let type_event () = TyConstr ("event", [], SzNone)
 let type_bool () = TyConstr ("bool", [], SzNone)
 let type_float () = TyConstr ( "float", [], SzNone)
 
@@ -175,10 +176,10 @@ and real_size sz =
   | SzVar { value=Known sz'; _} -> sz'
   | sz -> sz
 
-and real_name nm = 
-  match name_repr nm with
-  | NmVar { value=Known nm'; _} -> nm'
-  | nm -> nm
+and real_name nm = nm
+  (* match name_repr nm with
+   * | NmVar { value=Known nm'; _} -> nm'
+   * | nm -> nm *)
 
 let rec copy_type tvbs svbs ty =
   let rec copy ty = 
@@ -251,8 +252,8 @@ let rec unify ~loc ty1 ty2 =
          if n1 = n2
          then unify ~loc t1 t2
          else raise (Type_conflict(loc,val1,val2)))
-       fds1 fds2;
-     unify_name ~loc (val1,val2) nm1 nm2
+       fds1 fds2
+     (* unify_name ~loc (val1,val2) nm1 nm2 *)
   | _, _ ->
       raise (Type_conflict(loc,val1,val2))
 
@@ -286,19 +287,19 @@ and unify_size ~loc (ty1,ty2) sz1 sz2 =
  *   | TiConst n1, TiConst n2 when n1<>n2 -> raise (TypeConflict(ty1, ty2))
  *   | _, _ -> ()  (\* TO BE FIXED ! *\) *)
 
-and unify_name ~loc (ty1,ty2) nm1 nm2 =
-  let val1 = real_name nm1
-  and val2 = real_name nm2 in
-  if val1 == val2 then
-    ()
-  else
-  match (val1, val2) with
-    | NmLit s1, NmLit s2 when s1 = s2 -> ()
-    | NmVar var1, NmVar var2 when var1 == var2 -> () (* This is hack *)
-    | NmVar var, nm -> var.value <- Known nm
-    | nm, NmVar var -> var.value <- Known nm
-    | _, _ ->
-        raise (Type_conflict(loc,ty1,ty2))
+(* and unify_name ~loc (ty1,ty2) nm1 nm2 =
+ *   let val1 = real_name nm1
+ *   and val2 = real_name nm2 in
+ *   if val1 == val2 then
+ *     ()
+ *   else
+ *   match (val1, val2) with
+ *     | NmLit s1, NmLit s2 when s1 = s2 -> ()
+ *     | NmVar var1, NmVar var2 when var1 == var2 -> () (\* This is hack *\)
+ *     | NmVar var, nm -> var.value <- Known nm
+ *     | nm, NmVar var -> var.value <- Known nm
+ *     | _, _ ->
+ *         raise (Type_conflict(loc,ty1,ty2)) *)
 
 and occur_check ~loc var ty =
   let rec test t =
@@ -402,11 +403,7 @@ let rec pp_typ fmt t =
   | TyConstr (c,[],sz) -> fprintf fmt "%s%a" c (pp_siz c) sz
   | TyConstr (c,[t'],sz) -> fprintf fmt "%a %s%a" pp_typ t' c (pp_siz c) sz
   | TyConstr (c,ts,sz) -> fprintf fmt " (%a) %s%a" (Rfsm.Misc.pp_list_h ~sep:"," pp_typ) ts c (pp_siz c) sz
-  | TyRecord (nm,fs) -> 
-     begin match real_name nm with
-     | NmLit s -> fprintf fmt "%s" s
-     | _ -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h pp_rfield) fs
-     end
+  | TyRecord (nm,fs) -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_rfield) fs
 
 and pp_siz c fmt sz = 
   match c, size_repr sz with
