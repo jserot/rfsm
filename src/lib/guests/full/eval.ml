@@ -32,24 +32,25 @@ let rec eval_expr env e = match e.Annot.desc with
      let f = Builtins.lookup op Builtins.eval_env in
      f [eval_arg env e1; eval_arg env e2]
   | Syntax.ECon0 c ->  Val_enum c
-  | Syntax.EArr (a,idx) ->
+  | Syntax.EIndexed (a,idx) ->
      begin match lookup ~loc:e.Annot.loc a env with
      | Val_array vs ->
-        let i = eval_array_index a (Array.length vs) env idx in
+        let i = eval_expr_index a ~bounds:(0,Array.length vs-1) env idx in
         vs.(i)
-     | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: EArr" (* Should not occur after TC *)
+     | Val_int x -> 
+        let i = eval_expr_index a ~bounds:(min_int,max_int) env idx in  (* TODO: check bounds here ! *)
+        Val_int (Rfsm.Bits.get_bits ~hi:i ~lo:i x)
+     | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: EIndexed" (* Should not occur after TC *)
      end
-  | Syntax.EBit (a,idx) ->
+  | Syntax.ERanged (a,idx1,idx2) ->
      begin
-       match lookup ~loc:e.Annot.loc a env, eval_expr env idx with
-         | Val_int x, Val_int i -> Val_int (Rfsm.Bits.get_bits ~hi:i ~lo:i x)
-         | _, _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: EBit" (* Should not occur after TC *)
-     end
-  | Syntax.EBitrange (a,idx1,idx2) ->
-     begin
-       match lookup ~loc:e.Annot.loc a env, eval_expr env idx1, eval_expr env idx2 with
-         | Val_int x, Val_int hi, Val_int lo -> Val_int (Rfsm.Bits.get_bits ~hi ~lo x)
-         | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: EBitrange" (* Should not occur after TC *)
+       match lookup ~loc:e.Annot.loc a env with
+       | Val_int x ->
+          let hi = eval_expr_index a ~bounds:(min_int,max_int) env idx1 in
+          let lo = eval_expr_index a ~bounds:(min_int,max_int) env idx2 in
+          Val_int (Rfsm.Bits.get_bits ~hi ~lo x)
+       | _ ->
+          Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERanged" (* Should not occur after TC *)
      end
   | Syntax.EArrExt es -> Val_array (Array.of_list (List.map (eval_expr env) es))
   | Syntax.ECond (e1, e2, e3) ->
@@ -91,10 +92,10 @@ and eval_arg env e = match eval_expr env e with
     | Val_unknown -> raise (Uninitialized e.Annot.loc)
     | v -> v
 
-and eval_array_index a sz env idx = 
+and eval_expr_index a ~bounds:(lo,hi) env idx = 
   match eval_arg env idx with
   | Val_int i ->
-     if i >= 0 && i < sz then i
+     if i >= lo && i <= hi then i
      else raise (Out_of_bound (idx.Annot.loc, i))
   | _ -> raise (Rfsm.Misc.fatal_error "Full.Eval.eval_array_index") (* Should not occur after TC *)
 
@@ -121,15 +122,15 @@ let eval_bool env e =
 let upd_env lhs v env = 
   match lhs.Annot.desc with
   | Syntax.LhsVar x -> Env.upd x v env
-  | Syntax.LhsArrInd (x,idx) ->
+  | Syntax.LhsIndex (x,idx) ->
         begin match lookup ~loc:lhs.Annot.loc x env with
         | Val_array vs ->
-           let i = eval_array_index x (Array.length vs) env idx in
+           let i = eval_expr_index x ~bounds:(0,Array.length vs-1) env idx in
            vs.(i) <- v;
            env (* In-place update *)
         | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
         end
-  | Syntax.LhsArrRange (x,idx1,idx2) ->
+  | Syntax.LhsRange (x,idx1,idx2) ->
      begin
        match lookup ~loc:lhs.Annot.loc x env, eval_expr env idx1, eval_expr env idx2, v with
        | Val_int dst, Val_int hi, Val_int lo, Val_int v' ->

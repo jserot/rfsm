@@ -23,8 +23,8 @@ let handle e =
       eprintf "%aDuplicate %s: %s\n" pp_loc loc what x; exit 2
   | Typing.Illegal_cast e -> 
       eprintf "%aIllegal cast\n" pp_loc e.Rfsm.Annot.loc; exit 2
-  | Typing.Illegal_record_access (r,ty,loc) -> 
-      eprintf "%aIllegal record_access: %s has type %a, which is not a record type\n" pp_loc loc r Types.pp_typ ty; exit 2
+  | Typing.Illegal_expr (loc,what) -> 
+      eprintf "%aIllegal expression: %s\n" pp_loc loc what; exit 2
   | Eval.Uninitialized loc -> 
       eprintf "%aUninitialized value\n" pp_loc loc; exit 2
   | Eval.Out_of_bound (loc,i) -> 

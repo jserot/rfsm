@@ -23,7 +23,7 @@ let mk_env () =
 exception Undefined of string * Location.t * string 
 exception Duplicate of string * Location.t * string
 exception Illegal_cast of Syntax.expr
-exception Illegal_record_access of string * Types.typ * Location.t
+exception Illegal_expr of Location.t * string
 
 let lookup ~exc v env = 
   try Env.find v env 
@@ -73,9 +73,6 @@ and type_index_of_index_expr e =
 
 let rec type_expression env e =
   let loc = e.Annot.loc in
-  let type_of e = match e.Annot.typ with
-    | Some t -> t
-    | None -> Rfsm.Misc.fatal_error "Full.Typing.type_of" in
   let ty = match e.Annot.desc with
     | Syntax.EVar v -> lookup ~exc:(Undefined ("symbol",e.Annot.loc,v)) v env.te_vars
     | Syntax.EInt _ -> Types.type_unsized_int ()
@@ -87,27 +84,8 @@ let rec type_expression env e =
        let ty_args = List.map (type_expression env) [e1;e2] in
        type_application ~loc:e.Annot.loc env ty_fn ty_args
     | Syntax.ECon0 c -> lookup ~exc:(Undefined ("value constructor",e.Annot.loc,c)) c env.te_ctors
-    | Syntax.EArr (a,i) ->
-       begin match lookup ~exc:(Undefined ("symbol",e.Annot.loc,a)) a env.te_vars with
-       | TyConstr("int",_,_) -> (* Special case *)
-          e.Annot.desc <- Syntax.EBit (a,i);
-          Types.type_sized_int 1
-       | _ ->
-          type_array_access ~loc env a i
-       end
-    | Syntax.EBit (a,i) -> type_of e  (* Typing has been carried out by the above case *)
-    | Syntax.EBitrange (a,idx1,idx2) ->
-       begin
-         match lookup ~exc:(Undefined ("symbol",e.Annot.loc,a)) a env.te_vars with
-         | TyConstr("int",_,_) -> 
-            let ty_idx1 = type_expression env idx1 in
-            let ty_idx2 = type_expression env idx2 in
-            Types.unify ~loc:idx1.Annot.loc ty_idx1 (Types.type_unsized_int ());
-            Types.unify ~loc:idx2.Annot.loc ty_idx2 (Types.type_unsized_int ());
-            Types.type_unsized_int ()
-         | ty ->
-            raise (Types.Type_conflict (loc, ty, Types.type_unsized_int ()))
-       end
+    | Syntax.EIndexed (a,i) -> type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *)
+    | Syntax.ERanged (a,i1,i2) -> type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lhs *)
     | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 
        let ty_e1 = type_expression env e1 in
@@ -141,7 +119,7 @@ let rec type_expression env e =
             with Not_found -> raise (Undefined ("record field",e.Annot.loc,f))
           end
        | ty ->
-          raise (Illegal_record_access (r,ty,e.Annot.loc))
+          raise (Illegal_expr (e.Annot.loc, "not a record"))
      end 
   | Syntax.ERecordExt fs -> 
      let ty_fs = List.map (fun (n,e) -> n, type_expression env e) fs in
@@ -157,16 +135,22 @@ and type_application ~loc env ty_fn ty_args =
   unify ~loc ty_fn (TyArrow (ty_arg,ty_result));
   Types.real_type ty_result
 
-and type_array_access ~loc env a i =
-  let ty_idx = type_expression env i in
-  Types.unify ~loc:i.Annot.loc ty_idx (Types.type_unsized_int ());
-  let ty_arg = lookup ~exc:(Undefined ("symbol",loc,a)) a env.te_vars in
-  let ty_res =
-    begin match ty_arg with
-    | Types.TyConstr ("array", [t'], _) -> t'
-    | _ -> raise (Types.Type_conflict (loc, ty_arg, Types.TyConstr ("array", [], SzNone)))
-    end in
-  ty_res
+and type_indexed_expr ~loc env a i = 
+  let ty_i = type_expression env i in
+  Types.unify ~loc:i.Annot.loc ty_i (Types.type_unsized_int ());
+  match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
+  | TyConstr ("int", _, _) -> Types.type_sized_int 1
+  | TyConstr ("array", [t'], _) -> t'
+  | _ -> raise (Illegal_expr (loc, "only int's and array's can be indexed"))
+
+and type_ranged_expr ~loc env a i1 i2 = 
+  let ty_i1 = type_expression env i1 in
+  let ty_i2 = type_expression env i2 in
+  Types.unify ~loc:i1.Annot.loc ty_i1 (Types.type_unsized_int ());
+  Types.unify ~loc:i2.Annot.loc ty_i2 (Types.type_unsized_int ());
+  match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
+  | TyConstr("int",_,_) -> Types.type_unsized_int ()
+  | ty -> raise (Types.Type_conflict (loc, ty, Types.type_unsized_int ()))
 
 and type_cast e t1 t2 = match t1, t2 with
   | TyConstr("int",_,_), TyConstr("int",_,_)
@@ -208,7 +192,8 @@ let type_type_decl env td =
 let type_lhs env l =
   let ty = match l.Annot.desc with
     | Syntax.LhsVar x -> lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars
-    | Syntax.LhsArrInd (a,i) -> type_array_access ~loc:l.Annot.loc env a i
+    | Syntax.LhsIndex (a,i) -> type_indexed_expr ~loc:l.Annot.loc env a i
+    | Syntax.LhsRange (a,i1,i2) -> type_ranged_expr ~loc:l.Annot.loc env a i1 i2
     | Syntax.LhsRField (x,f) -> 
        begin match lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars with
        | TyRecord (_,fs) -> 
@@ -217,16 +202,6 @@ let type_lhs env l =
             with Not_found -> raise (Undefined ("record field",l.Annot.loc,f))
           end
        | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_lhs"
-       end
-    | Syntax.LhsArrRange (a,i1,i2) ->
-       Types.unify ~loc:i1.Annot.loc (type_expression env i1) (Types.type_unsized_int ());
-       Types.unify ~loc:i2.Annot.loc (type_expression env i2) (Types.type_unsized_int ());
-       begin match lookup ~exc:(Undefined ("symbol",l.Annot.loc,a)) a env.te_vars with
-       | TyConstr ("int", _, _) ->
-          Types.type_unsized_int ()
-          (* This could be refined by statically evaluating [hi] and [lo] but not in the general case *)
-       | ty  -> 
-          raise (Types.Type_conflict (l.Annot.loc, ty, Types.type_unsized_int ()))
        end
   in
   l.Annot.typ <- Some ty;
