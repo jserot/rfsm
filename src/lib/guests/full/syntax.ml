@@ -80,6 +80,7 @@ and expr_desc =
   | EFapp of string * expr list  (** f(arg1,...,argn) *)
   | ERecord of string * string   (** v.name when v is a record *)
   | ERecordExt of (string * expr) list  
+  | EBitrange of string * expr * expr  (** t[hi:lo] when t is an int *)
 
 let rec pp_expr_desc fmt e = 
   let open Format in
@@ -100,6 +101,7 @@ let rec pp_expr_desc fmt e =
   | EFapp (f,es) -> fprintf fmt "%s(%a)" f (Rfsm.Misc.pp_list_h ~sep:"," pp_expr) es
   | ERecord (r,f) -> fprintf fmt "%s.%s" r f
   | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_rfield) fs
+  | EBitrange (a,hi,lo) -> fprintf fmt "%s[%a:%a]" a pp_expr lo pp_expr hi
 and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc;
 
 (** Assignation LHS *)
@@ -108,12 +110,13 @@ type lhs = (lhs_desc,Types.typ) Annot.t
 and lhs_desc = 
   | LhsVar of string
   | LhsArrInd of string * expr (* a[i] *)
-  (* | LhsArrRange of string * expr * expr  (\* v[hi:lo] := ... when v is an int *\) *)
+  | LhsArrRange of string * expr * expr  (* v[hi:lo] := ... when v is an int *)
   | LhsRField of string * string             (* v.field_name when v has a record type *)
 
 let rec pp_lhs_desc fmt l = match l with
   | LhsVar v -> Format.fprintf fmt "%s" v
   | LhsArrInd (a,i) -> Format.fprintf fmt "%s[%a]" a pp_expr i
+  | LhsArrRange (a,hi,lo) -> Format.fprintf fmt "%s[%a:%a]" a pp_expr hi pp_expr lo
   | LhsRField (r,f) -> Format.fprintf fmt "%s.%s" r f
 and pp_lhs fmt l = pp_lhs_desc fmt l.Annot.desc
 
@@ -121,6 +124,7 @@ let mk_simple_lhs v = Annot.make (LhsVar v)
 let lhs_name l = match l.Annot.desc with
   | LhsVar v -> v
   | LhsArrInd (a,_) -> a 
+  | LhsArrRange (a,_,_) -> a 
   | LhsRField (a,_) -> a 
 
 (** Inspectors *)
@@ -137,10 +141,12 @@ let rec vars_of_expr e = match e.Annot.desc with
   | EFapp (f,es) -> List.concat (List.map vars_of_expr es)
   | ERecord (r,f) -> [r]
   | ERecordExt fs -> List.concat (List.map (fun (_,e) -> vars_of_expr e) fs)
+  | EBitrange (v,e1,e2) -> [v] @ vars_of_expr e1 @ vars_of_expr e2
 
 let vars_of_lhs l = match l.Annot.desc with
   | LhsVar v -> [v]
   | LhsArrInd (a,i) -> a :: vars_of_expr i 
+  | LhsArrRange (a,hi,lo) -> [a] @ vars_of_expr hi @ vars_of_expr lo
   | LhsRField (r,f) -> [r]
 
 (** Substitution *)
@@ -162,12 +168,14 @@ let rec subst_expr phi e =
   | EFapp (f,es) -> subst e (EFapp (f, List.map (subst_expr phi) es))
   | ERecord (r,f) -> subst e (ERecord (subst_var phi r, f))
   | ERecordExt fs -> subst e (ERecordExt (List.map (fun (n,e) -> n, subst_expr phi e) fs))
+  | EBitrange (a,e1,e2) -> subst e (EBitrange (subst_var phi a, subst_expr phi e1, subst_expr phi e2))
 
 let subst_lhs phi l = 
   match l.Annot.desc with
   | LhsVar v -> { l with Annot.desc = LhsVar (subst_var phi v) }
   | LhsArrInd (a,i) -> { l with Annot.desc = LhsArrInd (subst_var phi a, subst_expr phi i) } 
   | LhsRField (r,f) -> { l with Annot.desc = LhsRField (subst_var phi r, f) } 
+  | LhsArrRange (a,hi,lo) -> { l with Annot.desc = LhsArrRange (subst_var phi a, subst_expr phi hi, subst_expr phi lo) } 
 
 (** VCD interface *)
               
@@ -175,6 +183,7 @@ let vcd_name lhs =
   match lhs.Annot.desc with
   | LhsVar v -> v
   | LhsArrInd (a,i) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr i (* Note: syntax "a[i]" is not compatible with VCD format *)
+  | LhsArrRange (a,hi,lo) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr hi ^ "." ^ Rfsm.Misc.to_string pp_expr lo
   | LhsRField (r,f) -> r ^ "." ^ f
 
 (** Pre-processing *)

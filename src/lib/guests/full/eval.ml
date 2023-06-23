@@ -42,8 +42,14 @@ let rec eval_expr env e = match e.Annot.desc with
   | Syntax.EBit (a,idx) ->
      begin
        match lookup ~loc:e.Annot.loc a env, eval_expr env idx with
-         | Val_int x, Val_int i -> Val_int (Rfsm.Bits.get_bits i i x)
+         | Val_int x, Val_int i -> Val_int (Rfsm.Bits.get_bits ~hi:i ~lo:i x)
          | _, _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: EBit" (* Should not occur after TC *)
+     end
+  | Syntax.EBitrange (a,idx1,idx2) ->
+     begin
+       match lookup ~loc:e.Annot.loc a env, eval_expr env idx1, eval_expr env idx2 with
+         | Val_int x, Val_int hi, Val_int lo -> Val_int (Rfsm.Bits.get_bits ~hi ~lo x)
+         | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: EBitrange" (* Should not occur after TC *)
      end
   | Syntax.EArrExt es -> Val_array (Array.of_list (List.map (eval_expr env) es))
   | Syntax.ECond (e1, e2, e3) ->
@@ -123,6 +129,13 @@ let upd_env lhs v env =
            env (* In-place update *)
         | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
         end
+  | Syntax.LhsArrRange (x,idx1,idx2) ->
+     begin
+       match lookup ~loc:lhs.Annot.loc x env, eval_expr env idx1, eval_expr env idx2, v with
+       | Val_int dst, Val_int hi, Val_int lo, Val_int v' ->
+          Env.upd x (Val_int (Rfsm.Bits.set_bits ~hi ~lo ~dst v')) env
+       | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
+     end
   | Syntax.LhsRField (r,f) ->
      begin match lookup ~loc:lhs.Annot.loc r env with
      | Val_record fs ->

@@ -75,12 +75,9 @@ expr:
   | a = LID LBRACKET i=expr RBRACKET { mk ~loc:($symbolstartofs,$endofs) (EArr (a,i)) }
   | f = LID LPAREN args=separated_list(COMMA,expr) RPAREN { mk ~loc:($symbolstartofs,$endofs) (EFapp (f,args)) }
   | a = LID DOT f = LID { mk ~loc:($symbolstartofs,$endofs) (ERecord (a,f)) }
-  /* | a = LID LBRACKET i1=expr COLON i2=expr RBRACKET  */
-  /*     { mk_expr (EBitrange (a,i1,i2)) } */
-  | e1 = expr QMARK e2 = expr COLON e3 = expr
-      { mk ~loc:($symbolstartofs,$endofs) (ECond (e1, e2, e3)) }
-  | e = expr COLONCOLON t = type_expr
-      { mk ~loc:($symbolstartofs,$endofs) (ECast (e,t)) }
+  | a = LID LBRACKET i1=expr COLON i2=expr RBRACKET { mk ~loc:($symbolstartofs,$endofs) (EBitrange (a,i1,i2)) }
+  | e1 = expr QMARK e2 = expr COLON e3 = expr { mk ~loc:($symbolstartofs,$endofs) (ECond (e1, e2, e3)) }
+  | e = expr COLONCOLON t = type_expr { mk ~loc:($symbolstartofs,$endofs) (ECast (e,t)) }
 
 simple_expr:
   | v = LID { mk ~loc:($symbolstartofs,$endofs) (EVar v) }
@@ -92,7 +89,7 @@ lhs:
   | v = LID { mk ~loc:($symbolstartofs,$endofs) (LhsVar v) }
   | id = LID LBRACKET idx = expr RBRACKET { mk ~loc:($symbolstartofs,$endofs) (LhsArrInd (id, idx)) }
   | a=LID DOT f=LID { mk ~loc:($symbolstartofs,$endofs) (LhsRField (a, f)) }
-  /* | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { Action.LhsArrRange (a,hi,lo) } */
+  | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { mk ~loc:($symbolstartofs,$endofs) (LhsArrRange (a,hi,lo)) }
 
 param_value:
   | v = scalar_const { v }

@@ -53,3 +53,9 @@ let list_scatter f l =
     l
 
 let replace_assoc k v l = (k,v) :: List.remove_assoc k l 
+
+let string_length_nl s = 
+  List.fold_left
+    (fun acc s -> max acc (String.length s))
+    0
+    (String.split_on_char '\n' s)
