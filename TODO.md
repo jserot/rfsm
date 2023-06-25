@@ -5,7 +5,6 @@ COMPILER
 - reinstall VHDL backend
 - rename src/lib/host/seq.ml
 - banner
-- option -trace -> -sim_trace
 - output formatting when using -trace option
 - prefix local vars in VCD output
 - VCD hierarchy (gtkwave format ?)

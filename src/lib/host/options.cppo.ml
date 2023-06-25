@@ -24,7 +24,6 @@ let dump_static = ref false
 let dot_show_models = ref false
 let dot_captions = ref true
 let normalize = ref false
-(* let sim_trace_level = ref 0 *)
 let dump_backtrace = ref true
 
 let set_main_prefix p = main_prefix := p
