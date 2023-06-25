@@ -322,24 +322,27 @@ let subst_indexes phi ty =
     
 (* Printing *)
 
-let rec pp_typ fmt t =
+let rec pp_typ ~abbrev fmt t =
   let open Format in
   match real_type t with
   | TyVar v -> fprintf fmt "_%d" v.stamp
-  | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" pp_typ t1 pp_typ t2 
-  | TyProduct [t] -> if !print_full_types then fprintf fmt "(%a)" pp_typ t else pp_typ fmt t
-  | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" pp_typ fmt ts
+  | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" (pp_typ ~abbrev) t1 (pp_typ ~abbrev) t2 
+  | TyProduct [t] -> if !print_full_types then fprintf fmt "(%a)" (pp_typ ~abbrev) t else (pp_typ ~abbrev) fmt t
+  | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" (pp_typ ~abbrev) fmt ts
   | TyConstr (c,[],sz) -> fprintf fmt "%s%a" c (pp_siz c) sz
-  | TyConstr (c,[t'],sz) -> fprintf fmt "%a %s%a" pp_typ t' c (pp_siz c) sz
-  | TyConstr (c,ts,sz) -> fprintf fmt " (%a) %s%a" (Rfsm.Misc.pp_list_h ~sep:"," pp_typ) ts c (pp_siz c) sz
-  | TyRecord (nm,fs) -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_rfield) fs
+  | TyConstr (c,[t'],sz) -> fprintf fmt "%a %s%a" (pp_typ ~abbrev) t' c (pp_siz c) sz
+  | TyConstr (c,ts,sz) -> fprintf fmt " (%a) %s%a" (Rfsm.Misc.pp_list_h ~sep:"," (pp_typ ~abbrev)) ts c (pp_siz c) sz
+  | TyRecord (nm,fs) ->
+     if abbrev
+     then fprintf fmt "%s" nm
+     else fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield ~abbrev)) fs
 
-and pp_rfield fmt (n,ty) = Format.fprintf fmt "%s: %a" n pp_typ ty
+and pp_rfield ~abbrev fmt (n,ty) = Format.fprintf fmt "%s: %a" n (pp_typ ~abbrev) ty
 
 let pp_typ_scheme fmt t = (* TODO: add size parameters *)
   let open Format in
   match t.ts_sparams with
   | [] ->
-     fprintf fmt "@[<h>%a@]" pp_typ t.ts_body
+     fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_sparams pp_typ t.ts_body
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_sparams (pp_typ ~abbrev:false) t.ts_body

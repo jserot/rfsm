@@ -159,15 +159,15 @@ let type_instance ty_sch = fst (full_type_instance ty_sch)
 
 let type_copy t = type_instance (generalize [] t) 
 
-let rec pp_typ fmt t =
+let rec pp_typ ~abbrev fmt t =
   let open Format in
   match real_type t with
   | TyConstr (c,[]) -> fprintf fmt "%s" c
-  | TyConstr (c,[t']) -> fprintf fmt "%a %s" pp_typ t' c 
-  | TyConstr (c,ts) -> fprintf fmt " %a %s" (Rfsm.Misc.pp_list_h pp_typ) ts c
-  | TyProduct [t] -> pp_typ fmt t
-  | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" pp_typ fmt ts
-  | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" pp_typ t1 pp_typ t2 
+  | TyConstr (c,[t']) -> fprintf fmt "%a %s" (pp_typ ~abbrev) t' c 
+  | TyConstr (c,ts) -> fprintf fmt " %a %s" (Rfsm.Misc.pp_list_h (pp_typ ~abbrev)) ts c
+  | TyProduct [t] -> (pp_typ ~abbrev) fmt t
+  | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" (pp_typ ~abbrev) fmt ts
+  | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" (pp_typ ~abbrev) t1 (pp_typ ~abbrev) t2 
   | TyVar v -> fprintf fmt "_%d" v.stamp
 
 let pp_tvar fmt tv = Format.fprintf fmt "_%d" tv.stamp (* TO FIX *) 
@@ -176,6 +176,6 @@ let pp_typ_scheme fmt t =
   let open Format in
   match t.ts_params with
   | [] ->
-     fprintf fmt "@[<h>%a@]" pp_typ t.ts_body
+     fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_tvar) t.ts_params pp_typ t.ts_body
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_tvar) t.ts_params (pp_typ ~abbrev:false) t.ts_body

@@ -84,7 +84,7 @@ struct
 
   let pp_ctx fmt ctx =
     let open Format in
-    let pp_io fmt (id,ty) = Format.fprintf fmt "%s: %a" id Typing.Types.pp_typ ty in
+    let pp_io fmt (id,ty) = Format.fprintf fmt "%s: %a" id (Typing.Types.pp_typ ~abbrev:false) ty in
     fprintf fmt "@[<v>[inputs=[%a]@,outputs=[%a]@,shared=[%a]]@]"
     (Misc.pp_list_h ~sep:", " pp_io) ctx.inputs
     (Misc.pp_list_h ~sep:", " pp_io) ctx.outputs

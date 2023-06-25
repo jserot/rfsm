@@ -16,7 +16,8 @@ let handle e =
      eprintf "Illegal operation on type index: %s\n" op; exit 2
   | Types.Type_circularity (loc,ty,ty')
   | Types.Type_conflict (loc,ty,ty') ->
-      eprintf "%aTyping error: cannot unify types %a and %a\n" pp_loc loc Types.pp_typ ty Types.pp_typ ty'; exit 2
+      eprintf "%aTyping error: cannot unify types %a and %a\n"
+        pp_loc loc (Types.pp_typ ~abbrev:false) ty (Types.pp_typ ~abbrev:false) ty'; exit 2
   | Typing.Undefined (what,loc,s) -> 
       eprintf "%aUndefined %s: %s\n" pp_loc loc what s; exit 2
   | Typing.Duplicate (what,loc,x) -> 

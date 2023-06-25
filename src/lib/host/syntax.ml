@@ -114,7 +114,7 @@ struct
   type type_expr = Guest.type_expr
   type lhs = Guest.lhs
 
-  let pp_type_expr fmt te = Misc.pp_opt Guest.Types.pp_typ fmt (te.Annot.typ)
+  let pp_type_expr fmt te = Misc.pp_opt (Guest.Types.pp_typ ~abbrev:false) fmt (te.Annot.typ)
   let pp_expr = Guest.pp_expr
   let pp_lhs = Guest.pp_lhs
 

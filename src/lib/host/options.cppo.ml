@@ -23,6 +23,7 @@ let dump_typed = ref false
 let dump_static = ref false
 let dot_show_models = ref false
 let dot_captions = ref true
+let dot_abbrev_types = ref false
 let normalize = ref false
 let dump_backtrace = ref true
 
@@ -68,5 +69,6 @@ let set_sim_trace level = Dynamic.cfg.verbose_level <- level
 let set_dot_no_captions () = dot_captions := false
 let set_dot_short_trans () =  Dot.cfg.Dot.trans_vlayout <- false
 let set_dot_show_models () = dot_show_models := true
+let set_dot_abbrev_types () =  Dot.cfg.Dot.abbrev_types <- true
 
 let set_vcd_default_int_size s = Vcd.cfg.Vcd.default_int_size <- s

@@ -11,7 +11,6 @@ type env =
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
     te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *) 
     te_prims: Types.typ_scheme Env.t }
-[@@deriving show {with_path=false}]
 
 let mk_env () =
   { te_vars = Env.empty;
@@ -35,11 +34,11 @@ let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
 
 let pp_env fmt e = 
   let open Format in
-  let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity Types.pp_typ ty in
+  let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity (Types.pp_typ ~abbrev:false) ty in
   fprintf fmt "@[<v>[@,vars=%a@,tycons=%a@,ctors=%a@,prims=%a]@]@."
-    (Env.pp ~sep:":" Types.pp_typ) e.te_vars
+    (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_vars
     (Env.pp ~sep:":" pp_tycon) e.te_tycons
-    (Env.pp ~sep:":" Types.pp_typ) e.te_ctors
+    (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
     (Env.pp ~sep:":" Types.pp_typ_scheme) e.te_prims
 
 let add_env exc env (k,v)  =

@@ -1,6 +1,5 @@
 COMPILER
 
-- in DOT repr, do not print type defns but type names (optionnaly ?)
 - output formatting when using -trace option
 - support for synchronous actions
 - reinstall Systemc backend

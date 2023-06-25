@@ -31,8 +31,8 @@ let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
 let pp_env fmt e = 
   let open Format in
   fprintf fmt "@[<v>[@,vars=%a@,ctors=%a@,tycons=%a@,prims=%a]@]@."
-    (Env.pp ~sep:" : " Types.pp_typ) e.te_vars
-    (Env.pp ~sep:" : " Types.pp_typ) e.te_ctors
+    (Env.pp ~sep:" : " (Types.pp_typ ~abbrev:false)) e.te_vars
+    (Env.pp ~sep:" : " (Types.pp_typ ~abbrev:false)) e.te_ctors
     (Env.pp ~sep:" : " pp_print_int) e.te_tycons
     (Env.pp ~sep:" : " Types.pp_typ_scheme) e.te_prims
 

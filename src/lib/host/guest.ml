@@ -9,7 +9,7 @@ module type TYPES = sig
   val mk_type_constr0: string -> typ
   val is_type_constr0: string -> typ -> bool
   val mk_type_fun: typ list -> typ -> typ
-  val pp_typ: Format.formatter -> typ -> unit
+  val pp_typ: abbrev:bool -> Format.formatter -> typ -> unit
   val pp_typ_scheme: Format.formatter -> typ_scheme -> unit
 end
                  
