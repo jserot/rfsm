@@ -409,7 +409,7 @@ struct
       
   let pp_program fmt p = 
     let open Format in
-    fprintf fmt "@[<v>[@,csts=%a@,fns=%a@,types=%a@,models=%a@,globals=%a@,insts=%a@,]@]@."
+    fprintf fmt "@[<v>{@,csts=%a@,fns=%a@,types=%a@,models=%a@,globals=%a@,insts=%a@,}@]@."
       (Misc.pp_list_v pp_cst_decl) p.cst_decls
       (Misc.pp_list_v pp_fun_decl) p.fun_decls
       (Misc.pp_list_v Guest.pp_type_decl) p.type_decls

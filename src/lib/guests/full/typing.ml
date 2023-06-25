@@ -35,7 +35,7 @@ let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
 let pp_env fmt e = 
   let open Format in
   let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity (Types.pp_typ ~abbrev:false) ty in
-  fprintf fmt "@[<v>[@,vars=%a@,tycons=%a@,ctors=%a@,prims=%a]@]@."
+  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,prims=%a}@]@."
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_vars
     (Env.pp ~sep:":" pp_tycon) e.te_tycons
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
