@@ -17,11 +17,11 @@ module type VCD = sig
   val output: fname:string -> seq -> unit
 end
 
-module Make (Seq: Seq.SEQ) : VCD with type seq = Seq.t =
+module Make (EvSeq: Evseq.EVSEQ) : VCD with type seq = EvSeq.t =
 struct
 
-  type seq = Seq.t
-  module Event = Seq.Evset.Event
+  type seq = EvSeq.t
+  module Event = EvSeq.Evset.Event
 
   open Printf
  
@@ -52,8 +52,8 @@ struct
     | Event.Upd (lhs,v) -> Vcd_types.register_signal acc (Event.Syntax.lhs_vcd_repr lhs, Event.Value.vcd_type v)
     | Event.StateMove (s,q) -> Vcd_types.register_signal acc (s, Vcd_types.TyString)
 
-  let register_signals acc (s:Seq.Evset.t) =
-    List.fold_left register_event acc (Seq.Evset.events s)
+  let register_signals acc (s:EvSeq.Evset.t) =
+    List.fold_left register_event acc (EvSeq.Evset.events s)
 
   let dump_signal oc (name,(id,ty)) =
     let kind, size =  vcd_kind_of ty in
@@ -76,14 +76,14 @@ struct
       | Event.StateMove (s,q) ->
          let id, ty  = lookup s in 
          fprintf oc "s%s %c\n" q id in  (* State move*)
-    fprintf oc "#%d\n" (Seq.Evset.date s);
-    List.iter dump_stimulus (Seq.Evset.events s) 
+    fprintf oc "#%d\n" (EvSeq.Evset.date s);
+    List.iter dump_stimulus (EvSeq.Evset.events s) 
   
   let normalize_seq rs =
     (* "Normalizes" a trace by transforming "complex" events into simple ones :
         - turns LHS descriptions into VCD signal names (ex: "x[3]" -> "x.3",  "r.f" -> "r.f")
         - turns structured value updates into scalar updates (ex: "x <- {f1=v1;f2=v2}" -> [x.f1<-v1; x.f2<-v2]) *)
-    let module Event = Seq.Evset.Event in
+    let module Event = EvSeq.Evset.Event in
     let normalize_event (e: Event.t) = 
       match e with
         | Event.Upd (lhs,v) as ev -> 
@@ -97,19 +97,19 @@ struct
            (* Format.printf "**Normalize_event %a (%s) -> [%a]\n" Event.pp e base_name (Misc.pp_list_h ~sep:"," Event.pp) es; *)
            es
         | _ -> [e]  in
-    let normalize_evset (evs: Seq.Evset.t) = 
-      let open Seq.Evset in 
+    let normalize_evset (evs: EvSeq.Evset.t) = 
+      let open EvSeq.Evset in 
       let t = date evs in
       let es = events evs in
       let es' = List.flatten (List.map normalize_event es) in
       mk t es' in
     List.map normalize_evset rs
       
-  let output ~fname (rs:Seq.t) =
+  let output ~fname (rs:EvSeq.t) =
     let rs' = normalize_seq rs in
     let oc = open_out fname in
     let signals = List.fold_left register_signals [] rs' in
-    (* Format.printf "rs'=%a\n" Seq.pp rs'; *)
+    (* Format.printf "rs'=%a\n" EvSeq.pp rs'; *)
     (* Format.printf "signals=%a\n" (Misc.pp_list_v Vcd_types.pp_vcd_signal) signals; *)
     fprintf oc "$date\n";
     fprintf oc "   %s\n" "today";

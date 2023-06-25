@@ -25,7 +25,7 @@ struct
     module Static = Static.Make(Syntax)(G.Typing)(G.Value)(G.Static)
     module Dot = Dot.Make(Static)
     module Dynamic = Dynamic.Make(Syntax)(Static)(G.Eval)
-    module Vcd = Vcd.Make(Dynamic.Seq)
+    module Vcd = Vcd.Make(Dynamic.EvSeq)
 
     let type_program tenv p = Typing.type_program tenv p
 

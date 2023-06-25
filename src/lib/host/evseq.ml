@@ -1,7 +1,7 @@
-(** [Seq]s are sequences of dated event sets. Ex: [[{H,x<-1}@10; {H}@20, ...]].
-    [Seq]s are used to describe both _stimuli_ and _responses_. *)
+(** [EvSeq]s are sequences of dated event sets. Ex: [[{H,x<-1}@10; {H}@20, ...]].
+    [EvSeq]s are used to describe both _stimuli_ and _responses_. *)
 
-module type SEQ = sig
+module type EVSEQ = sig
   
   module Evset: Evset.T
 
@@ -20,7 +20,7 @@ module type SEQ = sig
 
 end
  
-module Make (ES: Evset.T) : SEQ with module Evset = ES and type value = ES.Event.Value.t =
+module Make (ES: Evset.T) : EVSEQ with module Evset = ES and type value = ES.Event.Value.t =
 struct
   module Evset = ES
 

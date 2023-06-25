@@ -18,12 +18,12 @@ module type DYNAMIC = sig
   module Syntax: Syntax.SYNTAX
   module Static: Static.T 
   module Eval: Guest.EVAL 
-  module Seq: Seq.SEQ
+  module EvSeq: Evseq.EVSEQ
 
   exception Illegal_stimulus_value of Location.t
   exception Non_deterministic_transition of string * int * Syntax.transition list (** FSM name, date, transitions *)
 
-  val run: Syntax.program -> Static.t -> Seq.t
+  val run: Syntax.program -> Static.t -> EvSeq.t
 end
 
 module Make
@@ -40,10 +40,10 @@ struct
   module Eval = Eval
   module Event = Event.Make(Syntax.Guest)(Static.Value)
   module Evset = Evset.Make(Event)
-  module Seq = Seq.Make(Evset)
+  module EvSeq = Evseq.Make(Evset)
 
   module Trace = struct  (* Execution traces *)
-    type t = { mutable contents: Seq.t }
+    type t = { mutable contents: EvSeq.t }
     let create  () = { contents = [] }
     let reset t = t.contents <- []
     let add e t = if not (Evset.is_empty e) then t.contents <- e::t.contents
@@ -250,9 +250,9 @@ struct
         with _ -> raise (Illegal_stimulus_value expr.Annot.loc) in
       let expand id st =
         match st.Annot.desc with
-        | Syntax.Periodic (p,t1,t2) -> Seq.mk_periodic id p t1 t2
-        | Syntax.Sporadic ts -> Seq.mk_sporadic id ts
-        | Syntax.Value_change vcs -> Seq.mk_changes id (List.map eval vcs) in
+        | Syntax.Periodic (p,t1,t2) -> EvSeq.mk_periodic id p t1 t2
+        | Syntax.Sporadic ts -> EvSeq.mk_sporadic id ts
+        | Syntax.Value_change vcs -> EvSeq.mk_changes id (List.map eval vcs) in
       let sts =
         List.fold_left
           (fun acc io ->
@@ -261,7 +261,7 @@ struct
             | _ -> acc)
           []
           p.Syntax.globals in
-      Seq.merge_all sts
+      EvSeq.merge_all sts
 
    let run (p: Syntax.program) (s: Static.t) =
      let sts = extract_stimuli p in

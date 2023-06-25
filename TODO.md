@@ -1,7 +1,6 @@
 COMPILER
 
 - info/version naming 
-- rename src/lib/host/seq.ml
 - output formatting when using -trace option
 - prefix local vars in VCD output / VCD hierarchy (gtkwave format ?)
 - in DOT repr, do not print type defns but type names (optionnaly ?)
