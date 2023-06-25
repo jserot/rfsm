@@ -1,6 +1,6 @@
 COMPILER
 
-- output formatting when using -trace option
+- improve output formatting when using -trace option
 - support for synchronous actions
 - reinstall Systemc backend
 - reinstall VHDL backend
