@@ -117,7 +117,7 @@ record_const:
   | LBRACE vs = separated_nonempty_list(COMMA,record_field_const) RBRACE { ERecordExt vs }
 
 record_field_const:
-  | id = LID EQUAL v = scalar_const { (id, v) }
+  | id = LID EQUAL v = stim_const { (id, v) }
   
 subtractive:
   | MINUS                                       { "-" }

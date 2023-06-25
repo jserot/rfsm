@@ -64,14 +64,14 @@ program:
     cst_decls = list(cst_decl)
     fun_decls = list(fun_decl)
     models = list(fsm_model)
-    ios = list(global_io)
+    globals = list(global)
     insts = list(fsm_inst) EOF
     { Lang.L.Syntax.{ 
         type_decls = type_decls;
         fun_decls = fun_decls;
         cst_decls = cst_decls;
         models = models;
-        ios = List.flatten ios;
+        globals = List.flatten globals;
         insts = insts;
       } }
   
@@ -114,6 +114,7 @@ fsm_model:
           Lang.L.Syntax.{ name = name;
             params = params;
             states = states;
+            ios = ios |> List.map snd; 
             inps = ios |> List.filter (function (Out,_) -> false | _ -> true) |> List.map snd;
             outps = ios |> List.filter (function (In,_) -> false | _ -> true) |> List.map snd;
             vars = vars;
@@ -179,7 +180,7 @@ action:
 
 (* IOS *)
 
-global_io:
+global:
   | INPUT id=id COLON ty=type_expr EQUAL st=stimuli
       { [mk ~loc:($symbolstartofs,$endofs) (id, Lang.L.Syntax.Input, ty, Some st)] }
   | OUTPUT ids=separated_nonempty_list(COMMA,id) COLON ty=type_expr

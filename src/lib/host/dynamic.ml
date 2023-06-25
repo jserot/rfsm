@@ -16,9 +16,9 @@ let cfg = {
 
 module type DYNAMIC = sig
   module Syntax: Syntax.SYNTAX
-  module Static: Static.STATIC 
+  module Static: Static.T 
   module Eval: Guest.EVAL 
-  module Seq: Seq.SEQ 
+  module Seq: Seq.SEQ
 
   exception Illegal_stimulus_value of Location.t
   exception Non_deterministic_transition of string * int * Syntax.transition list (** FSM name, date, transitions *)
@@ -28,7 +28,7 @@ end
 
 module Make
          (Syntax: Syntax.SYNTAX)
-         (Static: Static.STATIC with module Syntax = Syntax)
+         (Static: Static.T with module Syntax = Syntax)
          (Eval: Guest.EVAL with module Syntax = Syntax.Guest and module Value = Static.Value)
      : DYNAMIC with module Syntax = Syntax
           and module Static = Static
@@ -96,16 +96,11 @@ struct
          (Evset.empty t)
     | Syntax.Assign (lhs,expr) ->
        let genv = Env.union vars env in
-       let x = Syntax.Guest.lhs_name lhs in
+       let x = Syntax.Guest.lhs_base_name lhs in
        let upd env =
          let v = Eval.eval_expr genv expr in
-         Trace.add (mk_event t (Event.Upd (lhs,v))) trace; 
-         (* Format.printf "** t=%d: %a <- \"%a\" / %a = %a\n"
-          *   t
-          *   (Syntax.Guest.pp_lhs ~with_type:false) lhs
-          *   (Syntax.Guest.pp_expr ~with_type:false) expr
-          *   (Env.pp Eval.Value.pp) genv
-          *   Eval.Value.pp v; *)
+         let e = Event.Upd (lhs,v) in
+         Trace.add (mk_event t e) trace;
          Eval.upd_env lhs v env in
        if Env.mem x vars then (* ActUpdL *)
          (upd vars, env),
@@ -147,9 +142,7 @@ struct
     (* M, \Gamma -- \sigma_v --> M', \Gamma' *)
     (* TODO: use a GADT to remove dynamic checking of event kind ? *)
     let upd env e = match e with
-      | Event.Upd (l,v') ->
-         let x = Syntax.Guest.lhs_name l in
-         Env.upd x v' env
+      | Event.Upd (l,v') -> Eval.upd_env l v' env
       | _ -> Misc.fatal_error "Simul.r_react_upd"  (* Should not happen *) in
     Trace.add evs trace; 
     let env' = List.fold_left upd env (Evset.events evs) in
@@ -196,23 +189,28 @@ struct
       Format.pp_print_int t Evset.pp r_e pp_fsms m' pp_env env';
     (m',env'), r_e
   
-  let is_event_type ty = Static.Typing.Types.is_type_constr0 "event" ty
+  let is_event_type (ty: Static.Typing.Types.typ) = Static.Typing.Types.is_type_constr0 "event" ty
+
+  let default_value (ty: Static.Typing.Types.typ) = Static.Value.default_value (Some ty)
 
   let r_init sd m = (* Rule INIT *)
     (* M --> M_0, \Gamma_0 *)
     let env0 =
-      Env.init
-        (List.map
-           (fun (v,_) -> v, Eval.Value.default_value None)
-           (List.filter
-              (fun (_,ty) -> not (is_event_type ty))
-              (sd.Static.inputs @ sd.Static.outputs @ sd.Static.shared))) in
+      List.fold_left
+        (fun env (v,ty) ->
+          if not (is_event_type ty)
+          then Env.add v (Static.Value.default_value (Some ty)) env
+          else env)
+        Env.empty
+      (sd.Static.inputs @ sd.Static.outputs @ sd.Static.shared) in
     let env', m' =
       List.fold_left_map 
         (fun env mu ->
           let nu = mu.Static.vars in
           let { Annot.desc=q0,acts; _ } = mu.Static.model.Annot.desc.itrans in
           let nu',env', r_e = r_acts sd (nu, env) (acts,0) in
+          dump2 2 ">> R_INIT: executing initial actions [%a] from FSM %a\n"
+            (Misc.pp_list_h ~sep:"," Syntax.pp_action) acts Format.pp_print_string mu.Static.name;
           Trace.add (mk_event 0 (Event.StateMove (state_name mu,q0))) trace; 
           Trace.add r_e trace; 
           env', { mu with Static.q=q0 ; Static.vars = Env.union nu' mu.Static.params })
@@ -228,7 +226,7 @@ struct
          else
            Misc.fatal_error ("Dynamic.is_input: " ^ x ^ " is not an event typed input")
       | Event.Upd (l,_) ->
-         let x = Syntax.Guest.lhs_name l in
+         let x = Syntax.Guest.lhs_base_name l in
          if List.mem_assoc x ctx.Static.inputs && not (is_event_type (List.assoc x ctx.Static.inputs)) then
            ()
          else
@@ -251,9 +249,6 @@ struct
         try t, Eval.eval_expr Env.empty expr 
         with _ -> raise (Illegal_stimulus_value expr.Annot.loc) in
       let expand id st =
-        (* let ty = match st.Annot.typ with
-         *   | Some ty -> ty
-         *   | None -> Misc.fatal_error "Host.extract_stimuli: cannot recover type" in *)
         match st.Annot.desc with
         | Syntax.Periodic (p,t1,t2) -> Seq.mk_periodic id p t1 t2
         | Syntax.Sporadic ts -> Seq.mk_sporadic id ts
@@ -265,7 +260,7 @@ struct
             | id, Syntax.Input, _, Some st -> expand id st :: acc
             | _ -> acc)
           []
-          p.Syntax.ios in
+          p.Syntax.globals in
       Seq.merge_all sts
 
    let run (p: Syntax.program) (s: Static.t) =

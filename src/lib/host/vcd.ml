@@ -35,22 +35,21 @@ struct
     | Vcd_types.TyInt None -> "wire", cfg.default_int_size
     | Vcd_types.TyString -> "real", 1
     | Vcd_types.TyFloat -> "real", cfg.float_precision
+    | Vcd_types.TyChar -> "wire", 8
 
   let vcd_repr ty v = match ty, v with
   | Vcd_types.TyInt (Some w), Vcd_types.Val_int v -> Printf.sprintf "b%s" (Bits.of_int w v)
   | Vcd_types.TyInt None, Vcd_types.Val_int v -> Printf.sprintf "b%s" (Bits.of_int (cfg.default_int_size) v)
   | Vcd_types.TyBool, Vcd_types.Val_bool v -> Printf.sprintf "b%d" (if v then 1 else 0)
   | Vcd_types.TyString, Vcd_types.Val_string s -> Printf.sprintf "s%s" s
-  | Vcd_types.TyFloat, Vcd_types.Val_float n -> Printf.sprintf "r%.*f\n" cfg.float_precision n
+  | Vcd_types.TyFloat, Vcd_types.Val_float n -> Printf.sprintf "r%.*f" cfg.float_precision n
+  | Vcd_types.TyChar, Vcd_types.Val_char c -> Printf.sprintf "b%s" (Bits.of_int 8 (int_of_char c))
   | _, _ -> raise (Unsupported (ty,v))
 
   let register_event acc e =
     match e with
     | Event.Ev name -> Vcd_types.register_signal acc (name, Vcd_types.TyEvent)
-    | Event.Upd (l,v) ->
-       (* let name = Event.Syntax.vcd_name l in
-        * Format.printf "** Registering lhs=%a under name %s\n" (Event.Syntax.pp_lhs ~with_type:false) l name; *)
-       Vcd_types.register_signal acc (Event.Syntax.vcd_name l, Event.Value.vcd_type v)
+    | Event.Upd (lhs,v) -> Vcd_types.register_signal acc (Event.Syntax.lhs_vcd_repr lhs, Event.Value.vcd_type v)
     | Event.StateMove (s,q) -> Vcd_types.register_signal acc (s, Vcd_types.TyString)
 
   let register_signals acc (s:Seq.Evset.t) =
@@ -69,7 +68,7 @@ struct
          let id, _  = lookup name in 
          fprintf oc "1%c\n" id          (* Instantaneous event *)
       | Event.Upd (l, v) ->             (* Update *)
-         let name = Event.Syntax.vcd_name l in
+         let name = Event.Syntax.lhs_vcd_repr l in
          let id, ty  = lookup name in 
          let v' = Event.Value.vcd_value v in
          let fmt = vcd_repr ty v'  in
@@ -80,9 +79,38 @@ struct
     fprintf oc "#%d\n" (Seq.Evset.date s);
     List.iter dump_stimulus (Seq.Evset.events s) 
   
+  let normalize_seq rs =
+    (* "Normalizes" a trace by transforming "complex" events into simple ones :
+        - turns LHS descriptions into VCD signal names (ex: "x[3]" -> "x.3",  "r.f" -> "r.f")
+        - turns structured value updates into scalar updates (ex: "x <- {f1=v1;f2=v2}" -> [x.f1<-v1; x.f2<-v2]) *)
+    let module Event = Seq.Evset.Event in
+    let normalize_event (e: Event.t) = 
+      match e with
+        | Event.Upd (lhs,v) as ev -> 
+           let base_name = Event.Syntax.lhs_base_name lhs in (* Ex: "x"->"x", "r.f"-> "r", "a[i]" ->"a" *)
+           let es = 
+           begin
+             match Event.Value.flatten ~base:base_name v with
+             | [_] -> [ev]  (* "Simple" case *)
+             | nvs -> List.map (fun (n,v) -> Event.Upd (Event.Syntax.mk_simple_lhs n, v)) nvs (* "Complex" case *)
+           end in
+           (* Format.printf "**Normalize_event %a (%s) -> [%a]\n" Event.pp e base_name (Misc.pp_list_h ~sep:"," Event.pp) es; *)
+           es
+        | _ -> [e]  in
+    let normalize_evset (evs: Seq.Evset.t) = 
+      let open Seq.Evset in 
+      let t = date evs in
+      let es = events evs in
+      let es' = List.flatten (List.map normalize_event es) in
+      mk t es' in
+    List.map normalize_evset rs
+      
   let output ~fname (rs:Seq.t) =
+    let rs' = normalize_seq rs in
     let oc = open_out fname in
-    let signals = List.fold_left register_signals [] rs in
+    let signals = List.fold_left register_signals [] rs' in
+    (* Format.printf "rs'=%a\n" Seq.pp rs'; *)
+    (* Format.printf "signals=%a\n" (Misc.pp_list_v Vcd_types.pp_vcd_signal) signals; *)
     fprintf oc "$date\n";
     fprintf oc "   %s\n" "today";
     fprintf oc "$end\n";
@@ -97,6 +125,6 @@ struct
     List.iter (dump_signal oc) signals;
     fprintf oc "$upscope $end\n";
     fprintf oc "$enddefinitions\n$end\n";
-    List.iter (dump_evseq oc signals) rs;
+    List.iter (dump_evseq oc signals) rs';
     close_out oc  
 end

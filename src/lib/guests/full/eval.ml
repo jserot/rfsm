@@ -11,13 +11,16 @@ type env = Value.t Env.t
 
 let mk_env () = Env.empty 
 
-exception Uninitialized of Location.t
+let pp_env fmt env = 
+  Format.fprintf fmt "%a\n" (Env.pp ~sep:"=" Value.pp) env
+
+exception Uninitialized of string * Location.t
 exception Out_of_bound of Location.t * int
 exception Illegal_application of Syntax.expr
 
 let lookup ~loc v env = 
   match Rfsm.Env.find v env with
-  | Val_unknown -> raise (Uninitialized loc)
+  | Val_unknown -> raise (Uninitialized (v,loc))
   | v -> v
   | exception Not_found ->
      raise (Rfsm.Misc.Fatal_error "Full.Eval.lookup") (* Should not occur after TC *)
@@ -83,13 +86,14 @@ let rec eval_expr env e = match e.Annot.desc with
               try List.assoc f vs
               with Not_found -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERrecord"
             end
-         | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERrecord"
+         | v ->
+            Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERrecord"
        end
     | Syntax.ERecordExt fs ->
        Val_record (List.map (fun (n,e) -> n, eval_expr env e) fs)
 
 and eval_arg env e = match eval_expr env e with
-    | Val_unknown -> raise (Uninitialized e.Annot.loc)
+    | Val_unknown -> raise (Uninitialized (Rfsm.Misc.to_string Syntax.pp_expr e, e.Annot.loc))
     | v -> v
 
 and eval_expr_index a ~bounds:(lo,hi) env idx = 
@@ -120,16 +124,21 @@ let eval_bool env e =
   | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_bool" (* Should not occur after TC *)
 
 let upd_env lhs v env = 
-  match lhs.Annot.desc with
-  | Syntax.LhsVar x -> Env.upd x v env
+  let env' = match lhs.Annot.desc with
+  | Syntax.LhsVar x ->
+     Env.upd x v env
   | Syntax.LhsIndex (x,idx) ->
-        begin match lookup ~loc:lhs.Annot.loc x env with
-        | Val_array vs ->
-           let i = eval_expr_index x ~bounds:(0,Array.length vs-1) env idx in
-           vs.(i) <- v;
-           env (* In-place update *)
-        | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
-        end
+     begin match lookup ~loc:lhs.Annot.loc x env, v with
+     | Val_array vs, _ ->
+        let i = eval_expr_index x ~bounds:(0,Array.length vs-1) env idx in
+        vs.(i) <- v;
+        env (* In-place update ! *)
+     | Val_int dst, Val_int v' ->
+        let i = eval_expr_index x ~bounds:(min_int,max_int) env idx in
+        (* Note: we should check bounds here, but this requires a size information to be attached to values... *)
+        Env.upd x (Val_int (Rfsm.Bits.set_bits ~hi:i ~lo:i ~dst v')) env
+     | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
+     end
   | Syntax.LhsRange (x,idx1,idx2) ->
      begin
        match lookup ~loc:lhs.Annot.loc x env, eval_expr env idx1, eval_expr env idx2, v with
@@ -143,7 +152,5 @@ let upd_env lhs v env =
         Env.upd r (Val_record (Rfsm.Misc.replace_assoc f v fs)) env
      | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
      end
-
-
-let pp_env fmt env = 
-  Format.fprintf fmt "%a\n" (Env.pp ~sep:"=" Value.pp) env
+    in
+    env'

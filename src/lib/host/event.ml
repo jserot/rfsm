@@ -7,7 +7,6 @@ module type T = sig
     | Upd of Syntax.lhs * Value.t   (* lhs <- v *)
     | StateMove of string * string     (* name, value *)
   val is_pure_event: t -> bool
-  val mk_simple_upd: string -> Value.t -> t
   val compare: t -> t -> int
   val pp: Format.formatter -> t -> unit
   val vcd_register: Syntax.lhs -> Value.t -> Vcd_types.vcd_signal list -> Vcd_types.vcd_signal list
@@ -15,7 +14,7 @@ end
 
 module Make
          (GS: Guest.SYNTAX)
-         (GV: Guest.VALUE) (* with type typ = GS.Types.typ)*)
+         (GV: Guest.VALUE (*with type typ = GS.Types.typ*))
        : T with module Syntax = GS
             and module Value = GV =
 struct
@@ -28,8 +27,6 @@ struct
     | StateMove of string * string 
 
   let is_pure_event = function Ev _ -> true | _ -> false
-
-  let mk_simple_upd name v = Upd (Syntax.mk_simple_lhs name, v)
 
   let compare = Stdlib.compare
               

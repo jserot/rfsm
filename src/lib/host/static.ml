@@ -1,8 +1,8 @@
-module type STATIC = sig
+module type T = sig
   
   module Syntax: Syntax.SYNTAX
   module Typing: Guest.TYPING
-  module Value: Guest.VALUE 
+  module Value: Guest.VALUE with type typ = Typing.Types.typ
 
   type fsm = {
       name: string;
@@ -38,7 +38,11 @@ module Make
          (HS: Syntax.SYNTAX)
          (GT: Guest.TYPING with type Types.typ = HS.typ)
          (GV: Guest.VALUE with type typ = HS.typ)
-         (GS: Guest.STATIC with type expr = HS.expr and type value = GV.t) = 
+         (GS: Guest.STATIC with type expr = HS.expr and type value = GV.t)
+  : T with module Syntax = HS
+       and module Typing = GT 
+       and module Value = GV =
+       (* and type Value.typ = GT.Types.typ =  *)
 struct
 
   module Syntax = HS
@@ -110,7 +114,7 @@ struct
       with Not_found -> Misc.fatal_error "Static.r_inst"  in (* should not happen after TC *)
     let m = mm.Annot.desc in
     let phi = 
-      try List.map2 (fun (io',_) io -> io', io) (m.inps @ m.outps) args
+      try List.map2 (fun (io',_) io -> io', io) m.ios args
       with Invalid_argument _ -> Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
     { name = name;
       params =
@@ -123,10 +127,10 @@ struct
 
   let r_insts (senv_m,senv_i) insts = List.map (r_inst (senv_m,senv_i)) insts
 
-  let r_io env { Annot.desc=id,cat,ty,_; _ } = 
+  let r_global env { Annot.desc=id,cat,ty,_; _ } = 
     Env.add id (cat,ty) env
     
-  let r_ios ios = List.fold_left r_io Env.empty ios
+  let r_globals gls = List.fold_left r_global Env.empty gls
                 
   let r_model env m =
     Env.add m.Annot.desc.Syntax.name m env
@@ -135,7 +139,6 @@ struct
 
   let build_ctx senv_i =  (* \mathcal{L} *)
     let open Syntax in
-    (* let f cat h senv = senv |> Env.filter (fun id v -> match v with cat', t -> cat'=cat && h t) |> Env.dom in *)
     let type_of te =
       match te.Annot.typ with
       | Some ty -> ty
@@ -153,7 +156,7 @@ struct
 
   let r_program p =
     let senv_m = r_models p.Syntax.models in
-    let senv_i = r_ios p.Syntax.ios in
+    let senv_i = r_globals p.Syntax.globals in
     let m = r_insts (senv_m, senv_i) p.Syntax.insts in
     let c = build_ctx senv_i in
     m, c

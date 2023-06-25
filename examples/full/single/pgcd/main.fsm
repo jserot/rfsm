@@ -1,5 +1,4 @@
 -- Computes the GCD of two integers using Euclid's algorithm
--- Warning : this only works with a _synchronous_ interpretation of actions
 
 fsm model gcd(
   in h: event,
@@ -10,7 +9,27 @@ fsm model gcd(
   out r: int)
 {
   states: Repos where rdy=1, Calcul where rdy=0;
-  vars: a: int, b: int;
+  vars: a: int, b: int, tmp: int;
+  trans:
+  | Repos -> Calcul on h when start=1 with a:=x, b:=y
+  | Calcul -> Calcul on h when b!=0 with tmp:=a, a:=b, b:=tmp % b
+  | Calcul -> Repos on h when b=0 with r:=a;
+  itrans:
+  | -> Repos;
+}
+
+-- Warning: this second formulation only works with a _synchronous_ interpretation of actions 
+
+fsm model gcd_bis(
+  in h: event,
+  in start: bool,
+  in x: int,
+  in y: int,
+  out rdy: bool,
+  out r: int)
+{
+  states: Repos where rdy=1, Calcul where rdy=0;
+  vars: a: int, b: int, tmp: int;
   trans:
   | Repos -> Calcul on h when start=1 with a:=x, b:=y
   | Calcul -> Calcul on h when b!=0 with a:=b, b:=a % b
@@ -27,3 +46,4 @@ output Rdy : bool
 output r : int
 
 fsm s = gcd(H,Start,x,y,Rdy,r)
+-- fsm s = gcd_bis(H,Start,x,y,Rdy,r)

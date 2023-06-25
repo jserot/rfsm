@@ -14,7 +14,7 @@ fsm model foo(
   | -> E0 ;
 }
 
-input h : event = periodic(10, 10, 200)
+input h : event = periodic(10, 10, 30)
 input inp : switch = value_changes(5:On, 15:Off)
 
 fsm f = foo(h,inp)

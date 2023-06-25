@@ -1,5 +1,5 @@
 module type DOT = sig
-  module Static: Static.STATIC
+  module Static: Static.T
   val output_static: dir:string -> name:string -> with_models:bool -> with_caption:bool -> Static.t -> string list
 end
 
@@ -21,7 +21,7 @@ let cfg = {
     trans_vlayout = false;
   }
 
-module Make(S: Static.STATIC) : DOT with module Static = S =
+module Make(S: Static.T) : DOT with module Static = S =
 struct
 
   module Static = S

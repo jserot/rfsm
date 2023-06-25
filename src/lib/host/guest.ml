@@ -24,13 +24,14 @@ module type SYNTAX = sig
   type lhs = (lhs_desc,Types.typ) Annot.t
   val is_bool_type: type_expr -> bool
   val mk_bool_expr: type_expr -> expr -> expr
-  val lhs_name: lhs -> string
+  val lhs_base_name: lhs -> string
+  val lhs_vcd_repr: lhs -> string
   val mk_simple_lhs: string -> lhs
   val subst_expr: (string * string) list -> expr -> expr
   val subst_lhs: (string * string) list -> lhs -> lhs
   val vars_of_expr: expr -> string list
   val vars_of_lhs: lhs -> string list
-  val vcd_name: lhs -> string
+  (** Printing *)
   val ppr_expr: (string * type_expr) list -> expr -> expr
   val ppr_lhs: (string * type_expr) list -> lhs -> lhs
   val pp_type_decl: Format.formatter -> type_decl -> unit
@@ -68,6 +69,10 @@ module type VALUE = sig
   exception Unsupported_vcd of t
   val vcd_type: t -> Vcd_types.vcd_typ
   val vcd_value: t -> Vcd_types.vcd_value
+  val flatten: base:string -> t -> (string * t) list
+    (** Decomposes a structured value into a list of qualified scalar values for VCD dumping.
+        For example, if [v] is a record [{x=1;y=2}], then [flatten ~base:"a" v] is [[("a.x",1);("a.y",2)]].
+        If [v] is a scalar value, then [flatten ~base:"a" v] is just [["a",v]] *)
   (** Printing *)
   val pp: Format.formatter -> t -> unit
 end

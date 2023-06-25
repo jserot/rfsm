@@ -4,12 +4,14 @@ type vcd_typ =
   | TyFloat
   | TyEvent
   | TyString
+  | TyChar
 [@@deriving show]
 
 type vcd_value =
   | Val_int of int
   | Val_bool of bool
   | Val_float of float
+  | Val_char of char
   | Val_string of string
 [@@deriving show]
 
@@ -24,6 +26,7 @@ let signal_cnt = ref start_symbol
 let register_signal acc (name,ty) =
   if List.mem_assoc name acc then acc (* Already registered *)
   else
+    (* let _ = Format.printf "** Vcd_types.register_signal(%s,%a)\n" name pp_vcd_typ ty in *)
     let acc' = (name, (Char.chr !signal_cnt,ty)) :: acc in
     incr signal_cnt;
     acc'

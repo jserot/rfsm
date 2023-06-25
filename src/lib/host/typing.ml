@@ -143,7 +143,7 @@ struct
       try List.find (fun { Annot.desc = m; _ } -> m.name = name) p.models
       with Not_found -> raise (Undefined_symbol (loc,name)) in
     let lookup_io name =
-      try List.find (fun { Annot.desc = (id,_,_,_); _ } -> id = name) p.ios
+      try List.find (fun { Annot.desc = (id,_,_,_); _ } -> id = name) p.globals
       with Not_found -> raise (Undefined_symbol (loc,name)) in
     let unify_cat cat cat' = match cat, cat' with
       (* Check that an Input (resp. Output) is not plugged on an Output (resp. Input) *)
@@ -171,7 +171,7 @@ struct
       List.iter2 bind_arg (m_inps @ m_outps) args;
     with Invalid_argument _ -> raise (Illegal_inst loc)
 
-  (* Typing IOs *)
+  (* Typing globals *)
                              
   let type_stimulus env id ty st =
     let check t = GuestTyping.type_check ~loc:st.Annot.loc ty t in 
@@ -184,12 +184,12 @@ struct
          check
          (List.map (function (_,e) -> GuestTyping.type_expression env e) vcs)
 
-  let type_io env  ({ Annot.desc = id,cat,te,st; _ } as io) = 
+  let type_global env  ({ Annot.desc = id,cat,te,st; _ } as gl) = 
     let ty = GuestTyping.type_of_type_expr env te in
     let _ = match st with 
       | Some st -> type_stimulus env id ty st
       | None -> () in
-    io.Annot.typ <- Some ty
+    gl.Annot.typ <- Some ty
 
   (* Typing function declarations *)
 
@@ -225,7 +225,7 @@ struct
     let env2 = List.fold_left type_fun_decl env1 p.fun_decls in
     let env = List.fold_left type_cst_decl env2 p.cst_decls in
     List.iter (type_fsm_model env) p.models;
-    List.iter (type_io env) p.ios;
+    List.iter (type_global env) p.globals;
     List.iter (type_fsm_inst env p) p.insts
 
   let pp_env fmt env = GuestTyping.pp_env fmt env

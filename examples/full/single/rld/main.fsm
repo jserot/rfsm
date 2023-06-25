@@ -20,7 +20,7 @@ fsm model rld(
   | -> Idle ;
 }
 
-input h : event = periodic(10, 10, 100)
+input h : event = periodic(10, 10, 120)
 input inp : rle = value_changes(5:{val='A',cnt=3}, 45:{val='B',cnt=2}, 75:{val='+',cnt=1})
 output outp : char
 

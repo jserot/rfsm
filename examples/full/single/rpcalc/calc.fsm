@@ -31,5 +31,5 @@ fsm model rpcalc(
   | Idle -> Idle on h when (wr=1).(inp.tag=Times) with x:=y*x, y:=z, outp:=x, l:=1
   | Idle -> Idle on h when (wr=1).(inp.tag=Div) with x:=y/x, y:=z, outp:=x, l:=1;
   itrans:
-  | -> Idle with l:=0;
+  | -> Idle with l:=0, y:=0;
 }

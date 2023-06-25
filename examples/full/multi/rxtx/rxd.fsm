@@ -15,7 +15,7 @@ fsm model Rxd<n: int>( -- n gives the bit duration (in clk periods)
   | Sync -> Rx on clk when k=n/2-1 with k:=0, i:=0, p:=0
   | Rx -> Rx on clk when k<n-1 with k:=k+1
   | Rx -> Rx on clk when (k=n-1).(i<8) with r[i]:=sin, p:=p^sin, k:=0, i:=i+1
-  | Rx -> Idle on clk when (k=n-1).(i=8) with err:=p^sin=0?0:1, dout:=r;
+  | Rx -> Idle on clk when (k=n-1).(i=8) with err:=p^sin=0, dout:=r;
   itrans:
   | -> Idle ;
 }

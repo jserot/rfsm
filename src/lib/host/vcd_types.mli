@@ -8,12 +8,14 @@ type vcd_typ =
   | TyFloat
   | TyEvent
   | TyString
+  | TyChar
 [@@deriving show]
 
 type vcd_value =
   | Val_int of int
   | Val_bool of bool
   | Val_float of float
+  | Val_char of char
   | Val_string of string
 [@@deriving show]
 

@@ -17,6 +17,8 @@ module Index = struct
 
   type op = int -> int -> int
 
+  let equal i1 i2 = i1 = i2 (* structural equality. TO FIX ? *)
+
   let ops = [
     "+", (+);
     "-", (-);
@@ -65,7 +67,6 @@ type typ =
   | TyArrow of typ * typ
   | TyProduct of typ list
   | TyConstr of string * typ list * siz (** name, args, size annotation *)
-              (* For ints: bit width or range, for arrays: dimension *)
   | TyRecord of string * (string * typ) list    (** Name, fields *)
 
 and siz =
@@ -112,13 +113,6 @@ let type_product = function
   | [t] -> t
   | ts -> TyProduct ts
             
-(* let type_constr c args szs =
- *   match szs with
- *   | [] -> TyConstr (c, args, new_size_var ())
- *   | [w] -> TyConstr (c, args, SzExpr1 (TiConst w))
- *   | [lo;hi] -> TyConstr (c, args, SzExpr2 (TiConst lo, TiConst hi))
- *   | _ -> Rfsm.Misc.fatal_error "Full.Types.type_sized" *)
-
 let type_int sz = TyConstr ("int", [], sz)
 let type_unsized_int () = TyConstr ("int", [], new_size_var ())
 let type_sized_int sz = TyConstr ("int", [], SzExpr1 (TiConst sz))
@@ -169,18 +163,13 @@ let rec real_type ty =
   | TyArrow (ty1,ty2) -> TyArrow (real_type ty1, real_type ty2)
   | TyProduct ts  -> TyProduct (List.map real_type ts)        
   | TyConstr (c, ts, sz) -> TyConstr (c, List.map real_type ts, real_size sz)
-  | TyRecord (name, fds) -> TyRecord (real_name name, List.map (function (n,ty') -> n, real_type ty') fds)
+  | TyRecord (name, fds) -> TyRecord (name, List.map (function (n,ty') -> n, real_type ty') fds)
   | ty -> ty
 
 and real_size sz = 
   match size_repr sz with
   | SzVar { value=Known sz'; _} -> sz'
   | sz -> sz
-
-and real_name nm = nm
-  (* match name_repr nm with
-   * | NmVar { value=Known nm'; _} -> nm'
-   * | nm -> nm *)
 
 let rec copy_type tvbs svbs ty =
   let rec copy ty = 
@@ -248,13 +237,13 @@ let rec unify ~loc ty1 ty2 =
      List.iter2 (unify ~loc) args1 args2;
      unify_size ~loc (val1,val2) sz1 sz2
   | TyRecord (nm1,fds1), TyRecord (nm2,fds2) ->
+     (* TODO: what do we do with nm1 and nm2 ? *)
      List.iter2
        (fun (n1,t1) (n2,t2) ->
          if n1 = n2
          then unify ~loc t1 t2
          else raise (Type_conflict(loc,val1,val2)))
        fds1 fds2
-     (* unify_name ~loc (val1,val2) nm1 nm2 *)
   | _, _ ->
       raise (Type_conflict(loc,val1,val2))
 
@@ -275,32 +264,27 @@ and unify_size ~loc (ty1,ty2) sz1 sz2 =
     | sz, SzVar var ->
         occur_check_size ~loc (ty1,ty2) var sz;
         var.value <- Known sz
-    | SzExpr1 (TiConst w1), SzExpr1 (TiConst w2) when w1 = w2 ->
-        ()
-    | SzExpr2 (TiConst lo1, TiConst hi1), SzExpr2 (TiConst lo2, TiConst hi2) when lo1 = lo2 && hi1 = hi2 ->
+    | SzExpr1 ti1, SzExpr1 ti2 when Index.equal ti1 ti2 -> 
+       ()
+    | SzExpr2 (ti11,ti12), SzExpr2 (ti21,ti22) when Index.equal ti11 ti21 && Index.equal ti12 ti22 ->
         ()
     | _, _ ->
         raise (Type_conflict(loc,ty1,ty2))
 
+and pp_siz c fmt sz = 
+  match c, size_repr sz with
+  | _, SzNone -> if !print_full_types then Format.fprintf fmt "<none>" else ()
+  | "int", SzVar v -> if !print_full_types then Format.fprintf fmt "<%a>" pp_var v else ()
+  | "array", SzVar v -> if !print_full_types then Format.fprintf fmt "[%a]" pp_var v else Format.fprintf fmt "[]"
+  | _, SzVar v -> Format.fprintf fmt "%a" pp_var v
+  | "array", SzExpr1 sz -> Format.fprintf fmt "[%a]" Index.pp sz
+  | _, SzExpr1 sz -> Format.fprintf fmt "<%a>" Index.pp sz
+  | "int", SzExpr2 (lo,hi) -> Format.fprintf fmt "<%a:%a>" Index.pp lo Index.pp hi
+  | "array", SzExpr2 (lo,hi) -> Format.fprintf fmt "[%a,%a]" Index.pp lo Index.pp hi
+  | _, SzExpr2 (lo,hi) -> Format.fprintf fmt "<%a,%a>" Index.pp lo Index.pp hi
 
-(* and unify_index (ty1,ty2) idx1 idx2 =
- *   match idx1, idx2 with 
- *   | TiConst n1, TiConst n2 when n1<>n2 -> raise (TypeConflict(ty1, ty2))
- *   | _, _ -> ()  (\* TO BE FIXED ! *\) *)
+and pp_var fmt v = Format.fprintf fmt "_%d" v.stamp (* TO FIX *) 
 
-(* and unify_name ~loc (ty1,ty2) nm1 nm2 =
- *   let val1 = real_name nm1
- *   and val2 = real_name nm2 in
- *   if val1 == val2 then
- *     ()
- *   else
- *   match (val1, val2) with
- *     | NmLit s1, NmLit s2 when s1 = s2 -> ()
- *     | NmVar var1, NmVar var2 when var1 == var2 -> () (\* This is hack *\)
- *     | NmVar var, nm -> var.value <- Known nm
- *     | nm, NmVar var -> var.value <- Known nm
- *     | _, _ ->
- *         raise (Type_conflict(loc,ty1,ty2)) *)
 
 and occur_check ~loc var ty =
   let rec test t =
@@ -335,63 +319,7 @@ let subst_indexes phi ty =
     | _ -> ty
 
 
-(* Checking *)
-
-(* let rec type_equal ~strict t1 t2 =
- *   match real_type t1, real_type t2 with
- *   | TyBool, TyBool -> true
- *   | TyEvent, TyEvent -> true
- *   | TyInt sz1, TyInt sz2 -> size_equal ~strict:strict sz1 sz2
- *   | TyFloat, TyFloat -> true
- *   | TyChar, TyChar -> true
- *   | TyEnum (nm1,cs1), TyEnum (nm2,cs2) ->
- *      name_equal ~strict nm1 nm2 && 
- *      (if strict then List.sort compare cs1 = List.sort compare cs2
- *      else List.for_all (function c -> List.mem c cs1) cs2)
- *         (\* so that, for ex, [type_equal ~strict:false {On,Off} {On} = true] *\)
- *   | TyVar { stamp=s1; value=Unknown }, TyVar { stamp=s2; value=Unknown } -> s1 = s2
- *   | TyArrow (ty1, ty1'), TyArrow (ty2, ty2') ->
- *       type_equal ~strict ty1 ty2 && type_equal ~strict ty1' ty2'
- *   | TyProduct ts, TyProduct ts' when List.length ts = List.length ts'->
- *       List.for_all2 (type_equal ~strict) ts ts'
- *   | TyArray (sz1, ty1), TyArray (sz2, ty2) -> 
- *      sz1 = sz2 && type_equal ~strict ty1 ty2
- *   | TyRecord (nm1, fds1), TyRecord (nm2, fds2) ->
- *      name_equal ~strict nm1 nm2 && List.for_all2 (fun (n1,t1) (n2,t2) -> type_equal ~strict t1 t2) fds1 fds2
- *   | _, _ -> false
- * 
- * and size_equal ~strict s1 s2 =
- *   match real_size s1, real_size s2 with
- *   | SzExpr1 w1, SzExpr1 w2 -> w1 = w2
- *   | SzExpr2 (lo1,hi1), SzExpr2 (lo2,hi2) -> lo1 = lo2 && hi1 = hi2
- *   | SzVar v1, SzVar v2 -> v1 == v2
- *   | _, _ -> false
- * 
- * and name_equal ~strict nm1 nm2 =
- *   match real_name nm1, real_name nm2 with
- *   | NmLit s1, NmLit s2 -> s1 = s2
- *   | NmVar v1, NmVar v2 -> v1 == v2
- *   | _, _ -> false *)
     
-(* Accessors *)
-                 
-(* let enums_of ty = match ty with
- *   | TyEnum (_,cs) -> List.map (function c -> c, ty) cs
- *   | _ -> []
- * 
- * let size_of ty = match ty with
- *   | TyArray (TiConst sz, _) -> sz
- *   | TyProduct ts -> List.length ts
- *   | _ -> 0
- * 
- * let subtype_of = function
- *   | TyArray (_,t) -> t
- *   | _ -> Misc.fatal_error "Types.subtype_of"
- *        
- * let is_lit_name nm = match real_name nm with
- *   | NmLit _ -> true
- *   | _ -> false *)
-       
 (* Printing *)
 
 let rec pp_typ fmt t =
@@ -405,20 +333,6 @@ let rec pp_typ fmt t =
   | TyConstr (c,[t'],sz) -> fprintf fmt "%a %s%a" pp_typ t' c (pp_siz c) sz
   | TyConstr (c,ts,sz) -> fprintf fmt " (%a) %s%a" (Rfsm.Misc.pp_list_h ~sep:"," pp_typ) ts c (pp_siz c) sz
   | TyRecord (nm,fs) -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_rfield) fs
-
-and pp_siz c fmt sz = 
-  match c, size_repr sz with
-  | _, SzNone -> if !print_full_types then Format.fprintf fmt "<none>" else ()
-  | "int", SzVar v -> if !print_full_types then Format.fprintf fmt "<%a>" pp_var v else ()
-  | "array", SzVar v -> if !print_full_types then Format.fprintf fmt "[%a]" pp_var v else Format.fprintf fmt "[]"
-  | _, SzVar v -> Format.fprintf fmt "%a" pp_var v
-  | "array", SzExpr1 sz -> Format.fprintf fmt "[%a]" Index.pp sz
-  | _, SzExpr1 sz -> Format.fprintf fmt "<%a>" Index.pp sz
-  | "int", SzExpr2 (lo,hi) -> Format.fprintf fmt "<%a:%a>" Index.pp lo Index.pp hi
-  | "array", SzExpr2 (lo,hi) -> Format.fprintf fmt "[%a,%a]" Index.pp lo Index.pp hi
-  | _, SzExpr2 (lo,hi) -> Format.fprintf fmt "<%a,%a>" Index.pp lo Index.pp hi
-
-and pp_var fmt v = Format.fprintf fmt "_%d" v.stamp (* TO FIX *) 
 
 and pp_rfield fmt (n,ty) = Format.fprintf fmt "%s: %a" n pp_typ ty
 

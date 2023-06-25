@@ -119,11 +119,18 @@ let rec pp_lhs_desc fmt l = match l with
 and pp_lhs fmt l = pp_lhs_desc fmt l.Annot.desc
 
 let mk_simple_lhs v = Annot.make (LhsVar v)
-let lhs_name l = match l.Annot.desc with
+
+let lhs_base_name l = match l.Annot.desc with
   | LhsVar v -> v
   | LhsIndex (a,_) -> a 
   | LhsRange (a,_,_) -> a 
   | LhsRField (a,_) -> a 
+
+let lhs_vcd_repr l = match l.Annot.desc with
+  | LhsVar v -> v
+  | LhsIndex (a,i) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr i
+  | LhsRange (a,hi,lo) -> a (* TO FIX ? *)
+  | LhsRField (a,f) -> a ^ "." ^ f
 
 (** Inspectors *)
               
@@ -176,12 +183,12 @@ let subst_lhs phi l =
 
 (** VCD interface *)
               
-let vcd_name lhs =
-  match lhs.Annot.desc with
-  | LhsVar v -> v
-  | LhsIndex (a,i) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr i (* Note: syntax "a[i]" is not compatible with VCD format *)
-  | LhsRange (a,hi,lo) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr hi ^ "." ^ Rfsm.Misc.to_string pp_expr lo
-  | LhsRField (r,f) -> r ^ "." ^ f
+(* let vcd_name lhs =
+ *   match lhs.Annot.desc with
+ *   | LhsVar v -> v
+ *   | LhsIndex (a,i) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr i (\* Note: syntax "a[i]" is not compatible with VCD format *\)
+ *   | LhsRange (a,hi,lo) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr hi ^ "." ^ Rfsm.Misc.to_string pp_expr lo
+ *   | LhsRField (r,f) -> r ^ "." ^ f *)
 
 (** Pre-processing *)
 

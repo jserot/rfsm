@@ -18,15 +18,24 @@ let rec default_value ty = match ty with
   | Some (Types.TyConstr ("array", _, _)) ->
      Rfsm.Misc.fatal_error "Full.Value.default_value: cannot initialize unsized array"
   | Some (Types.TyRecord (_, fs)) ->
+     (* The initial value of a record is _not "undefined" but an _record of undefined value *)
      Val_record (List.map (fun (f,ty) -> f, default_value (Some ty)) fs)
   | _ -> Val_unknown
 
 exception Unsupported_vcd of t
+
+let flatten ~base v = 
+  match v with
+  | Val_record vs ->
+     List.map (fun (f,v) -> base ^ "." ^ f, v) vs
+  | _ ->
+     [base, v]
                            
 let vcd_type v = match v with
   | Val_int _ -> Rfsm.Vcd_types.TyInt None
   | Val_bool _ -> Rfsm.Vcd_types.TyBool
   | Val_float _ -> Rfsm.Vcd_types.TyFloat
+  | Val_char _ -> Rfsm.Vcd_types.TyChar
   | Val_enum _ -> Rfsm.Vcd_types.TyString
   | _ -> raise (Unsupported_vcd v)
 
@@ -35,6 +44,7 @@ let vcd_value v = match v with
   | Val_bool v -> Rfsm.Vcd_types.Val_bool v
   | Val_float v -> Rfsm.Vcd_types.Val_float v
   | Val_enum c -> Rfsm.Vcd_types.Val_string c
+  | Val_char c -> Rfsm.Vcd_types.Val_char c
   | _ -> raise (Unsupported_vcd v)
 
 let rec pp fmt v = 
@@ -50,3 +60,4 @@ let rec pp fmt v =
   | Val_fn _ -> fprintf fmt "<fun>"
   | Val_record fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:";" pp_rfield) fs
   | Val_unknown -> fprintf fmt "?"
+

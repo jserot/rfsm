@@ -14,7 +14,7 @@ module type SYNTAX = sig
       fun_decls: fun_decl list;
       cst_decls: cst_decl list;
       models: model list;
-      ios: io list;
+      globals: global list;
       insts: inst list;
     }
 
@@ -23,6 +23,7 @@ module type SYNTAX = sig
       name: string;
       states: state list;
       params: (string * type_expr) list;
+      ios: (string * type_expr) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
       vars: (string * type_expr) list;
@@ -47,10 +48,10 @@ module type SYNTAX = sig
   and itransition = (itransition_desc,typ) Annot.t
   and itransition_desc = string * action list  (** state, actions *)
                  
-  and io = (io_desc,typ) Annot.t
-  and io_desc = string * io_cat * type_expr * stimulus option
+  and global = (global_desc,typ) Annot.t
+  and global_desc = string * global_cat * type_expr * stimulus option
 
-  and io_cat = Input | Output | Shared
+  and global_cat = Input | Output | Shared
                               
   and stimulus = (stimulus_desc,typ) Annot.t
   and stimulus_desc = 
@@ -114,7 +115,6 @@ struct
   type lhs = Guest.lhs
 
   let pp_type_expr fmt te = Misc.pp_opt Guest.Types.pp_typ fmt (te.Annot.typ)
-  (* let pp_type_expr = Guest.pp_type_expr *)
   let pp_expr = Guest.pp_expr
   let pp_lhs = Guest.pp_lhs
 
@@ -126,7 +126,7 @@ struct
   type inst = (inst_desc,typ) Annot.t
   let pp_inst fmt i = pp_inst_desc fmt i.Annot.desc
 
-  type io_cat = Input | Output | Shared [@@deriving show {with_path=false}]
+  type global_cat = Input | Output | Shared [@@deriving show {with_path=false}]
 
   type stimulus_desc = 
     | Periodic of int * int * int (** Period, start date, end date *)
@@ -136,9 +136,9 @@ struct
   type stimulus = (stimulus_desc,typ) Annot.t
   let pp_stimulus fmt s = pp_stimulus_desc fmt s.Annot.desc
 
-  type io_desc = string * io_cat * type_expr * stimulus option [@@deriving show {with_path=false}]
-  type io = (io_desc,typ) Annot.t
-  let pp_io fmt i = pp_io_desc fmt i.Annot.desc
+  type global_desc = string * global_cat * type_expr * stimulus option [@@deriving show {with_path=false}]
+  type global = (global_desc,typ) Annot.t
+  let pp_global fmt i = pp_global_desc fmt i.Annot.desc
 
   type cond_desc = string * expr list [@@deriving show {with_path=false}]
   type cond = (cond_desc,typ) Annot.t
@@ -165,6 +165,8 @@ struct
       name: string;
       states: state list;
       params: (string * type_expr) list;
+      ios: (string * type_expr) list;
+      (* Note: we must keep the unsorted IO specs to perform the formal/actual substitution when instanciating the model *)
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
       vars: (string * type_expr) list;
@@ -195,7 +197,7 @@ struct
       fun_decls: fun_decl list;
       cst_decls: cst_decl list;
       models: model list;
-      ios: io list;
+      globals: global list;
       insts: inst list;
     } 
 
@@ -204,7 +206,7 @@ struct
       cst_decls=[];
       fun_decls=[];
       models=[];
-      ios=[];
+      globals=[];
       insts=[]
     }
 
@@ -213,7 +215,7 @@ struct
       cst_decls= p1.cst_decls @ p2.cst_decls;
       fun_decls= p1.fun_decls @ p2.fun_decls;
       models= p1.models @ p2.models;
-      ios= p1.ios @ p2.ios;
+      globals= p1.globals @ p2.globals;
       insts= p1.insts @ p2.insts;
     }
 
@@ -318,15 +320,15 @@ struct
     match act with
     | Emit _ -> act
     | Assign (lhs, expr) ->
-       let typ = type_of ~loc:lhs.Annot.loc env (Guest.lhs_name lhs) in
+       let typ = type_of ~loc:lhs.Annot.loc env (Guest.lhs_base_name lhs) in
         if Guest.is_bool_type typ 
         then Assign (lhs, Guest.mk_bool_expr typ expr)
         else Assign (Guest.ppr_lhs env lhs, expr) (* In case pre-processing should be carried out _inside_ LHS sub-exprs *)
 
-  let rec ppr_io io = { io with Annot.desc = ppr_io_desc io.Annot.desc }
-  and ppr_io_desc ((id,cat,te,stim) as io) = 
+  let rec ppr_global gl = { gl with Annot.desc = ppr_global_desc gl.Annot.desc }
+  and ppr_global_desc ((id,cat,te,stim) as gl) = 
     match stim with 
-    | None -> io
+    | None -> gl
     | Some st -> (id, cat, te, Some (ppr_stim te st))
 
   and ppr_stim te st = { st with Annot.desc = ppr_stim_desc te st.Annot.desc }
@@ -337,7 +339,7 @@ struct
 
   let ppr_program p =
     { p with models = List.map ppr_model p.models;
-             ios = List.map ppr_io p.ios }
+             globals = List.map ppr_global p.globals }
 
   module S = Set.Make(String)
 
@@ -407,11 +409,11 @@ struct
       
   let pp_program fmt p = 
     let open Format in
-    fprintf fmt "@[<v>[@,csts=%a@,fns=%a@,types=%a@,models=%a@,ios=%a@,insts=%a@,]@]@."
+    fprintf fmt "@[<v>[@,csts=%a@,fns=%a@,types=%a@,models=%a@,globals=%a@,insts=%a@,]@]@."
       (Misc.pp_list_v pp_cst_decl) p.cst_decls
       (Misc.pp_list_v pp_fun_decl) p.fun_decls
       (Misc.pp_list_v Guest.pp_type_decl) p.type_decls
       (Misc.pp_list_v pp_model) p.models
-      (Misc.pp_list_v pp_io) p.ios
+      (Misc.pp_list_v pp_global) p.globals
       (Misc.pp_list_v pp_inst) p.insts
 end

@@ -25,14 +25,14 @@ let handle e =
       eprintf "%aIllegal cast\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Typing.Illegal_expr (loc,what) -> 
       eprintf "%aIllegal expression: %s\n" pp_loc loc what; exit 2
-  | Eval.Uninitialized loc -> 
-      eprintf "%aUninitialized value\n" pp_loc loc; exit 2
+  | Eval.Uninitialized (what,loc) -> 
+     if loc = Location.no_location then eprintf "Uninitialized value: %s\n" what
+     else eprintf "%aUninitialized value: %s\n" pp_loc loc what; 
+     exit 2
   | Eval.Out_of_bound (loc,i) -> 
       eprintf "%aOut of bound array access (%d)\n" pp_loc loc i; exit 2
   | Eval.Illegal_application e -> 
       eprintf "%aIllegal application\n" pp_loc e.Rfsm.Annot.loc; exit 2
-  | Value.Unsupported_vcd v ->
-      eprintf "No VCD conversion for value %a\n" Value.pp v; exit 2
   | e ->
      eprintf "Internal error: %s.\n" (Printexc.to_string e);
      flush stderr; exit 100
