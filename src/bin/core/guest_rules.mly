@@ -21,24 +21,23 @@ expr:
 
 simple_expr:
   | v = LID { mk ~loc:($symbolstartofs,$endofs) (EVar v) }
-  | e = constant { e }
+  | e = scalar_const { e }
   | LPAREN e = expr RPAREN { e }
 
 lhs:
   | v = LID { mk ~loc:($symbolstartofs,$endofs) (LhsVar v) }
 
-constant:
-  | c = int_const { mk ~loc:($symbolstartofs,$endofs) (EInt c) }
-  | c = bool_const { mk ~loc:($symbolstartofs,$endofs) (EBool c) }
-
 param_value:
-  | v = constant { v }
+  | v = scalar_const { v }
 
-int_const:
-  | v = INT { v }
-  | MINUS v = INT { -v }
+scalar_const:
+  | c = INT { mk ~loc:($symbolstartofs,$endofs) (EInt c) }
+  | MINUS c = INT { mk ~loc:($symbolstartofs,$endofs) (EInt (-c)) }
+  | c = BOOL { mk ~loc:($symbolstartofs,$endofs) (EBool c) }
 
-bool_const:
-  | v = BOOL { v }
+const:
+  | c = scalar_const { c }
 
+stim_const: 
+  | c = scalar_const { c }
 

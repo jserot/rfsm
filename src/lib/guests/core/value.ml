@@ -10,9 +10,11 @@ let default_value ty = match ty with
   | _ -> Val_unknown
 
 exception Unsupported_vcd of t
+
+let flatten ~base v = [base, v]  (* No structured value in the Core language *)
                            
 let vcd_type v = match v with
-  | Val_int _ -> Rfsm.Vcd_types.TyInt
+  | Val_int _ -> Rfsm.Vcd_types.TyInt None
   | Val_bool _ -> Rfsm.Vcd_types.TyBool
   | Val_enum _ -> Rfsm.Vcd_types.TyString
   | _ -> raise (Unsupported_vcd v)

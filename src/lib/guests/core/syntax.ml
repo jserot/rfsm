@@ -41,17 +41,16 @@ and expr_desc =
   | EBinop of string * expr * expr
   | ECon0 of string (* Nullary value constructor *)
 
-let rec pp_expr_desc ~with_type fmt e = 
+let rec pp_expr_desc fmt e = 
   let open Format in
   match e with
   | EVar v -> fprintf fmt "%s" v
   | EInt i -> fprintf fmt "%d" i
   | EBool b -> fprintf fmt "%b" b
-  | EBinop (op,e1,e2) -> fprintf fmt "%a%s%a" (pp_expr ~with_type) e1 op (pp_expr ~with_type) e2
+  | EBinop (op,e1,e2) -> fprintf fmt "%a%s%a" pp_expr e1 op pp_expr e2
   | ECon0 c -> fprintf fmt "%s" c
-and pp_expr ?(with_type=false) fmt e =
-  pp_expr_desc ~with_type fmt e.Annot.desc;
-  if with_type then Format.fprintf fmt "{:%a}" (Rfsm.Misc.pp_opt Types.pp_typ) e.Annot.typ
+and pp_expr fmt e =
+  pp_expr_desc fmt e.Annot.desc
 
 (** Assignations LHS *)
   
@@ -59,14 +58,17 @@ type lhs = (lhs_desc,Types.typ) Annot.t
 and lhs_desc = 
   | LhsVar of string
 
-let rec pp_lhs_desc ?(with_type=false) fmt l = match l with
+let rec pp_lhs_desc fmt l = match l with
   | LhsVar v -> Format.fprintf fmt "%s" v
-and pp_lhs ?(with_type=false) fmt l =
-  pp_lhs_desc ~with_type fmt l.Annot.desc;
-  if with_type then Format.fprintf fmt "{:%a}" (Rfsm.Misc.pp_opt Types.pp_typ) l.Annot.typ
+and pp_lhs fmt l =
+  pp_lhs_desc fmt l.Annot.desc
 
 let mk_simple_lhs v = Annot.make (LhsVar v)
-let lhs_name l = match l.Annot.desc with
+
+let lhs_base_name l = match l.Annot.desc with
+  | LhsVar v -> v
+
+let lhs_vcd_repr l = match l.Annot.desc with
   | LhsVar v -> v
 
 (** Inspectors *)
