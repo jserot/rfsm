@@ -1,16 +1,14 @@
 COMPILER
 
 - info/version naming 
+- rename src/lib/host/seq.ml
+- output formatting when using -trace option
+- prefix local vars in VCD output / VCD hierarchy (gtkwave format ?)
+- in DOT repr, do not print type defns but type names (optionnaly ?)
+- support for synchronous actions
 - reinstall Systemc backend
 - reinstall VHDL backend
-- rename src/lib/host/seq.ml
 - banner
-- output formatting when using -trace option
-- prefix local vars in VCD output
-- VCD hierarchy (gtkwave format ?)
-- in DOT repr, do not print type defns but type names (optionnaly ?)
-- in DOT repr, make vert layout of trans the default
-- support for synchronous actions
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)
 - allow arrays as parameters (ex: [fsm model m <t: int array[4]])

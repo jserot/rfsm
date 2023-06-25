@@ -66,7 +66,7 @@ let set_sim_trace level = Dynamic.cfg.verbose_level <- level
  * let set_vhdl_dump_ghw () = Vhdl.cfg.Vhdl.vhdl_dump_format <- Vhdl.Ghw *)
 
 let set_dot_no_captions () = dot_captions := false
-let set_dot_vert_trans () =  Dot.cfg.Dot.trans_vlayout <- true
+let set_dot_short_trans () =  Dot.cfg.Dot.trans_vlayout <- false
 let set_dot_show_models () = dot_show_models := true
 
 let set_vcd_default_int_size s = Vcd.cfg.Vcd.default_int_size <- s

@@ -7,7 +7,7 @@ noide;general;-sim;Arg.Unit;set_sim;run simulation (generating .vcd file)
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
 noide;dot;-dot_show_models;Arg.Unit;set_dot_show_models;generated separate .dot representations for FSM models
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
-ide;dot;-dot_vert_trans;Arg.Unit;set_dot_vert_trans;Print transition labels vertically (default is horizontally)
+ide;dot;-dot_short_trans;Arg.Unit;set_dot_short_trans;Print single-line transition labels (default is multi-lines)
 noide;sim;-sim_trace;Arg.Int;set_sim_trace;set trace level for simulation (default: 0)
 ide;sim;-vcd_int_size;Arg.Int;set_vcd_default_int_size;set default int size for VCD traces (default: 8)
 ide;general;-synchronous_actions;Arg.Unit;set_synchronous_actions;interpret actions synchronously
