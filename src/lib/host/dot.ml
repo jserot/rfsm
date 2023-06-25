@@ -73,11 +73,11 @@ struct
     let pp_ov fmt (o,v) = fprintf fmt "%s=%a" o Syntax.Guest.pp_expr v in
     pp_list_r pp_ov fmt ovs
  
-  let outp_model ocf ~kind ~with_caption m = 
+  let outp_model ocf ~name ~kind ~with_caption m = 
     let open Syntax in
     let open Format in
-    let node_id i = m.name ^ "_" ^ string_of_int i in
-    let ini_id = m.name ^ "_ini" in
+    let node_id i = name ^ "_" ^ string_of_int i in
+    let ini_id = name ^ "_ini" in
     let nodes, _ = 
       List.fold_left
         (fun (acc,n) { Annot.desc= q,ovs; _ } ->
@@ -123,13 +123,13 @@ struct
     let fname = Filename.concat dir (name ^ ".dot") in
     let oc = open_out fname in
     let ocf = Format.formatter_of_out_channel oc in
-    outp_model ocf ~kind:"digraph" ~with_caption m;
+    outp_model ocf ~name:m.Syntax.name ~kind:"digraph" ~with_caption m;
     Format.fprintf ocf "}";
     close_out oc;
     fname
 
   let output_fsm ocf f = 
-    outp_model ocf ~kind:"subgraph" ~with_caption:false f.Static.model.Annot.desc;
+    outp_model ocf ~name:f.Static.name ~kind:"subgraph" ~with_caption:false f.Static.model.Annot.desc;
     if not (Env.is_empty f.params) then begin
         let pp_param fmt (id,v) = Format.fprintf fmt "%s = %a" id Static.Value.pp v in      
         let pp_params fmt params = pp_list_r pp_param fmt params in

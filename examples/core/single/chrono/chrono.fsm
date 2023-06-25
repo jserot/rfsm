@@ -1,6 +1,6 @@
 -- Model of a (very) simple stop watch :
--- - H gives seconds
--- - counting starts and stops at each occurence of [startstop]
+-- - input [h] gives seconds
+-- - counting starts and stops at each occurence of the [startstop] event
 
 fsm model chrono(
   in h: event,
