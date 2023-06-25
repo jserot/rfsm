@@ -1,9 +1,8 @@
 COMPILER
 
-- info/version naming 
 - in DOT repr, do not print type defns but type names (optionnaly ?)
-- support for synchronous actions
 - output formatting when using -trace option
+- support for synchronous actions
 - reinstall Systemc backend
 - reinstall VHDL backend
 - banner

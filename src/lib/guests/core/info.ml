@@ -1,1 +1,2 @@
-let version = "core-2.0"
+let name = "core"
+let version = "0.1"
