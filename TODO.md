@@ -1,18 +1,17 @@
 COMPILER
 
 - info/version naming 
-- output formatting when using -trace option
 - prefix local vars in VCD output / VCD hierarchy (gtkwave format ?)
 - in DOT repr, do not print type defns but type names (optionnaly ?)
 - support for synchronous actions
+- output formatting when using -trace option
 - reinstall Systemc backend
 - reinstall VHDL backend
 - banner
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)
-- allow arrays as parameters (ex: [fsm model m <t: int array[4]])
 - allow _unsized_ arrays as parameters (ex: [fsm model m <t: int array[], sz: int> (...)])
-- bound check for ranged integers
+- bound check for arrays, ranged integers and bit ranges
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - clarify mechanism for delta-waits insertion in SystemC backend
 - VHDL implementation of models with multiple input events
