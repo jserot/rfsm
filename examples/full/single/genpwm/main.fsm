@@ -23,4 +23,4 @@ input r : int<0:10> = value_changes(0:7, 300:9)
 input StartStop : event = sporadic(15, 235, 305)
 output s : bool
 
-fsm pwm1 = pwm(StartStop,H,r,s)
+fsm p = pwm(StartStop,H,r,s)

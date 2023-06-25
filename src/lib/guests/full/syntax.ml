@@ -120,6 +120,15 @@ and pp_lhs fmt l = pp_lhs_desc fmt l.Annot.desc
 
 let mk_simple_lhs v = Annot.make (LhsVar v)
 
+let lhs_prefix pfx l =
+  let mk d = { l with Annot.desc = d } in
+  let p s = pfx ^ "." ^ s in
+  match l.Annot.desc with
+  | LhsVar v -> mk (LhsVar (p v))
+  | LhsIndex (a,i) -> mk (LhsIndex (p a,i))
+  | LhsRange (a,i1,i2) -> mk (LhsRange (p a,i1,i2))
+  | LhsRField (a,f) -> mk (LhsRField (p a,f))
+
 let lhs_base_name l = match l.Annot.desc with
   | LhsVar v -> v
   | LhsIndex (a,_) -> a 

@@ -26,6 +26,7 @@ module type SYNTAX = sig
   val mk_bool_expr: type_expr -> expr -> expr
   val lhs_base_name: lhs -> string
   val lhs_vcd_repr: lhs -> string
+  val lhs_prefix: string -> lhs -> lhs
   val mk_simple_lhs: string -> lhs
   val subst_expr: (string * string) list -> expr -> expr
   val subst_lhs: (string * string) list -> lhs -> lhs

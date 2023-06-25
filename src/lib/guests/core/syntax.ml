@@ -65,6 +65,12 @@ and pp_lhs fmt l =
 
 let mk_simple_lhs v = Annot.make (LhsVar v)
 
+let lhs_prefix pfx l =
+  let mk d = { l with Annot.desc = d } in
+  let p s = pfx ^ "." ^ s in
+  match l.Annot.desc with
+  | LhsVar v -> mk (LhsVar (p v))
+
 let lhs_base_name l = match l.Annot.desc with
   | LhsVar v -> v
 

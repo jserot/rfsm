@@ -83,7 +83,7 @@ struct
     | [tr] -> tr 
     | trs' -> raise (Non_deterministic_transition (f,t,trs'))
   
-  let r_act sd (vars,env) ({Annot.desc=act; _},t) =  (* Rules ActUpdL, ActUpdG, ActEmitL and ActEmitG *)
+  let r_act ~f sd (vars,env) ({Annot.desc=act; _},t) =  (* Rules ActUpdL, ActUpdG, ActEmitL and ActEmitG *)
   (* \Nu, \Gamma -- act,t | \rho_e --> \Nu', \Gamma' *)
     match act with
     | Syntax.Emit e ->
@@ -97,32 +97,32 @@ struct
     | Syntax.Assign (lhs,expr) ->
        let genv = Env.union vars env in
        let x = Syntax.Guest.lhs_base_name lhs in
-       let upd env =
+       let pfx p lhs = if p = "" then lhs else Syntax.Guest.lhs_prefix p lhs in 
+       let upd ?(prefix="") env =
          let v = Eval.eval_expr genv expr in
-         let e = Event.Upd (lhs,v) in
-         Trace.add (mk_event t e) trace;
+         Trace.add (mk_event t (Event.Upd (pfx prefix lhs, v))) trace; (* Note: Use prefixes in traces to allow VCD scoping *)
          Eval.upd_env lhs v env in
        if Env.mem x vars then (* ActUpdL *)
-         (upd vars, env),
+         (upd ~prefix:f vars, env), (* For local updates, prefix target variable *)
          Evset.empty t
        else if Env.mem x env then (* ActUpdG *)
-         (vars, upd env),
+         (vars, upd env), (* No prefix for updates of globals *)
          Evset.empty t
        else (* Should not happen *)
          Misc.fatal_error "Dynamic.r_act"
   
-  let r_acts sd (vars,env) (acts,t) = (* Rule ACTS *)
+  let r_acts ~f sd (vars,env) (acts,t) = (* Rule ACTS *)
   (* \Nu, \Gamma -- <acts,t> | \rho_e --> \Nu', \Gamma' *)
     let (vars',env'), rs =
       List.fold_left_map
-        (r_act sd)
+        (r_act ~f sd)
         (vars,env)
         (List.map (fun act -> (act,t)) acts) in
     vars', env', Evset.union_all t rs
   
   let r_trans sd (m,env) ({Annot.desc=q,_,acts,q',_; _},t) =  (* Rule TRANS *)
     (* \mu, \Gamma -- \tau,t | \rho_e --> \mu', \Gamma' *)
-    let vars', env', r_e = r_acts sd (m.Static.vars,env) (acts,t) in
+    let vars', env', r_e = r_acts ~f:m.Static.name sd (m.Static.vars,env) (acts,t) in
     let m' = { m with q=q'; vars = vars' } in
     Trace.add (mk_event t (Event.StateMove (state_name m,q'))) trace;
     m', env', r_e
@@ -208,7 +208,7 @@ struct
         (fun env mu ->
           let nu = mu.Static.vars in
           let { Annot.desc=q0,acts; _ } = mu.Static.model.Annot.desc.itrans in
-          let nu',env', r_e = r_acts sd (nu, env) (acts,0) in
+          let nu',env', r_e = r_acts ~f:mu.name sd (nu, env) (acts,0) in
           dump2 2 ">> R_INIT: executing initial actions [%a] from FSM %a\n"
             (Misc.pp_list_h ~sep:"," Syntax.pp_action) acts Format.pp_print_string mu.Static.name;
           Trace.add (mk_event 0 (Event.StateMove (state_name mu,q0))) trace; 
