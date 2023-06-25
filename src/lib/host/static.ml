@@ -62,14 +62,14 @@ struct
     match verbose_level with
     | 0 -> Format.fprintf fmt "%s" f.name  (* Name only *)
     | 1 -> (* With model name only *)
-       fprintf fmt "@[<v>[@,name=%s@,model=%s@,params=%a@,q=%s@,vars=%a@,]@]@."
+       fprintf fmt "@[<v>{@,name=%s@,model=%s@,params=%a@,q=%s@,vars=%a}@]"
          f.name
          f.model.Annot.desc.Syntax.name
          (Env.pp Value.pp) f.params
          f.q
          (Env.pp Value.pp) f.vars
     | _ -> (* Full *)
-       fprintf fmt "@[<v>[@,name=%s@,model=%s@,params=%a@,q=%s@,vars=%a@,]@]@."
+       fprintf fmt "@[<v>{@,name=%s@,model=%s@,params=%a@,q=%s@,vars=%a}@]"
          f.name
          f.model.Annot.desc.name
          (Env.pp Value.pp) f.params
@@ -85,10 +85,10 @@ struct
   let pp_ctx fmt ctx =
     let open Format in
     let pp_io fmt (id,ty) = Format.fprintf fmt "%s: %a" id (Typing.Types.pp_typ ~abbrev:false) ty in
-    fprintf fmt "@[<v>[inputs=[%a]@,outputs=[%a]@,shared=[%a]]@]"
-    (Misc.pp_list_h ~sep:", " pp_io) ctx.inputs
-    (Misc.pp_list_h ~sep:", " pp_io) ctx.outputs
-    (Misc.pp_list_h ~sep:", " pp_io) ctx.shared
+    fprintf fmt "@[<v>{inputs=%a@,outputs=%a@,shared=%a}@]"
+    (Misc.pp_list_v pp_io) ctx.inputs
+    (Misc.pp_list_v pp_io) ctx.outputs
+    (Misc.pp_list_v pp_io) ctx.shared
 
   type t = {
     ctx: ctx;
@@ -99,9 +99,9 @@ struct
 
   let pp ?(verbose_level=1) fmt s = 
     let open Format in
-    fprintf fmt "@[<v>[ctx=%a@,models=[%a]@,fsms=[%a]@,globals=%a@]@."
+    fprintf fmt "@[<v>{ctx=%a@,models=%a@,fsms=%a@,globals=%a@,}@."
     pp_ctx s.ctx
-    (Misc.pp_list_h Syntax.pp_model) s.models
+    (Misc.pp_list_v Syntax.pp_model) s.models
     (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
     (Env.pp Value.pp) s.globals
 

@@ -12,7 +12,7 @@ let pp_list_v pp fmt l =
   match l with 
   | [] -> fprintf fmt "[]"
   | [x] -> fprintf fmt "@[<h>[%a]@]" pp x 
-  | _ -> fprintf fmt "@[<v>[@,%a@,]@]" (pp_print_list ~pp_sep:pp_cut pp) l
+  | _ -> fprintf fmt "@[<v>[%a]@]" (pp_print_list ~pp_sep:pp_cut pp) l
 
 let pp_list_h ?(sep="") pp fmt l = Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt "%s" sep) pp fmt l
 

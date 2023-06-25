@@ -396,7 +396,7 @@ struct
     let pp_ov fmt (o,e) = fprintf fmt "%s=%a" o pp_expr e in
     let pp_ovs fmt ovs = match ovs with [] -> () | _ -> fprintf fmt "{%a}" (Misc.pp_list_h pp_ov) ovs in
     let pp_state fmt { Annot.desc=x,ovs; _ } = fprintf fmt "%s%a" x pp_ovs ovs in
-    fprintf fmt "@[<v>[@,name=%s@,params=[%a]@,inps=%a@,outps=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,]@]"
+    fprintf fmt "@[<v>{@,name=%s@,params=[%a]@,inps=%a@,outps=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,}@]"
       p.name
       (Misc.pp_list_h ~sep:"," pp_iov) p.params
       (Misc.pp_list_v pp_iov) p.inps
