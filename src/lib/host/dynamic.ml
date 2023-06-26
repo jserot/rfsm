@@ -163,7 +163,7 @@ struct
   let r_react_ev sd (m,env) s_e = (* Rule ReactEv *)
     (* M, \Gamma -- \sigma_e | \rho --> M', \Gamma' *)
     let ms = Static.dep_sort m in 
-    dump1 1 ">> >> REACT_EV: using order:  %a\n" (Misc.pp_list_v (Static.pp_fsm ~verbose_level:0)) ms;
+    dump1 2 ">> >> REACT_EV: using order: %a\n" (Misc.pp_list_h ~sep:"; " (Static.pp_fsm ~verbose_level:0)) ms;
     Trace.add s_e trace; 
     let (env',_,rho), ms' =
       List.fold_left_map
@@ -179,14 +179,14 @@ struct
     let pp_fsms = Misc.pp_list_v (Static.pp_fsm ~verbose_level:1) in
     let t = Evset.date st in
     (* M, \Gamma -- \sigma | \rho_e --> M', \Gamma' *)
-    dump4 1 ">> t=%a: REACT: M=%a G=%a -- %a --> ...\n" Format.pp_print_int t pp_fsms m pp_env env Evset.pp st; 
+    dump4 1 ">> REACT t=%a@.   M=%a@.   G=%a@,  -- %a --> ...@."
+      Format.pp_print_int t pp_fsms m pp_env env Evset.pp st; 
     let st_e, st_v = Evset.partition ~f:Event.is_pure_event st in
     let _, env_v = r_react_upd sd (m,env) st_v in
     dump1 2 ">> >> REACT_UPD: G_v=%a\n" pp_env env_v;
     let m', env', r_e = r_react_ev sd (m,env_v) st_e in
-    dump3 2 ">> >> REACT_EV: M'=%a G'=%a r_e=%a\n" pp_fsms m' pp_env env' Evset.pp r_e;
-    dump4 1 ">> t=%a: REACT: ... -- [%a] -> M'=%a G'=%a\n"
-      Format.pp_print_int t Evset.pp r_e pp_fsms m' pp_env env';
+    dump3 2 ">> >> REACT_EV:@.       M'=%a@.       G'=%a@.       r_e=%a@." pp_fsms m' pp_env env' Evset.pp r_e;
+    dump3 1 ">> REACT ... -- [%a] ->@.   M'=%a@.   G'=%a@." Evset.pp r_e pp_fsms m' pp_env env';
     (m',env'), r_e
   
   let is_event_type (ty: Static.Typing.Types.typ) = Static.Typing.Types.is_type_constr0 "event" ty
@@ -209,8 +209,6 @@ struct
           let nu = mu.Static.vars in
           let { Annot.desc=q0,acts; _ } = mu.Static.model.Annot.desc.itrans in
           let nu',env', r_e = r_acts ~f:mu.name sd (nu, env) (acts,0) in
-          dump2 2 ">> R_INIT: executing initial actions [%a] from FSM %a\n"
-            (Misc.pp_list_h ~sep:"," Syntax.pp_action) acts Format.pp_print_string mu.Static.name;
           Trace.add (mk_event 0 (Event.StateMove (state_name mu,q0))) trace; 
           Trace.add r_e trace; 
           env', { mu with Static.q=q0 ; Static.vars = Env.union nu' mu.Static.params })

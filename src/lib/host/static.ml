@@ -61,11 +61,9 @@ struct
     let open Format in
     match verbose_level with
     | 0 -> Format.fprintf fmt "%s" f.name  (* Name only *)
-    | 1 -> (* With model name only *)
-       fprintf fmt "@[<v>{@,name=%s@,model=%s@,params=%a@,q=%s@,vars=%a}@]"
+    | 1 -> (* With model name, state and vars only *)
+       fprintf fmt "@[<h>{@,name=%s,@,q=%s,@,vars=%a}@]"
          f.name
-         f.model.Annot.desc.Syntax.name
-         (Env.pp Value.pp) f.params
          f.q
          (Env.pp Value.pp) f.vars
     | _ -> (* Full *)
