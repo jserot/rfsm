@@ -116,7 +116,7 @@ and string_of_op = function
 
 let string_of_guard exp = string_of_expr exp
 
-let string_of_lhs l = match l.Action.l_desc with
+et string_of_lhs l = match l.Action.l_desc with
   | Action.LhsVar id -> id
   | Action.LhsArrInd (id,idx) -> id ^ "[" ^ string_of_expr idx ^ "]"
   | Action.LhsArrRange (id,hi,lo) -> id ^ "[" ^ string_of_expr hi ^ ":" ^ string_of_expr lo ^ "]"

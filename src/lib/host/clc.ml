@@ -47,26 +47,26 @@ struct
     Parser.program Lexer.main !Location.input_lexbuf
 
   let compile f =
+    let open L in
     let p0 =
       List.fold_left
-        (fun p f -> L.Syntax.add_program p (parse f))
-        L.Syntax.empty_program
+        (fun p f -> Syntax.add_program p (parse f))
+        Syntax.empty_program
         !source_files in
-    let p = L.Syntax.ppr_program p0 in
-    (* Format.printf "parsed=%a" L.pp_program p; *)
-    let tenv0 = L.Typing.mk_env () in
-    if !Options.dump_tenv then Format.printf "tenv=%a" L.pp_tenv tenv0;
-    L.type_program tenv0 p;
-    if !Options.dump_typed then Format.printf "tp=%a" L.pp_program p;
-    let s = L.elab p in
-    (* let s = if !Options.normalize then Static.normalize s' else s' in *) (* TODO *)
-    if !Options.dump_static then Format.printf "s=%a" (L.Static.pp ~verbose_level:2) s;
+    let p = Syntax.ppr_program p0 in
+    (* Format.printf "parsed=%a" pp_program p; *)
+    let tenv0 = Typing.mk_env () in
+    if !Options.dump_tenv then Format.printf "tenv=%a" pp_tenv tenv0;
+    type_program tenv0 p;
+    if !Options.dump_typed then Format.printf "tp=%a" pp_program p;
+    let s = elab p in
+    if !Options.dump_static then Format.printf "s=%a" (Static.pp ~verbose_level:2) s;
     Logfile.start ();
     begin match !Options.target with
     | Some Options.Dot ->
        Misc.check_dir !Options.target_dir;
        let fs =
-         L.Dot.output_static 
+         Dot.output_static 
            ~dir:!Options.target_dir
            ~name:!Options.main_prefix
            ~with_models:!Options.dot_show_models
@@ -74,11 +74,12 @@ struct
            s in
        List.iter Logfile.write fs
     | Some Options.CTask ->
-       Misc.not_implemented "CTask backend"
-       (* Ctask.check_allowed s;
-        * Misc.check_dir !Options.target_dir;
-        * if Ctask.need_globals s then Ctask.dump_globals ~dir:!Options.target_dir s;
-        * List.iter (Ctask.dump_fsm_model ~dir:!Options.target_dir s) s.Static.m_models *)
+       (* let cms = List.map Cmodel.c_model_of_fsm_model s.Static.models in
+        * List.iter (fun m -> Format.printf "%a@." Cmodel.pp m) cms *)
+       (* Ctask.check_allowed s; *)
+       Misc.check_dir !Options.target_dir;
+       let fs = Ctask.output ~dir:!Options.target_dir s in
+       List.iter Logfile.write fs
     | Some Options.SystemC ->
        Misc.not_implemented "Systemc backend"
        (* Systemc.check_allowed s;
@@ -108,7 +109,7 @@ struct
     | Some Options.Sim ->
        if s.fsms <> [] then
          let vcd_file = !Options.target_dir ^ "/" ^ !Options.main_prefix ^ ".vcd" in
-         L.run ~vcd_file p s
+         run ~vcd_file p s
        else begin
            Printf.eprintf "No testbench to simulate.\n"; flush stderr;
            exit 1

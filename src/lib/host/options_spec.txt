@@ -4,6 +4,7 @@ noide;general;-dump_static;Arg.Unit;set_dump_static;dump static representation o
 noide;general;-target_dir;Arg.String;set_target_dir;set target directory (default: .)
 noide;general;-dot;Arg.Unit;set_dot;generate .dot representation of model(s)/program
 noide;general;-sim;Arg.Unit;set_sim;run simulation (generating .vcd file)
+noide;general;-ctask;Arg.Unit;set_ctask;generate CTask code
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
 noide;dot;-dot_show_models;Arg.Unit;set_dot_show_models;generated separate .dot representations for FSM models
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)

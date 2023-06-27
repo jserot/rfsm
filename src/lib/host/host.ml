@@ -8,6 +8,8 @@ module type T = sig
   module Dot: Dot.DOT with module Static = Static
   module Dynamic: Dynamic.DYNAMIC with module Syntax = Syntax and module Static = Static
   module Vcd: Vcd.VCD 
+  (* module Cmodel: Cmodel.CMODEL with module Static = Static *)
+  module Ctask: Ctask.CTASK with module Static = Static
   val type_program: Typing.env -> Syntax.program -> unit
   val elab: Syntax.program -> Static.t
   val run: ?vcd_file:string -> Syntax.program -> Static.t -> unit
@@ -26,6 +28,8 @@ struct
     module Dot = Dot.Make(Static)
     module Dynamic = Dynamic.Make(Syntax)(Static)(G.Eval)
     module Vcd = Vcd.Make(Dynamic.EvSeq)
+    (* module Cmodel = Cmodel.Make(Static) *)
+    module Ctask = Ctask.Make(Static)(G.Ctask)
 
     let type_program tenv p = Typing.type_program tenv p
 

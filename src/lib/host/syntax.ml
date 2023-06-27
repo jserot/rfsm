@@ -98,8 +98,17 @@ module type SYNTAX = sig
   val ppr_program: program -> program
   exception Undefined_symbol of Location.t * string
     
+  val pp_expr: Format.formatter -> expr -> unit
+  val pp_type_expr: Format.formatter -> type_expr -> unit
+  val pp_cond: Format.formatter -> cond -> unit
+  val pp_cond_desc: Format.formatter -> cond_desc -> unit
   val pp_action: Format.formatter -> action -> unit
+  val pp_action_desc: Format.formatter -> action_desc -> unit
   val pp_transition: Format.formatter -> transition -> unit
+  val pp_transition_desc: Format.formatter -> transition_desc -> unit
+  val pp_itransition: Format.formatter -> itransition -> unit
+  val pp_itransition_desc: Format.formatter -> itransition_desc -> unit
+  val pp_state: Format.formatter -> state -> unit
   val pp_model: Format.formatter -> model -> unit
   val pp_model_name: Format.formatter -> model -> unit
   val pp_program: Format.formatter -> program -> unit
@@ -158,8 +167,9 @@ struct
   type itransition = (itransition_desc,typ) Annot.t
   let pp_itransition fmt t = pp_itransition_desc fmt t.Annot.desc
 
-  type state_desc = (string * (string * expr) list)
+  type state_desc = (string * (string * expr) list) [@@deriving show {with_path=false}]
   type state = (state_desc,unit) Annot.t
+  let pp_state fmt s = pp_state_desc fmt s.Annot.desc
 
   type model_desc = {
       name: string;

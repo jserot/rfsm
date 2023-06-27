@@ -1,8 +1,9 @@
 COMPILER
 
-- support for synchronous actions
 - reinstall Systemc backend
 - reinstall VHDL backend
+- support for synchronous actions
+- document lib/host/guest.ml
 - banner
 - VCD hierarchy (gtkwave format ?)
 - dual error reporting mechanism (CLC / RfsmLight)

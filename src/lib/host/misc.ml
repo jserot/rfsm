@@ -16,6 +16,11 @@ let pp_list_v pp fmt l =
 
 let pp_list_h ?(sep="") pp fmt l = Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt "%s" sep) pp fmt l
 
+let pp_opt_list ~lr ~sep pp fmt l =
+  match l with
+  | [] -> ()
+  | _ -> Format.fprintf fmt "%s%a%s" (fst lr) (pp_list_h ~sep pp) l (snd lr)
+
 let pp_opt ?(none="?") pp fmt v =
   match v with
 | None -> Format.pp_print_string fmt none
@@ -41,6 +46,14 @@ let add_assoc k v l =
   let v' = List.assoc k l in
   (k,v::v') :: List.remove_assoc k l
 
+let update_list_assoc k v l =
+    (* If key [k] does not belong to assoc list [l], add it, with associated value [[v]].
+     else add [v] to the associated value *)
+    let rec h = function
+        [] -> [k,[v]]
+      | (k',vs)::l -> if k=k' then (k,v::vs) :: l else (k',vs) :: h l in
+    h l
+
 let list_scatter f l = 
   let add k v l = 
     let v' = List.assoc k l in
@@ -51,6 +64,9 @@ let list_scatter f l =
       if List.mem_assoc k acc then add k x acc else (k,[x])::acc)
     []
     l
+
+let list_iter_fst f l =
+  ignore (List.fold_left (fun z x -> f z x; false) true l)
 
 let replace_assoc k v l = (k,v) :: List.remove_assoc k l 
 

@@ -100,7 +100,7 @@ let rec pp_expr_desc fmt e =
   | EFapp (f,es) -> fprintf fmt "%s(%a)" f (Rfsm.Misc.pp_list_h ~sep:"," pp_expr) es
   | ERecord (r,f) -> fprintf fmt "%s.%s" r f
   | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_rfield) fs
-and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc;
+and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc
 
 (** Assignation LHS *)
   
@@ -231,3 +231,4 @@ let ppr_expr (env: (string * type_expr) list) e =
   | _ -> e
 
 let ppr_lhs _ l = l 
+

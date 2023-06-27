@@ -1,7 +1,11 @@
+(** Name/version of the guest language *)
+
 module type INFO = sig
   val name: string
   val version: string
 end
+
+(** Types *)
 
 module type TYPES = sig 
   type typ
@@ -13,6 +17,8 @@ module type TYPES = sig
   val pp_typ_scheme: Format.formatter -> typ_scheme -> unit
 end
                  
+(** Syntax *)
+
 module type SYNTAX = sig 
   module Types : TYPES
   type type_decl_desc
@@ -42,6 +48,8 @@ module type SYNTAX = sig
   val pp_lhs: Format.formatter -> lhs -> unit
 end
   
+(** Typing *)
+
 module type TYPING = sig 
   module Syntax : SYNTAX
   module Types : TYPES
@@ -58,10 +66,9 @@ module type TYPING = sig
   val type_expression: env -> Syntax.expr -> Types.typ
   val type_of_type_expr: env -> Syntax.type_expr -> Types.typ
   val type_lhs: env -> Syntax.lhs -> Types.typ
-  (* TODO : type_type_decl, type_fun_decl, ... ? *)
 end
   
-(* The values of the guest language must match the following signature *)
+(** Values *)
 
 module type VALUE = sig 
   type t
@@ -79,6 +86,8 @@ module type VALUE = sig
   val pp: Format.formatter -> t -> unit
 end
 
+(** Static program representation *)
+
 module type STATIC = sig
   type expr
   type value
@@ -87,7 +96,7 @@ module type STATIC = sig
   val eval: expr -> value  (* Static evaluation of constant expressions *)
 end
 
-(* The evaluator for the guest language must match the following signature *)
+(** Evaluator *)
 
 module type EVAL = sig 
   module Syntax : SYNTAX
@@ -100,15 +109,31 @@ module type EVAL = sig
   val eval_bool: env -> Syntax.expr -> bool
 end
 
+(** CTask interface *)
+
+module type CTASK = sig
+  module Syntax: SYNTAX
+  val pp_typed_symbol: Format.formatter -> string * Syntax.type_expr -> unit
+  val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
+  val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
+  val pp_cst_decl: Format.formatter -> string -> Syntax.type_expr -> unit
+  val pp_expr: Format.formatter -> Syntax.expr -> unit
+  val pp_cst_impl: Format.formatter -> string -> Syntax.type_expr -> Syntax.expr -> unit
+end
+                  
+(** Error handling *)
+
 module type ERROR = sig
   val handle: exn -> unit
 end
+
+(** Guest specific error handling *)
 
 module type OPTIONS = sig
    val specs: (string * Arg.spec * string) list
 end
 
-(* The guest language must match the following signature *)
+(** Guest language global signature *)
                  
 module type T = sig
   module Info : INFO
@@ -118,6 +143,7 @@ module type T = sig
   module Value : VALUE with type typ = Types.typ
   module Static : STATIC with type expr = Syntax.expr and type value = Value.t
   module Eval : EVAL with module Syntax = Syntax and module Value = Value
+  module Ctask: CTASK with module Syntax = Syntax
   module Error : ERROR
   module Options : OPTIONS
 end

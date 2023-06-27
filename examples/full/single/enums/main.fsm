@@ -1,10 +1,10 @@
 -- This example illustrates the use of user-defined enum types
 
-type switch = enum { On, Off }
+type sw = enum { On, Off }
 
 fsm model foo(
   in h: event,
-  in e: switch)
+  in e: sw)
 {
   states: E0, E1;
   trans:
@@ -15,6 +15,6 @@ fsm model foo(
 }
 
 input h : event = periodic(10, 10, 30)
-input inp : switch = value_changes(5:On, 15:Off)
+input inp : sw = value_changes(5:On, 15:Off)
 
 fsm f = foo(h,inp)

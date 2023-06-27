@@ -8,6 +8,7 @@ case $1 in
 type) make type;;
 dot) make dot.run;;
 sim) make sim.run;;
+ctask) make ctask;;
 *) false;;
 esac
 case $? in

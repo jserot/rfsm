@@ -23,6 +23,9 @@ module type T = sig
     models: Syntax.model list; (** Original, un-normalized models *)
     fsms: fsm list;
     globals: Value.t Env.t; (** Functions and constants *)
+    fns: Syntax.fun_decl list; (** Functions *)
+    csts: Syntax.cst_decl list; (** Constants *)
+    types: Syntax.Guest.type_decl list; (** User-defined types *)
     }
 
   val build: Syntax.program -> t
@@ -93,6 +96,9 @@ struct
     models: Syntax.model list;
     fsms: fsm list;
     globals: Value.t Env.t;
+    fns: Syntax.fun_decl list;
+    csts: Syntax.cst_decl list;
+    types: Syntax.Guest.type_decl list;
     }
 
   let pp ?(verbose_level=1) fmt s = 
@@ -177,7 +183,10 @@ struct
     { ctx = c;
       models = p.Syntax.models;
       fsms = m;
-      globals = r_globals p }
+      globals = r_globals p;
+      fns = p.Syntax.fun_decls;
+      csts = p.Syntax.cst_decls;
+      types = p.Syntax.type_decls }
               
   (* Dependency-based sorting *)
     
