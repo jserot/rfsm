@@ -158,12 +158,22 @@ struct
        let ocf = formatter_of_out_channel oc in
        fprintf ocf "digraph %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" name cfg.layout cfg.rankdir cfg.mindist;
        List.iter (output_fsm ocf) sd.fsms;
-       let pp_io ocf kind (id,ty) = 
-         fprintf ocf "%s %s: %a\\r" kind id (Typing.Types.pp_typ ~abbrev:cfg.abbrev_types) ty in
+       let pp_io ~with_stim kind ocf (id,(ty,st)) = 
+         if with_stim then
+           fprintf ocf "%s %s: %a = %a\\r"
+             kind
+             id
+             (Typing.Types.pp_typ ~abbrev:cfg.abbrev_types) ty
+             (Misc.pp_opt Syntax.pp_stimulus_desc) st
+         else
+           fprintf ocf "%s %s: %a\\r"
+             kind
+             id
+             (Typing.Types.pp_typ ~abbrev:cfg.abbrev_types) ty in
        let pp_ios ocf ctx = 
-         List.iter (pp_io ocf "input") ctx.inputs; 
-         List.iter (pp_io ocf "output") ctx.outputs; 
-         List.iter (pp_io ocf "shared") ctx.shared in
+         List.iter (pp_io ~with_stim:true "input" ocf)  ctx.inputs; 
+         List.iter (pp_io ~with_stim:false "output" ocf) ctx.outputs; 
+         List.iter (pp_io ~with_stim:false "shared" ocf) ctx.shared in
        fprintf ocf "%s_ios [label=\"%a\", shape=rect, style=rounded]\n" name pp_ios sd.Static.ctx;
        fprintf ocf "}\n";
        close_out oc;

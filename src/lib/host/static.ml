@@ -13,9 +13,11 @@ module type T = sig
     }
   
   type ctx = {  (* TODO : update formal semantics accordingly *)
-    inputs: (string * Typing.Types.typ) list;  
-    outputs: (string * Typing.Types.typ) list;  
-    shared: (string * Typing.Types.typ) list;  
+    inputs: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
+    outputs: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
+    shared: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
+    (* Note: the [stimulus_desc] component is only used for outputs. It is here attached to
+       [outputs] and [shared] descriptions to uniformize fns operating on [ctx]s. *)
     }
 
   type t = {
@@ -78,14 +80,14 @@ struct
          (Env.pp Value.pp) f.vars
 
   type ctx = {
-    inputs: (string * Typing.Types.typ) list;  
-    outputs: (string * Typing.Types.typ) list;  
-    shared: (string * Typing.Types.typ) list;  
+    inputs: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
+    outputs: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
+    shared: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
     } 
 
   let pp_ctx fmt ctx =
     let open Format in
-    let pp_io fmt (id,ty) = Format.fprintf fmt "%s: %a" id (Typing.Types.pp_typ ~abbrev:false) ty in
+    let pp_io fmt (id,(ty,_)) = Format.fprintf fmt "%s: %a" id (Typing.Types.pp_typ ~abbrev:false) ty in
     fprintf fmt "@[<v>{inputs=%a@,outputs=%a@,shared=%a}@]"
     (Misc.pp_list_v pp_io) ctx.inputs
     (Misc.pp_list_v pp_io) ctx.outputs
@@ -131,8 +133,8 @@ struct
 
   let r_insts (senv_m,senv_i) insts = List.map (r_inst (senv_m,senv_i)) insts
 
-  let r_global env { Annot.desc=id,cat,ty,_; _ } = 
-    Env.add id (cat,ty) env
+  let r_global env { Annot.desc=id,cat,ty,st; _ } = 
+    Env.add id (cat,ty,st) env
     
   let r_globals gls = List.fold_left r_global Env.empty gls
                 
@@ -149,9 +151,12 @@ struct
       | _ -> Misc.fatal_error "Static.build_ctx" in
     let extract cat acc senv =
       Env.fold 
-      (fun id (cat',te) acc ->
-        if cat'= cat then (id,type_of te)::acc 
-        else acc)
+      (fun id (cat',te,st) acc ->
+        let t = type_of te in
+        match cat, cat', st with
+        | Input, Input, Some { Annot.desc=st'; _ }  -> (id, (t, Some st'))::acc 
+        | _, _, _ when cat=cat' -> (id, (t, None))::acc 
+        | _, _, _ -> acc)
       senv
       [] in
     { inputs = extract Input [] senv_i;

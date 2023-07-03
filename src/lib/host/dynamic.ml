@@ -197,7 +197,7 @@ struct
     (* M --> M_0, \Gamma_0 *)
     let env0 =
       List.fold_left
-        (fun env (v,ty) ->
+        (fun env (v,(ty,_)) ->
           if not (is_event_type ty)
           then Env.add v (Static.Value.default_value (Some ty)) env
           else env)
@@ -219,13 +219,13 @@ struct
   let is_input ctx evs =
     let check ev = match ev with
       | Event.Ev x ->
-         if List.mem_assoc x ctx.Static.inputs && is_event_type (List.assoc x ctx.Static.inputs) then
+         if List.mem_assoc x ctx.Static.inputs && is_event_type (fst @@ List.assoc x ctx.Static.inputs) then
            ()
          else
            Misc.fatal_error ("Dynamic.is_input: " ^ x ^ " is not an event typed input")
       | Event.Upd (l,_) ->
          let x = Syntax.Guest.lhs_base_name l in
-         if List.mem_assoc x ctx.Static.inputs && not (is_event_type (List.assoc x ctx.Static.inputs)) then
+         if List.mem_assoc x ctx.Static.inputs && not (is_event_type (fst @@ List.assoc x ctx.Static.inputs)) then
            ()
          else
            Misc.fatal_error ("Dynamic.is_input: " ^ x ^ " is an event typed input")

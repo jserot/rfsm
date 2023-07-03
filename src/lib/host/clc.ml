@@ -81,18 +81,10 @@ struct
        let fs = Ctask.output ~dir:!Options.target_dir s in
        List.iter Logfile.write fs
     | Some Options.SystemC ->
-       Misc.not_implemented "Systemc backend"
-       (* Systemc.check_allowed s;
-        * Misc.check_dir !Options.target_dir;
-        * if Systemc.need_globals s then Systemc.dump_globals ~dir:!Options.target_dir s;
-        * if has_testbench then begin
-        *     List.iter (Systemc.dump_input ~dir:!Options.target_dir s) s.Static.m_inputs;
-        *     List.iter (Systemc.dump_fsm_inst ~dir:!Options.target_dir s) s.Static.m_fsms;
-        *     Systemc.dump_testbench ~name:name ~dir:!Options.target_dir s;
-        *     Systemc.dump_makefile ~name:name ~dir:!Options.target_dir s
-        *   end
-        * else
-        *   List.iter (Systemc.dump_fsm_model ~dir:!Options.target_dir) s.Static.m_models *)
+       Misc.not_implemented "VHDL backend"
+       (*  Misc.check_dir !Options.target_dir;
+        * let fs = Systemc.output ~dir:!Options.target_dir p s in
+        * List.iter Logfile.write fs *)
     | Some Options.Vhdl ->
        Misc.not_implemented "VHDL backend"
        (* Misc.check_dir !Options.target_dir;
@@ -160,6 +152,8 @@ struct
        eprintf "%aThis expression cannot be statically evaluated\n" pp_location e.Annot.loc; exit 2
     | L.Vcd.Unsupported (ty,v) ->
        eprintf "No representation for VCD type/value: %a:%a\n" Vcd_types.pp_vcd_typ ty Vcd_types.pp_vcd_value v; exit 2
+    (* | L.Systemc.Invalid_output_assign (id,loc) ->
+     *    eprintf "%aSystemC backend; cannot assign non-scalar output %s\n" loc id; exit 2 *)
     | Misc.Not_implemented msg ->
        eprintf "Not implemented: %s.\n" msg; flush stderr; exit 22
     | Misc.Fatal_error msg ->

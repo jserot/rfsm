@@ -15,7 +15,8 @@ module type CMODEL = sig
 
   module Static : Static.T
        
-  type typ = Static.Typing.Types.typ
+  (* type typ = Static.Typing.Types.typ *)
+  type typ = Static.Syntax.typ
   type type_expr = Static.Syntax.type_expr
   type value = Static.Value.t
   type expr = Static.Syntax.Guest.expr
@@ -28,7 +29,7 @@ module type CMODEL = sig
       c_states: c_state list;
       c_types: (string * c_type_defn) list;
       c_params: (string * type_expr) list;
-      c_consts: (string * (type_expr * value)) list;
+      (* c_consts: (string * (type_expr * value)) list; *)
       c_inps: (string * type_expr) list;
       c_outps: (string * type_expr) list;
       c_inouts: (string * type_expr) list;
@@ -60,12 +61,13 @@ module type CMODEL = sig
 end
 
 module Make (Static: Static.T)
-       : CMODEL with module Static = Static =
+       : CMODEL with module Static = Static and type typ = Static.Syntax.typ =
 struct
 
   module Static = Static
                 
-  type typ = Static.Typing.Types.typ
+  (* type typ = Static.Typing.Types.typ *)
+  type typ = Static.Syntax.typ
   type type_expr = Static.Syntax.type_expr
   type value = Static.Value.t
   type expr = Static.Syntax.Guest.expr
@@ -84,7 +86,7 @@ struct
       c_states: c_state list;
       c_types: (string * c_type_defn) list;
       c_params: (string * type_expr) list;
-      c_consts: (string * (type_expr * value)) list;
+      (* c_consts: (string * (type_expr * value)) list; *)
       c_inps: (string * type_expr) list;
       c_outps: (string * type_expr) list;
       c_inouts: (string * type_expr) list;
@@ -126,7 +128,7 @@ struct
       c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
       c_types = [];
       c_params = m.params;
-      c_consts = [];
+      (* c_consts = []; *)
       c_inps = m.inps;
       c_outps = m.outps;
       c_inouts = []; (* TO FIX *)

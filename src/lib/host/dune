@@ -1,7 +1,7 @@
 (library
   (flags (:standard -annot) (:standard -w -27-32-37))
   (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_deriving.map))
-  (libraries ocamlgraph)
+  (libraries ocamlgraph str)
   (name rfsm))
 
 (rule

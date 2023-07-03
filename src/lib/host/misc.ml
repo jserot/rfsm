@@ -3,6 +3,7 @@ exception Fatal_error of string
                            
 let not_implemented m = raise (Not_implemented m)
 let fatal_error m = raise (Fatal_error m)
+let warning msg = Printf.printf "** Warning: %s\n" msg; flush stdout
                       
 let pp_spc fmt () = Format.fprintf fmt "@ "
 let pp_cut fmt () = Format.fprintf fmt "@,"
@@ -75,3 +76,23 @@ let string_length_nl s =
     (fun acc s -> max acc (String.length s))
     0
     (String.split_on_char '\n' s)
+
+let open_file fname =
+  let oc = open_out fname in
+  oc, Format.formatter_of_out_channel oc
+
+let close_file (oc,ocf) =
+  Format.fprintf ocf "};@."; (* flush *)
+  close_out oc
+
+let copy_with_subst defns ic oc = 
+  let rec subst mdefs s = match mdefs with
+      [] -> s
+    | (v,v')::ds -> subst ds (Str.global_replace (Str.regexp_string v) v' s)  in
+   try
+     while true do
+       let line = input_line ic in
+       Printf.fprintf oc "%s\n" (subst defns line)
+     done
+   with End_of_file ->
+     ()

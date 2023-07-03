@@ -64,7 +64,7 @@ let pp_expr fmt e =
   | EBool b -> fprintf fmt "%b" b
   | EFloat f -> fprintf fmt "%f" f
   | EChar c -> fprintf fmt "'%c'" c
-  | EFapp (op,[e]) when op.[0] = '~' -> fprintf fmt "-%a" (pp (level+1)) e (* Unary "-" *)
+  | EFapp (("~-"|"~-."),[e]) -> fprintf fmt "-%a" (pp (level+1)) e
   | EFapp (f,es) -> fprintf fmt "%s(%a)" f (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) es
   | EBinop (op,e1,e2) ->
        fprintf fmt "%s%a%s%a%s" (paren level "(") (pp (level+1)) e1 (cop_of op) (pp (level+1)) e2 (paren level ")")
@@ -72,7 +72,7 @@ let pp_expr fmt e =
   | EIndexed (a,i) -> fprintf fmt "%s[%a]" a (pp level) i
   | ERanged (a,hi,lo) -> fprintf fmt "%s[%a:%a]" a (pp level) hi (pp level) lo (* Not strictly C *)
   | EArrExt vs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) vs
-  | ECond (e1,e2,e3) -> fprintf fmt "%a?%a:%a" (pp level) e1 (pp level) e2 (pp level) e3
+  | ECond (e1,e2,e3) -> fprintf fmt "%a?%a:%a" (pp (level+1)) e1 (pp (level+1)) e2 (pp (level+1)) e3
   | ECast (e,t) -> fprintf fmt "((%a)(%a))" pp_type_expr t (pp level) e
   | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield level)) fs (* Not strictly C *)
   | ERecord (r,f) -> fprintf fmt "%s.%s" r f 

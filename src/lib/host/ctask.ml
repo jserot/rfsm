@@ -69,8 +69,8 @@ struct
   let pp_action tab fmt a =
     let open Static.Syntax in
     match a.Annot.desc with
-    | Assign (lhs, expr) -> fprintf fmt "%s%a = %a;\n" tab Guest.pp_lhs lhs G.pp_expr expr
     | Emit id -> fprintf fmt "%snotify_ev(%s);\n" tab id
+    | Assign (lhs, expr) -> fprintf fmt "%s%a = %a;\n" tab Guest.pp_lhs lhs G.pp_expr expr
 
   let pp_transition tab is_first src fmt (_,{Annot.desc=ev,guards;_},acts,q',_) =
     match guards with

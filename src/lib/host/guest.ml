@@ -34,6 +34,7 @@ module type SYNTAX = sig
   val lhs_base_name: lhs -> string
   val lhs_vcd_repr: lhs -> string
   val lhs_prefix: string -> lhs -> lhs
+  val is_simple_lhs: lhs -> bool
   val mk_simple_lhs: string -> lhs
   val subst_expr: (string * string) list -> expr -> expr
   val subst_lhs: (string * string) list -> lhs -> lhs
@@ -121,6 +122,20 @@ module type CTASK = sig
   val pp_cst_impl: Format.formatter -> string -> Syntax.type_expr -> Syntax.expr -> unit
 end
                   
+(** SystemC interface *)
+
+module type SYSTEMC = sig
+  module Syntax: SYNTAX
+  val pp_typed_symbol: Format.formatter -> string * Syntax.type_expr -> unit
+  val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
+  val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
+  val pp_typ: Format.formatter -> Syntax.Types.typ -> unit
+  val pp_cst_decl: Format.formatter -> string -> Syntax.type_expr -> unit
+  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
+  val pp_expr: Format.formatter -> Syntax.expr -> unit
+  val pp_cst_impl: Format.formatter -> string -> Syntax.type_expr -> Syntax.expr -> unit
+end
+                  
 (** Error handling *)
 
 module type ERROR = sig
@@ -144,6 +159,7 @@ module type T = sig
   module Static : STATIC with type expr = Syntax.expr and type value = Value.t
   module Eval : EVAL with module Syntax = Syntax and module Value = Value
   module Ctask: CTASK with module Syntax = Syntax
+  (* module Systemc: SYSTEMC with module Syntax = Syntax *)
   module Error : ERROR
   module Options : OPTIONS
 end

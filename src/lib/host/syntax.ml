@@ -108,6 +108,8 @@ module type SYNTAX = sig
   val pp_transition_desc: Format.formatter -> transition_desc -> unit
   val pp_itransition: Format.formatter -> itransition -> unit
   val pp_itransition_desc: Format.formatter -> itransition_desc -> unit
+  val pp_stimulus: Format.formatter -> stimulus -> unit
+  val pp_stimulus_desc: Format.formatter -> stimulus_desc -> unit
   val pp_state: Format.formatter -> state -> unit
   val pp_model: Format.formatter -> model -> unit
   val pp_model_name: Format.formatter -> model -> unit

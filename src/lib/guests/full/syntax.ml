@@ -120,6 +120,11 @@ and pp_lhs fmt l = pp_lhs_desc fmt l.Annot.desc
 
 let mk_simple_lhs v = Annot.make (LhsVar v)
 
+let is_simple_lhs l = 
+  match l.Annot.desc with
+  | LhsVar _ ->  true
+  | _ -> false
+
 let lhs_prefix pfx l =
   let mk d = { l with Annot.desc = d } in
   let p s = pfx ^ "." ^ s in
