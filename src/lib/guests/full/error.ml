@@ -34,6 +34,10 @@ let handle e =
       eprintf "%aOut of bound array access (%d)\n" pp_loc loc i; exit 2
   | Eval.Illegal_application e -> 
       eprintf "%aIllegal application\n" pp_loc e.Rfsm.Annot.loc; exit 2
+  | Systemc.Unsupported_type t ->
+      eprintf "SystemC backend: unsupported type: %a\n" (Rfsm.Misc.pp_opt (Types.pp_typ ~abbrev:false)) t; exit 2
+  | Systemc.Unsupported_expr e ->
+      eprintf "%aSystemC backend: unsupported expression\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | e ->
      eprintf "Internal error: %s.\n" (Printexc.to_string e);
      flush stderr; exit 100

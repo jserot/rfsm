@@ -28,6 +28,7 @@ struct
 
   module Static = S
   module Syntax = Static.Syntax
+  module Types = Syntax.Guest.Types
 
   let pp_cond fmt { Annot.desc=e,gs; _ } =  
     let open Format in
@@ -163,13 +164,13 @@ struct
            fprintf ocf "%s %s: %a = %a\\r"
              kind
              id
-             (Typing.Types.pp_typ ~abbrev:cfg.abbrev_types) ty
+             (Types.pp_typ ~abbrev:cfg.abbrev_types) ty
              (Misc.pp_opt Syntax.pp_stimulus_desc) st
          else
            fprintf ocf "%s %s: %a\\r"
              kind
              id
-             (Typing.Types.pp_typ ~abbrev:cfg.abbrev_types) ty in
+             (Types.pp_typ ~abbrev:cfg.abbrev_types) ty in
        let pp_ios ocf ctx = 
          List.iter (pp_io ~with_stim:true "input" ocf)  ctx.inputs; 
          List.iter (pp_io ~with_stim:false "output" ocf) ctx.outputs; 

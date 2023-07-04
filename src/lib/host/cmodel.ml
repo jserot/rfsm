@@ -65,14 +65,16 @@ module Make (Static: Static.T)
 struct
 
   module Static = Static
+  module Syntax = Static.Syntax
+  module Types = Syntax.Guest.Types
                 
   (* type typ = Static.Typing.Types.typ *)
-  type typ = Static.Syntax.typ
-  type type_expr = Static.Syntax.type_expr
+  type typ = Syntax.typ
+  type expr = Syntax.Guest.expr
+  type type_expr = Syntax.type_expr
   type value = Static.Value.t
-  type expr = Static.Syntax.Guest.expr
      
-  let pp_typ = Static.Typing.Types.pp_typ ~abbrev:true
+  let pp_typ = Types.pp_typ ~abbrev:true
   let pp_expr = Static.Syntax.pp_expr
   let pp_type_expr = Static.Syntax.pp_type_expr
   let pp_value = Static.Value.pp

@@ -154,12 +154,12 @@ module type T = sig
   module Info : INFO
   module Types : TYPES
   module Syntax : SYNTAX with module Types = Types
-  module Typing : TYPING with module Types = Types and module Syntax = Syntax
+  module Typing : TYPING with module Syntax = Syntax and module Types = Types
   module Value : VALUE with type typ = Types.typ
   module Static : STATIC with type expr = Syntax.expr and type value = Value.t
   module Eval : EVAL with module Syntax = Syntax and module Value = Value
   module Ctask: CTASK with module Syntax = Syntax
-  (* module Systemc: SYSTEMC with module Syntax = Syntax *)
+  module Systemc: SYSTEMC with module Syntax = Syntax
   module Error : ERROR
   module Options : OPTIONS
 end

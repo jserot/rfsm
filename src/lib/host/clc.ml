@@ -81,10 +81,9 @@ struct
        let fs = Ctask.output ~dir:!Options.target_dir s in
        List.iter Logfile.write fs
     | Some Options.SystemC ->
-       Misc.not_implemented "VHDL backend"
-       (*  Misc.check_dir !Options.target_dir;
-        * let fs = Systemc.output ~dir:!Options.target_dir p s in
-        * List.iter Logfile.write fs *)
+       Misc.check_dir !Options.target_dir;
+       let fs = Systemc.output ~dir:!Options.target_dir ~pfx:!Options.main_prefix s in
+       List.iter Logfile.write fs
     | Some Options.Vhdl ->
        Misc.not_implemented "VHDL backend"
        (* Misc.check_dir !Options.target_dir;

@@ -1,8 +1,9 @@
 module type T = sig
   
   module Syntax: Syntax.SYNTAX
-  module Typing: Guest.TYPING
-  module Value: Guest.VALUE with type typ = Typing.Types.typ
+  (* module Typing: Guest.TYPING *)
+  (* module Value: Guest.VALUE with type typ = Typing.Types.typ *)
+  module Value: Guest.VALUE with type typ = Syntax.typ
 
   type fsm = {
       name: string;
@@ -13,9 +14,9 @@ module type T = sig
     }
   
   type ctx = {  (* TODO : update formal semantics accordingly *)
-    inputs: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
-    outputs: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
-    shared: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
+    inputs: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
+    outputs: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
+    shared: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
     (* Note: the [stimulus_desc] component is only used for outputs. It is here attached to
        [outputs] and [shared] descriptions to uniformize fns operating on [ctx]s. *)
     }
@@ -41,18 +42,18 @@ end
 
 module Make
          (HS: Syntax.SYNTAX)
-         (GT: Guest.TYPING with type Types.typ = HS.typ)
+         (* (GT: Guest.TYPING with type Types.typ = HS.typ) *)
          (GV: Guest.VALUE with type typ = HS.typ)
          (GS: Guest.STATIC with type expr = HS.expr and type value = GV.t)
   : T with module Syntax = HS
-       and module Typing = GT 
+       (* and module Typing = GT  *)
        and module Value = GV =
        (* and type Value.typ = GT.Types.typ =  *)
 struct
 
   module Syntax = HS
   module Value = GV
-  module Typing = GT
+  (* module Typing = GT *)
 
   type fsm = {
       name: string;
@@ -80,14 +81,14 @@ struct
          (Env.pp Value.pp) f.vars
 
   type ctx = {
-    inputs: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
-    outputs: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
-    shared: (string * (Typing.Types.typ * Syntax.stimulus_desc option)) list;  
+    inputs: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
+    outputs: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
+    shared: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
     } 
 
   let pp_ctx fmt ctx =
     let open Format in
-    let pp_io fmt (id,(ty,_)) = Format.fprintf fmt "%s: %a" id (Typing.Types.pp_typ ~abbrev:false) ty in
+    let pp_io fmt (id,(ty,_)) = Format.fprintf fmt "%s: %a" id (Syntax.Guest.Types.pp_typ ~abbrev:false) ty in
     fprintf fmt "@[<v>{inputs=%a@,outputs=%a@,shared=%a}@]"
     (Misc.pp_list_v pp_io) ctx.inputs
     (Misc.pp_list_v pp_io) ctx.outputs

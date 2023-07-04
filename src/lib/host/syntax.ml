@@ -116,9 +116,9 @@ module type SYNTAX = sig
   val pp_program: Format.formatter -> program -> unit
 end
 
-module Make(B: Guest.SYNTAX) : SYNTAX with module Guest=B =
+module Make(G: Guest.SYNTAX) : SYNTAX with module Guest=G =
 struct
-  module Guest = B
+  module Guest = G
                
   type typ = Guest.Types.typ
   type expr = Guest.expr

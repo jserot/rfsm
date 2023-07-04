@@ -37,6 +37,7 @@ struct
 
   module Syntax = Syntax
   module Static = Static
+  module Types = Syntax.Guest.Types
   module Eval = Eval
   module Event = Event.Make(Syntax.Guest)(Static.Value)
   module Evset = Evset.Make(Event)
@@ -189,9 +190,9 @@ struct
     dump3 1 ">> REACT ... -- [%a] ->@.   M'=%a@.   G'=%a@." Evset.pp r_e pp_fsms m' pp_env env';
     (m',env'), r_e
   
-  let is_event_type (ty: Static.Typing.Types.typ) = Static.Typing.Types.is_type_constr0 "event" ty
+  let is_event_type (ty: Types.typ) = Types.is_type_constr0 "event" ty
 
-  let default_value (ty: Static.Typing.Types.typ) = Static.Value.default_value (Some ty)
+  let default_value (ty: Types.typ) = Static.Value.default_value (Some ty)
 
   let r_init sd m = (* Rule INIT *)
     (* M --> M_0, \Gamma_0 *)

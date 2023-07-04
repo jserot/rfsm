@@ -2,6 +2,7 @@ COMPILER
 
 - reinstall Systemc backend
 - reinstall VHDL backend
+- inouts 
 - support for synchronous actions
 - document lib/host/guest.ml
 - banner

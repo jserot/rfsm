@@ -55,7 +55,7 @@ module type SYSTEMC = sig
   (* exception Error of string * string  (\* where, msg *\) *)
   exception Invalid_output_assign of string * Location.t
 
-  val output: dir:string -> Static.t -> string list 
+  val output: dir:string -> ?pfx:string -> Static.t -> string list 
 end
                   
 module Make (Static: Static.T)
@@ -151,7 +151,7 @@ struct
       [] -> ()  (* no wait in this case *)
     | [ev,ts] ->
        fprintf fmt "%swait(%a);\n" tab pp_sysc_ev ev;
-       for i=0 to m.c_ddepth-1 do 
+       for _=0 to m.c_ddepth-1 do 
          fprintf fmt "%swait(SC_ZERO_TIME);\n" tab
        done;
        Misc.list_iter_fst (fun is_first t -> pp_transition tab is_first src m fmt t) ts;
@@ -429,19 +429,19 @@ struct
    *   fprintf ocf "{\n";
    *   (\* Signals *\)
    *   List.iter
-   *     (function (id,ty)) -> fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ ty id)
+   *     (function (id,(ty,_)) -> fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ ty id)
    *     (m.ctx.inputs @ m.ctx.outputs);
-   *   List.iter
-   *     (function
-   *      | id,(ty,MShared (wrs,_)) ->
-   *         if List.length wrs > 1 then fprintf ocf "  sc_signal<%a,SC_MANY_WRITERS> %s;\n" G.pp_typ typ id
-   *         else fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ ty id
-   *      | _ -> ())
-   *     m.m_shared;
+   *   (\* List.iter
+   *    *   (function
+   *    *    | id,(ty,MShared (wrs,_)) ->
+   *    *       if List.length wrs > 1 then fprintf ocf "  sc_signal<%a,SC_MANY_WRITERS> %s;\n" G.pp_typ typ id
+   *    *       else fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ ty id
+   *    *    | _ -> ())
+   *    *   m.ctx.shared; *\) (\* TO FIX ! *\)
    *   if cfg.sc_trace then
    *     List.iter
-   *       (function f -> fprintf ocf "  sc_signal<int> %s;\n" (f.Fsm.f_name ^ "_state"))
-   *       m.m_fsms;
+   *       (function f -> fprintf ocf "  sc_signal<int> %s;\n" (f.name ^ "_state"))
+   *       m.fsms;
    *   (\* Trace file *\)
    *   fprintf ocf "  sc_trace_file *trace_file;\n";
    *   fprintf ocf "  trace_file = sc_create_vcd_trace_file (\"%s\");\n" tb_name;
@@ -548,19 +548,19 @@ struct
     dump_inp_module_impl (dir ^ "/" ^ prefix ^ ".cpp") inp
 
   let dump_testbench ?(name="") ?(dir="./systemc") m =
-    let tb_name = match name with "" -> cfg.sc_tb_name | p -> p in
-    (* dump_testbench_impl tb_name (dir ^ "/" ^ tb_name ^ ".cpp") m  *)
     ()
+    (* let tb_name = match name with "" -> cfg.sc_tb_name | p -> p in *)
+    (* dump_testbench_impl tb_name (dir ^ "/" ^ tb_name ^ ".cpp") m *)
 
-  let output ~dir s =
+  let output ~dir ?(pfx="") s =
     output_files := [];
     if s.Static.fsms <> [] then
       begin
         List.iter (dump_input ~dir s) s.Static.ctx.inputs;
         if need_globals s then dump_globals ~dir s;
-        List.iter (dump_fsm_inst ~dir s) s.Static.fsms;
-        Systemc.dump_testbench ~name:name ~dir s;
-        Systemc.dump_makefile ~name:name ~dir s
+        (* List.iter (dump_fsm_inst ~dir s) s.Static.fsms; *)
+        dump_testbench ~name:pfx ~dir s;
+        dump_makefile ~name:pfx ~dir s
       end
     else (* No instances, dump only models *)
       List.iter (dump_fsm_model ~dir) s.Static.models;
