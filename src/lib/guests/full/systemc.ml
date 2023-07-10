@@ -1,36 +1,28 @@
-exception Unsupported_type of Syntax.Types.typ option
-exception Unsupported_expr of Syntax.expr
-                                  
 open Format 
 
 module Syntax = Syntax
+module Static = Static
+
+type value = Value.t
+
+exception Unsupported_type of Syntax.Types.typ option
+exception Unsupported_expr of Syntax.expr
+exception Unsupported_value of Value.t
 
 let pp_type_expr fmt te = 
   let open Syntax in
   match te.Annot.desc with
+  | TeConstr ("int",[],[{Annot.desc=TiConst sz;_}]) -> fprintf fmt "sc_uint<%d>" sz
   | TeConstr ("int",[],_) -> fprintf fmt "int" 
   | TeConstr ("bool",[],_) -> fprintf fmt "bool" 
-  | TeConstr ("float",[],_) -> fprintf fmt "float" 
+  | TeConstr ("float",[],_) -> fprintf fmt "%s" (if Rfsm.Systemc.cfg.Rfsm.Systemc.sc_double_float then "double" else "float")
   | TeConstr ("char",[],_) -> fprintf fmt "char" 
-  | TeConstr ("event",[],_) -> fprintf fmt "event" 
+  | TeConstr ("event",[],_) -> fprintf fmt "bool" 
+      (* Note: events are implemented as boolean signals because it is not possible to wait on multiple [sc_event]s 
+         and telling afterwards which one occurred in SystemC 2.3.0 :-( *)
+  | TeConstr (c,[],_) -> fprintf fmt "%s" c  (* Enums *)
   | _ -> raise (Unsupported_type te.Annot.typ)
                     
-let rec pp_type_decl_desc fmt td = 
-  let open Syntax in
-  let pp_rfield fmt (n,t) = fprintf fmt "%a %s; " pp_type_expr t n in
-  match td with
-  | TD_Enum (name,ctors) ->
-     fprintf fmt "typedef enum { %a } %s;"
-       (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors
-       name
-  | TD_Record (name,fields) ->
-     fprintf fmt "typedef struct { %a} %s;"
-       (Rfsm.Misc.pp_list_h pp_rfield) fields
-       name
-  | TD_Alias (name,t) ->
-     fprintf fmt "typedef %a %s;" pp_type_expr t name
-and pp_type_decl fmt td = Format.fprintf fmt "%a@." pp_type_decl_desc td.Syntax.Annot.desc
-
 let pp_size fmt sz = 
   let open Types in 
   match sz with
@@ -42,9 +34,12 @@ let pp_typ fmt t =
   let open Types in 
   let open Format in 
   match t with
-    | TyConstr ("int",[],SzExpr1 (TiConst sz)) -> fprintf fmt "sc_int<%d>" sz
+    | TyConstr ("int",[],SzExpr1 (TiConst sz)) -> fprintf fmt "sc_uint<%d>" sz
     | TyConstr ("int",[], _) -> fprintf fmt "int" 
     | TyConstr ("float",[],_) -> fprintf fmt "%s" (if Rfsm.Systemc.cfg.Rfsm.Systemc.sc_double_float then "double" else "float")
+    | TyConstr ("event",[],_) -> fprintf fmt "bool"
+      (* Note: events are implemented as boolean signals because it is not possible to wait on multiple [sc_event]s 
+         and telling afterwards which one occurred in SystemC 2.3.0 :-( *)
     | TyConstr (c,[],_) -> fprintf fmt "%s" c
     | TyRecord (nm,_) -> fprintf fmt "%s" nm
     | _ -> raise (Unsupported_type (Some t))
@@ -62,61 +57,61 @@ let pp_op fmt op =
   | "~-." -> "-" 
   | op ->  op)
 
-let pp_expr fmt e = 
-  let open Syntax in
-  let rec pp level fmt e = match e.Annot.desc, e.Annot.typ with
-  | EVar v, _ -> fprintf fmt "%a" pp_access v
-  | EInt i, _ -> fprintf fmt "%d" i
-  | EBool b, _ -> fprintf fmt "%b" b
-  | EFloat f, _ -> fprintf fmt "%f" f
-  | EChar c, _ -> fprintf fmt "'%c'" c
-  | EFapp (("~-"|"~-."),[e]), _ -> fprintf fmt "-%a" (pp (level+1)) e
-  | EFapp (f,es), _ -> fprintf fmt "%s(%a)" f (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) es
-  | EBinop (op,e1,e2), _ ->
+let pp_expr fmt ~inps e = 
+  let rec pp level fmt e = match e.Syntax.Annot.desc, e.Syntax.Annot.typ with
+  | Syntax.EVar v, _ -> fprintf fmt "%a" pp_access v
+  | Syntax.EInt i, _ -> fprintf fmt "%d" i
+  | Syntax.EBool b, _ -> fprintf fmt "%b" b
+  | Syntax.EFloat f, _ -> fprintf fmt "%f" f
+  | Syntax.EChar c, _ -> fprintf fmt "'%c'" c
+  | Syntax.EFapp (("~-"|"~-."),[e]), _ -> fprintf fmt "-%a" (pp (level+1)) e
+  | Syntax.EFapp (f,es), _ -> fprintf fmt "%s(%a)" f (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) es
+  | Syntax.EBinop (op,e1,e2), _ ->
        fprintf fmt "%s%a%a%a%s" (paren level "(") (pp (level+1)) e1 pp_op op (pp (level+1)) e2 (paren level ")")
-  | ECon0 c, Some (Types.TyConstr (t,_,_)) -> fprintf fmt "%s::%s" t c
-  | EIndexed (a,i), _ -> fprintf fmt "%a.range(%a,%a)" pp_access a (pp level) i (pp level) i
-  | ERanged (a,hi,lo), _ -> fprintf fmt "%a.range(%a,%a)" pp_access a (pp level) hi (pp level) lo
-  | EArrExt vs, _ -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) vs
-  | ECond (e1,e2,e3), _ -> fprintf fmt "%a?%a:%a" (pp (level+1)) e1 (pp (level+1)) e2 (pp (level+1)) e3
-  | ECast (e,t), _ -> fprintf fmt "((%a)(%a))" pp_type_expr t (pp level) e
-  | ERecordExt fs, _ -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield level)) fs (* Not strictly C *)
-  | ERecord (r,f), _ -> fprintf fmt "%a.repr.%s" pp_access r f 
+  | Syntax.ECon0 c, Some (Types.TyConstr (t,_,_)) -> fprintf fmt "%s::%s" t c
+  | Syntax.EIndexed (a,i), _ -> fprintf fmt "%a[%a]" pp_access a (pp level) i
+  | Syntax.ERanged (a,hi,lo), _ -> fprintf fmt "%a.range(%a,%a)" pp_access a (pp level) hi (pp level) lo
+  | Syntax.EArrExt vs, _ -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) vs
+  | Syntax.ECond (e1,e2,e3), _ -> fprintf fmt "%a?%a:%a" (pp (level+1)) e1 (pp (level+1)) e2 (pp (level+1)) e3
+  | Syntax.ECast (e,t), _ -> fprintf fmt "((%a)(%a))" pp_type_expr t (pp level) e
+  | Syntax.ERecordExt fs, Some (Types.TyRecord (name,_)) ->
+     fprintf fmt "%s(%a)" name (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield_value level)) fs 
+  | Syntax.ERecord (r,f), _ -> fprintf fmt "%a.repr.%s" pp_access r f 
   | _, _ -> raise (Unsupported_expr e)
-  and pp_rfield level fmt (n,v) = fprintf fmt "%s=%a" n (pp level) v 
+  and pp_rfield_value level fmt (_,v) = fprintf fmt "%a" (pp level) v 
   and pp_access fmt id =
-    (* if List.mem_assoc id (m.Static.ctx.Static.inputs (\*@ m.inouts*\)) then
-     *   fprintf fmt "%s.read()" id
-     * else *) (* TO FIX *)
-      fprintf fmt "%s" id
+    if List.mem id inps then fprintf fmt "%s.read()" id
+    else fprintf fmt "%s" id
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
-let rec pp_lhs_desc fmt l = match l with (* TO FIX ! *)
+let rec pp_lhs_desc fmt ~inps l =
+  match l with 
   | Syntax.LhsVar v -> Format.fprintf fmt "%s" v
-  | Syntax.LhsIndex (a,i) -> Format.fprintf fmt "%s[%a]" a pp_expr i
-  | Syntax.LhsRange (a,hi,lo) -> Format.fprintf fmt "%s[%a:%a]" a pp_expr hi pp_expr lo
-  | Syntax.LhsRField (r,f) -> Format.fprintf fmt "%s.%s" r f
-and pp_lhs fmt l = pp_lhs_desc fmt l.Rfsm.Annot.desc
+  | Syntax.LhsIndex (a,i) -> Format.fprintf fmt "%s[%a]" a (pp_expr ~inps) i
+  | Syntax.LhsRange (a,hi,lo) -> Format.fprintf fmt "%s.range(%a,%a)" a (pp_expr ~inps) hi (pp_expr ~inps) lo
+  | Syntax.LhsRField (r,f) -> Format.fprintf fmt "%s.repr.%s" r f
+and pp_lhs fmt ~inps l = pp_lhs_desc fmt ~inps l.Rfsm.Annot.desc
 
-  (* let rec string_of_value v = match v.Expr.v_desc, Types.real_type v.Expr.v_typ with
-   *     Expr.Val_int i, _ -> string_of_int i
-   *   | Expr.Val_float i, _-> string_of_float i
-   *   | Expr.Val_bool i, _ -> string_of_bool i
-   *   | Expr.Val_char c, _ -> string_of_char c
-   *   | Expr.Val_enum c, Types.TyEnum (name, _) -> string_of_enum_value (Types.string_of_name name) c
-   *   | Expr.Val_fn _, _ -> "<fun>"
-   *   | Expr.Val_unknown, _ -> "<unknown>"
-   *   | Expr.Val_none, _ -> "<none>"
-   *   | Expr.Val_array vs, _ -> "{" ^ Utils.ListExt.to_string string_of_value "," (Array.to_list vs) ^ "}"
-   *   | Expr.Val_record fs, Types.TyRecord (name, _) -> string_of_record_value (Types.string_of_name name) fs
-   *   | _, _ -> Misc.fatal_error "Systemc.string_of_value" *)
+let pp_value fmt v = 
+  let open Format in
+  let open Value in
+  let rec pp_v fmt v = match v with
+  | Val_int v -> fprintf fmt "%d" v
+  | Val_bool v -> fprintf fmt "%b" v
+  | Val_float v -> fprintf fmt "%f" v
+  | Val_char c -> fprintf fmt "'%c'" c
+  | Val_array vs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_v) (Array.to_list vs)
+  | Val_enum c -> fprintf fmt "%s::%s" "<type>" c  (* TO FIX *)
+  | Val_record fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:";" pp_rfield) fs
+  | _ -> raise (Unsupported_value v)
+ and pp_rfield fmt (f,v) = fprintf fmt "%s=%a" f pp_v v in
+ pp_v fmt v
 
 let pp_typed_symbol fmt (name,t) =
-  let open Types in 
   match t.Syntax.Annot.typ with
-  | Some (TyConstr ("array", [t'], sz)) -> fprintf fmt "%a %s[%a]" (pp_typ ~abbrev:true) t' name pp_size sz
-  | Some t -> fprintf fmt "%a %s" (pp_typ ~abbrev:true) t name 
+  | Some (Types.TyConstr ("array", [t'], sz)) -> fprintf fmt "%a %s[%a]" pp_typ t' name pp_size sz
+  | Some t -> fprintf fmt "%a %s" pp_typ t name 
   | None -> Rfsm.Misc.fatal_error "Ctask.pp_typed_symbol"
 
 let pp_cst_decl fmt name t = 
@@ -127,13 +122,13 @@ let pp_cst_decl fmt name t =
   | None -> Rfsm.Misc.fatal_error "Ctask.pp_cst_decl"
 
 let pp_cst_impl fmt name t v = 
-  fprintf fmt "%a = %a" pp_typed_symbol (name,t) pp_expr v
+  fprintf fmt "%a = %a" pp_typed_symbol (name,t) (pp_expr ~inps:[]) v
 
 let pp_record_type_defn fmt (name,fields) = 
   let pp_rfield fmt (n,t) = fprintf fmt "%a;" pp_typed_symbol (n,t) in
   fprintf fmt "class %s {\n" name;
   fprintf fmt "public:\n";
-  fprintf fmt "  struct { %a } repr;\n" (Rfsm.Misc.pp_list_v pp_rfield) fields;
+  fprintf fmt "  struct { %a } repr;\n" (Rfsm.Misc.pp_list_h ~sep:" " pp_rfield) fields;
   fprintf fmt "  %s() { };\n" name;
   fprintf fmt "  %s(%a) { %a };\n"
     name
@@ -176,11 +171,21 @@ let pp_enum_type_defn fmt (name,vs) =
   fprintf fmt "     }\n";
   fprintf fmt "};\n\n"
 
-  (* let dump_enum_type_names ocf = function
-   *   | _ , Types.TyEnum (nm,cs) ->
-   *      fprintf ocf "const char* %s::names[%d] = { %s };\n" 
-   *        (Types.string_of_name nm)
-   *        (List.length cs)
-   *        (Utils.ListExt.to_string (function c -> "\"" ^ c ^ "\"") ", " cs)
-   *   | _ -> () *)
+let rec pp_type_decl_desc fmt td = 
+  match td with
+  | Syntax.TD_Enum (name,ctors) -> pp_enum_type_defn fmt (name,ctors)
+  | Syntax.TD_Record (name,fields) -> pp_record_type_defn fmt (name,fields)
+  | Syntax.TD_Alias (name,t) -> fprintf fmt "typedef %a %s;" pp_type_expr t name
+and pp_type_decl fmt td = Format.fprintf fmt "%a@." pp_type_decl_desc td.Syntax.Annot.desc
+
+let rec pp_type_impl_desc fmt td =
+  let pp_ctor fmt c = Format.fprintf fmt "\"%s\"" c in
+  match td with
+  | Syntax.TD_Enum (name,ctors) ->
+       Format.fprintf fmt "const char* %s::names[%d] = { %a };\n" 
+         name
+         (List.length ctors)
+         (Rfsm.Misc.pp_list_h ~sep:", " pp_ctor) ctors
+    | _ -> ()
+and pp_type_impl fmt td = Format.fprintf fmt "%a@." pp_type_impl_desc td.Syntax.Annot.desc
 

@@ -328,14 +328,14 @@ struct
 
   and ppr_action env a = { a with Annot.desc = ppr_action_desc env a.Annot.desc }
   and ppr_action_desc env act =
-    (* Replace all assignations [v:=0/1], where [v:bool] by [v:=false/true] *)
     match act with
     | Emit _ -> act
     | Assign (lhs, expr) ->
        let typ = type_of ~loc:lhs.Annot.loc env (Guest.lhs_base_name lhs) in
-        if Guest.is_bool_type typ 
-        then Assign (lhs, Guest.mk_bool_expr typ expr)
-        else Assign (Guest.ppr_lhs env lhs, expr) (* In case pre-processing should be carried out _inside_ LHS sub-exprs *)
+       let expr' = Guest.ppr_expr env expr in
+       if Guest.is_bool_type typ 
+       then Assign (lhs, Guest.mk_bool_expr typ expr')
+       else Assign (Guest.ppr_lhs env lhs, expr') (* In case pre-processing should be carried out _inside_ LHS sub-exprs *)
 
   let rec ppr_global gl = { gl with Annot.desc = ppr_global_desc gl.Annot.desc }
   and ppr_global_desc ((id,cat,te,stim) as gl) = 

@@ -172,7 +172,7 @@ struct
              id
              (Types.pp_typ ~abbrev:cfg.abbrev_types) ty in
        let pp_ios ocf ctx = 
-         List.iter (pp_io ~with_stim:true "input" ocf)  ctx.inputs; 
+         List.iter (pp_io ~with_stim:false "input" ocf)  ctx.inputs; 
          List.iter (pp_io ~with_stim:false "output" ocf) ctx.outputs; 
          List.iter (pp_io ~with_stim:false "shared" ocf) ctx.shared in
        fprintf ocf "%s_ios [label=\"%a\", shape=rect, style=rounded]\n" name pp_ios sd.Static.ctx;

@@ -15,21 +15,20 @@ module type CMODEL = sig
 
   module Static : Static.T
        
-  (* type typ = Static.Typing.Types.typ *)
   type typ = Static.Syntax.typ
   type type_expr = Static.Syntax.type_expr
-  type value = Static.Value.t
   type expr = Static.Syntax.Guest.expr
      
   type c_type_defn = 
     CTyEnum of string list
 
   type t = {
-      c_name: string;
+      c_mname: string; (* Model name *)
+      c_name: string;  (* Instance name *)
       c_states: c_state list;
-      c_types: (string * c_type_defn) list;
+      (* c_types: (string * c_type_defn) list; *) (* TODO: GET RID ? *)
       c_params: (string * type_expr) list;
-      (* c_consts: (string * (type_expr * value)) list; *)
+      c_consts: (string * (type_expr * Static.Value.t)) list;
       c_inps: (string * type_expr) list;
       c_outps: (string * type_expr) list;
       c_inouts: (string * type_expr) list;
@@ -52,27 +51,24 @@ module type CMODEL = sig
 
   val pp: Format.formatter -> t -> unit
     
-  val c_model_of_fsm_model: Static.Syntax.model -> t
+  val of_fsm_model: Static.Syntax.model -> t
+  val of_fsm_inst: Static.fsm -> t
 
-  (* val c_model_of_fsm_inst: Static.fsm -> t *)
-    
   exception Error of string * string   (* where, message *)
 
 end
 
 module Make (Static: Static.T)
-       : CMODEL with module Static = Static and type typ = Static.Syntax.typ =
+       : CMODEL with module Static = Static and type typ = Static.Syntax.typ (*and type value = Static.Value.t*) =
 struct
 
   module Static = Static
   module Syntax = Static.Syntax
   module Types = Syntax.Guest.Types
                 
-  (* type typ = Static.Typing.Types.typ *)
   type typ = Syntax.typ
   type expr = Syntax.Guest.expr
   type type_expr = Syntax.type_expr
-  type value = Static.Value.t
      
   let pp_typ = Types.pp_typ ~abbrev:true
   let pp_expr = Static.Syntax.pp_expr
@@ -84,20 +80,18 @@ struct
     [@@deriving show {with_path=false}]
 
   type t = {
-      c_name: string;
+      c_mname: string; 
+      c_name: string; 
       c_states: c_state list;
-      c_types: (string * c_type_defn) list;
+      (* c_types: (string * c_type_defn) list; *)
       c_params: (string * type_expr) list;
-      (* c_consts: (string * (type_expr * value)) list; *)
+      c_consts: (string * (type_expr * Static.Value.t)) list;
       c_inps: (string * type_expr) list;
       c_outps: (string * type_expr) list;
       c_inouts: (string * type_expr) list;
       c_vars: (string * type_expr) list;  
       c_init: Static.Syntax.itransition_desc;
       c_body: c_state_case list;
-      (* c_body = [case_1;...;case_n]
-       means
-        "while ( 1 ) { switch ( [state] ) { [case_1]; ...; [case_n] } }" *)
       c_ddepth: int  (* depth in the dependency graph *)
     } [@@deriving show {with_path=false}]
 
@@ -106,7 +100,7 @@ struct
   and c_state_case = {
       st_src: string;
       st_sensibility_list: string list;
-      st_transitions: (string * Static.Syntax.transition_desc list) list;  (* transitions, sorted by triggering event *)
+      st_transitions: (string * Static.Syntax.transition_desc list) list;  (* transitions, grouped by triggering event *)
     } [@@deriving show {with_path=false}]
 
   exception Error of string * string   (* where, message *)
@@ -124,13 +118,14 @@ struct
       st_sensibility_list = List.map fst ts;
       st_transitions = ts }
   
-  let c_model_of_fsm_model { Annot.desc = m; _ } =
+  let of_fsm_model { Annot.desc = m; _ } =
     let open Static.Syntax in 
-    { c_name = m.name;
+    { c_mname = m.name;
+      c_name = m.name;
       c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
-      c_types = [];
+      (* c_types = []; *)
       c_params = m.params;
-      (* c_consts = []; *)
+      c_consts = [];
       c_inps = m.inps;
       c_outps = m.outps;
       c_inouts = []; (* TO FIX *)
@@ -138,22 +133,25 @@ struct
       c_init = m.itrans.Annot.desc;
       c_body = List.map (mk_state_case m) m.states;
       c_ddepth = 0;
-      (* c_ddepth = Static.DepG.Mark.get (m.m_deps.md_node f.f_name); *)
     }
 
-  (* let empty = 
-   *   { c_name = "";
-   *     c_states = [];
-   *     c_types = [];
-   *     c_params = [];
-   *     c_consts = [];
-   *     c_inps = [];
-   *     c_outps = [];
-   *     c_inouts = [];
-   *     c_vars = [];
-   *     c_init = "",[];
-   *     c_body = [];
-   *     c_ddepth = 0; 
-   *   } *)
+  let of_fsm_inst f = 
+    let open Static in 
+    let m = f.model.Annot.desc in 
+    { c_mname = m.name;
+      c_name = f.name;
+      c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
+      (* c_types = []; *)
+      c_params = [];
+      c_consts = List.map2 (fun (id,ty) (_,v) -> (id,(ty,v))) m.params (Env.bindings f.params);
+      c_inps = m.inps;
+      c_outps = m.outps;
+      c_inouts = []; (* TO FIX *)
+      (* c_inouts = List.map (function (id, (ty,_)) -> id, ty) f.f_inouts; *)
+      c_vars = m.vars; 
+      c_init = m.itrans.Annot.desc;
+      c_body = List.map (mk_state_case m) m.states;
+      c_ddepth = 0 (* TO FIX : Static.DepG.Mark.get (m.m_deps.md_node f.f_name); *)
+    }
 
 end

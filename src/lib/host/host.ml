@@ -8,7 +8,6 @@ module type T = sig
   module Dot: Dot.DOT with module Static = Static
   module Dynamic: Dynamic.DYNAMIC with module Syntax = Syntax and module Static = Static
   module Vcd: Vcd.VCD 
-  (* module Cmodel: Cmodel.CMODEL with module Static = Static *)
   module Ctask: Ctask.CTASK with module Static = Static
   module Systemc: Systemc.SYSTEMC with module Static = Static
   val type_program: Typing.env -> Syntax.program -> unit
@@ -25,7 +24,6 @@ struct
     module Guest = G
     module Syntax = Syntax.Make(G.Syntax)
     module Typing = Typing.Make(Syntax)(G.Typing)
-    (* module Static = Static.Make(Syntax)(G.Typing)(G.Value)(G.Static) *)
     module Static = Static.Make(Syntax)(G.Value)(G.Static)
     module Dot = Dot.Make(Static)
     module Dynamic = Dynamic.Make(Syntax)(Static)(G.Eval)

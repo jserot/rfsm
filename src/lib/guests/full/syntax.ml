@@ -206,10 +206,14 @@ let subst_lhs phi l =
 
 (** Pre-processing *)
 
-let is_bool_type (t: type_expr) =
+let is_con0_type c (t: type_expr) =
   match t.Annot.desc with
-  | TeConstr ("bool", [], _) -> true
+  | TeConstr (c', [], _) when c=c' -> true
   | _ -> false
+
+let is_bool_type (t: type_expr) = is_con0_type "bool" t
+let is_int_type (t: type_expr) = is_con0_type "int" t
+let is_event_type (t: type_expr) = is_con0_type "event" t
 
 let mk_bool_expr te e = match e.Annot.desc with
   | EInt 0 when is_bool_type te -> { e with Annot.desc = EBool false }
@@ -224,15 +228,19 @@ let mkuminus name e =
 
 let ppr_expr (env: (string * type_expr) list) e =
   (* Replace all bool expr [e op 0/1], where [e:bool] and [op] is [=] or [!=] by [e op false/true] *)
+  (* Replace all exprs [e[i]] where [e:int] by [e[i:i]] *)
   let type_of v =
     (* Since pre-processing is carried out _before_ typing, the only type-related available information
        is given by the type expressions assigned to identifiers in the enclosing model *)
     try List.assoc v env
-    with Not_found -> Rfsm.Misc.fatal_error "Core.Syntax.ppr_expr" in
+    with Not_found -> Rfsm.Misc.fatal_error "Full.Syntax.ppr_expr" in
   let has_bool_type v = is_bool_type (type_of v) in
+  let has_int_type v = is_int_type (type_of v) in
   match e.Annot.desc with
   | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e'') when List.mem op ["="; "!="] && has_bool_type v  ->  
        { e with Annot.desc = EBinop (op, e', mk_bool_expr (type_of v) e'') }
+  | EIndexed (a,i) when has_int_type a ->
+       { e with Annot.desc = ERanged (a,i,i) }
   | _ -> e
 
 let ppr_lhs _ l = l 

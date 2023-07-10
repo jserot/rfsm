@@ -82,7 +82,7 @@ let open_file fname =
   oc, Format.formatter_of_out_channel oc
 
 let close_file (oc,ocf) =
-  Format.fprintf ocf "};@."; (* flush *)
+  Format.fprintf ocf "@."; (* flush *)
   close_out oc
 
 let copy_with_subst defns ic oc = 

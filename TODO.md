@@ -1,8 +1,15 @@
 COMPILER
 
-- reinstall Systemc backend
+- modify Static.ctx to attach a list of readers and writers to inps, outps ans shared (required by
+  SystemC and VHDL backends)
+- localize FSM var names (in the current impl, it is not possible to give the same name to, say, an
+  output and a local variable w/o creating either an aliasing effect (if both have the same type) or
+  an error (if they have a different type). ALternatively, prefix all global IOs 
+- compute the dependency depth in Cmodel (the correct behavior of some SystemC generated code may
+  depend on this !)
+- inouts  (?)
+- write CTask and SystemC backend for Core guest
 - reinstall VHDL backend
-- inouts 
 - support for synchronous actions
 - document lib/host/guest.ml
 - banner

@@ -156,7 +156,7 @@ struct
     close_out oc
 
   let dump_fsm_model ?(prefix="") ?(dir="./ctask") m =
-    let c = Cmodel.c_model_of_fsm_model m in
+    let c = Cmodel.of_fsm_model m in
     let prefix = match prefix with "" -> c.Cmodel.c_name | p -> p in
     dump_model (dir ^ "/" ^ prefix ^ ".c") c
 

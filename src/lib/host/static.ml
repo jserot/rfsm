@@ -1,8 +1,6 @@
 module type T = sig
   
   module Syntax: Syntax.SYNTAX
-  (* module Typing: Guest.TYPING *)
-  (* module Value: Guest.VALUE with type typ = Typing.Types.typ *)
   module Value: Guest.VALUE with type typ = Syntax.typ
 
   type fsm = {
@@ -19,6 +17,7 @@ module type T = sig
     shared: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
     (* Note: the [stimulus_desc] component is only used for outputs. It is here attached to
        [outputs] and [shared] descriptions to uniformize fns operating on [ctx]s. *)
+    (* TODO : add readers/writers lists *)
     }
 
   type t = {
@@ -37,23 +36,20 @@ module type T = sig
 
   val pp: ?verbose_level:int -> Format.formatter -> t -> unit
   val pp_fsm: ?verbose_level:int -> Format.formatter -> fsm -> unit
+  val pp_value: Format.formatter -> Value.t -> unit
 
 end
 
 module Make
          (HS: Syntax.SYNTAX)
-         (* (GT: Guest.TYPING with type Types.typ = HS.typ) *)
          (GV: Guest.VALUE with type typ = HS.typ)
          (GS: Guest.STATIC with type expr = HS.expr and type value = GV.t)
   : T with module Syntax = HS
-       (* and module Typing = GT  *)
        and module Value = GV =
-       (* and type Value.typ = GT.Types.typ =  *)
 struct
 
   module Syntax = HS
   module Value = GV
-  (* module Typing = GT *)
 
   type fsm = {
       name: string;
@@ -111,6 +107,8 @@ struct
     (Misc.pp_list_v Syntax.pp_model) s.models
     (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
     (Env.pp Value.pp) s.globals
+
+  let pp_value = Value.pp
 
   (* Rules *)
          

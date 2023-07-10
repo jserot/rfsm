@@ -30,6 +30,7 @@ module type SYNTAX = sig
   type lhs_desc
   type lhs = (lhs_desc,Types.typ) Annot.t
   val is_bool_type: type_expr -> bool
+  val is_event_type: type_expr -> bool
   val mk_bool_expr: type_expr -> expr -> expr
   val lhs_base_name: lhs -> string
   val lhs_vcd_repr: lhs -> string
@@ -60,9 +61,9 @@ module type TYPING = sig
   val add_var: env -> string * Types.typ -> env
   (* TODO : add_prim, add_constr, ... *)
   val pp_env: Format.formatter -> env -> unit
-  (* Low-level interface to the the type-checking engine *)
+  (** Low-level interface to the the type-checking engine *)
   val type_check: loc:Location.t -> Types.typ -> Types.typ -> unit
-  (* High-level interface *)
+  (** High-level interface *)
   val type_type_decl: env -> Syntax.type_decl -> env
   val type_expression: env -> Syntax.expr -> Types.typ
   val type_of_type_expr: env -> Syntax.type_expr -> Types.typ
@@ -126,14 +127,19 @@ end
 
 module type SYSTEMC = sig
   module Syntax: SYNTAX
+  module Static: STATIC
+  type value
   val pp_typed_symbol: Format.formatter -> string * Syntax.type_expr -> unit
   val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
   val pp_typ: Format.formatter -> Syntax.Types.typ -> unit
   val pp_cst_decl: Format.formatter -> string -> Syntax.type_expr -> unit
-  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
-  val pp_expr: Format.formatter -> Syntax.expr -> unit
+  val pp_lhs: Format.formatter -> inps:string list -> Syntax.lhs -> unit
+  val pp_expr: Format.formatter -> inps:string list -> Syntax.expr -> unit
+     (* [inps] is required to replace [e] by [e.read()] when [e] is an input *)
+  val pp_value: Format.formatter -> value -> unit
   val pp_cst_impl: Format.formatter -> string -> Syntax.type_expr -> Syntax.expr -> unit
+  val pp_type_impl: Format.formatter -> Syntax.type_decl -> unit
 end
                   
 (** Error handling *)
@@ -159,7 +165,7 @@ module type T = sig
   module Static : STATIC with type expr = Syntax.expr and type value = Value.t
   module Eval : EVAL with module Syntax = Syntax and module Value = Value
   module Ctask: CTASK with module Syntax = Syntax
-  module Systemc: SYSTEMC with module Syntax = Syntax
+  module Systemc: SYSTEMC with module Syntax = Syntax and module Static = Static and type value = Value.t
   module Error : ERROR
   module Options : OPTIONS
 end

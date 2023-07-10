@@ -2,7 +2,8 @@
 # To be adjusted if necessary
 
 RFSMC=rfsmc
-LIBDIR=$(shell opam var share)/rfsm
+#LIBDIR=$(shell opam var share)/rfsm
+LIBDIR=/Users/jserot/Dev/ml/rfsm/etc
 
 DOT=dot
 DOTVIEWER=graphviz
@@ -12,5 +13,5 @@ TXTVIEWER=nano
 
 CXX=g++
 LD=g++
-CXXFLAGS=-Wall -Wno-deprecated -I.
+CXXFLAGS=-Wall -std=c++11 -I.
 LDFLAGS=

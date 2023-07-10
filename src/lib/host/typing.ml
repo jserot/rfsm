@@ -217,6 +217,8 @@ struct
     c.Annot.typ <- Some ty;
     GuestTyping.add_var env (cd.cc_name, ty)
 
+  let pp_env fmt env = GuestTyping.pp_env fmt env
+
   (* Typing programs *)
 
   let type_program env0 p = 
@@ -227,7 +229,5 @@ struct
     List.iter (type_fsm_model env) p.models;
     List.iter (type_global env) p.globals;
     List.iter (type_fsm_inst env p) p.insts
-
-  let pp_env fmt env = GuestTyping.pp_env fmt env
 
 end

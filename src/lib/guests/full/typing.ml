@@ -35,10 +35,11 @@ let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
 let pp_env fmt e = 
   let open Format in
   let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity (Types.pp_typ ~abbrev:false) ty in
-  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,prims=%a}@]@."
+  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,rfields=%a@,prims=%a}@]@."
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_vars
     (Env.pp ~sep:":" pp_tycon) e.te_tycons
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
+    (Env.pp ~sep:":" (fun fmt (_,ty) -> fprintf fmt "%a" (Types.pp_typ ~abbrev:true) ty)) e.te_rfields
     (Env.pp ~sep:":" Types.pp_typ_scheme) e.te_prims
 
 let add_env exc env (k,v)  =
@@ -120,9 +121,15 @@ let rec type_expression env e =
        | ty ->
           raise (Illegal_expr (e.Annot.loc, "not a record"))
      end 
-  | Syntax.ERecordExt fs -> 
+  | Syntax.ERecordExt [] -> 
+     Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty record extension" (* should not happen *)
+  | Syntax.ERecordExt ((f,_)::_ as fs) -> 
+     let _, ty_r = lookup ~exc:(Undefined ("record field name",e.Annot.loc,f)) f env.te_rfields in
+     let name = match ty_r with
+       | TyRecord(name, _) -> name
+       | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_expression" in
      let ty_fs = List.map (fun (n,e) -> n, type_expression env e) fs in
-     Types.TyRecord ("", ty_fs) (* Anonymous record *)
+     Types.TyRecord (name, ty_fs)
   in
   e.Annot.typ <- Some ty;
   ty
