@@ -1,0 +1,38 @@
+#!/bin/bash
+# A script for automated testing 
+
+TMP=/tmp/do_test.out
+RFSMMAKE=`pwd`/../etc/bin/rfsmmake
+RFSMLIB=`pwd`/../etc
+RFSMC=`pwd`/../_build/default/src/bin/rfsmc.exe
+
+try_make () 
+{
+make $1.test
+case $? in
+0) echo "OK";;
+*) echo "FAILED";;
+esac
+}
+
+make_makefile ()
+{
+pro_files=(`find ./ -maxdepth 1 -name "*.pro"`)
+echo "N=${#pro_files[@]}"
+if [ ${#pro_files[@]} -gt 0 ]; then 
+    $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC ${pro_files[0]}
+fi
+}
+
+if [ "$#" -eq 2 ]; then
+    echo -n "Making test.$1 in $2... "
+    (cd $2; make_makefile > $TMP 2>&1)
+   (cd $2; make clean > $TMP 2>&1)
+   (cd $2; try_make $1 && make clean) > $TMP 2>&1
+   grep "OK" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
+   grep "FAILED" $TMP >/dev/null && echo -e "\033[31mFAILED\033[0m"
+   grep "OK" $TMP >/dev/null && exit 1
+   exit 0
+else
+    echo "usage: $0 (dot|sim|ctask|systemc|vhdl|all) dir"
+fi

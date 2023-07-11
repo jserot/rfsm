@@ -63,6 +63,8 @@ let rec pp_lhs_desc fmt l = match l with
 and pp_lhs fmt l =
   pp_lhs_desc fmt l.Annot.desc
 
+let is_simple_lhs l = true (* Always, for the Core language *)
+
 let mk_simple_lhs v = Annot.make (LhsVar v)
 
 let lhs_prefix pfx l =
@@ -109,10 +111,14 @@ let vcd_name lhs =
 
 (** Pre-processing *)
 
-let is_bool_type (t: type_expr) =
+let is_con0_type c (t: type_expr) =
   match t.Annot.desc with
-  | TeConstr "bool" -> true
+  | TeConstr c' when c=c' -> true
   | _ -> false
+
+let is_bool_type (t: type_expr) = is_con0_type "bool" t
+let is_int_type (t: type_expr) = is_con0_type "int" t
+let is_event_type (t: type_expr) = is_con0_type "event" t
 
 let mk_bool_expr te e = match e.Annot.desc with
   | EInt 0 when is_bool_type te -> { e with Annot.desc = EBool false }

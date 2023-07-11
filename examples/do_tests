@@ -1,20 +1,12 @@
 #!/bin/bash
-# A simple script for running regression tests
 
 nt=0
 ns=0
+for i in $2/{single,multi}/[a-z]*
+do
+  (( nt = nt + 1 ))
+  ./do_test $flag $1 $i
+  (( ns = ns + $? ))
+done
 
-if [ "$#" -eq 1 ]; then
-    for i in single/* single/*/v[1-9] multi/*
-    do
-        if [ -d $i -a -f $i/Makefile ]; then
-            (( nt = nt + 1 ))
-            ./do_test $1 $i
-            (( ns = ns + $? ))
-        fi
-    done
-    echo "***" $ns"/"$nt "test(s) OK"
-else
-    echo "usage: $0 (dot|sim|ctask|systemc|vhdl|all)"
-fi
-
+echo "***" $ns"/"$nt "test(s) OK"
