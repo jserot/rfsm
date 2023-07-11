@@ -159,18 +159,18 @@ struct
        let ocf = formatter_of_out_channel oc in
        fprintf ocf "digraph %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" name cfg.layout cfg.rankdir cfg.mindist;
        List.iter (output_fsm ocf) sd.fsms;
-       let pp_io ~with_stim kind ocf (id,(ty,st)) = 
+       let pp_io ~with_stim kind ocf (id,cc) = 
          if with_stim then
            fprintf ocf "%s %s: %a = %a\\r"
              kind
              id
-             (Types.pp_typ ~abbrev:cfg.abbrev_types) ty
-             (Misc.pp_opt Syntax.pp_stimulus_desc) st
+             (Types.pp_typ ~abbrev:cfg.abbrev_types) cc.ct_typ
+             (Misc.pp_opt Syntax.pp_stimulus_desc) cc.ct_stim
          else
            fprintf ocf "%s %s: %a\\r"
              kind
              id
-             (Types.pp_typ ~abbrev:cfg.abbrev_types) ty in
+             (Types.pp_typ ~abbrev:cfg.abbrev_types) cc.ct_typ in
        let pp_ios ocf ctx = 
          List.iter (pp_io ~with_stim:false "input" ocf)  ctx.inputs; 
          List.iter (pp_io ~with_stim:false "output" ocf) ctx.outputs; 

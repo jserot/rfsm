@@ -11,13 +11,17 @@ module type T = sig
       vars: Value.t Env.t;
     }
   
+  type ctx_comp = {
+    ct_typ: Syntax.typ;
+    ct_stim: Syntax.stimulus_desc option;  (* For inputs only *)
+    ct_rds: string list; (* Readers, for inputs and shareds *)
+    ct_wrs: string list; (* Writers, for outputs and shareds *)
+    }
+
   type ctx = {  (* TODO : update formal semantics accordingly *)
-    inputs: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
-    outputs: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
-    shared: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
-    (* Note: the [stimulus_desc] component is only used for outputs. It is here attached to
-       [outputs] and [shared] descriptions to uniformize fns operating on [ctx]s. *)
-    (* TODO : add readers/writers lists *)
+    inputs: (string * ctx_comp) list;
+    outputs: (string * ctx_comp) list;
+    shared: (string * ctx_comp) list;
     }
 
   type t = {
@@ -76,15 +80,22 @@ struct
          f.q
          (Env.pp Value.pp) f.vars
 
-  type ctx = {
-    inputs: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
-    outputs: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
-    shared: (string * (Syntax.typ * Syntax.stimulus_desc option)) list;  
-    } 
+  type ctx_comp = {
+    ct_typ: Syntax.typ [@printer fun fmt -> fprintf fmt "%a" (Syntax.Guest.Types.pp_typ ~abbrev:false)];
+    ct_stim: Syntax.stimulus_desc option;  (* For inputs only *)
+    ct_rds: string list; (* Readers, for inputs and shareds *)
+    ct_wrs: string list; (* Writers, for outputs and shareds *)
+    } [@@deriving show {with_path=false}]
+
+  type ctx = {  (* TODO : update formal semantics accordingly *)
+    inputs: (string * ctx_comp) list;
+    outputs: (string * ctx_comp) list;
+    shared: (string * ctx_comp) list;
+    }
 
   let pp_ctx fmt ctx =
     let open Format in
-    let pp_io fmt (id,(ty,_)) = Format.fprintf fmt "%s: %a" id (Syntax.Guest.Types.pp_typ ~abbrev:false) ty in
+    let pp_io fmt (id,cc) = Format.fprintf fmt "%s: %a" id pp_ctx_comp cc in
     fprintf fmt "@[<v>{inputs=%a@,outputs=%a@,shared=%a}@]"
     (Misc.pp_list_v pp_io) ctx.inputs
     (Misc.pp_list_v pp_io) ctx.outputs
@@ -153,9 +164,14 @@ struct
       (fun id (cat',te,st) acc ->
         let t = type_of te in
         match cat, cat', st with
-        | Input, Input, Some { Annot.desc=st'; _ }  -> (id, (t, Some st'))::acc 
-        | _, _, _ when cat=cat' -> (id, (t, None))::acc 
-        | _, _, _ -> acc)
+        | Input, Input, Some { Annot.desc=st'; _ } ->
+           let cc = { ct_typ=t; ct_stim=Some st'; ct_rds=[]; ct_wrs=[] } in
+           (id, cc)::acc 
+        | _, _, _ when cat=cat' -> (* TODO : compute readers and writers ! *)
+           let cc = { ct_typ=t; ct_stim=None; ct_rds=[]; ct_wrs=[] } in
+           (id, cc)::acc 
+        | _, _, _ ->
+           acc)
       senv
       [] in
     { inputs = extract Input [] senv_i;
