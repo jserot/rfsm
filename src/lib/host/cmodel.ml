@@ -38,7 +38,7 @@ module type CMODEL = sig
       (* c_body = [case_1;...;case_n]
        means
         "while ( 1 ) { switch ( [state] ) { [case_1]; ...; [case_n] } }" *)
-      c_ddepth: int  (* depth in the dependency graph *)
+      c_ddepth: int  (* depth in the static dependency graph induced by shared variables *)
     }
 
   and c_state = string * (string * expr) list (* name, output valuations *)
@@ -52,7 +52,7 @@ module type CMODEL = sig
   val pp: Format.formatter -> t -> unit
     
   val of_fsm_model: Static.Syntax.model -> t
-  val of_fsm_inst: Static.fsm -> t
+  val of_fsm_inst: Static.t -> Static.fsm -> t
 
   exception Error of string * string   (* where, message *)
 
@@ -132,10 +132,10 @@ struct
       c_vars = m.vars;
       c_init = m.itrans.Annot.desc;
       c_body = List.map (mk_state_case m) m.states;
-      c_ddepth = 0;
+      c_ddepth = 0; (* Not applicable to models, only to instances *)
     }
 
-  let of_fsm_inst f = 
+  let of_fsm_inst s f = 
     let open Static in 
     let m = f.model.Annot.desc in 
     { c_mname = m.name;
@@ -150,7 +150,7 @@ struct
       c_vars = m.vars; 
       c_init = m.itrans.Annot.desc;
       c_body = List.map (mk_state_case m) m.states;
-      c_ddepth = 0 (* TO FIX : Static.DepG.Mark.get (m.m_deps.md_node f.f_name); *)
+      c_ddepth = Depg.Mark.get (s.deps.sd_node f.name);
     }
 
 end

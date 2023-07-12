@@ -1,3 +1,5 @@
+(** Dependency graph between FSM instances *)
+
 module type T = sig
   
   module Syntax: Syntax.SYNTAX
@@ -33,6 +35,12 @@ module type T = sig
     fns: Syntax.fun_decl list; (** Functions *)
     csts: Syntax.cst_decl list; (** Constants *)
     types: Syntax.Guest.type_decl list; (** User-defined types *)
+    deps: dependencies; (** Static dependencies induced by shared variables *)
+    }
+
+  and dependencies = {
+    sd_graph: Depg.t;
+    sd_node: string -> Depg.V.t;
     }
 
   val build: Syntax.program -> t
@@ -110,6 +118,12 @@ struct
     fns: Syntax.fun_decl list;
     csts: Syntax.cst_decl list;
     types: Syntax.Guest.type_decl list;
+    deps: dependencies; (** Static dependencies induced by shared variables *)
+    }
+
+  and dependencies = {
+    sd_graph: Depg.t;
+    sd_node: string -> Depg.V.t;
     }
 
   let pp ?(verbose_level=1) fmt s = 
@@ -219,6 +233,45 @@ struct
     let env_f = List.fold_left r_fun env_c p.Syntax.fun_decls in
     Env.union env_c env_f
 
+  let build_dependencies fsms shared =
+      (* TO FIX : this is redundant with the dep comp descibed below and used for the dynamic semantics *)
+    let g = Depg.create () in
+    let nodes = ref [] in
+    let lookup n = try List.assoc n !nodes with Not_found -> Misc.fatal_error "Static.build_dependencies" in
+    (* We first build a graph [g] in which
+       - vertices correspond to FSM instances
+       - there's an edge from vertex [s] to vertex [d] if [s] writes a shared variable that is
+          read by [d],  *)
+    List.iter
+      (function f ->
+         let name = f.name in
+         let v = Depg.V.create name in
+         nodes := (name, v) :: !nodes;
+         Depg.add_vertex g v)
+      fsms;
+    List.iter
+      (function (id,cc) ->
+         List.iter
+           (function (s,d) ->
+               if s <> d then (* Self-dependencies are not taken into account *)
+                 let e = Depg.E.create (lookup s) id (lookup d) in
+                 Depg.add_edge_e g e)
+           (Misc.list_cart_prod2 cc.ct_wrs cc.ct_rds))
+      shared;
+    let update_dep_depth n =
+      match Depg.pred g n with
+        [] -> ()
+      | preds ->
+         let m = List.fold_left (fun z n' -> max z (Depg.Mark.get n')) 0  preds in
+         (* Each vertex gets mark [m+1] where [m] is the maximum mark of its predecessors *)
+         Depg.Mark.set n (m+1) in
+    let module T = Graph.Topological.Make(Depg) in
+    Depg.Mark.clear g;
+    (* Assign dependency depths in the topologically sorted graph *)
+    T.iter update_dep_depth g; 
+    { sd_graph = g;
+      sd_node = function n -> try List.assoc n !nodes with Not_found -> Misc.fatal_error "Static.build_dependencies" }
+
   let build p =
     let m, c = r_program p in
     { ctx = c;
@@ -227,7 +280,8 @@ struct
       globals = r_globals p;
       fns = p.Syntax.fun_decls;
       csts = p.Syntax.cst_decls;
-      types = p.Syntax.type_decls }
+      types = p.Syntax.type_decls;
+      deps = build_dependencies m c.shared; }
               
   (* Dependency-based sorting *)
     

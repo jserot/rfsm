@@ -525,7 +525,7 @@ struct
     dump_module_impl false (dir ^ "/" ^ prefix ^ ".cpp") f
 
   let dump_fsm_inst ?(dir="./systemc") m fi =
-    let f = Cmodel.of_fsm_inst fi in
+    let f = Cmodel.of_fsm_inst m fi in
     dump_module_intf (need_globals m) (dir ^ "/" ^ fi.name ^ ".h") f;
     dump_module_impl (need_globals m) (dir ^ "/" ^ fi.name ^ ".cpp") f
 
