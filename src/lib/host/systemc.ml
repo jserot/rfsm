@@ -419,14 +419,12 @@ struct
     (* Signals *)
     List.iter
       (function (id,cc) -> fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ cc.Static.ct_typ id)
-      (m.ctx.inputs @ m.ctx.outputs @ m.ctx.shared); (* TO FIX !!!! - see below *)
-    (* List.iter
-     *   (function
-     *    | id,(ty,MShared (wrs,_)) ->
-     *       if List.length wrs > 1 then fprintf ocf "  sc_signal<%a,SC_MANY_WRITERS> %s;\n" G.pp_typ typ id
-     *       else fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ ty id
-     *    | _ -> ())
-     *   m.ctx.shared; *) (* TO FIX ! *)
+      (m.ctx.inputs @ m.ctx.outputs);
+    List.iter
+      (function (id,cc) ->
+          if List.length cc.ct_wrs > 1 then fprintf ocf "  sc_signal<%a,SC_MANY_WRITERS> %s;\n" G.pp_typ cc.Static.ct_typ id
+          else fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ cc.Static.ct_typ id)
+      m.ctx.shared;
     if cfg.sc_trace then
       List.iter
         (function f -> fprintf ocf "  sc_signal<int> %s;\n" (f.name ^ "_state"))

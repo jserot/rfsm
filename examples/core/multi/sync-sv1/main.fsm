@@ -6,7 +6,7 @@ fsm model m1 (
 {
   states: E1, E2;
   trans:
- | E1 -> E2 on h with v:=true
+ | E1 -> E2 on h with v:=1
  | E2 -> E1 on h;
   itrans:
   | -> E1;
@@ -18,8 +18,8 @@ fsm model m2 (
 {
   states: E3, E4;
   trans:
- | E3 -> E4 on h when v=true
- | E4 -> E3 on h with v:=false;
+ | E3 -> E4 on h when v=1
+ | E4 -> E3 on h with v:=0;
   itrans:
   | -> E3;
 }

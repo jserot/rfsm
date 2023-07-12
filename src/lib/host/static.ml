@@ -82,7 +82,7 @@ struct
 
   type ctx_comp = {
     ct_typ: Syntax.typ [@printer fun fmt -> fprintf fmt "%a" (Syntax.Guest.Types.pp_typ ~abbrev:false)];
-    ct_stim: Syntax.stimulus_desc option;  (* For inputs only *)
+    ct_stim: Syntax.stimulus_desc option;  (* Attached stimuli, for inputs only *)
     ct_rds: string list; (* Readers, for inputs and shareds *)
     ct_wrs: string list; (* Writers, for outputs and shareds *)
     } [@@deriving show {with_path=false}]
@@ -132,14 +132,24 @@ struct
     let phi = 
       try List.map2 (fun (io',_) io -> io', io) m.ios args
       with Invalid_argument _ -> Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
-    { name = name;
-      params =
-        (try List.fold_left2 (fun env (id,_) expr -> Env.add id (GS.eval expr) env) Env.empty m.params params
-        with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (* should not happen after TC *)
-      model = mm |> normalize_model |> subst_model ~phi;
-      q = fst m.itrans.Annot.desc;
-      vars = List.fold_left (fun env (id,te) -> Env.add id (Value.default_value te.Annot.typ) env) Env.empty m.vars
-    }
+    let collect cat =
+      List.fold_left2 
+        (fun acc (id,(cat',_)) arg -> if cat=cat' then  arg::acc else acc)
+        []
+        m.ios
+        args in
+    let rds = collect Syntax.In in
+    let wrs = collect Syntax.Out in
+    let m = {
+        name = name;
+        params =
+          (try List.fold_left2 (fun env (id,_) expr -> Env.add id (GS.eval expr) env) Env.empty m.params params
+           with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (* should not happen after TC *)
+        model = mm |> normalize_model |> subst_model ~phi;
+        q = fst m.itrans.Annot.desc;
+        vars = List.fold_left (fun env (id,te) -> Env.add id (Value.default_value te.Annot.typ) env) Env.empty m.vars
+      } in
+    m, (name, (rds,wrs))
 
   let r_insts (senv_m,senv_i) insts = List.map (r_inst (senv_m,senv_i)) insts
 
@@ -153,22 +163,27 @@ struct
     
   let r_models models = List.fold_left r_model Env.empty models
 
-  let build_ctx senv_i =  (* \mathcal{L} *)
+  let build_ctx rws senv_i =  (* \mathcal{L} *)
     let open Syntax in
     let type_of te =
       match te.Annot.typ with
       | Some ty -> ty
       | _ -> Misc.fatal_error "Static.build_ctx" in
+    let collect_rds i = List.fold_left (fun acc (name,(rds,_)) -> if List.mem i rds then name::acc else acc) [] rws in
+    let collect_wrs o = List.fold_left (fun acc (name,(_,wrs)) -> if List.mem o wrs then name::acc else acc) [] rws in
     let extract cat acc senv =
       Env.fold 
       (fun id (cat',te,st) acc ->
         let t = type_of te in
         match cat, cat', st with
         | Input, Input, Some { Annot.desc=st'; _ } ->
-           let cc = { ct_typ=t; ct_stim=Some st'; ct_rds=[]; ct_wrs=[] } in
+           let cc = { ct_typ=t; ct_stim=Some st'; ct_rds=collect_rds id; ct_wrs=[] } in
            (id, cc)::acc 
-        | _, _, _ when cat=cat' -> (* TODO : compute readers and writers ! *)
-           let cc = { ct_typ=t; ct_stim=None; ct_rds=[]; ct_wrs=[] } in
+        | Output, Output, _ ->
+           let cc = { ct_typ=t; ct_stim=None; ct_rds=[]; ct_wrs=collect_wrs id } in
+           (id, cc)::acc 
+        | Shared, Shared, _ ->
+           let cc = { ct_typ=t; ct_stim=None; ct_rds=collect_rds id; ct_wrs=collect_wrs id } in
            (id, cc)::acc 
         | _, _, _ ->
            acc)
@@ -181,8 +196,13 @@ struct
   let r_program p =
     let senv_m = r_models p.Syntax.models in
     let senv_i = r_globals p.Syntax.globals in
-    let m = r_insts (senv_m, senv_i) p.Syntax.insts in
-    let c = build_ctx senv_i in
+    let m, rws = List.split @@ r_insts (senv_m, senv_i) p.Syntax.insts in
+    let _ =
+      let pp_rw fmt (name,(rds,wrs)) = 
+        Format.fprintf fmt "%s:rds=[%a],wrs=[%a]"
+          name (Misc.pp_list_h ~sep:"," Format.pp_print_string) rds (Misc.pp_list_h ~sep:"," Format.pp_print_string) wrs in
+      Format.fprintf Format.std_formatter "** rws=%a\n" (Misc.pp_list_v pp_rw) rws in
+    let c = build_ctx rws senv_i in
     m, c
     
   let r_const env { Annot.desc = c; _ } = 

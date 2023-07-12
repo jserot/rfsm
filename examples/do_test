@@ -102,12 +102,6 @@ make_target_comp () # For regression testing
     grep "OK" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
     grep "FAILED" $TMP >/dev/null && echo -e "\033[31mFAILED\033[0m"
     echo "Comparing results..."
-#   IFS=$'\n' read -d '' -a files < "$2/rfsm.output"
-#   for f in ${files[@]}; do
-#     for f in $2/$1/*; do
-#         name=`basename $f`
-#         diff -E -b -B --unified=0 -q --exclude=Makefile $2/$1.pre/$name $2/$1/$name
-#     done
     case $3 in
 #        show) diff -B --unified=0 -r --exclude=Makefile $2/$1.pre $2/$1;;
         show) diff -d -B -r --exclude=Makefile $2/$1.pre $2/$1;;

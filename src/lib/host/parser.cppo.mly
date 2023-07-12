@@ -45,7 +45,8 @@
 %{
 #include "guest_open.mly"
 
-type io_cat = In| Out | InOut 
+let mk_io (cat,(id,ty)) = id, (cat,ty)
+let mk_io' (cat,(id,ty)) = id, ty
 %}
 
 %%
@@ -114,9 +115,9 @@ fsm_model:
           Lang.L.Syntax.{ name = name;
             params = params;
             states = states;
-            ios = ios |> List.map snd; 
-            inps = ios |> List.filter (function (Out,_) -> false | _ -> true) |> List.map snd;
-            outps = ios |> List.filter (function (In,_) -> false | _ -> true) |> List.map snd;
+            ios = List.map mk_io ios;
+            inps = ios |> List.filter (function (Out,_) -> false | _ -> true) |> List.map mk_io';
+            outps = ios |> List.filter (function (In,_) -> false | _ -> true) |> List.map mk_io';
             vars = vars;
             trans = trans;
             itrans = itrans } }
@@ -128,9 +129,9 @@ param:
   | id=LID COLON ty=type_expr { (id, ty) }
 
 io:
-  | IN d=io_desc { (In, d) }
-  | OUT d=io_desc { (Out, d) }
-  | INOUT d=io_desc { (InOut, d) }
+  | IN d=io_desc { (Lang.L.Syntax.In, d) }
+  | OUT d=io_desc { (Lang.L.Syntax.Out, d) }
+  | INOUT d=io_desc { (Lang.L.Syntax.InOut, d) }
 
 io_desc:
   | id=LID COLON ty=type_expr { id,ty }

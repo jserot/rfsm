@@ -23,13 +23,15 @@ module type SYNTAX = sig
       name: string;
       states: state list;
       params: (string * type_expr) list;
-      ios: (string * type_expr) list;
+      ios: (string * (io_cat * type_expr)) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
       vars: (string * type_expr) list;
       trans: transition list;
       itrans: itransition 
     }
+
+  and io_cat = In| Out | InOut 
   
   and state = (state_desc,unit) Annot.t
   and state_desc = string * (string * expr) list (* Name, output valuations *)
@@ -173,11 +175,13 @@ struct
   type state = (state_desc,unit) Annot.t
   let pp_state fmt s = pp_state_desc fmt s.Annot.desc
 
+  type io_cat = In| Out | InOut 
+
   type model_desc = {
       name: string;
       states: state list;
       params: (string * type_expr) list;
-      ios: (string * type_expr) list;
+      ios: (string * (io_cat * type_expr)) list;
       (* Note: we must keep the unsorted IO specs to perform the formal/actual substitution when instanciating the model *)
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
