@@ -133,6 +133,7 @@ struct
       [] -> ()  (* no wait in this case *)
     | [ev,ts] ->
        fprintf fmt "%swait(%a);\n" tab pp_sysc_ev ev;
+       (* Now wait a sufficient number of delta cycles to ensure ensure "instantaneous" broadcast *)
        for _=0 to m.c_ddepth-1 do 
          fprintf fmt "%swait(SC_ZERO_TIME);\n" tab
        done;
@@ -213,7 +214,7 @@ struct
     fprintf ocf "  // IOs\n";
     List.iter (fun (id,ty) -> fprintf ocf "  sc_in<%a> %s;\n" G.pp_type_expr ty id) m.c_inps;
     List.iter (fun (id,ty) -> fprintf ocf "  sc_out<%a> %s;\n" G.pp_type_expr ty id) m.c_outps;
-    (* List.iter (fun (id,ty) -> fprintf ocf "  sc_inout<%a> %s;\n" G.pp_typ ty id) m.c_inouts; *)
+    List.iter (fun (id,ty) -> fprintf ocf "  sc_inout<%a> %s;\n" G.pp_type_expr ty id) m.c_inouts;
     if cfg.sc_trace then fprintf ocf "  sc_out<int> %s;\n" cfg.sc_trace_state_var;
     fprintf ocf "  // Constants\n";
     List.iter (fun (id,(ty,_)) -> fprintf ocf "  static const %a;\n" G.pp_typed_symbol (id,ty)) m.c_consts;

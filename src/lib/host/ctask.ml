@@ -129,7 +129,7 @@ struct
       (Misc.pp_opt_list ~lr:("<",">") ~sep:"," G.pp_typed_symbol) m.c_params;
     List.iter (fun io -> fprintf ocf "  in %a;\n" G.pp_typed_symbol io) m.c_inps;
     List.iter (fun io -> fprintf ocf " out %a;\n" G.pp_typed_symbol io) m.c_outps;
-    (* List.iter (fun (id,ty) -> fprintf ocf " inout %s;\n" (G.pp_typed_symbol ocf (id,ty))) m.inouts; *)
+    List.iter (fun io -> fprintf ocf " inout %a;\n" G.pp_typed_symbol io) m.c_inouts;
     fprintf ocf "  )\n";
     fprintf ocf "{\n";
     List.iter (fun io -> fprintf ocf "  %a;\n" G.pp_typed_symbol io) m.c_vars;

@@ -16,7 +16,7 @@ let keyword_table = [
   "states", STATES;
   "in", IN;
   "out", OUT;
-  "inout", OUT;
+  "inout", INOUT;
   "vars", VARS;
   "trans", TRANS;
   "itrans", ITRANS;

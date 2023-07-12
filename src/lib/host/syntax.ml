@@ -26,6 +26,7 @@ module type SYNTAX = sig
       ios: (string * (io_cat * type_expr)) list;
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
+      inouts: (string * type_expr) list;
       vars: (string * type_expr) list;
       trans: transition list;
       itrans: itransition 
@@ -185,6 +186,7 @@ struct
       (* Note: we must keep the unsorted IO specs to perform the formal/actual substitution when instanciating the model *)
       inps: (string * type_expr) list;
       outps: (string * type_expr) list;
+      inouts: (string * type_expr) list;
       vars: (string * type_expr) list;
       trans: transition list;
       itrans: itransition 
@@ -307,7 +309,7 @@ struct
 
   let rec ppr_model m = { m with Annot.desc = ppr_model_desc m.Annot.desc }
   and ppr_model_desc m =
-    let env = m.inps @ m.outps @ m.vars in
+    let env = m.inps @ m.outps @ m.inouts @ m.vars in
     { m with states = List.map (ppr_state env) m.states;
              trans = List.map (ppr_transition env) m.trans;
              itrans = ppr_itransition env m.itrans }
@@ -412,11 +414,12 @@ struct
     let pp_ov fmt (o,e) = fprintf fmt "%s=%a" o pp_expr e in
     let pp_ovs fmt ovs = match ovs with [] -> () | _ -> fprintf fmt "{%a}" (Misc.pp_list_h pp_ov) ovs in
     let pp_state fmt { Annot.desc=x,ovs; _ } = fprintf fmt "%s%a" x pp_ovs ovs in
-    fprintf fmt "@[<v>{@,name=%s@,params=[%a]@,inps=%a@,outps=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,}@]"
+    fprintf fmt "@[<v>{@,name=%s@,params=[%a]@,inps=%a@,outps=%a@,inouts=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,}@]"
       p.name
       (Misc.pp_list_h ~sep:"," pp_iov) p.params
       (Misc.pp_list_v pp_iov) p.inps
       (Misc.pp_list_v pp_iov) p.outps
+      (Misc.pp_list_v pp_iov) p.inouts
       (Misc.pp_list_h ~sep:"," pp_state) p.states
       (Misc.pp_list_v pp_iov) p.vars
       (Misc.pp_list_v pp_transition) p.trans

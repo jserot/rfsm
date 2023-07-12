@@ -3,6 +3,7 @@ module type T = sig
   module Syntax: Syntax.SYNTAX
   module Value: Guest.VALUE with type typ = Syntax.typ
 
+  (** FSM instances *)
   type fsm = {
       name: string;
       model: Syntax.model;    (* Normalized model (without output valuations) *)
@@ -132,14 +133,14 @@ struct
     let phi = 
       try List.map2 (fun (io',_) io -> io', io) m.ios args
       with Invalid_argument _ -> Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
-    let collect cat =
+    let collect cats =
       List.fold_left2 
-        (fun acc (id,(cat',_)) arg -> if cat=cat' then  arg::acc else acc)
+        (fun acc (id,(cat,_)) arg -> if List.mem cat cats then  arg::acc else acc)
         []
         m.ios
         args in
-    let rds = collect Syntax.In in
-    let wrs = collect Syntax.Out in
+    let rds = collect [Syntax.In; Syntax.InOut] in
+    let wrs = collect [Syntax.Out; Syntax.InOut] in
     let m = {
         name = name;
         params =
@@ -197,11 +198,11 @@ struct
     let senv_m = r_models p.Syntax.models in
     let senv_i = r_globals p.Syntax.globals in
     let m, rws = List.split @@ r_insts (senv_m, senv_i) p.Syntax.insts in
-    let _ =
-      let pp_rw fmt (name,(rds,wrs)) = 
-        Format.fprintf fmt "%s:rds=[%a],wrs=[%a]"
-          name (Misc.pp_list_h ~sep:"," Format.pp_print_string) rds (Misc.pp_list_h ~sep:"," Format.pp_print_string) wrs in
-      Format.fprintf Format.std_formatter "** rws=%a\n" (Misc.pp_list_v pp_rw) rws in
+    (* let _ =
+     *   let pp_rw fmt (name,(rds,wrs)) = 
+     *     Format.fprintf fmt "%s:rds=[%a],wrs=[%a]"
+     *       name (Misc.pp_list_h ~sep:"," Format.pp_print_string) rds (Misc.pp_list_h ~sep:"," Format.pp_print_string) wrs in
+     *   Format.fprintf Format.std_formatter "** rws=%a\n" (Misc.pp_list_v pp_rw) rws in *)
     let c = build_ctx rws senv_i in
     m, c
     

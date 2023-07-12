@@ -116,8 +116,9 @@ fsm_model:
             params = params;
             states = states;
             ios = List.map mk_io ios;
-            inps = ios |> List.filter (function (Out,_) -> false | _ -> true) |> List.map mk_io';
-            outps = ios |> List.filter (function (In,_) -> false | _ -> true) |> List.map mk_io';
+            inps = ios |> List.filter (function (In,_) -> true | _ -> false) |> List.map mk_io';
+            outps = ios |> List.filter (function (Out,_) -> true | _ -> false) |> List.map mk_io';
+            inouts = ios |> List.filter (function (InOut,_) -> true | _ -> false) |> List.map mk_io';
             vars = vars;
             trans = trans;
             itrans = itrans } }

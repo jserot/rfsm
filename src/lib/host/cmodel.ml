@@ -128,7 +128,7 @@ struct
       c_consts = [];
       c_inps = m.inps;
       c_outps = m.outps;
-      c_inouts = []; (* TO FIX *)
+      c_inouts = m.inouts;
       c_vars = m.vars;
       c_init = m.itrans.Annot.desc;
       c_body = List.map (mk_state_case m) m.states;
@@ -146,8 +146,7 @@ struct
       c_consts = List.map2 (fun (id,ty) (_,v) -> (id,(ty,v))) m.params (Env.bindings f.params);
       c_inps = m.inps;
       c_outps = m.outps;
-      c_inouts = []; (* TO FIX *)
-      (* c_inouts = List.map (function (id, (ty,_)) -> id, ty) f.f_inouts; *)
+      c_inouts = m.inouts;
       c_vars = m.vars; 
       c_init = m.itrans.Annot.desc;
       c_body = List.map (mk_state_case m) m.states;
