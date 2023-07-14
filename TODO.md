@@ -1,7 +1,5 @@
 COMPILER
 
-- merge computation of the dependency graph for the SystemC backend and dynamic semantics in Static
-  module. Use a separate module.
 - localize FSM var names (in the current impl, it is not possible to give the same name to, say, an
   output and a local variable w/o creating either an aliasing effect (if both have the same type) or
   an error (if they have a different type). ALternatively, prefix all global IOs 

@@ -1,23 +1,70 @@
 (** Dependency graphs *)
 
-module G =
-  Graph.Imperative.Digraph.AbstractLabeled
-    (struct type t = string end)  (* Only abstract vertices allow imperative marking .. *)
-    (struct
-      type t = string
-      let compare = Stdlib.compare
-      let default = ""
-    end)
+module G = Graph.Imperative.Digraph.Abstract(String)
+  (** Graphs for which vertices are simple names *)
+module M = Map.Make(String)
+  (** For mapping names to vertices and to full descriptors *)
+module TS = Graph.Topological.Make(G)
+   (** For topological sorting *)
 
-type t = G.t
-module V = G.V
-module E = G.E
-module Mark = G.Mark
+(** The signature for graph nodes *)
 
-let create = G.create
-let add_vertex = G.add_vertex
-let add_edge = G.add_edge
-let add_edge_e = G.add_edge_e
-let pred = G.pred
-let iter_vertex = G.iter_vertex
-let iter_succ = G.iter_succ
+module type NODE = sig  
+  type t
+  type context
+  val name_of: t -> string
+    (** [name_of n] should return a unique name for node [n] *)
+  val depends_on: context -> t -> t -> bool
+    (** [depends_on c n n'] returns [true] if node [n] depends on node [n'] in context [c], [false] otherwise. *)
+end
+
+(** The signature of the module performing dependency sorting of a graph of nodes *)
+
+module type T = sig
+  type node
+  type context
+  val dep_sort: context -> node list -> node list
+end
+
+(** The functor building such a module *)
+
+module Make (N: NODE) : T with type node = N.t and type context = N.context =
+struct
+    type node = N.t
+    type context = N.context
+
+    let init nodes = 
+      let g = G.create () in
+      let vs, ns = 
+        (* [vs] is the table of graph vertices, indexed by [node] names,
+           [fs] is the table of [nodes], also indexed by [node] names *)
+        List.fold_left
+          (fun (acc,acc') n ->
+            let nm = N.name_of n in
+            let v = G.V.create nm in
+            G.add_vertex g v;
+            M.add nm v acc,
+            M.add nm n acc')
+          (M.empty, M.empty)
+          nodes in
+      g, vs, ns
+
+   let add_edges ctx g vs nodes = 
+    List.iter 
+      (fun (n,n') ->
+        let nm = N.name_of n 
+        and nm' = N.name_of n' in
+        if nm <> nm' && N.depends_on ctx n n' then
+          (* Add an edge nm->nm' in the graph iff n' depends on n. Omit self-dependencies *)
+          G.add_edge g (M.find nm vs) (M.find nm' vs))
+      (Misc.list_cart_prod2 nodes nodes)
+
+   let topo_sort g fs = 
+     TS.fold (fun v acc -> M.find (G.V.label v) fs :: acc) g []
+
+   let dep_sort ctx nodes =
+     let g, vs, fs = init nodes in
+     let _ = add_edges ctx g vs nodes in
+     let nodes' = topo_sort g fs in
+     List.rev nodes'
+end

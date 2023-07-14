@@ -150,7 +150,7 @@ struct
       c_vars = m.vars; 
       c_init = m.itrans.Annot.desc;
       c_body = List.map (mk_state_case m) m.states;
-      c_ddepth = Depg.Mark.get (s.deps.sd_node f.name);
+      c_ddepth = List.assoc f.name s.dep_order (* Depg.Mark.get (s.deps.sd_node f.name); *)
     }
 
 end
