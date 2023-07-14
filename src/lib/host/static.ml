@@ -35,21 +35,13 @@ module type T = sig
     fns: Syntax.fun_decl list; (** Functions *)
     csts: Syntax.cst_decl list; (** Constants *)
     types: Syntax.Guest.type_decl list; (** User-defined types *)
-    deps: dependencies; (** Static dependencies induced by shared variables *)
-    }
-
-  and dependencies = {
-    sd_graph: Depg.t;
-    sd_node: string -> Depg.V.t;
+    dep_order: (string * int) list; 
     }
 
   val build: Syntax.program -> t
 
-  val dep_sort: fsm list -> fsm list (** Dependency-based sorting *)
-
   val pp: ?verbose_level:int -> Format.formatter -> t -> unit
   val pp_fsm: ?verbose_level:int -> Format.formatter -> fsm -> unit
-  val pp_value: Format.formatter -> Value.t -> unit
 
 end
 
@@ -118,23 +110,17 @@ struct
     fns: Syntax.fun_decl list;
     csts: Syntax.cst_decl list;
     types: Syntax.Guest.type_decl list;
-    deps: dependencies; (** Static dependencies induced by shared variables *)
+    dep_order: (string * int) list; 
     }
 
-  and dependencies = {
-    sd_graph: Depg.t;
-    sd_node: string -> Depg.V.t;
-    }
-
-  let pp ?(verbose_level=1) fmt s = 
+  let pp ?(verbose_level=1) fmt s =
     let open Format in
-    fprintf fmt "@[<v>{ctx=%a@,models=%a@,fsms=%a@,globals=%a@,}@."
+    fprintf fmt "@[<v>{ctx=%a@,models=%a@,fsms=%a@,globals=%a@,dep_order=%a@,}@."
     pp_ctx s.ctx
     (Misc.pp_list_v Syntax.pp_model) s.models
     (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
     (Env.pp Value.pp) s.globals
-
-  let pp_value = Value.pp
+    (Misc.pp_list_h ~sep:"," (fun fmt (f,d) -> fprintf fmt "%s:%d" f d)) s.dep_order
 
   (* Rules *)
          
@@ -212,11 +198,6 @@ struct
     let senv_m = r_models p.Syntax.models in
     let senv_i = r_globals p.Syntax.globals in
     let m, rws = List.split @@ r_insts (senv_m, senv_i) p.Syntax.insts in
-    (* let _ =
-     *   let pp_rw fmt (name,(rds,wrs)) = 
-     *     Format.fprintf fmt "%s:rds=[%a],wrs=[%a]"
-     *       name (Misc.pp_list_h ~sep:"," Format.pp_print_string) rds (Misc.pp_list_h ~sep:"," Format.pp_print_string) wrs in
-     *   Format.fprintf Format.std_formatter "** rws=%a\n" (Misc.pp_list_v pp_rw) rws in *)
     let c = build_ctx rws senv_i in
     m, c
     
@@ -233,44 +214,30 @@ struct
     let env_f = List.fold_left r_fun env_c p.Syntax.fun_decls in
     Env.union env_c env_f
 
-  let build_dependencies fsms shared =
-      (* TO FIX : this is redundant with the dep comp descibed below and used for the dynamic semantics *)
-    let g = Depg.create () in
-    let nodes = ref [] in
-    let lookup n = try List.assoc n !nodes with Not_found -> Misc.fatal_error "Static.build_dependencies" in
-    (* We first build a graph [g] in which
-       - vertices correspond to FSM instances
-       - there's an edge from vertex [s] to vertex [d] if [s] writes a shared variable that is
-          read by [d],  *)
-    List.iter
-      (function f ->
-         let name = f.name in
-         let v = Depg.V.create name in
-         nodes := (name, v) :: !nodes;
-         Depg.add_vertex g v)
-      fsms;
-    List.iter
-      (function (id,cc) ->
-         List.iter
-           (function (s,d) ->
-               if s <> d then (* Self-dependencies are not taken into account *)
-                 let e = Depg.E.create (lookup s) id (lookup d) in
-                 Depg.add_edge_e g e)
-           (Misc.list_cart_prod2 cc.ct_wrs cc.ct_rds))
-      shared;
-    let update_dep_depth n =
-      match Depg.pred g n with
-        [] -> ()
-      | preds ->
-         let m = List.fold_left (fun z n' -> max z (Depg.Mark.get n')) 0  preds in
-         (* Each vertex gets mark [m+1] where [m] is the maximum mark of its predecessors *)
-         Depg.Mark.set n (m+1) in
-    let module T = Graph.Topological.Make(Depg) in
-    Depg.Mark.clear g;
-    (* Assign dependency depths in the topologically sorted graph *)
-    T.iter update_dep_depth g; 
-    { sd_graph = g;
-      sd_node = function n -> try List.assoc n !nodes with Not_found -> Misc.fatal_error "Static.build_dependencies" }
+  (* Computation of the static dependency order induced by shared variables *)
+
+  module FsmNode = 
+    struct
+      type t = fsm
+      type context = ctx
+      let name_of f = f.name
+      let depends_on ctx f f' = 
+        (* [f'] (statically) depends on [f] iff [f'] reads a _shared_ variable of [ctx] which is written by [f], 
+         i.e. if there's at least one variable [v] of [ctx.shared] such that [f] appears in [v.ct_wrs] and 
+         [f'] appears in [v.ct_rds] *)
+        List.exists
+          (fun (v,cc) -> List.mem f.name cc.ct_wrs && List.mem f'.name cc.ct_rds)
+          ctx.shared
+    end
+
+  let dep_sort ctx fsms =
+    (* Sort FSMs using the [FsmStatNode.depends_on] relation.
+       The resulting order will used by the SystemC (and possibly other) backend to implement instantaneous broadcast
+       using delta cycles *)
+    let module D = Depg.Make(FsmNode) in
+    D.dep_sort ctx fsms
+
+  (* Main function *)
 
   let build p =
     let m, c = r_program p in
@@ -281,65 +248,6 @@ struct
       fns = p.Syntax.fun_decls;
       csts = p.Syntax.cst_decls;
       types = p.Syntax.type_decls;
-      deps = build_dependencies m c.shared; }
+      dep_order = m |> dep_sort c |> List.mapi (fun i f -> f.name, i) }
               
-  (* Dependency-based sorting *)
-    
-  module G = Graph.Imperative.Digraph.Abstract(String) (* Vertices are FSM names *)
-  module M = Map.Make(String) (* For mapping FSM names to vertices and FSM descriptions *)
-  module TS = Graph.Topological.Make(G)
-
-  let depends_on m m' =
-    let module S = Set.Make(String) in
-    let inter l1 l2 = not (S.is_empty (S.inter (S.of_list l1) (S.of_list l2))) in
-    (* Return true if FSM m' (in state q') depends on FSM m (in state q), i.e. if
-         - at least one transition starting from q' is triggered by a (shared) event emitted by at least one transition
-           starting from q
-         - at least one transition starting from q' is guarded by a condition refering to a (shared) variable modified by
-           an action of a transition starting from q
-         In other words, if we write
-           - [evs'] the set of triggering (shared) events associated to state q' in m'
-           - [rvs'] the set of (shared variables) used by the conditions associated to state q'
-           - [evs] the set (shared) events emitted from state q in m
-           - [wvs]  the set of (shared variables) modified by the actions modified from state q
-         then m' depends on m iff [evs' \inter \evs] or [rvs' \inter wvs] is not empty *)
-    let evs', rvs', _, _ = Syntax.state_ios m'.model m'.q in
-    let _, _, evs, wvs = Syntax.state_ios m.model m.q in (* TODO ? Filter out non shared events / vars ? *)
-    let r = inter evs' evs || inter rvs' wvs in
-    (* let open Format in
-     *  fprintf std_formatter "*** *** *** depends_on %s %s: evs'=[%a] rvs'=[%a] evs=[%a] wvs=[%a] r=%b\n"
-     *   m.name m'.name
-     *   (Misc.pp_list pp_print_string) evs'
-     *   (Misc.pp_list pp_print_string) rvs'
-     *   (Misc.pp_list pp_print_string) evs
-     *   (Misc.pp_list pp_print_string) wvs
-     *   r; *)
-    r
-
-  let dep_sort fsms =
-    (* Sort FSMs using the [depends_on] ($\leq$) relation.
-       The resulting order is used by [Dynamic.ReactEv] to sequence the reactions of FSMs at a given instant. *)
-    (* TODO: this could be pre-computed statically for each ((M,q),(M',q')) pair ? *)
-    let g = G.create () in (* The graph of dependencies *)
-    let vs, fs = 
-      (* [vs] is the table of vertices, indexed by FSM names,
-         [fs] is the table of FSMs, also indexed by FSM names *)
-    List.fold_left
-      (fun (acc,acc') f ->
-        let v = G.V.create f.name in
-        G.add_vertex g v; (* Add vertices to the graph *)
-        M.add f.name v acc,
-        M.add f.name f acc')
-      (M.empty, M.empty)
-      fsms in
-    List.iter (* Add edges *)
-      (fun (m,m') ->
-        if m.name <> m'.name && depends_on (M.find m.name fs) (M.find m'.name fs) then
-          (* Add an edge m->m' in the graph iff m' depends on m. Omit self-dependencies *)
-          G.add_edge g (M.find m.name vs) (M.find m'.name vs))
-      (Misc.list_cart_prod2 fsms fsms);
-    let fs' = TS.fold (fun v acc -> M.find (G.V.label v) fs :: acc) g [] in
-    (* The result order is then simply obtained by a topological sort of the graph *)
-    List.rev fs'
-
 end

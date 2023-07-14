@@ -160,10 +160,50 @@ struct
   
   let dump4 level fmt f1 arg1 f2 arg2 f3 arg3 f4 arg4 =
     if cfg.verbose_level >= level then  Format.fprintf Format.std_formatter fmt f1 arg1 f2 arg2 f3 arg3 f4 arg4
+
+  module FsmNode = 
+    struct
+      type t = Static.fsm
+      type context = unit
+      let name_of f = f.Static.name
+      let depends_on _ m m' = 
+        (* Return true if FSM m' (in state q') depends on FSM m (in state q), i.e. if
+         - at least one transition starting from q' is triggered by a (shared) event emitted by at least one transition
+           starting from q
+         - at least one transition starting from q' is guarded by a condition refering to a (shared) variable modified by
+           an action of a transition starting from q
+         In other words, if we write
+           - [evs'] the set of triggering (shared) events associated to state q' in m'
+           - [rvs'] the set of (shared variables) used by the conditions associated to state q'
+           - [evs] the set (shared) events emitted from state q in m
+           - [wvs]  the set of (shared variables) modified by the actions modified from state q
+         then m' depends on m iff [evs' \inter \evs] or [rvs' \inter wvs] is not empty *)
+        let module S = Set.Make(String) in
+        let inter l1 l2 = not (S.is_empty (S.inter (S.of_list l1) (S.of_list l2))) in
+        let evs', rvs', _, _ = Syntax.state_ios m'.Static.model m'.q in
+        let _, _, evs, wvs = Syntax.state_ios m.Static.model m.q in (* TODO ? Filter out non shared events / vars ? *)
+        let r = inter evs' evs || inter rvs' wvs in
+        (* let open Format in
+         *  fprintf std_formatter "*** *** *** depends_on %s %s: evs'=[%a] rvs'=[%a] evs=[%a] wvs=[%a] r=%b\n"
+         *   m.name m'.name
+         *   (Misc.pp_list pp_print_string) evs'
+         *   (Misc.pp_list pp_print_string) rvs'
+         *   (Misc.pp_list pp_print_string) evs
+         *   (Misc.pp_list pp_print_string) wvs
+         *   r; *)
+        r
+    end
+  
+  let dep_sort fsms =
+    (* Sort FSMs using the ($\leq$) relation of the dynamic semantics.
+       The resulting order is used by [r_react_ev] to sequence the reactions of FSMs at a given instant. *)
+    (* TODO ?: this could be pre-computed statically for each ((M,q),(M',q')) pair ? *)
+    let module D = Depg.Make(FsmNode) in
+    D.dep_sort () fsms
   
   let r_react_ev sd (m,env) s_e = (* Rule ReactEv *)
     (* M, \Gamma -- \sigma_e | \rho --> M', \Gamma' *)
-    let ms = Static.dep_sort m in 
+    let ms = dep_sort m in 
     dump1 2 ">> >> REACT_EV: using order: %a\n" (Misc.pp_list_h ~sep:"; " (Static.pp_fsm ~verbose_level:0)) ms;
     Trace.add s_e trace; 
     let (env',_,rho), ms' =
