@@ -262,6 +262,7 @@ struct
     { m with 
       inps = List.map (subst_iov phi) m.inps;
       outps = List.map (subst_iov phi) m.outps;
+      inouts = List.map (subst_iov phi) m.inouts;
       vars = List.map (subst_iov phi) m.vars;
       trans = List.map (subst_transition phi) m.trans;
       itrans = subst_itransition phi m.itrans })

@@ -130,6 +130,8 @@ struct
     | L.Syntax.Undefined_symbol (loc,s)
     | L.Typing.Undefined_symbol (loc,s) -> 
        eprintf "%aUndefined symbol: %s\n" pp_location loc s; exit 2
+    | L.Typing.Duplicate_symbol (loc,s) -> 
+       eprintf "%aThe symbol %s is already defined in this context\n" pp_location loc s; exit 2
     | L.Typing.Duplicate_state (loc,name) ->
        eprintf "%aDuplicate state name: %s\n" pp_location loc name; exit 2
     | L.Typing.Invalid_state (loc,name) ->

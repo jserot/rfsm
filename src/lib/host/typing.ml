@@ -8,6 +8,7 @@ module type TYPING = sig
   val pp_env: Format.formatter -> env -> unit
 
   exception Undefined_symbol of Location.t * string
+  exception Duplicate_symbol of Location.t * string
   exception Invalid_state of Location.t * string
   exception Duplicate_state of Location.t * string
   exception No_event_input of Location.t
@@ -25,6 +26,7 @@ struct
   type env = GuestTyping.env
 
   exception Undefined_symbol of Location.t * string
+  exception Duplicate_symbol of Location.t * string
   exception Invalid_state of Location.t * string
   exception Duplicate_state of Location.t * string
   exception No_event_input of Location.t
@@ -111,11 +113,15 @@ struct
     check_dupl states;
     List.iter (type_fsm_state env m) states
 
-  let types_of_fsm_model env { Annot.desc = m; _ } = 
+  let types_of_fsm_model env { Annot.desc = m; Annot.loc = loc; _ } = 
     (* Computes the "local" typing environment associated to an FSM model, containing
        the types of parameters, inputs, outputs and local variables *)
-    List.map
-      (function (id, te) -> id, GuestTyping.type_of_type_expr env te)
+    List.fold_left
+      (fun acc (id,te) ->
+        if List.mem_assoc id acc
+        then raise (Duplicate_symbol (loc, id)) 
+        else (id, GuestTyping.type_of_type_expr env te) :: acc)
+      []
       (m.HostSyntax.params @ m.HostSyntax.inps @ m.HostSyntax.outps @ m.HostSyntax.inouts @  m.HostSyntax.vars)
 
   let type_fsm_ios env { Annot.desc = m; Annot.loc = loc; _ } =
