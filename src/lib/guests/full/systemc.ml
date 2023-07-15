@@ -60,7 +60,8 @@ let pp_op fmt op =
 
 let pp_ident = Rfsm.Ident.pp 
 
-let pp_expr fmt ~inps e = 
+(* let pp_expr fmt ~inps e =  *)
+let pp_expr fmt e = 
   let rec pp level fmt e = match e.Syntax.Annot.desc, e.Syntax.Annot.typ with
   | Syntax.EVar v, _ -> fprintf fmt "%a" pp_access v
   | Syntax.EInt i, _ -> fprintf fmt "%d" i
@@ -82,19 +83,23 @@ let pp_expr fmt ~inps e =
   | Syntax.ERecord (r,f), _ -> fprintf fmt "%a.repr.%s" pp_access r f 
   | _, _ -> raise (Unsupported_expr e)
   and pp_rfield_value level fmt (_,v) = fprintf fmt "%a" (pp level) v 
-  and pp_access fmt id = (* TO FIX using ident scope ! *)
-    if List.mem id inps then fprintf fmt "%a.read()" pp_ident id
-    else fprintf fmt "%a" pp_ident id
+  and pp_access fmt id =
+    let open Rfsm.Ident in
+    match id.scope with
+    | Global -> fprintf fmt "%s.read()" id.id
+    | Local -> fprintf fmt "%s" id.id
+    (* if List.mem id inps then fprintf fmt "%a.read()" pp_ident id
+     * else fprintf fmt "%a" pp_ident id *)
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
-let rec pp_lhs_desc fmt ~inps l =
+let rec pp_lhs_desc fmt l =
   match l with 
   | Syntax.LhsVar v -> Format.fprintf fmt "%a" pp_ident v
-  | Syntax.LhsIndex (a,i) -> Format.fprintf fmt "%a[%a]" pp_ident a (pp_expr ~inps) i
-  | Syntax.LhsRange (a,hi,lo) -> Format.fprintf fmt "%a.range(%a,%a)" pp_ident a (pp_expr ~inps) hi (pp_expr ~inps) lo
+  | Syntax.LhsIndex (a,i) -> Format.fprintf fmt "%a[%a]" pp_ident a pp_expr i
+  | Syntax.LhsRange (a,hi,lo) -> Format.fprintf fmt "%a.range(%a,%a)" pp_ident a pp_expr hi pp_expr lo
   | Syntax.LhsRField (r,f) -> Format.fprintf fmt "%a.repr.%s" pp_ident r f
-and pp_lhs fmt ~inps l = pp_lhs_desc fmt ~inps l.Rfsm.Annot.desc
+and pp_lhs fmt l = pp_lhs_desc fmt l.Rfsm.Annot.desc
 
 let pp_value fmt v = 
   let open Format in
@@ -125,7 +130,7 @@ let pp_cst_decl fmt name t =
   | None -> Rfsm.Misc.fatal_error "Ctask.pp_cst_decl"
 
 let pp_cst_impl fmt name t v = 
-  fprintf fmt "%a = %a" pp_typed_symbol (name,t) (pp_expr ~inps:[]) v
+  fprintf fmt "%a = %a" pp_typed_symbol (name,t) pp_expr v
 
 let pp_record_type_defn fmt (name,fields) = 
   let pp_typed_name fmt (n,t) = fprintf fmt "%a" pp_typed_symbol (Rfsm.Ident.mk n,t) in

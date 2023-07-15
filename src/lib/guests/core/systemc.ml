@@ -29,7 +29,7 @@ let pp_op fmt op =
   | "~-" -> "-" 
   | op ->  op)
 
-let pp_expr fmt ~inps e = 
+let pp_expr fmt e = 
   let rec pp level fmt e = match e.Syntax.Annot.desc, e.Syntax.Annot.typ with
   | Syntax.EVar v, _ -> fprintf fmt "%a" pp_access v
   | Syntax.EInt i, _ -> fprintf fmt "%d" i
@@ -39,15 +39,19 @@ let pp_expr fmt ~inps e =
   | Syntax.ECon0 c, Some (Types.TyConstr (t,_)) -> fprintf fmt "%s::%a" t Rfsm.Ident.pp c
   | _, _ -> raise (Unsupported_expr e)
   and pp_access fmt id =
-    if List.mem id inps then fprintf fmt "%a.read()" Rfsm.Ident.pp id
-    else fprintf fmt "%a" Rfsm.Ident.pp id
+    let open Rfsm.Ident in
+    match id.scope with
+    | Global -> fprintf fmt "%s.read()" id.id
+    | Local -> fprintf fmt "%s" id.id
+    (* if List.mem id inps then fprintf fmt "%a.read()" pp_ident id
+     * else fprintf fmt "%a" pp_ident id *)
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
-let rec pp_lhs_desc fmt ~inps l =
+let rec pp_lhs_desc fmt l =
   match l with 
   | Syntax.LhsVar v -> Format.fprintf fmt "%a" Rfsm.Ident.pp v
-and pp_lhs fmt ~inps l = pp_lhs_desc fmt ~inps l.Rfsm.Annot.desc
+and pp_lhs fmt l = pp_lhs_desc fmt l.Rfsm.Annot.desc
 
 let pp_value fmt v = 
   let open Format in

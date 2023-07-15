@@ -86,8 +86,8 @@ struct
       | Syntax.Emit id -> fprintf fmt "notify_ev(%a,\"%a\")" Ident.pp id Ident.pp id
       | Syntax.Assign (lhs, expr) ->
          let id = G.Syntax.lhs_base_name lhs in
-         let pp_expr = G.pp_expr ~inps:(List.map fst m.c_inps) in
-         let pp_lhs = G.pp_lhs ~inps:(List.map fst m.c_inps) in
+         let pp_expr = G.pp_expr in
+         let pp_lhs = G.pp_lhs in
          if G.Syntax.is_simple_lhs lhs then
            begin
              if List.mem_assoc id m.c_vars
@@ -112,7 +112,8 @@ struct
        fprintf fmt "%s%sif ( %a ) {\n"
          tab
          (if is_first then "" else "else ")
-         (Misc.pp_list_h ~sep:" && " (G.pp_expr ~inps:(List.map fst m.c_inps))) guards;
+         (Misc.pp_list_h ~sep:" && " G.pp_expr) guards;
+         (* (Misc.pp_list_h ~sep:" && " (G.pp_expr ~inps:(List.map fst m.c_inps))) guards; *)
        List.iter (pp_action (tab^"  ") m fmt) acts;
        if q' <> src then fprintf fmt "%s  %s = %a;\n" tab cfg.sc_state_var Ident.pp q';
        fprintf fmt "%s  }\n" tab
@@ -150,7 +151,7 @@ struct
     if after then fprintf fmt "      }\n"
     
   let pp_output_valuation m fmt (o,e) = 
-    let pp_expr = G.pp_expr ~inps:(List.map fst m.Cmodel.c_inps) in
+    let pp_expr = G.pp_expr in
     fprintf fmt "      %a.write(%a);\n" Ident.pp o pp_expr e
   
   let pp_state_case m fmt Cmodel.{ st_src=q; st_sensibility_list=evs; st_transitions=tss } =
@@ -244,7 +245,7 @@ struct
     fprintf ocf "\n";
     let open Static in
     let pp_date ocf t = fprintf ocf "%d" t in
-    let pp_expr = G.pp_expr ~inps:[] in
+    let pp_expr = G.pp_expr in
     let pp_vc ocf (t,v) = fprintf ocf "{%d,%a}"  t pp_expr v in
     begin match cc.Static.ct_stim with
     | Some (Syntax.Sporadic ts) ->
@@ -352,7 +353,7 @@ struct
   let dump_fun_impl fmt { Annot.desc = f; _ } = (* Idem CTask *)
     let open Static.Syntax in
     let pp_f_arg fmt (n,t) = fprintf fmt "%a %a" G.pp_type_expr t Ident.pp n in
-    let pp_expr = G.pp_expr ~inps:[] in
+    let pp_expr = G.pp_expr in
     Format.fprintf fmt "%a %a(%a) { return %a; }\n" 
       G.pp_type_expr f.ff_res 
       Ident.pp f.ff_name
@@ -402,7 +403,7 @@ struct
   (* Dumping the testbench *)
 
   let dump_stimulus ocf (id,v) =
-    let pp_expr = G.pp_expr ~inps:[] in
+    let pp_expr = G.pp_expr in
     match v with 
       None -> fprintf ocf "  notify_ev(%s);\n" id
     | Some v' -> fprintf ocf "  %s = %a;\n" id pp_expr v'

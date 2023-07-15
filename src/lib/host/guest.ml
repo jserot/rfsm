@@ -135,10 +135,11 @@ module type SYSTEMC = sig
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
   val pp_typ: Format.formatter -> Syntax.Types.typ -> unit
   val pp_cst_decl: Format.formatter -> Ident.t -> Syntax.type_expr -> unit
-  val pp_lhs: Format.formatter -> inps:Ident.t list -> Syntax.lhs -> unit
-  val pp_expr: Format.formatter -> inps:Ident.t list -> Syntax.expr -> unit
-     (* [inps] is required to replace [e] by [e.read()] when [e] is an input *)
-     (* TODO: replace this with a annotation attached to Ident.t's *)
+  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
+  val pp_expr: Format.formatter -> Syntax.expr -> unit
+  (* val pp_lhs: Format.formatter -> inps:Ident.t list -> Syntax.lhs -> unit
+   * val pp_expr: Format.formatter -> inps:Ident.t list -> Syntax.expr -> unit
+   *    (\* [inps] is required to replace [e] by [e.read()] when [e] is an input *\) *)
   val pp_value: Format.formatter -> value -> unit
   val pp_cst_impl: Format.formatter -> Ident.t -> Syntax.type_expr -> Syntax.expr -> unit
   val pp_type_impl: Format.formatter -> Syntax.type_decl -> unit

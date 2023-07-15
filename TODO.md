@@ -1,6 +1,5 @@
 COMPILER
 
-- use the Local/Global field of idents to handle the "x=" / "x.read()/x.write()" case in the SystemC backend
 - option to show / unshow ident qualifiers in dot output
 - options in do_test(s) to compare VCD outputs btw sim and systemc
 - replace all string's by Ident.t's (?)

@@ -78,8 +78,8 @@ let lhs_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's *
 let lhs_base_name l = match l.Annot.desc with
   | LhsVar v -> v
 
-(* let lhs_vcd_repr l = match l.Annot.desc with
- *   | LhsVar v -> v *)
+let lhs_vcd_repr l = match l.Annot.desc with
+  | LhsVar v -> v
 
 (** Inspectors *)
               
