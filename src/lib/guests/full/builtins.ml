@@ -123,33 +123,32 @@ let env = [
 ]
 
 type typing_env = {
-    tycons: (string * (int * Types.typ)) list; (* name, arity *)
-    ctors: (string * Types.typ) list; (* name, target type *)
-    prims: (string * Types.typ_scheme) list; (* name, type scheme *)
+    tycons: (Rfsm.Ident.t * (int * Types.typ)) list; (* name, arity *)
+    ctors: (Rfsm.Ident.t * Types.typ) list; (* name, target type *)
+    prims: (Rfsm.Ident.t * Types.typ_scheme) list; (* name, type scheme *)
   }
+
+let mk_ident s = Rfsm.Ident.(mk ~scope:Global s)
 
 let typing_env =
   { tycons = [
-      "event", (0, Types.type_event ());
-      "int", (0, Types.type_unsized_int ());
-      "bool", (0, Types.type_bool ());
-      "float", (0, Types.type_float ());
-      "char", (0, Types.type_char ());
-      "array", (1, Types.type_unsized_array (Types.new_type_var ()));
+      mk_ident "event", (0, Types.type_event ());
+      mk_ident "int", (0, Types.type_unsized_int ());
+      mk_ident "bool", (0, Types.type_bool ());
+      mk_ident "float", (0, Types.type_float ());
+      mk_ident "char", (0, Types.type_char ());
+      mk_ident "array", (1, Types.type_unsized_array (Types.new_type_var ()));
       ];
     ctors = [
-      "true", Types.type_bool ();
-      "false", Types.type_bool ();
+      mk_ident "true", Types.type_bool ();
+      mk_ident "false", Types.type_bool ();
       ];
     prims =
-      List.map (fun (id, desc) -> id, fst desc) env
+      List.map (fun (id, desc) -> mk_ident id, fst desc) env
   }
 
-let eval_env = List.map (fun (id, desc) -> id, snd desc) env
+let eval_env = List.map (fun (id, desc) -> mk_ident id, snd desc) env
 
 let lookup id env =
   try List.assoc id env
   with Not_found -> Rfsm.Misc.fatal_error "Full.Builtins.lookup" (* Should not occur after TC *)
-
-(* let lookup_val id = snd (lookup id)
- * let lookup_typ id = fst (lookup id) *)

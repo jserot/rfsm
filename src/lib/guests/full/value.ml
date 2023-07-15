@@ -13,12 +13,12 @@ type typ = Types.typ
          
 let rec default_value ty = match ty with
   | Some (Types.TyConstr ("array", [t'], Types.SzExpr1 (Types.Index.TiConst sz))) ->
-     (* The initial value of an array is _not "undefined" but an _array_ of undefined value *)
+     (* The initial value of an array is not "undefined" but an _array_ of undefined value *)
        Val_array (Array.make sz (default_value (Some t')))
   | Some (Types.TyConstr ("array", _, _)) ->
      Rfsm.Misc.fatal_error "Full.Value.default_value: cannot initialize unsized array"
   | Some (Types.TyRecord (_, fs)) ->
-     (* The initial value of a record is _not "undefined" but an _record of undefined value *)
+     (* The initial value of a record is not "undefined" but a _record_ of undefined value *)
      Val_record (List.map (fun (f,ty) -> f, default_value (Some ty)) fs)
   | _ -> Val_unknown
 
@@ -27,7 +27,7 @@ exception Unsupported_vcd of t
 let flatten ~base v = 
   match v with
   | Val_record vs ->
-     List.map (fun (f,v) -> base ^ "." ^ f, v) vs
+     List.map (fun (f,v) -> Rfsm.Ident.upd_id (fun id -> id ^ "." ^ f) base, v) vs
   | _ ->
      [base, v]
                            

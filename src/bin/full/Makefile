@@ -8,7 +8,6 @@ test:
 
 clean:
 	dune clean
-	@rm *.vcd
 
 clobber: clean
 	@rm -f *~

@@ -120,7 +120,7 @@ make_makefile ()
 }
 
 case $1 in
-usage) echo "./Dotest (dot|sim|ctask|systemc.code|systemc.run|vhdl) subdir [comp] [show]";;
+usage) echo "./do_test (dot|sim|ctask|systemc.code|systemc.run|vhdl) subdir [comp] [show]";;
 makefile) make_makefile $2;;
 all) make_all $2;;
 *) case $3 in

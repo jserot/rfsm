@@ -20,7 +20,7 @@ exception Illegal_application of Syntax.expr
 
 let lookup ~loc v env = 
   match Rfsm.Env.find v env with
-  | Val_unknown -> raise (Uninitialized (v,loc))
+  | Val_unknown -> raise (Uninitialized (Rfsm.Ident.to_string v,loc))
   | v -> v
   | exception Not_found ->
      raise (Rfsm.Misc.Fatal_error "Full.Eval.lookup") (* Should not occur after TC *)
@@ -34,7 +34,7 @@ let rec eval_expr env e = match e.Annot.desc with
   | Syntax.EBinop (op,e1,e2) -> 
      let f = Builtins.lookup op Builtins.eval_env in
      f [eval_arg env e1; eval_arg env e2]
-  | Syntax.ECon0 c ->  Val_enum c
+  | Syntax.ECon0 c ->  Val_enum c.Rfsm.Ident.id
   | Syntax.EIndexed (a,idx) ->
      begin match lookup ~loc:e.Annot.loc a env with
      | Val_array vs ->
@@ -72,9 +72,8 @@ let rec eval_expr env e = match e.Annot.desc with
        begin 
          match lookup ~loc:e.Annot.loc f env with
          | Val_fn (args, body) -> 
-            let env' = List.map2 (fun arg e -> arg, eval_expr env e) args es |> Env.init in
+            let env' = List.map2 (fun arg e -> Syntax.mk_ident arg, eval_expr env e) args es |> Env.init in
             let r = eval_expr env' body in
-            (* Format.printf "** Full.Eval.eval_expr {env'=%a}: %a -> %a\n" (Env.pp Value.pp) env (Env.pp Value.pp) env' Syntax.pp_expr body Value.pp r ;*)
             r
          | _ -> raise (Illegal_application e)
        end

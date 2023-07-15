@@ -19,8 +19,8 @@ let mk_env () =
     te_rfields = Env.empty;
     te_prims = Env.init Builtins.typing_env.prims; }
 
-exception Undefined of string * Location.t * string 
-exception Duplicate of string * Location.t * string
+exception Undefined of string * Location.t * Rfsm.Ident.t
+exception Duplicate of string * Location.t * Rfsm.Ident.t
 exception Illegal_cast of Syntax.expr
 exception Illegal_expr of Location.t * string
 
@@ -50,14 +50,14 @@ let rec type_of_type_expr env te =
   let ty =
     match te.Annot.desc with
     | Syntax.TeConstr (c,[],[]) ->
-       lookup ~exc:(Undefined ("type constructor",te.Annot.loc,c)) c env.te_tycons |> snd
+       lookup ~exc:(Undefined ("type constructor",te.Annot.loc, c)) c env.te_tycons |> snd
     | Syntax.TeConstr (c,args,sz) ->
-       Types.TyConstr (c, List.map (type_of_type_expr env) args, size_of_size_expr c sz) in
+       Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, size_of_size_expr c sz) in
   te.Annot.typ <- Some ty;
   ty
 
 and size_of_size_expr c sz = 
-  match c, sz with 
+  match c.Rfsm.Ident.id, sz with 
   | "int", [] -> Types.new_size_var ()
   | "array", [] -> Types.new_size_var ()
   | _, [] -> Types.SzNone
@@ -116,7 +116,7 @@ let rec type_expression env e =
        | TyRecord (_,fs) ->
           begin
             try List.assoc f fs
-            with Not_found -> raise (Undefined ("record field",e.Annot.loc,f))
+            with Not_found -> raise (Undefined ("record field",e.Annot.loc, Rfsm.Ident.mk f))
           end
        | ty ->
           raise (Illegal_expr (e.Annot.loc, "not a record"))
@@ -124,7 +124,8 @@ let rec type_expression env e =
   | Syntax.ERecordExt [] -> 
      Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty record extension" (* should not happen *)
   | Syntax.ERecordExt ((f,_)::_ as fs) -> 
-     let _, ty_r = lookup ~exc:(Undefined ("record field name",e.Annot.loc,f)) f env.te_rfields in
+     let f' = Rfsm.Ident.(mk ~scope:Global f) in
+     let _, ty_r = lookup ~exc:(Undefined ("record field name",e.Annot.loc,Rfsm.Ident.mk f)) f' env.te_rfields in
      let name = match ty_r with
        | TyRecord(name, _) -> name
        | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_expression" in
@@ -172,18 +173,21 @@ and type_cast e t1 t2 = match t1, t2 with
 
 let type_type_decl env td =
   let add_tycon ty env (name,arity) = add_env (Duplicate ("type constructor", td.Annot.loc, name)) env (name,(arity,ty)) in
-  let add_ctor ty env name = add_env (Duplicate ("value constructor", td.Annot.loc, name)) env (name,ty) in
+  let add_ctor ty env name =
+    let nm = Rfsm.Ident.(mk ~scope:Global name) in
+    add_env (Duplicate ("value constructor", td.Annot.loc, nm)) env (nm,ty) in
   let add_rfield ty lenv (name,te) =
     let ty' = type_of_type_expr env te in 
-    add_env (Duplicate ("record field name", td.Annot.loc, name)) lenv (name,(ty',ty)) in
+    let nm = Rfsm.Ident.(mk ~scope:Global name) in
+    add_env (Duplicate ("record field name", td.Annot.loc, nm)) lenv (nm,(ty',ty)) in
   let ty,env' = match td.Annot.desc with
     | Syntax.TD_Enum (name, ctors) -> 
-       let ty = Types.TyConstr (name, [], SzNone) in
+       let ty = Types.TyConstr (name.Rfsm.Ident.id, [], SzNone) in
        ty,
        { env with te_tycons = add_tycon ty env.te_tycons (name,0);
                   te_ctors = List.fold_left (add_ctor ty) env.te_ctors ctors }
     | Syntax.TD_Record (name, fields) -> 
-       let ty = Types.TyRecord (name, List.map (function (n,te) -> (n, type_of_type_expr env te)) fields) in
+       let ty = Types.TyRecord (name.Rfsm.Ident.id, List.map (function (n,te) -> (n, type_of_type_expr env te)) fields) in
        ty,
        { env with te_tycons = add_tycon ty env.te_tycons (name,0);
                   te_rfields = List.fold_left (add_rfield ty) env.te_rfields fields }
@@ -205,7 +209,7 @@ let type_lhs env l =
        | TyRecord (_,fs) -> 
           begin
             try List.assoc f fs 
-            with Not_found -> raise (Undefined ("record field",l.Annot.loc,f))
+            with Not_found -> raise (Undefined ("record field",l.Annot.loc,Syntax.mk_global_ident f))
           end
        | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_lhs"
        end
