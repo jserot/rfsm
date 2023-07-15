@@ -32,22 +32,23 @@ module type SYNTAX = sig
   val is_bool_type: type_expr -> bool
   val is_event_type: type_expr -> bool
   val mk_bool_expr: type_expr -> expr -> expr
-  val lhs_base_name: lhs -> string
-  val lhs_vcd_repr: lhs -> string
+  val lhs_base_name: lhs -> Ident.t
+  val lhs_vcd_repr: lhs -> Ident.t
   val lhs_prefix: string -> lhs -> lhs
   val is_simple_lhs: lhs -> bool
-  val mk_simple_lhs: string -> lhs
-  val subst_expr: (string * string) list -> expr -> expr
-  val subst_lhs: (string * string) list -> lhs -> lhs
-  val vars_of_expr: expr -> string list
-  val vars_of_lhs: lhs -> string list
+  val mk_simple_lhs: Ident.t -> lhs
+  val subst_expr: Ident.subst -> expr -> expr
+  val subst_lhs: Ident.subst -> lhs -> lhs
+  val vars_of_expr: expr -> Ident.t list
+  val vars_of_lhs: lhs -> Ident.t list
   (** Printing *)
-  val ppr_expr: (string * type_expr) list -> expr -> expr
-  val ppr_lhs: (string * type_expr) list -> lhs -> lhs
+  val ppr_expr: (Ident.t * type_expr) list -> expr -> expr
+  val ppr_lhs: (Ident.t * type_expr) list -> lhs -> lhs
   val pp_type_decl: Format.formatter -> type_decl -> unit
   val pp_type_expr: Format.formatter -> type_expr -> unit
   val pp_expr: Format.formatter -> expr -> unit
   val pp_lhs: Format.formatter -> lhs -> unit
+  val pp_qual_lhs: Format.formatter -> lhs -> unit
 end
   
 (** Typing *)
@@ -57,8 +58,8 @@ module type TYPING = sig
   module Types : TYPES
   type env
   val mk_env: unit -> env
-  val lookup_var: loc:Location.t -> string -> env -> Types.typ
-  val add_var: env -> string * Types.typ -> env
+  val lookup_var: loc:Location.t -> Ident.t -> env -> Types.typ
+  val add_var: env -> Ident.t * Types.typ -> env
   (* TODO : add_prim, add_constr, ... *)
   val pp_env: Format.formatter -> env -> unit
   (** Low-level interface to the the type-checking engine *)
@@ -80,7 +81,7 @@ module type VALUE = sig
   exception Unsupported_vcd of t
   val vcd_type: t -> Vcd_types.vcd_typ
   val vcd_value: t -> Vcd_types.vcd_value
-  val flatten: base:string -> t -> (string * t) list
+  val flatten: base:Ident.t -> t -> (Ident.t * t) list
     (** Decomposes a structured value into a list of qualified scalar values for VCD dumping.
         For example, if [v] is a record [{x=1;y=2}], then [flatten ~base:"a" v] is [[("a.x",1);("a.y",2)]].
         If [v] is a scalar value, then [flatten ~base:"a" v] is just [["a",v]] *)
@@ -115,12 +116,12 @@ end
 
 module type CTASK = sig
   module Syntax: SYNTAX
-  val pp_typed_symbol: Format.formatter -> string * Syntax.type_expr -> unit
+  val pp_typed_symbol: Format.formatter -> Ident.t * Syntax.type_expr -> unit
   val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
-  val pp_cst_decl: Format.formatter -> string -> Syntax.type_expr -> unit
+  val pp_cst_decl: Format.formatter -> Ident.t -> Syntax.type_expr -> unit
   val pp_expr: Format.formatter -> Syntax.expr -> unit
-  val pp_cst_impl: Format.formatter -> string -> Syntax.type_expr -> Syntax.expr -> unit
+  val pp_cst_impl: Format.formatter -> Ident.t -> Syntax.type_expr -> Syntax.expr -> unit
 end
                   
 (** SystemC interface *)
@@ -129,16 +130,17 @@ module type SYSTEMC = sig
   module Syntax: SYNTAX
   module Static: STATIC
   type value
-  val pp_typed_symbol: Format.formatter -> string * Syntax.type_expr -> unit
+  val pp_typed_symbol: Format.formatter -> Ident.t * Syntax.type_expr -> unit
   val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
   val pp_typ: Format.formatter -> Syntax.Types.typ -> unit
-  val pp_cst_decl: Format.formatter -> string -> Syntax.type_expr -> unit
-  val pp_lhs: Format.formatter -> inps:string list -> Syntax.lhs -> unit
-  val pp_expr: Format.formatter -> inps:string list -> Syntax.expr -> unit
+  val pp_cst_decl: Format.formatter -> Ident.t -> Syntax.type_expr -> unit
+  val pp_lhs: Format.formatter -> inps:Ident.t list -> Syntax.lhs -> unit
+  val pp_expr: Format.formatter -> inps:Ident.t list -> Syntax.expr -> unit
      (* [inps] is required to replace [e] by [e.read()] when [e] is an input *)
+     (* TODO: replace this with a annotation attached to Ident.t's *)
   val pp_value: Format.formatter -> value -> unit
-  val pp_cst_impl: Format.formatter -> string -> Syntax.type_expr -> Syntax.expr -> unit
+  val pp_cst_impl: Format.formatter -> Ident.t -> Syntax.type_expr -> Syntax.expr -> unit
   val pp_type_impl: Format.formatter -> Syntax.type_decl -> unit
 end
                   

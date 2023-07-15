@@ -62,25 +62,27 @@ let env = [
 ]
 
 type typing_env = {
-    tycons: (string * int) list; (* name, arity *)
-    ctors: (string * Types.typ) list; (* name, target type *)
-    prims: (string * Types.typ_scheme) list; (* name, type scheme *)
+    tycons: (Rfsm.Ident.t * int) list; (* name, arity *)
+    ctors: (Rfsm.Ident.t * Types.typ) list; (* name, target type *)
+    prims: (Rfsm.Ident.t * Types.typ_scheme) list; (* name, type scheme *)
   }
+
+let mk_ident s = Rfsm.Ident.(mk ~scope:Global s)
 
 let typing_env =
   { tycons = [
-      "int", 0;
-      "bool", 0;
-      "array", 1;
+      mk_ident "int", 0;
+      mk_ident "bool", 0;
+      mk_ident "array", 1;
       ];
     ctors = [
-      "true", Types.type_bool ();
-      "false", Types.type_bool ();
+      mk_ident "true", Types.type_bool ();
+      mk_ident "false", Types.type_bool ();
       ];
     prims =
-      List.map (fun (id, desc) -> id, fst desc) env
+      List.map (fun (id, desc) -> mk_ident id, fst desc) env
   }
-let eval_env = List.map (fun (id, desc) -> id, snd desc) env
+let eval_env = List.map (fun (id, desc) -> mk_ident id, snd desc) env
 
 let lookup id env =
   try List.assoc id env

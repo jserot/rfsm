@@ -69,25 +69,25 @@ struct
   let pp_action tab fmt a =
     let open Static.Syntax in
     match a.Annot.desc with
-    | Emit id -> fprintf fmt "%snotify_ev(%s);\n" tab id
+    | Emit id -> fprintf fmt "%snotify_ev(%a);\n" tab Ident.pp id
     | Assign (lhs, expr) -> fprintf fmt "%s%a = %a;\n" tab Guest.pp_lhs lhs G.pp_expr expr
 
   let pp_transition tab is_first src fmt (_,{Annot.desc=ev,guards;_},acts,q',_) =
     match guards with
     | [] ->
        List.iter (pp_action tab fmt) acts;
-       if q' <> src then fprintf fmt "%s%s = %s;\n" tab cfg.state_var_name q'
+       if q' <> src then fprintf fmt "%s%s = %a;\n" tab cfg.state_var_name Ident.pp q'
     | _  -> 
        fprintf fmt "%s%sif ( %a ) {\n"
          tab
          (if is_first then "" else "else ")
          (Misc.pp_list_h ~sep:" && " G.pp_expr) guards;
        List.iter (pp_action (tab ^ "  ") fmt) acts;
-       if q' <> src then fprintf fmt "%s  %s = %s;\n" tab cfg.state_var_name q';
+       if q' <> src then fprintf fmt "%s  %s = %a;\n" tab cfg.state_var_name Ident.pp q';
        fprintf fmt "%s  }\n" tab
 
   let pp_ev_transition tab src fmt (ev,ts) = 
-    fprintf fmt "%scase %s:\n" tab ev;
+    fprintf fmt "%scase %a:\n" tab Ident.pp ev;
     Misc.list_iter_fst (fun is_first t -> pp_transition (tab^"  ") is_first src fmt t) ts;
     fprintf fmt "%sbreak;@." (tab^"  ")
 
@@ -97,10 +97,10 @@ struct
     begin match tss with 
       [] -> ()  (* no wait in this case *)
     | [ev,ts] ->
-       fprintf fmt "%swait_ev(%s);\n" tab ev;
+       fprintf fmt "%swait_ev(%a);\n" tab Ident.pp ev;
        Misc.list_iter_fst (fun is_first t -> pp_transition tab is_first src fmt t) ts
     | _ ->
-       fprintf fmt "%s%s = wait_evs(%a);\n" tab cfg.recvd_ev_name (Misc.pp_list_h ~sep:"," pp_print_string) evs;
+       fprintf fmt "%s%s = wait_evs(%a);\n" tab cfg.recvd_ev_name (Misc.pp_list_h ~sep:"," Ident.pp) evs;
        fprintf fmt "%sswitch ( %s ) {\n" tab cfg.recvd_ev_name;
        List.iter (pp_ev_transition (tab^"  ") src fmt) tss;
        fprintf fmt "%s  }\n" tab
@@ -108,10 +108,10 @@ struct
     if after then fprintf fmt "      }\n"
     
   let pp_output_valuation fmt (o,e) = 
-    fprintf fmt "      %s = %a;\n" o G.pp_expr e
+    fprintf fmt "      %a = %a;\n" Ident.pp o G.pp_expr e
     
   let pp_state_case m fmt Cmodel.{ st_src=q; st_sensibility_list=evs; st_transitions=tss } =
-    fprintf fmt "    case %s:\n" q;
+    fprintf fmt "    case %a:\n" Ident.pp q;
     List.iter (pp_output_valuation fmt) (List.assoc q m.Cmodel.c_states);
     pp_transitions q false evs fmt tss;
     fprintf fmt "      break;\n"
@@ -123,7 +123,7 @@ struct
     let open Cmodel in
     let oc = open_out fname in
     let ocf = formatter_of_out_channel oc in
-    let modname = String.capitalize_ascii m.c_name in
+    let modname = String.capitalize_ascii (Ident.to_string m.c_name) in
     fprintf ocf "task %s%a(\n"
       modname
       (Misc.pp_opt_list ~lr:("<",">") ~sep:"," G.pp_typed_symbol) m.c_params;
@@ -134,10 +134,10 @@ struct
     fprintf ocf "{\n";
     List.iter (fun io -> fprintf ocf "  %a;\n" G.pp_typed_symbol io) m.c_vars;
     if List.length m.c_states > 1 then 
-      fprintf ocf "  enum { %a } %s = %s;\n"
-        (Misc.pp_list_h ~sep:"," pp_print_string) (List.map fst m.c_states)
+      fprintf ocf "  enum { %a } %s = %a;\n"
+        (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst m.c_states)
         cfg.state_var_name
-        (fst m.c_init);
+        Ident.pp (fst m.c_init);
     if List.exists (function c -> List.length c.st_sensibility_list > 1) m.c_body then
       fprintf ocf "  event %s;\n" cfg.recvd_ev_name;
     List.iter (pp_action "  " ocf) (snd m.c_init);
@@ -157,7 +157,7 @@ struct
 
   let dump_fsm_model ?(prefix="") ?(dir="./ctask") m =
     let c = Cmodel.of_fsm_model m in
-    let prefix = match prefix with "" -> c.Cmodel.c_name | p -> p in
+    let prefix = match prefix with "" -> Ident.to_string c.Cmodel.c_name | p -> p in
     dump_model (dir ^ "/" ^ prefix ^ ".c") c
 
   (* let dump_fsm_inst ?(prefix="") ?(dir="./ctask") m f =
@@ -168,18 +168,18 @@ struct
 
   let dump_fun_decl fmt { Annot.desc = f; _ } =
     let open Static.Syntax in
-    let pp_f_arg fmt (n,t) = fprintf fmt "%a %s" G.pp_type_expr t n in
-    Format.fprintf fmt "%a %s(%a);\n" 
+    let pp_f_arg fmt (n,t) = fprintf fmt "%a %a" G.pp_type_expr t Ident.pp n in
+    Format.fprintf fmt "%a %a(%a);\n" 
       G.pp_type_expr f.ff_res 
-      f.ff_name
+      Ident.pp f.ff_name
       (Misc.pp_list_h ~sep:"," pp_f_arg) f.ff_args
 
   let dump_fun_impl fmt { Annot.desc = f; _ } =
     let open Static.Syntax in
-    let pp_f_arg fmt (n,t) = fprintf fmt "%a %s" G.pp_type_expr t n in
-    Format.fprintf fmt "%a %s(%a) { return %a; }\n" 
+    let pp_f_arg fmt (n,t) = fprintf fmt "%a %a" G.pp_type_expr t Ident.pp n in
+    Format.fprintf fmt "%a %a(%a) { return %a; }\n" 
       G.pp_type_expr f.ff_res 
-      f.ff_name
+      Ident.pp f.ff_name
       (Misc.pp_list_h ~sep:"," pp_f_arg) f.ff_args
       G.pp_expr f.ff_body
 

@@ -30,7 +30,7 @@ let rec eval_expr env e = match e.Annot.desc with
   | Syntax.EBinop (op,e1,e2) -> 
      let f = Builtins.lookup op Builtins.eval_env in
      f [eval_arg env e1; eval_arg env e2]
-  | Syntax.ECon0 c ->  Val_enum c
+  | Syntax.ECon0 c ->  Val_enum c.Rfsm.Ident.id
 
 and eval_arg env e = match eval_expr env e with
     | Val_unknown -> raise (Uninitialized e.Annot.loc)

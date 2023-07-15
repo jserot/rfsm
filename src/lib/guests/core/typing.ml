@@ -17,8 +17,8 @@ let mk_env () =
     te_tycons = Env.init Builtins.typing_env.tycons;
     te_prims = Env.init Builtins.typing_env.prims; }
 
-exception Undefined of string * Location.t * string 
-exception Duplicate of string * Location.t * string
+exception Undefined of string * Location.t * Rfsm.Ident.t 
+exception Duplicate of string * Location.t * Rfsm.Ident.t
 
 let lookup ~exc v env = 
   try Env.find v env 
@@ -44,8 +44,12 @@ let type_type_decl env td =
   let ty,env' = match td.Annot.desc with
     | Syntax.TD_Enum (name, ctors) -> 
        let ty = Types.TyConstr (name,[]) in
-       let add_ctor env name = add_env (Duplicate ("value constructor", td.Annot.loc, name)) env (name,ty) in
-       let add_tycon env (name,arity) = add_env (Duplicate ("type constructor", td.Annot.loc, name)) env (name,arity) in
+       let add_ctor env name =
+         let id = Rfsm.Ident.mk name in
+         add_env (Duplicate ("value constructor", td.Annot.loc, id)) env (id,ty) in
+       let add_tycon env (name,arity) =
+         let id = Rfsm.Ident.mk name in
+         add_env (Duplicate ("type constructor", td.Annot.loc, id)) env (id,arity) in
        ty,
        { env with te_tycons = add_tycon env.te_tycons (name,0);
                   te_ctors = List.fold_left add_ctor env.te_ctors ctors }

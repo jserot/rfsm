@@ -15,7 +15,7 @@ type vcd_value =
   | Val_string of string
 [@@deriving show]
 
-type vcd_signal = string * (char * vcd_typ)
+type vcd_signal = Ident.t * (char * vcd_typ)
 [@@deriving show]
 
 exception Unsupported

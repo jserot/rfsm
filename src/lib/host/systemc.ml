@@ -76,13 +76,14 @@ struct
 
   let need_globals m = m.Static.types <> [] || m.Static.fns <> [] || m.Static.csts <> [] (* Idem CTask **)
 
-  let scope modname id = modname ^ "::" ^ id
+  let scope modname id =
+    Ident.{ id with id = modname ^ "::" ^ id.id }  (* TODO: use implicit scoping in Ident *)
 
   let pp_action tab m fmt a =
     let open Static in
     let open Cmodel in
     let pp fmt a = match a.Annot.desc  with
-      | Syntax.Emit id -> fprintf fmt "notify_ev(%s,\"%s\")" id id
+      | Syntax.Emit id -> fprintf fmt "notify_ev(%a,\"%a\")" Ident.pp id Ident.pp id
       | Syntax.Assign (lhs, expr) ->
          let id = G.Syntax.lhs_base_name lhs in
          let pp_expr = G.pp_expr ~inps:(List.map fst m.c_inps) in
@@ -90,14 +91,14 @@ struct
          if G.Syntax.is_simple_lhs lhs then
            begin
              if List.mem_assoc id m.c_vars
-             then fprintf fmt "%s = %a" id pp_expr expr
-             else fprintf fmt "%s.write(%a)" id pp_expr expr
+             then fprintf fmt "%a = %a" Ident.pp id pp_expr expr
+             else fprintf fmt "%a.write(%a)" Ident.pp id pp_expr expr
            end
          else (* Non-scalar LHS *)
            begin
              if List.mem_assoc id m.c_vars
              then fprintf fmt "%a = %a" pp_lhs lhs pp_expr expr
-             else raise (Invalid_output_assign (id, a.Annot.loc))
+             else raise (Invalid_output_assign (Ident.to_string id, a.Annot.loc))
            end in
     fprintf fmt "%s%a;\n" tab pp a
   
@@ -105,7 +106,7 @@ struct
     match guards with
     | [] ->
        List.iter (pp_action tab m fmt) acts;
-       if q' <> src then fprintf fmt "%s%s = %s;\n" tab cfg.sc_state_var q'
+       if q' <> src then fprintf fmt "%s%s = %a;\n" tab cfg.sc_state_var Ident.pp q'
     | guards -> 
        (* for _=0 to m.c_ddepth-1 do *   fprintf fmt "%swait(SC_ZERO_TIME);\n" tab * done; *)
        fprintf fmt "%s%sif ( %a ) {\n"
@@ -113,15 +114,15 @@ struct
          (if is_first then "" else "else ")
          (Misc.pp_list_h ~sep:" && " (G.pp_expr ~inps:(List.map fst m.c_inps))) guards;
        List.iter (pp_action (tab^"  ") m fmt) acts;
-       if q' <> src then fprintf fmt "%s  %s = %s;\n" tab cfg.sc_state_var q';
+       if q' <> src then fprintf fmt "%s  %s = %a;\n" tab cfg.sc_state_var Ident.pp q';
        fprintf fmt "%s  }\n" tab
   
   let pp_ev_transition tab is_first src m fmt (ev,ts) = 
-    fprintf fmt "%s%sif ( %s.read() ) {\n" tab (if is_first then "" else "else ") ev;
+    fprintf fmt "%s%sif ( %a.read() ) {\n" tab (if is_first then "" else "else ") Ident.pp ev;
     Misc.list_iter_fst (fun is_first t -> pp_transition (tab^"  ") is_first src m fmt t) ts;
     fprintf fmt "%s  }\n" tab
   
-  let pp_sysc_ev fmt e = Format.fprintf fmt "%s.posedge_event()" e
+  let pp_sysc_ev fmt e = Format.fprintf fmt "%a.posedge_event()" Ident.pp e
   (* Events are implemented as boolean signals because it is not possible to wait on multiple [sc_event]s 
      and telling afterwards which one occurred in SystemC 2.3.0 !! *)
   
@@ -150,10 +151,10 @@ struct
     
   let pp_output_valuation m fmt (o,e) = 
     let pp_expr = G.pp_expr ~inps:(List.map fst m.Cmodel.c_inps) in
-    fprintf fmt "      %s.write(%a);\n" o pp_expr e
+    fprintf fmt "      %a.write(%a);\n" Ident.pp o pp_expr e
   
   let pp_state_case m fmt Cmodel.{ st_src=q; st_sensibility_list=evs; st_transitions=tss } =
-    fprintf fmt "    case %s:\n" q;
+    fprintf fmt "    case %a:\n" Ident.pp q;
     List.iter (pp_output_valuation m fmt) (List.assoc q m.Cmodel.c_states);
     pp_transitions q false evs m fmt tss;
     fprintf fmt "      break;\n"
@@ -164,8 +165,8 @@ struct
   let dump_module_impl with_globals fname m =
     let open Cmodel in
     let oc,ocf = Misc.open_file fname in
-    let modname = String.capitalize_ascii m.Cmodel.c_name in
-    fprintf ocf "#include \"%s.h\"\n" m.c_name;
+    let modname = String.capitalize_ascii (Ident.to_string m.Cmodel.c_name) in
+    fprintf ocf "#include \"%a.h\"\n" Ident.pp m.c_name;
     fprintf ocf "#include \"%s.h\"\n" cfg.sc_lib_name;
     if with_globals then fprintf ocf "#include \"%s.h\"\n" cfg.sc_globals_name;
     fprintf ocf "\n";
@@ -178,7 +179,7 @@ struct
       fprintf ocf "template <%a>\n" (Misc.pp_list_h ~sep:"," G.pp_typed_symbol) m.c_params;
     fprintf ocf "void %s::%s()\n" modname cfg.sc_proc_name;
     fprintf ocf "{\n";
-    fprintf ocf "  %s = %s;\n" cfg.sc_state_var (fst m.c_init);
+    fprintf ocf "  %s = %a;\n" cfg.sc_state_var Ident.pp (fst m.c_init);
     List.iter (pp_action "  " m ocf) (snd m.c_init);
     fprintf ocf "  while ( 1 ) {\n";
     if cfg.sc_trace then fprintf ocf "    %s = %s;\n" cfg.sc_trace_state_var cfg.sc_state_var;
@@ -198,7 +199,7 @@ struct
   let dump_module_intf with_globals fname m = 
     let open Cmodel in
     let oc,ocf = Misc.open_file fname in
-    let modname = String.capitalize_ascii m.c_name in
+    let modname = String.capitalize_ascii (Ident.to_string m.c_name) in
     fprintf ocf "#include \"systemc.h\"\n";
     if with_globals then fprintf ocf "#include \"%s.h\"\n" cfg.sc_globals_name;
     fprintf ocf "\n";
@@ -209,12 +210,12 @@ struct
     fprintf ocf "  // Types\n";
     (* if List.length m.c_states > 1 then *)
     fprintf ocf "  typedef enum { %a } t_%s;\n"
-      (Misc.pp_list_h ~sep:"," pp_print_string) (List.map fst m.c_states)
+      (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst m.c_states)
       cfg.sc_state_var;
     fprintf ocf "  // IOs\n";
-    List.iter (fun (id,ty) -> fprintf ocf "  sc_in<%a> %s;\n" G.pp_type_expr ty id) m.c_inps;
-    List.iter (fun (id,ty) -> fprintf ocf "  sc_out<%a> %s;\n" G.pp_type_expr ty id) m.c_outps;
-    List.iter (fun (id,ty) -> fprintf ocf "  sc_inout<%a> %s;\n" G.pp_type_expr ty id) m.c_inouts;
+    List.iter (fun (id,ty) -> fprintf ocf "  sc_in<%a> %a;\n" G.pp_type_expr ty Ident.pp id) m.c_inps;
+    List.iter (fun (id,ty) -> fprintf ocf "  sc_out<%a> %a;\n" G.pp_type_expr ty Ident.pp id) m.c_outps;
+    List.iter (fun (id,ty) -> fprintf ocf "  sc_inout<%a> %a;\n" G.pp_type_expr ty Ident.pp id) m.c_inouts;
     if cfg.sc_trace then fprintf ocf "  sc_out<int> %s;\n" cfg.sc_trace_state_var;
     fprintf ocf "  // Constants\n";
     List.iter (fun (id,(ty,_)) -> fprintf ocf "  static const %a;\n" G.pp_typed_symbol (id,ty)) m.c_consts;
@@ -236,7 +237,7 @@ struct
   
   let dump_inp_module_impl fname (id,cc) = 
     let oc,ocf = Misc.open_file fname in
-    let name = cfg.sc_inpmod_prefix ^ id in
+    let name = cfg.sc_inpmod_prefix ^ Ident.to_string id in
     let modname = String.capitalize_ascii name in
     fprintf ocf "#include \"%s.h\"\n" name;
     fprintf ocf "#include \"%s.h\"\n" cfg.sc_lib_name;
@@ -267,7 +268,7 @@ struct
        fprintf ocf "  int _i=0, _t=0;\n";
        fprintf ocf "  while ( _i < %d ) {\n" (List.length ts);
        fprintf ocf "    wait(_dates[_i]-_t, SC_NS);\n";
-       fprintf ocf "    notify_ev(%s,\"%s\");\n" id id;
+       fprintf ocf "    notify_ev(%a,\"%a\");\n" Ident.pp id Ident.pp id;
        fprintf ocf "    _t = _dates[_i];\n";
        fprintf ocf "    _i++;\n";
        fprintf ocf "    }\n";
@@ -276,7 +277,7 @@ struct
        fprintf ocf "void %s::%s(void)\n" modname cfg.sc_inp_proc_name;
        fprintf ocf "{\n";
        fprintf ocf "  t=0;\n";
-       fprintf ocf "  %s.write(0);\n" id;
+       fprintf ocf "  %a.write(0);\n" Ident.pp id;
        fprintf ocf "  wait(_clk.t1, SC_NS);\n";
        fprintf ocf "  t += _clk.t1;\n";
        fprintf ocf "  while ( t <= _clk.t2 ) {\n";
@@ -285,9 +286,9 @@ struct
        fprintf ocf "};\n\n";
        fprintf ocf "void %s::%s(void)\n" modname cfg.sc_clk_step_proc_name;
        fprintf ocf "{\n";
-       fprintf ocf "  %s.write(1);\n" id;
+       fprintf ocf "  %a.write(1);\n" Ident.pp id;
        fprintf ocf "  wait(_clk.period/2.0, SC_NS);\n";
-       fprintf ocf "  %s.write(0);\n" id;
+       fprintf ocf "  %a.write(0);\n" Ident.pp id;
        fprintf ocf "  wait(_clk.period/2.0, SC_NS);\n";
        fprintf ocf "  t += _clk.period;\n";
        fprintf ocf "};\n"
@@ -299,7 +300,7 @@ struct
        fprintf ocf "  int _i=0, _t=0;\n";
        fprintf ocf "  while ( _i < %d ) {\n" (List.length vcs);
        fprintf ocf "    wait(_vcs[_i].date-_t, SC_NS);\n";
-       fprintf ocf "    %s = _vcs[_i].val;\n" id;
+       fprintf ocf "    %a = _vcs[_i].val;\n" Ident.pp id;
        fprintf ocf "    _t = _vcs[_i].date;\n";
        if cfg.sc_trace then
          fprintf ocf "    cout << \"%s: t=\" << _vcs[_i].date << \": wrote \" << _vcs[_i].val << endl;\n" modname;
@@ -314,14 +315,14 @@ struct
 
   let dump_inp_module_intf with_globals fname (id,cc) = 
     let oc,ocf = Misc.open_file fname in
-    let modname = String.capitalize_ascii (cfg.sc_inpmod_prefix ^ id) in
+    let modname = String.capitalize_ascii (cfg.sc_inpmod_prefix ^ Ident.to_string id) in
     fprintf ocf "#include \"systemc.h\"\n";
     if with_globals then fprintf ocf "#include \"%s.h\"\n" cfg.sc_globals_name;
     fprintf ocf "\n";
     fprintf ocf "SC_MODULE(%s)\n" modname;
     fprintf ocf "{\n";
     fprintf ocf "  // Output\n";
-    fprintf ocf "  sc_out<%a> %s;\n" G.pp_typ cc.Static.ct_typ id;
+    fprintf ocf "  sc_out<%a> %a;\n" G.pp_typ cc.Static.ct_typ Ident.pp id;
     fprintf ocf "\n";
     begin match cc.Static.ct_stim with
     | Some (Static.Syntax.Periodic _) -> (* For clock processes *)
@@ -342,19 +343,19 @@ struct
 
   let dump_fun_decl fmt { Annot.desc = f; _ } = (* Idem CTask *)
     let open Static.Syntax in
-    let pp_f_arg fmt (n,t) = fprintf fmt "%a %s" G.pp_type_expr t n in
-    Format.fprintf fmt "%a %s(%a);\n" 
+    let pp_f_arg fmt (n,t) = fprintf fmt "%a %a" G.pp_type_expr t Ident.pp n in
+    Format.fprintf fmt "%a %a(%a);\n" 
       G.pp_type_expr f.ff_res 
-      f.ff_name
+      Ident.pp f.ff_name
       (Misc.pp_list_h ~sep:"," pp_f_arg) f.ff_args
 
   let dump_fun_impl fmt { Annot.desc = f; _ } = (* Idem CTask *)
     let open Static.Syntax in
-    let pp_f_arg fmt (n,t) = fprintf fmt "%a %s" G.pp_type_expr t n in
+    let pp_f_arg fmt (n,t) = fprintf fmt "%a %a" G.pp_type_expr t Ident.pp n in
     let pp_expr = G.pp_expr ~inps:[] in
-    Format.fprintf fmt "%a %s(%a) { return %a; }\n" 
+    Format.fprintf fmt "%a %a(%a) { return %a; }\n" 
       G.pp_type_expr f.ff_res 
-      f.ff_name
+      Ident.pp f.ff_name
       (Misc.pp_list_h ~sep:"," pp_f_arg) f.ff_args
       pp_expr f.ff_body
 
@@ -409,57 +410,59 @@ struct
   let dump_testbench_impl tb_name fname m = 
     let oc,ocf = Misc.open_file fname in
     let open Static in
-    let modname n = String.capitalize_ascii n in
+    let modname n = String.capitalize_ascii (Ident.to_string n) in
     fprintf ocf "#include \"systemc.h\"\n";
     fprintf ocf "#include \"%s.h\"\n" cfg.sc_lib_name;
-    List.iter (function (id,_) -> fprintf ocf "#include \"%s%s.h\"\n" cfg.sc_inpmod_prefix id) m.ctx.inputs;
-    List.iter (function f -> fprintf ocf "#include \"%s.h\"\n" f.name) m.fsms;
+    List.iter (function (id,_) -> fprintf ocf "#include \"%s%a.h\"\n" cfg.sc_inpmod_prefix Ident.pp id) m.ctx.inputs;
+    List.iter (function f -> fprintf ocf "#include \"%a.h\"\n" Ident.pp f.name) m.fsms;
     fprintf ocf "\n";
     fprintf ocf "int sc_main(int argc, char *argv[])\n";
     fprintf ocf "{\n";
     (* Signals *)
     List.iter
-      (function (id,cc) -> fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ cc.Static.ct_typ id)
+      (function (id,cc) -> fprintf ocf "  sc_signal<%a> %a;\n" G.pp_typ cc.Static.ct_typ Ident.pp id)
       (m.ctx.inputs @ m.ctx.outputs);
     List.iter
       (function (id,cc) ->
-          if List.length cc.ct_wrs > 1 then fprintf ocf "  sc_signal<%a,SC_MANY_WRITERS> %s;\n" G.pp_typ cc.Static.ct_typ id
-          else fprintf ocf "  sc_signal<%a> %s;\n" G.pp_typ cc.Static.ct_typ id)
+          if List.length cc.ct_wrs > 1
+          then fprintf ocf "  sc_signal<%a,SC_MANY_WRITERS> %a;\n" G.pp_typ cc.Static.ct_typ Ident.pp id
+          else fprintf ocf "  sc_signal<%a> %a;\n" G.pp_typ cc.Static.ct_typ Ident.pp id)
       m.ctx.shared;
     if cfg.sc_trace then
       List.iter
-        (function f -> fprintf ocf "  sc_signal<int> %s;\n" (f.name ^ "_state"))
+        (function f -> fprintf ocf "  sc_signal<int> %s;\n" (Ident.to_string f.name ^ "_state"))
         m.fsms;
     (* Trace file *)
     fprintf ocf "  sc_trace_file *trace_file;\n";
     fprintf ocf "  trace_file = sc_create_vcd_trace_file (\"%s\");\n" tb_name;
     fprintf ocf "  sc_write_comment(trace_file, \"Generated by RFSM v%s\");\n" Version.version;
     List.iter
-      (function (id,_) -> fprintf ocf "  sc_trace(trace_file, %s, \"%s\");\n" id id)
+      (function (id,_) -> fprintf ocf "  sc_trace(trace_file, %a, \"%a\");\n" Ident.pp id Ident.pp id)
       (m.ctx.inputs @ m.ctx.outputs @ m.ctx.shared);
     if cfg.sc_trace then
       List.iter
-        (function f -> let id = f.name ^ "_state" in fprintf ocf "  sc_trace(trace_file, %s, \"%s\");\n" id id)
+        (function f ->
+           let id = Ident.to_string f.name ^ "_state" in
+           fprintf ocf "  sc_trace(trace_file, %s, \"%s\");\n" id id)
         m.fsms;  
     fprintf ocf "\n";
     (* Input modules *)
     List.iter
       (function (id, _) ->
-         let modname = String.capitalize_ascii (cfg.sc_inpmod_prefix ^ id) in
+         let modname = String.capitalize_ascii (cfg.sc_inpmod_prefix ^ Ident.to_string id) in
          fprintf ocf "  %s %s(\"%s\");\n" modname modname modname;
-         fprintf ocf "  %s(%s);\n" modname id)
+         fprintf ocf "  %s(%a);\n" modname Ident.pp id)
       m.ctx.inputs;
     fprintf ocf "\n";
     (* FSM modules *)
     List.iter
       (function f ->
          let m = Cmodel.of_fsm_model f.model in
-         (* let actual_name (id,_) = f.f_l2g id in *)
-         fprintf ocf "  %s %s(\"%s\");\n" (modname f.name) f.name f.name;
-         fprintf ocf "  %s(%a%s);\n"
-           f.name
-           (Misc.pp_list_h ~sep:"," pp_print_string) (List.map fst (m.c_inps @ m.c_outps @ m.c_inouts))
-           (if cfg.sc_trace then "," ^ f.name ^ "_state" else ""))
+         fprintf ocf "  %s %a(\"%a\");\n" (modname f.name) Ident.pp f.name Ident.pp f.name;
+         fprintf ocf "  %a(%a%s);\n"
+           Ident.pp f.name
+           (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst (m.c_inps @ m.c_outps @ m.c_inouts))
+           (if cfg.sc_trace then "," ^ Ident.to_string f.name ^ "_state" else ""))
       m.fsms;
     fprintf ocf "\n";
     (* Start *)
@@ -485,13 +488,18 @@ struct
         let ic = open_in templ_fname in
         Misc.copy_with_subst ["%%MAIN%%", tb_name] ic oc;
         close_in ic;
-        let modname suff f = f.Static.name ^ suff in
-        let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ id ^ suff in
+        let modname suff f = Ident.to_string f.Static.name ^ suff in
+        let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ Ident.to_string id ^ suff in
         let open Static in
         let globals suffix = if need_globals m then cfg.sc_globals_name ^ suffix else "" in
         (* fprintf ocf "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
         List.iter
-          (function f -> fprintf ocf "%s.o: %s.h %s.cpp %s\n" f.Static.name f.Static.name f.Static.name (globals ".h"))
+          (function f ->
+             fprintf ocf "%a.o: %a.h %a.cpp %s\n"
+               Ident.pp f.Static.name
+               Ident.pp f.Static.name
+               Ident.pp f.Static.name
+               (globals ".h"))
           m.fsms;
         List.iter
           (function inp -> let name = imodname "" inp in fprintf ocf "%s.o: %s.h %s.cpp\n" name name name)
@@ -520,17 +528,17 @@ struct
 
   let dump_fsm_model ?(prefix="") ?(dir="./systemc") fm =
     let f = Cmodel.of_fsm_model fm in
-    let prefix = match prefix with "" -> f.c_name | p -> p in
+    let prefix = match prefix with "" -> Ident.to_string f.c_name | p -> p in
     dump_module_intf false (dir ^ "/" ^ prefix ^ ".h") f;
     dump_module_impl false (dir ^ "/" ^ prefix ^ ".cpp") f
 
   let dump_fsm_inst ?(dir="./systemc") m fi =
     let f = Cmodel.of_fsm_inst m fi in
-    dump_module_intf (need_globals m) (dir ^ "/" ^ fi.name ^ ".h") f;
-    dump_module_impl (need_globals m) (dir ^ "/" ^ fi.name ^ ".cpp") f
+    dump_module_intf (need_globals m) (dir ^ "/" ^ Ident.to_string fi.name ^ ".h") f;
+    dump_module_impl (need_globals m) (dir ^ "/" ^ Ident.to_string fi.name ^ ".cpp") f
 
   let dump_input ?(prefix="") ?(dir="./systemc") m ((id,_) as inp) =
-    let prefix = match prefix with "" -> cfg.sc_inpmod_prefix ^ id | p -> p in
+    let prefix = match prefix with "" -> cfg.sc_inpmod_prefix ^ Ident.to_string id | p -> p in
     dump_inp_module_intf (need_globals m) (dir ^ "/" ^ prefix ^ ".h") inp;
     dump_inp_module_impl (dir ^ "/" ^ prefix ^ ".cpp") inp
 

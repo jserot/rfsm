@@ -3,7 +3,7 @@ module type T = sig
   module Value: Guest.VALUE
 
   type t =
-    | Ev of string (* pure event *)
+    | Ev of Ident.t (* pure event *)
     | Upd of Syntax.lhs * Value.t   (* lhs <- v *)
     | StateMove of string * string     (* name, value *)
   val is_pure_event: t -> bool
@@ -22,7 +22,7 @@ struct
   module Value = GV
              
   type t =
-    | Ev of string
+    | Ev of Ident.t
     | Upd of Syntax.lhs * Value.t   
     | StateMove of string * string 
 
@@ -35,7 +35,7 @@ struct
   let pp fmt s =
     let open Format in
     match s with
-    | Ev e -> fprintf fmt "%s" e
+    | Ev e -> fprintf fmt "%a" Ident.pp e
     | Upd (lhs,v) -> fprintf fmt "%a<-%a" Syntax.pp_lhs lhs Value.pp v
     | StateMove (f,q) -> fprintf fmt "%s<-%s" f q
 end

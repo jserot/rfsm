@@ -47,6 +47,8 @@
 
 let mk_io (cat,(id,ty)) = id, (cat,ty)
 let mk_io' (cat,(id,ty)) = id, ty
+let mk_ident x = Rfsm.Ident.mk x
+let mk_global_ident x = Rfsm.Ident.(mk ~scope:Global x)
 %}
 
 %%
@@ -82,7 +84,7 @@ program:
 
 cst_decl:
   | CONSTANT name=LID COLON ty=type_expr EQUAL v=const
-     { mk ~loc:($symbolstartofs,$endofs) Lang.L.Syntax.{cc_name=name; cc_typ=ty; cc_val=v} }
+     { mk ~loc:($symbolstartofs,$endofs) Lang.L.Syntax.{cc_name=mk_global_ident name; cc_typ=ty; cc_val=v} }
 
 (* FUNCTION DECLS *)
 
@@ -92,10 +94,12 @@ fun_decl:
      LPAREN args=separated_list(COMMA, farg) RPAREN
      COLON res=type_expr
      LBRACE RETURN body=expr RBRACE
-     { mk ~loc:($symbolstartofs,$endofs) Lang.L.Syntax.{ ff_name=name; ff_args=args; ff_res=res; ff_body=body; } }
+     { mk
+         ~loc:($symbolstartofs,$endofs)
+         Lang.L.Syntax.{ ff_name=mk_global_ident name; ff_args=args; ff_res=res; ff_body=body; } }
 
 farg:
-  | id=LID COLON te=type_expr { (id, te) }
+  | id=LID COLON te=type_expr { (mk_ident id, te) }
 
 (* FSM MODELS *)
 
@@ -112,7 +116,7 @@ fsm_model:
       RBRACE {
         mk
           ~loc:($symbolstartofs,$endofs)
-          Lang.L.Syntax.{ name = name;
+          Lang.L.Syntax.{ name = mk_global_ident name;
             params = params;
             states = states;
             ios = List.map mk_io ios;
@@ -127,7 +131,7 @@ params:
   | LT params=separated_list(COMMA, param) GT { params }
 
 param:
-  | id=LID COLON ty=type_expr { (id, ty) }
+  | id=LID COLON ty=type_expr { (mk_ident id, ty) }
 
 io:
   | IN d=io_desc { (Lang.L.Syntax.In, d) }
@@ -135,25 +139,25 @@ io:
   | INOUT d=io_desc { (Lang.L.Syntax.InOut, d) }
 
 io_desc:
-  | id=LID COLON ty=type_expr { id,ty }
+  | id=LID COLON ty=type_expr { mk_ident id,ty }
 
 state:
-  | id=UID { mk ~loc:($symbolstartofs,$endofs) (id,[]) }
-  | id=UID WHERE ovs=separated_nonempty_list(AND,outp_valuation) { mk ~loc:($symbolstartofs,$endofs) (id,ovs) }
+  | id=UID { mk ~loc:($symbolstartofs,$endofs) (mk_ident id,[]) }
+  | id=UID WHERE ovs=separated_nonempty_list(AND,outp_valuation) { mk ~loc:($symbolstartofs,$endofs) (mk_ident id,ovs) }
 
 outp_valuation:
-  | id=LID EQUAL e=scalar_const { (id, e) }
+  | id=LID EQUAL e=scalar_const { (mk_ident id, e) }
                    
 vars:
   | VARS COLON vars=terminated(separated_list(COMMA, var),SEMICOLON) { List.flatten vars }
 
 var:
   | ids=separated_nonempty_list(COMMA,LID) COLON ty=type_expr
-      { List.map (fun id -> (id, ty)) ids }
+      { List.map (fun id -> (mk_ident id, ty)) ids }
 
 transition:
   | p=prio src=UID ARROW dst=UID cond=cond acts=actions
-      { mk ~loc:($symbolstartofs,$endofs) (src, cond, acts, dst, p) }
+      { mk ~loc:($symbolstartofs,$endofs) (mk_ident src, cond, acts, mk_ident dst, p) }
 
 prio:
   | BAR { 1 }  /* Low priority */
@@ -161,12 +165,12 @@ prio:
 
 cond: 
   | ON ev=LID gds=guards
-      { mk ~loc:($symbolstartofs,$endofs) (ev,gds) }
+      { mk ~loc:($symbolstartofs,$endofs) (mk_ident ev,gds) }
 
 
 itransition:
   | BAR ARROW dst=UID acts=actions
-      { mk ~loc:($symbolstartofs,$endofs) (dst,acts) }
+      { mk ~loc:($symbolstartofs,$endofs) (mk_ident dst, acts) }
 
 guards:
   | (* Nothing *) { [] }
@@ -177,18 +181,18 @@ actions:
   | WITH acts=separated_nonempty_list(COMMA, action) { acts }
 
 action:
-  | i = LID  { mk ~loc:($symbolstartofs,$endofs) (Lang.L.Syntax.Emit i) }
+  | i = LID  { mk ~loc:($symbolstartofs,$endofs) (Lang.L.Syntax.Emit (mk_ident i)) }
   | l = lhs COLEQ e = expr { mk ~loc:($symbolstartofs,$endofs) (Lang.L.Syntax.Assign (l, e)) }
 
 (* IOS *)
 
 global:
   | INPUT id=id COLON ty=type_expr EQUAL st=stimuli
-      { [mk ~loc:($symbolstartofs,$endofs) (id, Lang.L.Syntax.Input, ty, Some st)] }
+      { [mk ~loc:($symbolstartofs,$endofs) (mk_global_ident id, Lang.L.Syntax.Input, ty, Some st)] }
   | OUTPUT ids=separated_nonempty_list(COMMA,id) COLON ty=type_expr
-      { List.map (fun id -> mk ~loc:($symbolstartofs, $endofs) (id, Lang.L.Syntax.Output, ty, None)) ids }
+      { List.map (fun id -> mk ~loc:($symbolstartofs, $endofs) (mk_global_ident id, Lang.L.Syntax.Output, ty, None)) ids }
   | SHARED ids=separated_nonempty_list(COMMA,id) COLON ty=type_expr
-      { List.map (fun id -> mk ~loc:($symbolstartofs, $endofs) (id, Lang.L.Syntax.Shared, ty, None)) ids }
+      { List.map (fun id -> mk ~loc:($symbolstartofs, $endofs) (mk_global_ident id, Lang.L.Syntax.Shared, ty, None)) ids }
 
 stimuli:
   | PERIODIC LPAREN p=INT COMMA s=INT COMMA d=INT RPAREN
@@ -205,7 +209,7 @@ value_change:
 
 fsm_inst:
   | FSM name=id EQUAL model=id params=optional(inst_params) args=paren(separated_list(COMMA,id))
-      { mk ~loc:($symbolstartofs,$endofs) (name,model,params,args) }  
+      { mk ~loc:($symbolstartofs,$endofs) (mk_global_ident name, mk_global_ident model, params, List.map mk_global_ident args) }  
 
 inst_params:
   |  LT params=separated_nonempty_list(COMMA, param_value) GT { params }

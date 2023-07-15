@@ -24,7 +24,7 @@ let pp_typ fmt t =
 
 let pp_op fmt op = 
   fprintf fmt "%s"
-  (match op with
+  (match op.Rfsm.Ident.id with
     "=" -> "=="
   | "~-" -> "-" 
   | op ->  op)
@@ -36,17 +36,17 @@ let pp_expr fmt ~inps e =
   | Syntax.EBool b, _ -> fprintf fmt "%b" b
   | Syntax.EBinop (op,e1,e2), _ ->
        fprintf fmt "%s%a%a%a%s" (paren level "(") (pp (level+1)) e1 pp_op op (pp (level+1)) e2 (paren level ")")
-  | Syntax.ECon0 c, Some (Types.TyConstr (t,_)) -> fprintf fmt "%s::%s" t c
+  | Syntax.ECon0 c, Some (Types.TyConstr (t,_)) -> fprintf fmt "%s::%a" t Rfsm.Ident.pp c
   | _, _ -> raise (Unsupported_expr e)
   and pp_access fmt id =
-    if List.mem id inps then fprintf fmt "%s.read()" id
-    else fprintf fmt "%s" id
+    if List.mem id inps then fprintf fmt "%a.read()" Rfsm.Ident.pp id
+    else fprintf fmt "%a" Rfsm.Ident.pp id
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
 let rec pp_lhs_desc fmt ~inps l =
   match l with 
-  | Syntax.LhsVar v -> Format.fprintf fmt "%s" v
+  | Syntax.LhsVar v -> Format.fprintf fmt "%a" Rfsm.Ident.pp v
 and pp_lhs fmt ~inps l = pp_lhs_desc fmt ~inps l.Rfsm.Annot.desc
 
 let pp_value fmt v = 
@@ -61,7 +61,7 @@ let pp_value fmt v =
 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Some t -> fprintf fmt "%a %s" pp_typ t name 
+  | Some t -> fprintf fmt "%a %a" pp_typ t Rfsm.Ident.pp name 
   | None -> Rfsm.Misc.fatal_error "Systemc.pp_typed_symbol"
 
 let pp_cst_decl fmt name t = ()

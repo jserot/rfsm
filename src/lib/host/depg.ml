@@ -1,8 +1,8 @@
 (** Dependency graphs *)
 
-module G = Graph.Imperative.Digraph.Abstract(String)
+module G = Graph.Imperative.Digraph.Abstract(Ident)
   (** Graphs for which vertices are simple names *)
-module M = Map.Make(String)
+module M = Map.Make(Ident)
   (** For mapping names to vertices and to full descriptors *)
 module TS = Graph.Topological.Make(G)
    (** For topological sorting *)
@@ -12,7 +12,7 @@ module TS = Graph.Topological.Make(G)
 module type NODE = sig  
   type t
   type context
-  val name_of: t -> string
+  val name_of: t -> Ident.t
     (** [name_of n] should return a unique name for node [n] *)
   val depends_on: context -> t -> t -> bool
     (** [depends_on c n n'] returns [true] if node [n] depends on node [n'] in context [c], [false] otherwise. *)

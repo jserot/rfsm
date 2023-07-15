@@ -35,20 +35,20 @@ and pp_type_expr fmt te =
   
 type expr = (expr_desc,Types.typ) Annot.t
 and expr_desc = 
-  | EVar of string
+  | EVar of Rfsm.Ident.t
   | EInt of int
   | EBool of bool
-  | EBinop of string * expr * expr
-  | ECon0 of string (* Nullary value constructor *)
+  | EBinop of Rfsm.Ident.t * expr * expr
+  | ECon0 of Rfsm.Ident.t (* Nullary value constructor *)
 
 let rec pp_expr_desc fmt e = 
   let open Format in
   match e with
-  | EVar v -> fprintf fmt "%s" v
+  | EVar v -> fprintf fmt "%a" Rfsm.Ident.pp v
   | EInt i -> fprintf fmt "%d" i
   | EBool b -> fprintf fmt "%b" b
-  | EBinop (op,e1,e2) -> fprintf fmt "%a%s%a" pp_expr e1 op pp_expr e2
-  | ECon0 c -> fprintf fmt "%s" c
+  | EBinop (op,e1,e2) -> fprintf fmt "%a%a%a" pp_expr e1 Rfsm.Ident.pp op pp_expr e2
+  | ECon0 c -> fprintf fmt "%a" Rfsm.Ident.pp c
 and pp_expr fmt e =
   pp_expr_desc fmt e.Annot.desc
 
@@ -56,22 +56,24 @@ and pp_expr fmt e =
   
 type lhs = (lhs_desc,Types.typ) Annot.t
 and lhs_desc = 
-  | LhsVar of string
+  | LhsVar of Rfsm.Ident.t
 
-let rec pp_lhs_desc fmt l = match l with
-  | LhsVar v -> Format.fprintf fmt "%s" v
+let rec pp_lhs_desc ~pp_ident fmt l = match l with
+  | LhsVar v -> Format.fprintf fmt "%a" pp_ident v
 and pp_lhs fmt l =
-  pp_lhs_desc fmt l.Annot.desc
+  pp_lhs_desc ~pp_ident:Rfsm.Ident.pp fmt l.Annot.desc
+and pp_qual_lhs fmt l =
+  pp_lhs_desc ~pp_ident:Rfsm.Ident.pp_qual fmt l.Annot.desc
 
 let is_simple_lhs l = true (* Always, for the Core language *)
 
 let mk_simple_lhs v = Annot.make (LhsVar v)
 
-let lhs_prefix pfx l =
+let lhs_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's *)
   let mk d = { l with Annot.desc = d } in
   let p s = pfx ^ "." ^ s in
   match l.Annot.desc with
-  | LhsVar v -> mk (LhsVar (p v))
+  | LhsVar v -> mk (LhsVar Rfsm.Ident.{ v with id = p v.id })
 
 let lhs_base_name l = match l.Annot.desc with
   | LhsVar v -> v
@@ -91,7 +93,7 @@ let vars_of_lhs l = match l.Annot.desc with
 
 (** Substitution *)
               
-let subst_var phi v = Rfsm.Misc.subst_id phi v
+let subst_var phi v = Rfsm.Ident.subst phi v
                     
 let rec subst_expr phi e =
   match e.Annot.desc with
@@ -125,7 +127,7 @@ let mk_bool_expr te e = match e.Annot.desc with
   | EInt 1 when is_bool_type te -> { e with Annot.desc = EBool true }
   | _ -> e 
 
-let ppr_expr (env: (string * type_expr) list) e =
+let ppr_expr (env: (Rfsm.Ident.t * type_expr) list) e =
   (* Replace all bool expr [e op 0/1], where [e:bool] and [op] is [=] or [!=] by [e op false/true] *)
   let type_of v =
     (* Since pre-processing is carried out _before_ typing, the only type-related available information
@@ -134,7 +136,7 @@ let ppr_expr (env: (string * type_expr) list) e =
     with Not_found -> Rfsm.Misc.fatal_error "Core.Syntax.ppr_expr" in
   let has_bool_type v = is_bool_type (type_of v) in
   match e.Annot.desc with
-  | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e'') when List.mem op ["="; "!="] && has_bool_type v  ->  
+  | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e'') when List.mem op.Rfsm.Ident.id ["="; "!="] && has_bool_type v  ->  
        { e with Annot.desc = EBinop (op, e', mk_bool_expr (type_of v) e'') }
   | _ -> e
 

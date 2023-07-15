@@ -129,19 +129,19 @@ struct
        eprintf "%aIllegal character.\n" pp_location (Loc(!input_name,pos1, pos2)); flush stderr; exit 1
     | L.Syntax.Undefined_symbol (loc,s)
     | L.Typing.Undefined_symbol (loc,s) -> 
-       eprintf "%aUndefined symbol: %s\n" pp_location loc s; exit 2
+       eprintf "%aUndefined symbol: %a\n" pp_location loc Ident.pp s; exit 2
     | L.Typing.Duplicate_symbol (loc,s) -> 
-       eprintf "%aThe symbol %s is already defined in this context\n" pp_location loc s; exit 2
+       eprintf "%aThe symbol %a is already defined in this context\n" pp_location loc Ident.pp s; exit 2
     | L.Typing.Duplicate_state (loc,name) ->
-       eprintf "%aDuplicate state name: %s\n" pp_location loc name; exit 2
+       eprintf "%aDuplicate state name: %a\n" pp_location loc Ident.pp name; exit 2
     | L.Typing.Invalid_state (loc,name) ->
-       eprintf "%aNo state named %s\n" pp_location loc name; exit 2
+       eprintf "%aNo state named %a\n" pp_location loc Ident.pp name; exit 2
     | L.Typing.Illegal_inst loc ->
        eprintf "%aCannot instantiate model: formal and actual parameters do not match\n" pp_location loc; exit 2
     | L.Typing.No_event_input loc ->
        eprintf "%aThere must be at least one input with type event for this model\n" pp_location loc; exit 2
     | L.Typing.Illegal_state_output (loc,q,o) ->
-       eprintf "%aIllegal valuation for output %s in state %s\n" pp_location loc o q; exit 2
+       eprintf "%aIllegal valuation for output %a in state %a\n" pp_location loc Ident.pp o Ident.pp q; exit 2
     | L.Dynamic.Illegal_stimulus_value loc ->
        eprintf "%aIllegal stimulus value\n" pp_location loc; exit 2
     | L.Dynamic.Non_deterministic_transition (f, t, ts) ->

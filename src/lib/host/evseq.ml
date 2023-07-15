@@ -12,9 +12,9 @@ module type EVSEQ = sig
   val (@@) : t -> t -> t  (** [@@] is the infix notation for [merge] *)
   val merge_all: t list -> t 
   
-  val mk_periodic: string -> int -> int -> int -> t
-  val mk_changes: string -> (int * value) list -> t
-  val mk_sporadic: string -> int list -> t
+  val mk_periodic: Ident.t -> int -> int -> int -> t
+  val mk_changes: Ident.t -> (int * value) list -> t
+  val mk_sporadic: Ident.t -> int list -> t
     
   val pp: Format.formatter -> t -> unit
 

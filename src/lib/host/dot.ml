@@ -38,14 +38,14 @@ struct
       match gs with
       | [] -> pp_print_text fmt ""
       | gs  -> fprintf fmt ".%a" pp_guard_list gs in
-    fprintf fmt "%a%a" pp_print_text e pp_guards gs
+    fprintf fmt "%a%a" Ident.pp_qual e pp_guards gs
 
   let pp_action fmt { Annot.desc=a; _ } =
     let open Format in
     match a with
-    | Syntax.Emit e -> fprintf fmt "%s" e
+    | Syntax.Emit e -> fprintf fmt "%a" Ident.pp_qual e
     | Syntax.Assign (lhs,expr) ->
-       fprintf fmt "%a:=%a" Syntax.Guest.pp_lhs lhs Syntax.Guest.pp_expr expr
+       fprintf fmt "%a:=%a" Syntax.Guest.pp_qual_lhs lhs Syntax.Guest.pp_expr expr
 
   let pp_actions fmt acts =
     Misc.pp_list_h ~sep:(if cfg.trans_vlayout then "\n" else ";") pp_action fmt acts
@@ -73,14 +73,14 @@ struct
     
   let pp_ovs fmt ovs =
     let open Format in
-    let pp_ov fmt (o,v) = fprintf fmt "%s=%a" o Syntax.Guest.pp_expr v in
+    let pp_ov fmt (o,v) = fprintf fmt "%a=%a" Ident.pp_qual o Syntax.Guest.pp_expr v in
     pp_list_r pp_ov fmt ovs
  
   let outp_model ocf ~name ~kind ~with_caption m = 
     let open Syntax in
     let open Format in
-    let node_id i = name ^ "_" ^ string_of_int i in
-    let ini_id = name ^ "_ini" in
+    let node_id i = Ident.to_string name ^ "_" ^ string_of_int i in
+    let ini_id = Ident.to_string name ^ "_ini" in
     let nodes, _ = 
       List.fold_left
         (fun (acc,n) { Annot.desc= q,ovs; _ } ->
@@ -89,12 +89,15 @@ struct
         m.states in
     let node_of q =
       try List.assoc q nodes 
-      with Not_found -> Misc.fatal_error ("Dot.output_fsm_model: cannot find state " ^ q) in
+      with Not_found -> Misc.fatal_error ("Dot.output_fsm_model: cannot find state " ^ Ident.to_string q) in
     let dump_state {Annot.desc=q,ovs; _} =
       let id = node_of q in
       begin match ovs with
-      | [] -> fprintf ocf "%s [label = \"%s\", shape = %s, style = %s]\n" id q cfg.node_shape cfg.node_style
-      | _ ->  fprintf ocf "%s [label = \"%s\n%a\", shape = %s, style = %s]\n" id q pp_ovs ovs cfg.node_shape cfg.node_style end in
+      | [] -> fprintf ocf "%s [label = \"%a\", shape = %s, style = %s]\n"
+                id Ident.pp_qual q cfg.node_shape cfg.node_style
+      | _ ->  fprintf ocf "%s [label = \"%a\n%a\", shape = %s, style = %s]\n"
+                id Ident.pp_qual q pp_ovs ovs cfg.node_shape cfg.node_style
+      end in
     let dump_itransition { Annot.desc=(q,a); _ } =
       let id = node_of q in
       if cfg.trans_vlayout then 
@@ -107,23 +110,23 @@ struct
       let id = node_of q in
       let id' = node_of q' in
       fprintf ocf "%s -> %s [label = \"%a\"];\n" id id' pp_cond_acts (c,a) in
-    fprintf ocf "%s %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" kind m.name cfg.layout cfg.rankdir cfg.mindist;
+    fprintf ocf "%s %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" kind (Ident.to_string m.name) cfg.layout cfg.rankdir cfg.mindist;
     fprintf ocf "%s [shape=point; label=\"\"; style = invis]\n" ini_id;
     List.iter dump_state m.states;
     dump_itransition m.itrans;
     List.iter dump_transition m.trans;
     if with_caption then begin
         let pp_io ocf kind (id,te) =
-          fprintf ocf "%s %s: %a\\r" kind id (Misc.pp_opt (Static.Syntax.Guest.Types.pp_typ ~abbrev:cfg.abbrev_types)) (te.Annot.typ) in
+          fprintf ocf "%s %a: %a\\r" kind Ident.pp_qual id (Misc.pp_opt (Static.Syntax.Guest.Types.pp_typ ~abbrev:cfg.abbrev_types)) (te.Annot.typ) in
         let pp_ios ocf m = 
          List.iter (pp_io ocf "param") m.params; 
          List.iter (pp_io ocf "input") m.inps; 
          List.iter (pp_io ocf "output") m.outps in 
-        fprintf ocf "%s_ios [label=\"%a\", shape=rect, style=rounded]\n" m.name pp_ios m
+        fprintf ocf "%a_ios [label=\"%a\", shape=rect, style=rounded]\n" Ident.pp m.name pp_ios m
       end
 
   let output_model ~dir ~name ~with_caption { Annot.desc=m; _ } = 
-    let fname = Filename.concat dir (name ^ ".dot") in
+    let fname = Filename.concat dir (Ident.to_string name ^ ".dot") in
     let oc = open_out fname in
     let ocf = Format.formatter_of_out_channel oc in
     outp_model ocf ~name:m.Syntax.name ~kind:"digraph" ~with_caption m;
@@ -134,9 +137,10 @@ struct
   let output_fsm ocf f = 
     outp_model ocf ~name:f.Static.name ~kind:"subgraph" ~with_caption:false f.Static.model.Annot.desc;
     if not (Env.is_empty f.params) then begin
-        let pp_param fmt (id,v) = Format.fprintf fmt "%s = %a" id Static.Value.pp v in      
+        let pp_param fmt (id,v) = Format.fprintf fmt "%a = %a" Ident.pp_qual id Static.Value.pp v in      
         let pp_params fmt params = pp_list_r pp_param fmt params in
-        Format.fprintf ocf "%s_params [label=\"%a\", shape=rect, style=rounded]\n" f.name pp_params (Env.bindings f.params)
+        Format.fprintf ocf "%a_params [label=\"%a\", shape=rect, style=rounded]\n"
+          Ident.pp f.name pp_params (Env.bindings f.params)
       end;
     Format.fprintf ocf "}"
 
@@ -161,15 +165,15 @@ struct
        List.iter (output_fsm ocf) sd.fsms;
        let pp_io ~with_stim kind ocf (id,cc) = 
          if with_stim then
-           fprintf ocf "%s %s: %a = %a\\r"
+           fprintf ocf "%s %a: %a = %a\\r"
              kind
-             id
+             Ident.pp_qual id
              (Types.pp_typ ~abbrev:cfg.abbrev_types) cc.ct_typ
              (Misc.pp_opt Syntax.pp_stimulus_desc) cc.ct_stim
          else
-           fprintf ocf "%s %s: %a\\r"
+           fprintf ocf "%s %a: %a\\r"
              kind
-             id
+             Ident.pp_qual id
              (Types.pp_typ ~abbrev:cfg.abbrev_types) cc.ct_typ in
        let pp_ios ocf ctx = 
          List.iter (pp_io ~with_stim:false "input" ocf)  ctx.inputs; 

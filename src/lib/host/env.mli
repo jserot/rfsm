@@ -1,32 +1,30 @@
-type ident = string
-
 type 'a t
 
 val empty: 'a t
 
 val is_empty: 'a t -> bool
 
-val dom: 'a t -> string list
+val dom: 'a t -> Ident.t list
 
-val bindings: 'a t -> (string * 'a) list
+val bindings: 'a t -> (Ident.t * 'a) list
 
-val init: (string * 'a) list -> 'a t
+val init: (Ident.t * 'a) list -> 'a t
   
-val add : ident -> 'a -> 'a t -> 'a t
+val add : Ident.t -> 'a -> 'a t -> 'a t
 
 val union: 'a t -> 'a t -> 'a t 
 
-val mem : ident -> 'a t -> bool
+val mem : Ident.t -> 'a t -> bool
 
-val find : ident -> 'a t -> 'a
+val find : Ident.t -> 'a t -> 'a
 
-val upd : ident -> 'a -> 'a t -> 'a t
+val upd : Ident.t -> 'a -> 'a t -> 'a t
 
-val filter : (string -> 'a -> bool) -> 'a t -> 'a t
+val filter : (Ident.t -> 'a -> bool) -> 'a t -> 'a t
 
-val fold : (string -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+val fold : (Ident.t -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
 
-val iter : (string -> 'a -> unit) -> 'a t -> unit
+val iter : (Ident.t -> 'a -> unit) -> 'a t -> unit
 
 val map : ('a -> 'b) -> 'a t -> 'b t
 

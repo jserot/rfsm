@@ -7,24 +7,24 @@ module type T = sig
 
   (** FSM instances *)
   type fsm = {
-      name: string;
+      name: Ident.t;
       model: Syntax.model;    (* Normalized model (without output valuations) *)
       params: Value.t Env.t;
-      q: string;
+      q: Ident.t;
       vars: Value.t Env.t;
     }
   
   type ctx_comp = {
     ct_typ: Syntax.typ;
     ct_stim: Syntax.stimulus_desc option;  (* For inputs only *)
-    ct_rds: string list; (* Readers, for inputs and shareds *)
-    ct_wrs: string list; (* Writers, for outputs and shareds *)
+    ct_rds: Ident.t list; (* Readers, for inputs and shareds *)
+    ct_wrs: Ident.t list; (* Writers, for outputs and shareds *)
     }
 
   type ctx = {  (* TODO : update formal semantics accordingly *)
-    inputs: (string * ctx_comp) list;
-    outputs: (string * ctx_comp) list;
-    shared: (string * ctx_comp) list;
+    inputs: (Ident.t * ctx_comp) list;
+    outputs: (Ident.t * ctx_comp) list;
+    shared: (Ident.t * ctx_comp) list;
     }
 
   type t = {
@@ -35,7 +35,7 @@ module type T = sig
     fns: Syntax.fun_decl list; (** Functions *)
     csts: Syntax.cst_decl list; (** Constants *)
     types: Syntax.Guest.type_decl list; (** User-defined types *)
-    dep_order: (string * int) list; 
+    dep_order: (Ident.t * int) list; 
     }
 
   val build: Syntax.program -> t
@@ -57,46 +57,46 @@ struct
   module Value = GV
 
   type fsm = {
-      name: string;
+      name: Ident.t;
       model: Syntax.model;
       params: Value.t Env.t;
-      q: string;
+      q: Ident.t;
       vars: Value.t Env.t;
     } [@@deriving show {with_path=false}]
 
   let pp_fsm ?(verbose_level=2) fmt f  = 
     let open Format in
     match verbose_level with
-    | 0 -> Format.fprintf fmt "%s" f.name  (* Name only *)
+    | 0 -> Format.fprintf fmt "%a" Ident.pp f.name  (* Name only *)
     | 1 -> (* With model name, state and vars only *)
-       fprintf fmt "@[<h>{@,name=%s,@,q=%s,@,vars=%a}@]"
-         f.name
-         f.q
+       fprintf fmt "@[<h>{@,name=%a,@,q=%a,@,vars=%a}@]"
+         Ident.pp f.name
+         Ident.pp f.q
          (Env.pp Value.pp) f.vars
     | _ -> (* Full *)
-       fprintf fmt "@[<v>{@,name=%s@,model=%s@,params=%a@,q=%s@,vars=%a}@]"
-         f.name
-         f.model.Annot.desc.name
+       fprintf fmt "@[<v>{@,name=%a@,model=%a@,params=%a@,q=%a@,vars=%a}@]"
+         Ident.pp f.name
+         Ident.pp f.model.Annot.desc.name
          (Env.pp Value.pp) f.params
-         f.q
+         Ident.pp f.q
          (Env.pp Value.pp) f.vars
 
   type ctx_comp = {
     ct_typ: Syntax.typ [@printer fun fmt -> fprintf fmt "%a" (Syntax.Guest.Types.pp_typ ~abbrev:false)];
     ct_stim: Syntax.stimulus_desc option;  (* Attached stimuli, for inputs only *)
-    ct_rds: string list; (* Readers, for inputs and shareds *)
-    ct_wrs: string list; (* Writers, for outputs and shareds *)
+    ct_rds: Ident.t list; (* Readers, for inputs and shareds *)
+    ct_wrs: Ident.t list; (* Writers, for outputs and shareds *)
     } [@@deriving show {with_path=false}]
 
   type ctx = {  (* TODO : update formal semantics accordingly *)
-    inputs: (string * ctx_comp) list;
-    outputs: (string * ctx_comp) list;
-    shared: (string * ctx_comp) list;
+    inputs: (Ident.t * ctx_comp) list;
+    outputs: (Ident.t * ctx_comp) list;
+    shared: (Ident.t * ctx_comp) list;
     }
 
   let pp_ctx fmt ctx =
     let open Format in
-    let pp_io fmt (id,cc) = Format.fprintf fmt "%s: %a" id pp_ctx_comp cc in
+    let pp_io fmt (id,cc) = Format.fprintf fmt "%a: %a" Ident.pp id pp_ctx_comp cc in
     fprintf fmt "@[<v>{inputs=%a@,outputs=%a@,shared=%a}@]"
     (Misc.pp_list_v pp_io) ctx.inputs
     (Misc.pp_list_v pp_io) ctx.outputs
@@ -110,7 +110,7 @@ struct
     fns: Syntax.fun_decl list;
     csts: Syntax.cst_decl list;
     types: Syntax.Guest.type_decl list;
-    dep_order: (string * int) list; 
+    dep_order: (Ident.t * int) list; 
     }
 
   let pp ?(verbose_level=1) fmt s =
@@ -120,7 +120,7 @@ struct
     (Misc.pp_list_v Syntax.pp_model) s.models
     (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
     (Env.pp Value.pp) s.globals
-    (Misc.pp_list_h ~sep:"," (fun fmt (f,d) -> fprintf fmt "%s:%d" f d)) s.dep_order
+    (Misc.pp_list_h ~sep:"," (fun fmt (f,d) -> fprintf fmt "%a:%d" Ident.pp f d)) s.dep_order
 
   (* Rules *)
          
@@ -144,11 +144,20 @@ struct
     let m = {
         name = name;
         params =
-          (try List.fold_left2 (fun env (id,_) expr -> Env.add id (GS.eval expr) env) Env.empty m.params params
+          (try
+             List.fold_left2
+               (fun env (id,_) expr -> Env.add id (GS.eval expr) env)
+               Env.empty
+               m.params
+               params
            with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (* should not happen after TC *)
         model = mm |> normalize_model |> subst_model ~phi;
         q = fst m.itrans.Annot.desc;
-        vars = List.fold_left (fun env (id,te) -> Env.add id (Value.default_value te.Annot.typ) env) Env.empty m.vars
+        vars =
+          List.fold_left
+            (fun env (id,te) -> Env.add id (Value.default_value te.Annot.typ) env)
+            Env.empty
+            m.vars
       } in
     m, (name, (rds,wrs))
 
@@ -207,7 +216,8 @@ struct
 
   let r_fun env { Annot.desc = f; _ } = 
     let open Syntax in
-    Env.add f.ff_name (GS.eval_fn (List.map fst f.ff_args) f.ff_body) env 
+    let args = f.ff_args |> List.map fst |> List.map Ident.to_string in
+    Env.add f.ff_name (GS.eval_fn args f.ff_body) env 
 
   let r_globals p = 
     let env_c = List.fold_left r_const Env.empty p.Syntax.cst_decls in

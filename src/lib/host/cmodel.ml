@@ -23,16 +23,16 @@ module type CMODEL = sig
     CTyEnum of string list
 
   type t = {
-      c_mname: string; (* Model name *)
-      c_name: string;  (* Instance name *)
+      c_mname: Ident.t; (* Model name *)
+      c_name: Ident.t;  (* Instance name *)
       c_states: c_state list;
-      (* c_types: (string * c_type_defn) list; *) (* TODO: GET RID ? *)
-      c_params: (string * type_expr) list;
-      c_consts: (string * (type_expr * Static.Value.t)) list;
-      c_inps: (string * type_expr) list;
-      c_outps: (string * type_expr) list;
-      c_inouts: (string * type_expr) list;
-      c_vars: (string * type_expr) list;  
+      (* c_types: (Ident.t * c_type_defn) list; *) (* TODO: GET RID ? *)
+      c_params: (Ident.t * type_expr) list;
+      c_consts: (Ident.t * (type_expr * Static.Value.t)) list;
+      c_inps: (Ident.t * type_expr) list;
+      c_outps: (Ident.t * type_expr) list;
+      c_inouts: (Ident.t * type_expr) list;
+      c_vars: (Ident.t * type_expr) list;  
       c_init: Static.Syntax.itransition_desc;
       c_body: c_state_case list;
       (* c_body = [case_1;...;case_n]
@@ -41,12 +41,12 @@ module type CMODEL = sig
       c_ddepth: int  (* depth in the static dependency graph induced by shared variables *)
     }
 
-  and c_state = string * (string * expr) list (* name, output valuations *)
+  and c_state = Ident.t * (Ident.t * expr) list (* name, output valuations *)
 
   and c_state_case = {
-      st_src: string;
-      st_sensibility_list: string list;
-      st_transitions: (string * Static.Syntax.transition_desc list) list;  (* transitions, sorted by triggering event *)
+      st_src: Ident.t;
+      st_sensibility_list: Ident.t list;
+      st_transitions: (Ident.t * Static.Syntax.transition_desc list) list;  (* transitions, sorted by triggering event *)
     }
 
   val pp: Format.formatter -> t -> unit
@@ -80,27 +80,27 @@ struct
     [@@deriving show {with_path=false}]
 
   type t = {
-      c_mname: string; 
-      c_name: string; 
+      c_mname: Ident.t; 
+      c_name: Ident.t; 
       c_states: c_state list;
-      (* c_types: (string * c_type_defn) list; *)
-      c_params: (string * type_expr) list;
-      c_consts: (string * (type_expr * Static.Value.t)) list;
-      c_inps: (string * type_expr) list;
-      c_outps: (string * type_expr) list;
-      c_inouts: (string * type_expr) list;
-      c_vars: (string * type_expr) list;  
+      (* c_types: (Ident.t * c_type_defn) list; *)
+      c_params: (Ident.t * type_expr) list;
+      c_consts: (Ident.t * (type_expr * Static.Value.t)) list;
+      c_inps: (Ident.t * type_expr) list;
+      c_outps: (Ident.t * type_expr) list;
+      c_inouts: (Ident.t * type_expr) list;
+      c_vars: (Ident.t * type_expr) list;  
       c_init: Static.Syntax.itransition_desc;
       c_body: c_state_case list;
       c_ddepth: int  (* depth in the dependency graph *)
     } [@@deriving show {with_path=false}]
 
-  and c_state = string * (string * expr) list  [@@deriving show {with_path=false}]
+  and c_state = Ident.t * (Ident.t * expr) list  [@@deriving show {with_path=false}]
 
   and c_state_case = {
-      st_src: string;
-      st_sensibility_list: string list;
-      st_transitions: (string * Static.Syntax.transition_desc list) list;  (* transitions, grouped by triggering event *)
+      st_src: Ident.t;
+      st_sensibility_list: Ident.t list;
+      st_transitions: (Ident.t * Static.Syntax.transition_desc list) list;  (* transitions, grouped by triggering event *)
     } [@@deriving show {with_path=false}]
 
   exception Error of string * string   (* where, message *)

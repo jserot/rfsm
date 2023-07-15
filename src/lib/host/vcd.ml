@@ -50,19 +50,19 @@ struct
     match e with
     | Event.Ev name -> Vcd_types.register_signal acc (name, Vcd_types.TyEvent)
     | Event.Upd (lhs,v) -> Vcd_types.register_signal acc (Event.Syntax.lhs_vcd_repr lhs, Event.Value.vcd_type v)
-    | Event.StateMove (s,q) -> Vcd_types.register_signal acc (s, Vcd_types.TyString)
+    | Event.StateMove (s,q) -> Vcd_types.register_signal acc (Ident.mk s, Vcd_types.TyString)
 
   let register_signals acc (s:EvSeq.Evset.t) =
     List.fold_left register_event acc (EvSeq.Evset.events s)
 
   let dump_signal oc (name,(id,ty)) =
     let kind, size =  vcd_kind_of ty in
-    fprintf oc "$var %s %d %c %s $end\n" kind size id name
+    fprintf oc "$var %s %d %c %s $end\n" kind size id (Ident.to_string name)
 
   let dump_evseq oc signals s =
     let lookup name = 
       try List.assoc name signals
-      with Not_found -> Misc.fatal_error ("Vcd.dump_evseq: unknown signal: " ^ name) in
+      with Not_found -> Misc.fatal_error ("Vcd.dump_evseq: unknown signal: " ^ Misc.to_string Ident.pp name) in
     let dump_stimulus s = match s with
       | Event.Ev name ->
          let id, _  = lookup name in 
@@ -74,7 +74,7 @@ struct
          let fmt = vcd_repr ty v'  in
          fprintf oc "%s %c\n" fmt id
       | Event.StateMove (s,q) ->
-         let id, ty  = lookup s in 
+         let id, ty  = lookup (Ident.mk s) in 
          fprintf oc "s%s %c\n" q id in  (* State move*)
     fprintf oc "#%d\n" (EvSeq.Evset.date s);
     List.iter dump_stimulus (EvSeq.Evset.events s) 

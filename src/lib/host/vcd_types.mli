@@ -19,10 +19,10 @@ type vcd_value =
   | Val_string of string
 [@@deriving show]
 
-type vcd_signal = string * (char * vcd_typ)
+type vcd_signal = Ident.t * (char * vcd_typ)
 
 val pp_vcd_signal: Format.formatter -> vcd_signal -> unit (* For debug only *)
 
 exception Unsupported
 
-val register_signal: vcd_signal list -> string * vcd_typ -> vcd_signal list
+val register_signal: vcd_signal list -> Ident.t * vcd_typ -> vcd_signal list

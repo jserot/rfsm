@@ -56,7 +56,7 @@ struct
   
   let trace = Trace.create () (* Global trace *)
           
-  let var_name m x = m.Static.name ^ "." ^ x
+  let var_name m x = Ident.to_string m.Static.name ^ "." ^ x  (* TO FIX ? Prefix should already be in the ident *)
   let state_name m = var_name m "state"
   
   let mk_event t e = Evset.mk t [e]
@@ -104,7 +104,7 @@ struct
          Trace.add (mk_event t (Event.Upd (pfx prefix lhs, v))) trace; (* Note: Use prefixes in traces to allow VCD scoping *)
          Eval.upd_env lhs v env in
        if Env.mem x vars then (* ActUpdL *)
-         (upd ~prefix:f vars, env), (* For local updates, prefix target variable *)
+         (upd ~prefix:(Ident.to_string f) vars, env), (* For local updates, prefix target variable *)
          Evset.empty t
        else if Env.mem x env then (* ActUpdG *)
          (vars, upd env), (* No prefix for updates of globals *)
@@ -125,7 +125,7 @@ struct
     (* \mu, \Gamma -- \tau,t | \rho_e --> \mu', \Gamma' *)
     let vars', env', r_e = r_acts ~f:m.Static.name sd (m.Static.vars,env) (acts,t) in
     let m' = { m with q=q'; vars = vars' } in
-    Trace.add (mk_event t (Event.StateMove (state_name m,q'))) trace;
+    Trace.add (mk_event t (Event.StateMove (state_name m,Ident.to_string q'))) trace;
     m', env', r_e
   
   let r_reaction sd (m,env) s_e = (* Rules React1, React0 and ReactN *)
@@ -137,7 +137,7 @@ struct
     match fireable env' m (Evset.events s_e) with
     | [tr] -> r_trans sd (m,env) (tr,t)   (* REACT_1 *)
     | [] -> m, env, Evset.empty t (* REACT_0 *)
-    | trs -> r_trans sd (m,env) (choose_transition (m.name,t,trs), t) (* REACT_N *)
+    | trs -> r_trans sd (m,env) (choose_transition (Ident.to_string m.name,t,trs), t) (* REACT_N *)
   
   let r_react_upd sd (m,env) evs = (* Rule ReactUpd *)
     (* M, \Gamma -- \sigma_v --> M', \Gamma' *)
@@ -178,7 +178,7 @@ struct
            - [evs] the set (shared) events emitted from state q in m
            - [wvs]  the set of (shared variables) modified by the actions modified from state q
          then m' depends on m iff [evs' \inter \evs] or [rvs' \inter wvs] is not empty *)
-        let module S = Set.Make(String) in
+        let module S = Set.Make(Ident) in
         let inter l1 l2 = not (S.is_empty (S.inter (S.of_list l1) (S.of_list l2))) in
         let evs', rvs', _, _ = Syntax.state_ios m'.Static.model m'.q in
         let _, _, evs, wvs = Syntax.state_ios m.Static.model m.q in (* TODO ? Filter out non shared events / vars ? *)
@@ -251,7 +251,7 @@ struct
           let nu = mu.Static.vars in
           let { Annot.desc=q0,acts; _ } = mu.Static.model.Annot.desc.itrans in
           let nu',env', r_e = r_acts ~f:mu.name sd (nu, env) (acts,0) in
-          Trace.add (mk_event 0 (Event.StateMove (state_name mu,q0))) trace; 
+          Trace.add (mk_event 0 (Event.StateMove (state_name mu,Ident.to_string q0))) trace; 
           Trace.add r_e trace; 
           env', { mu with Static.q=q0 ; Static.vars = Env.union nu' mu.Static.params })
         env0
@@ -264,13 +264,13 @@ struct
          if List.mem_assoc x ctx.Static.inputs && is_event_type ((List.assoc x ctx.Static.inputs).ct_typ) then
            ()
          else
-           Misc.fatal_error ("Dynamic.is_input: " ^ x ^ " is not an event typed input")
+           Misc.fatal_error ("Dynamic.is_input: " ^ Ident.to_string x ^ " is not an event typed input")
       | Event.Upd (l,_) ->
          let x = Syntax.Guest.lhs_base_name l in
          if List.mem_assoc x ctx.Static.inputs && not (is_event_type ((List.assoc x ctx.Static.inputs).ct_typ)) then
            ()
          else
-           Misc.fatal_error ("Dynamic.is_input: " ^ x ^ " is an event typed input")
+           Misc.fatal_error ("Dynamic.is_input: " ^ Ident.to_string x ^ " is an event typed input")
       | Event.StateMove _ -> () in
     List.iter check (Evset.events evs)
     

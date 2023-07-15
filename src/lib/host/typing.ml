@@ -7,13 +7,13 @@ module type TYPING = sig
   val type_program: env -> HostSyntax.program -> unit
   val pp_env: Format.formatter -> env -> unit
 
-  exception Undefined_symbol of Location.t * string
-  exception Duplicate_symbol of Location.t * string
-  exception Invalid_state of Location.t * string
-  exception Duplicate_state of Location.t * string
+  exception Undefined_symbol of Location.t * Ident.t
+  exception Duplicate_symbol of Location.t * Ident.t
+  exception Invalid_state of Location.t * Ident.t
+  exception Duplicate_state of Location.t * Ident.t
   exception No_event_input of Location.t
   exception Illegal_inst of Location.t
-  exception Illegal_state_output of Location.t * string * string
+  exception Illegal_state_output of Location.t * Ident.t * Ident.t
 end
 
 module Make
@@ -25,13 +25,13 @@ struct
 
   type env = GuestTyping.env
 
-  exception Undefined_symbol of Location.t * string
-  exception Duplicate_symbol of Location.t * string
-  exception Invalid_state of Location.t * string
-  exception Duplicate_state of Location.t * string
+  exception Undefined_symbol of Location.t * Ident.t
+  exception Duplicate_symbol of Location.t * Ident.t
+  exception Invalid_state of Location.t * Ident.t
+  exception Duplicate_state of Location.t * Ident.t
   exception No_event_input of Location.t
   exception Illegal_inst of Location.t
-  exception Illegal_state_output of Location.t * string * string
+  exception Illegal_state_output of Location.t * Ident.t * Ident.t
 
   let mk_env () = GuestTyping.mk_env ()
 
@@ -147,7 +147,7 @@ struct
     let open HostSyntax in
     let lookup_model name =
       try List.find (fun { Annot.desc = m; _ } -> m.name = name) p.models
-      with Not_found -> raise (Undefined_symbol (loc,name)) in
+      with Not_found -> raise (Undefined_symbol (loc, name)) in
     let lookup_io name =
       try List.find (fun { Annot.desc = (id,_,_,_); _ } -> id = name) p.globals
       with Not_found -> raise (Undefined_symbol (loc,name)) in

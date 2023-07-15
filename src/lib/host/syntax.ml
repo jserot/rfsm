@@ -20,14 +20,14 @@ module type SYNTAX = sig
 
   and model = (model_desc,typ) Annot.t
   and model_desc = {
-      name: string;
+      name: Ident.t;
       states: state list;
-      params: (string * type_expr) list;
-      ios: (string * (io_cat * type_expr)) list;
-      inps: (string * type_expr) list;
-      outps: (string * type_expr) list;
-      inouts: (string * type_expr) list;
-      vars: (string * type_expr) list;
+      params: (Ident.t * type_expr) list;
+      ios: (Ident.t * (io_cat * type_expr)) list;
+      inps: (Ident.t * type_expr) list;
+      outps: (Ident.t * type_expr) list;
+      inouts: (Ident.t * type_expr) list;
+      vars: (Ident.t * type_expr) list;
       trans: transition list;
       itrans: itransition 
     }
@@ -35,24 +35,24 @@ module type SYNTAX = sig
   and io_cat = In| Out | InOut 
   
   and state = (state_desc,unit) Annot.t
-  and state_desc = string * (string * expr) list (* Name, output valuations *)
+  and state_desc = Ident.t * (Ident.t * expr) list (* Name, output valuations *)
 
   and cond = (cond_desc,typ) Annot.t
-  and cond_desc = string * expr list (** event, guards *)
+  and cond_desc = Ident.t * expr list (** event, guards *)
   
   and action = (action_desc,typ) Annot.t
   and action_desc =
-    Emit of string
+    Emit of Ident.t
   | Assign of lhs * expr
             
   and transition = (transition_desc,typ) Annot.t
-  and transition_desc = string * cond * action list * string * int  (** source state, condition, actions, destination state, priority *)
+  and transition_desc = Ident.t * cond * action list * Ident.t * int  (** source state, condition, actions, destination state, priority *)
 
   and itransition = (itransition_desc,typ) Annot.t
-  and itransition_desc = string * action list  (** state, actions *)
+  and itransition_desc = Ident.t * action list  (** state, actions *)
                  
   and global = (global_desc,typ) Annot.t
-  and global_desc = string * global_cat * type_expr * stimulus option
+  and global_desc = Ident.t * global_cat * type_expr * stimulus option
 
   and global_cat = Input | Output | Shared
                               
@@ -64,22 +64,22 @@ module type SYNTAX = sig
 
   and inst = (inst_desc,typ) Annot.t
   and inst_desc =
-      string  (** Name *)
-    * string  (** Model *)
+      Ident.t  (** Name *)
+    * Ident.t  (** Model *)
     * expr list (** Actual parameters *)
-    * string list (** Args *)
+    * Ident.t list (** Args *)
 
   and fun_decl = (fun_decl_desc,typ) Annot.t
   and fun_decl_desc = {
-    ff_name: string;
-    ff_args: (string * type_expr) list;
+    ff_name: Ident.t;
+    ff_args: (Ident.t * type_expr) list;
     ff_res: type_expr;
     ff_body: expr;
     }
 
   and cst_decl = (cst_decl_desc,typ) Annot.t
   and cst_decl_desc = {
-      cc_name: string;
+      cc_name: Ident.t;
       cc_typ: type_expr;
       cc_val: expr;
       }
@@ -87,9 +87,9 @@ module type SYNTAX = sig
   val empty_program: program
   val add_program: program -> program -> program
 
-  val subst_model: phi:(string * string) list -> model -> model (** Name substitution *)
+  val subst_model: phi:(Ident.t * Ident.t) list -> model -> model (** Name substitution *)
     
-  val state_ios: model -> string -> string list * string list * string list * string list
+  val state_ios: model -> Ident.t -> Ident.t list * Ident.t list * Ident.t list * Ident.t list
     (** [state_ios m q] is [l1,l2,l3,l4] where
         - [l1] is the list of events triggering an exit from state [q] 
         - [l2] is the list of variables occuring in guards when exiting from state [q] 
@@ -99,7 +99,7 @@ module type SYNTAX = sig
   val normalize_model: model -> model
 
   val ppr_program: program -> program
-  exception Undefined_symbol of Location.t * string
+  exception Undefined_symbol of Location.t * Ident.t
     
   val pp_expr: Format.formatter -> expr -> unit
   val pp_type_expr: Format.formatter -> type_expr -> unit
@@ -133,10 +133,10 @@ struct
   let pp_lhs = Guest.pp_lhs
 
   type inst_desc =
-      string  
-    * string 
+      Ident.t  
+    * Ident.t 
     * expr list
-    * string list [@@deriving show {with_path=false}]
+    * Ident.t list [@@deriving show {with_path=false}]
   type inst = (inst_desc,typ) Annot.t
   let pp_inst fmt i = pp_inst_desc fmt i.Annot.desc
 
@@ -150,52 +150,52 @@ struct
   type stimulus = (stimulus_desc,typ) Annot.t
   let pp_stimulus fmt s = pp_stimulus_desc fmt s.Annot.desc
 
-  type global_desc = string * global_cat * type_expr * stimulus option [@@deriving show {with_path=false}]
+  type global_desc = Ident.t * global_cat * type_expr * stimulus option [@@deriving show {with_path=false}]
   type global = (global_desc,typ) Annot.t
   let pp_global fmt i = pp_global_desc fmt i.Annot.desc
 
-  type cond_desc = string * expr list [@@deriving show {with_path=false}]
+  type cond_desc = Ident.t * expr list [@@deriving show {with_path=false}]
   type cond = (cond_desc,typ) Annot.t
   let pp_cond fmt i = pp_cond_desc fmt i.Annot.desc
 
   type action_desc =
-    Emit of string
+    Emit of Ident.t
   | Assign of lhs * expr [@@deriving show {with_path=false}]
   type action = (action_desc,typ) Annot.t
   let pp_action fmt a = pp_action_desc fmt a.Annot.desc
             
-  type transition_desc = string * cond * action list * string * int [@@deriving show {with_path=false}]
+  type transition_desc = Ident.t * cond * action list * Ident.t * int [@@deriving show {with_path=false}]
   type transition = (transition_desc,typ) Annot.t 
   let pp_transition fmt t = pp_transition_desc fmt t.Annot.desc
 
-  type itransition_desc = string * action list [@@deriving show {with_path=false}]
+  type itransition_desc = Ident.t * action list [@@deriving show {with_path=false}]
   type itransition = (itransition_desc,typ) Annot.t
   let pp_itransition fmt t = pp_itransition_desc fmt t.Annot.desc
 
-  type state_desc = (string * (string * expr) list) [@@deriving show {with_path=false}]
+  type state_desc = (Ident.t * (Ident.t * expr) list) [@@deriving show {with_path=false}]
   type state = (state_desc,unit) Annot.t
   let pp_state fmt s = pp_state_desc fmt s.Annot.desc
 
   type io_cat = In| Out | InOut 
 
   type model_desc = {
-      name: string;
+      name: Ident.t;
       states: state list;
-      params: (string * type_expr) list;
-      ios: (string * (io_cat * type_expr)) list;
+      params: (Ident.t * type_expr) list;
+      ios: (Ident.t * (io_cat * type_expr)) list;
       (* Note: we must keep the unsorted IO specs to perform the formal/actual substitution when instanciating the model *)
-      inps: (string * type_expr) list;
-      outps: (string * type_expr) list;
-      inouts: (string * type_expr) list;
-      vars: (string * type_expr) list;
+      inps: (Ident.t * type_expr) list;
+      outps: (Ident.t * type_expr) list;
+      inouts: (Ident.t * type_expr) list;
+      vars: (Ident.t * type_expr) list;
       trans: transition list;
       itrans: itransition 
     } (*[@@deriving show {with_path=false}]*)
   type model = (model_desc,typ) Annot.t
 
   type fun_decl_desc = {
-    ff_name: string;
-    ff_args: (string * type_expr) list;
+    ff_name: Ident.t;
+    ff_args: (Ident.t * type_expr) list;
     ff_res: type_expr;
     ff_body: expr;
     } [@@deriving show {with_path=false}]
@@ -203,7 +203,7 @@ struct
   let pp_fun_decl fmt cd = pp_fun_decl_desc fmt cd.Annot.desc
 
   type cst_decl_desc = {
-      cc_name: string;
+      cc_name: Ident.t;
       cc_typ: type_expr;
       cc_val: expr;
       } [@@deriving show {with_path=false}]
@@ -237,17 +237,17 @@ struct
       insts= p1.insts @ p2.insts;
     }
 
-  let pp_model_name fmt m = Format.fprintf fmt "%s" m.Annot.desc.name
+  let pp_model_name fmt m = Format.fprintf fmt "%a" Ident.pp m.Annot.desc.name
     
   (* Substitutions *)
 
   let subst_cond phi c = match c.Annot.desc with 
-    | (ev,guards) -> { c with desc = Misc.subst_id phi ev, List.map (Guest.subst_expr phi) guards }
+    | (ev,guards) -> { c with desc = Ident.subst phi ev, List.map (Guest.subst_expr phi) guards }
 
-  let subst_iov phi (id,ty) = Misc.subst_id phi id, ty
+  let subst_iov phi (id,ty) = Ident.subst phi id, ty
                                   
   let subst_action phi act = match act.Annot.desc with
-    | Emit ev -> { act with desc = Emit (Misc.subst_id phi ev) }
+    | Emit ev -> { act with desc = Emit (Ident.subst phi ev) }
     | Assign (lhs,expr) -> { act with desc = Assign (Guest.subst_lhs phi lhs, Guest.subst_expr phi expr) }
                         
   let subst_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
@@ -300,7 +300,7 @@ struct
 
   (* Pre-processing *)
 
-  exception Undefined_symbol of Location.t * string
+  exception Undefined_symbol of Location.t * Ident.t
 
   let type_of ~loc env v =
       (* Since pre-processing is carried out _before_ typing, the only type-related available information
@@ -360,7 +360,7 @@ struct
     { p with models = List.map ppr_model p.models;
              globals = List.map ppr_global p.globals }
 
-  module S = Set.Make(String)
+  module S = Set.Make(Ident)
 
   let rvars_of_action a =
     match a.Annot.desc with
@@ -411,12 +411,12 @@ struct
 
   let pp_model_desc fmt p = 
     let open Format in
-    let pp_iov fmt (x,t) = fprintf fmt "%s:%a" x pp_type_expr t in
-    let pp_ov fmt (o,e) = fprintf fmt "%s=%a" o pp_expr e in
+    let pp_iov fmt (x,t) = fprintf fmt "%a:%a" Ident.pp x pp_type_expr t in
+    let pp_ov fmt (o,e) = fprintf fmt "%a=%a" Ident.pp o pp_expr e in
     let pp_ovs fmt ovs = match ovs with [] -> () | _ -> fprintf fmt "{%a}" (Misc.pp_list_h pp_ov) ovs in
-    let pp_state fmt { Annot.desc=x,ovs; _ } = fprintf fmt "%s%a" x pp_ovs ovs in
-    fprintf fmt "@[<v>{@,name=%s@,params=[%a]@,inps=%a@,outps=%a@,inouts=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,}@]"
-      p.name
+    let pp_state fmt { Annot.desc=x,ovs; _ } = fprintf fmt "%a%a" Ident.pp x pp_ovs ovs in
+    fprintf fmt "@[<v>{@,name=%a@,params=[%a]@,inps=%a@,outps=%a@,inouts=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,}@]"
+      Ident.pp p.name
       (Misc.pp_list_h ~sep:"," pp_iov) p.params
       (Misc.pp_list_v pp_iov) p.inps
       (Misc.pp_list_v pp_iov) p.outps

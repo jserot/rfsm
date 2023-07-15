@@ -27,9 +27,6 @@ let pp_opt ?(none="?") pp fmt v =
 | None -> Format.pp_print_string fmt none
 | Some v' -> Format.fprintf fmt "%a" pp v'
 
-let subst_id phi id =
-  if List.mem_assoc id phi then List.assoc id phi else id
-
 let neg f x = not (f x)
 
 let list_cart_prod2 l1 l2 =
