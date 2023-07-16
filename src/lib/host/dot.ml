@@ -1,6 +1,12 @@
 module type DOT = sig
   module Static: Static.T
-  val output_static: dir:string -> name:string -> with_models:bool -> with_caption:bool -> Static.t -> string list
+  val output_static:
+    dir:string ->
+    name:string ->
+    with_models:bool ->
+    with_caption:bool ->
+    Static.t ->
+    string list
 end
 
 type cfg = {
@@ -10,6 +16,7 @@ type cfg = {
     mutable rankdir: string;
     mutable mindist: float;
     mutable trans_vlayout: bool;
+    mutable qual_ids: bool;
     mutable abbrev_types: bool;
   }
              
@@ -19,7 +26,8 @@ let cfg = {
     layout = "dot";
     rankdir = "UD";
     mindist = 1.0;
-    trans_vlayout = false;
+    trans_vlayout = true;
+    qual_ids = false;
     abbrev_types = false;
   }
 
@@ -30,6 +38,12 @@ struct
   module Syntax = Static.Syntax
   module Types = Syntax.Guest.Types
 
+  let pp_ident fmt i =
+    if cfg.qual_ids then Ident.pp_qual fmt i else Ident.pp fmt i
+
+  let pp_lhs fmt l =
+    if cfg.qual_ids then Syntax.Guest.pp_qual_lhs fmt l else Syntax.Guest.pp_lhs fmt l
+
   let pp_cond fmt { Annot.desc=e,gs; _ } =  
     let open Format in
     let pp_guards fmt gs =
@@ -38,14 +52,14 @@ struct
       match gs with
       | [] -> pp_print_text fmt ""
       | gs  -> fprintf fmt ".%a" pp_guard_list gs in
-    fprintf fmt "%a%a" Ident.pp_qual e pp_guards gs
+    fprintf fmt "%a%a" pp_ident e pp_guards gs
 
   let pp_action fmt { Annot.desc=a; _ } =
     let open Format in
     match a with
-    | Syntax.Emit e -> fprintf fmt "%a" Ident.pp_qual e
+    | Syntax.Emit e -> fprintf fmt "%a" pp_ident e
     | Syntax.Assign (lhs,expr) ->
-       fprintf fmt "%a:=%a" Syntax.Guest.pp_qual_lhs lhs Syntax.Guest.pp_expr expr
+       fprintf fmt "%a:=%a" pp_lhs lhs Syntax.Guest.pp_expr expr
 
   let pp_actions fmt acts =
     Misc.pp_list_h ~sep:(if cfg.trans_vlayout then "\n" else ";") pp_action fmt acts
@@ -70,10 +84,9 @@ struct
          pp
          fmt
          l
-    
   let pp_ovs fmt ovs =
     let open Format in
-    let pp_ov fmt (o,v) = fprintf fmt "%a=%a" Ident.pp_qual o Syntax.Guest.pp_expr v in
+    let pp_ov fmt (o,v) = fprintf fmt "%a=%a" pp_ident o Syntax.Guest.pp_expr v in
     pp_list_r pp_ov fmt ovs
  
   let outp_model ocf ~name ~kind ~with_caption m = 
@@ -94,9 +107,9 @@ struct
       let id = node_of q in
       begin match ovs with
       | [] -> fprintf ocf "%s [label = \"%a\", shape = %s, style = %s]\n"
-                id Ident.pp_qual q cfg.node_shape cfg.node_style
+                id pp_ident q cfg.node_shape cfg.node_style
       | _ ->  fprintf ocf "%s [label = \"%a\n%a\", shape = %s, style = %s]\n"
-                id Ident.pp_qual q pp_ovs ovs cfg.node_shape cfg.node_style
+                id pp_ident q pp_ovs ovs cfg.node_shape cfg.node_style
       end in
     let dump_itransition { Annot.desc=(q,a); _ } =
       let id = node_of q in
@@ -117,7 +130,7 @@ struct
     List.iter dump_transition m.trans;
     if with_caption then begin
         let pp_io ocf kind (id,te) =
-          fprintf ocf "%s %a: %a\\r" kind Ident.pp_qual id (Misc.pp_opt (Static.Syntax.Guest.Types.pp_typ ~abbrev:cfg.abbrev_types)) (te.Annot.typ) in
+          fprintf ocf "%s %a: %a\\r" kind pp_ident id (Misc.pp_opt (Static.Syntax.Guest.Types.pp_typ ~abbrev:cfg.abbrev_types)) (te.Annot.typ) in
         let pp_ios ocf m = 
          List.iter (pp_io ocf "param") m.params; 
          List.iter (pp_io ocf "input") m.inps; 
@@ -137,7 +150,7 @@ struct
   let output_fsm ocf f = 
     outp_model ocf ~name:f.Static.name ~kind:"subgraph" ~with_caption:false f.Static.model.Annot.desc;
     if not (Env.is_empty f.params) then begin
-        let pp_param fmt (id,v) = Format.fprintf fmt "%a = %a" Ident.pp_qual id Static.Value.pp v in      
+        let pp_param fmt (id,v) = Format.fprintf fmt "%a = %a" pp_ident id Static.Value.pp v in      
         let pp_params fmt params = pp_list_r pp_param fmt params in
         Format.fprintf ocf "%a_params [label=\"%a\", shape=rect, style=rounded]\n"
           Ident.pp f.name pp_params (Env.bindings f.params)
@@ -167,13 +180,13 @@ struct
          if with_stim then
            fprintf ocf "%s %a: %a = %a\\r"
              kind
-             Ident.pp_qual id
+             pp_ident id
              (Types.pp_typ ~abbrev:cfg.abbrev_types) cc.ct_typ
              (Misc.pp_opt Syntax.pp_stimulus_desc) cc.ct_stim
          else
            fprintf ocf "%s %a: %a\\r"
              kind
-             Ident.pp_qual id
+             pp_ident id
              (Types.pp_typ ~abbrev:cfg.abbrev_types) cc.ct_typ in
        let pp_ios ocf ctx = 
          List.iter (pp_io ~with_stim:false "input" ocf)  ctx.inputs; 

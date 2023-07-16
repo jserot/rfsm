@@ -24,6 +24,8 @@ let pp_qual fmt s = (* So bad optional arguments cant be used with [pp] fns ... 
   | Global -> Format.fprintf fmt "%s%s" global_qualifier s.id
   | Local -> Format.fprintf fmt "%s" s.id
 
+let pp' fmt i = Format.fprintf fmt "<%s,%a>" i.id pp_scope i.scope (* For debug *)
+
 let to_string = Misc.to_string pp
 
 let compare = Stdlib.compare

@@ -49,6 +49,7 @@ let set_dot_no_captions () = dot_captions := false
 let set_dot_short_trans () =  Dot.cfg.Dot.trans_vlayout <- false
 let set_dot_show_models () = dot_show_models := true
 let set_dot_abbrev_types () =  Dot.cfg.Dot.abbrev_types <- true
+let set_dot_qual_ids () = Dot.cfg.Dot.qual_ids <- true
 
 let set_vcd_default_int_size s = Vcd.cfg.Vcd.default_int_size <- s
 

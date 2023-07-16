@@ -46,7 +46,6 @@ and pp_type_index_expr_desc fmt ie =
 and pp_type_index_expr fmt ie = 
   Format.fprintf fmt "%a" pp_type_index_expr_desc ie.Annot.desc 
 
-
 (** Type declarations *)
                 
 type type_decl_desc =

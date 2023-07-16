@@ -1,6 +1,5 @@
 COMPILER
 
-- option to show / unshow ident qualifiers in dot output
 - options in do_test(s) to compare VCD outputs btw sim and systemc
 - replace all string's by Ident.t's (?)
 - VHDL backend
