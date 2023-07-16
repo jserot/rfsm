@@ -12,6 +12,8 @@ type subst = (t * t) list
 
 let mk ?(scope=Local) id = { scope=scope; id=id }
 
+let mk_global id = { id with scope = Global }
+
 let upd_id f i = { i with id = f i.id }
 
 let subst (phi: subst) id =

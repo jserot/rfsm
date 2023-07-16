@@ -241,6 +241,8 @@ struct
     
   (* Substitutions *)
 
+  let local_prefix x = "_" ^ x
+
   let subst_cond phi c = match c.Annot.desc with 
     | (ev,guards) -> { c with desc = Ident.subst phi ev, List.map (Guest.subst_expr phi) guards }
 
@@ -257,15 +259,30 @@ struct
     { t with desc = (q, List.map (subst_action phi) acts) }
 
   let subst_model ~phi m =
+    let mm = m.Annot.desc in
+    let phi_r = List.map Misc.swap phi in
+    let captured_vars = 
+      List.filter
+        (fun (id,_) -> List.mem_assoc (Ident.mk_global id) phi_r)
+        mm.vars |> List.map fst in
+    if captured_vars <> [] then begin
+      let pp_msg fmt vs =
+        Format.fprintf fmt "The following variables are captured, and hence renamed, when instantiating model %a: %a"
+          Ident.pp mm.name
+          (Misc.pp_list_h ~sep:" " Ident.pp) vs in
+      Misc.warning (Misc.to_string pp_msg captured_vars)
+      end;
+    let phi' = List.map (fun id -> (id, Ident.upd_id local_prefix id)) captured_vars in
+    (* Format.printf "** Syntax.subst_model: phi'=%a\n" (Misc.pp_subst ~pp_ident:Ident.pp') phi' *)
     Annot.map
     (fun m -> 
     { m with 
       inps = List.map (subst_iov phi) m.inps;
       outps = List.map (subst_iov phi) m.outps;
       inouts = List.map (subst_iov phi) m.inouts;
-      vars = List.map (subst_iov phi) m.vars;
-      trans = List.map (subst_transition phi) m.trans;
-      itrans = subst_itransition phi m.itrans })
+      vars = m.vars |> List.map (subst_iov phi') |> List.map (subst_iov phi);
+      trans = m.trans |> List.map (subst_transition phi') |> List.map (subst_transition phi);
+      itrans = m.itrans |> subst_itransition phi' |> subst_itransition phi })
     (Fun.id)
     m
 

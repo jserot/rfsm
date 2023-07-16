@@ -127,7 +127,8 @@ struct
        flush stderr; exit 1
     | Lexer.Lexical_error(Lexer.Illegal_character, pos1, pos2) ->
        eprintf "%aIllegal character.\n" pp_location (Loc(!input_name,pos1, pos2)); flush stderr; exit 1
-    | L.Syntax.Undefined_symbol (loc,s)
+    | L.Syntax.Undefined_symbol (loc,s) ->
+       eprintf "%aUndefined symbol: %a\n" pp_location loc Ident.pp s; exit 2
     | L.Typing.Undefined_symbol (loc,s) -> 
        eprintf "%aUndefined symbol: %a\n" pp_location loc Ident.pp s; exit 2
     | L.Typing.Duplicate_symbol (loc,s) -> 

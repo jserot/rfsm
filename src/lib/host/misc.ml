@@ -93,3 +93,9 @@ let copy_with_subst defns ic oc =
      done
    with End_of_file ->
      ()
+
+let swap (x,y) = (y,x)
+
+let pp_subst ~pp_ident fmt phi =
+  let pp_subst_comp fmt (id,id') = Format.fprintf fmt "%a->%a" pp_ident id pp_ident id' in
+  Format.fprintf fmt "[%a]" (pp_list_h ~sep:", " pp_subst_comp) phi

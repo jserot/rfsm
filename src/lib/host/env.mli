@@ -29,3 +29,5 @@ val iter : (Ident.t -> 'a -> unit) -> 'a t -> unit
 val map : ('a -> 'b) -> 'a t -> 'b t
 
 val pp: ?sep:string -> ?vlayout:bool -> (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
+
+val pp_dom: pp_ident:(Format.formatter -> Ident.t -> unit) -> Format.formatter -> 'a t -> unit

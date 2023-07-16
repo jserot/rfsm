@@ -17,3 +17,6 @@ let pp ?(sep="=") ?(vlayout=false) pp_v fmt e =
   | bs ->
      if vlayout then fprintf fmt "@[<v>[@,%a@,]@]" (Misc.pp_list_v pp_binding) (bindings e)
      else fprintf fmt "@[<h>[@,%a@,]@]" (Misc.pp_list_h ~sep:"," pp_binding) (bindings e)
+
+let pp_dom ~pp_ident fmt e =
+  Format.fprintf fmt "@[<h>[@,%a@,]@]" (Misc.pp_list_h ~sep:"," pp_ident ) (dom e)
