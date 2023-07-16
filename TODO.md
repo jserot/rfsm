@@ -1,6 +1,5 @@
 COMPILER
 
-- prefix local vars in .vcd 
 - options in do_test(s) to compare VCD outputs btw sim and systemc
 - replace all string's by Ident.t's (?)
 - VHDL backend

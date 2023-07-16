@@ -139,27 +139,29 @@ struct
         []
         m.ios
         args in
+    let mm' =  mm |> normalize_model |> subst_model ~phi in
+    let m' = mm'.Annot.desc in
     let rds = collect [Syntax.In; Syntax.InOut] in
     let wrs = collect [Syntax.Out; Syntax.InOut] in
-    let m = {
+    let f = {
         name = name;
         params =
           (try
              List.fold_left2
                (fun env (id,_) expr -> Env.add id (GS.eval expr) env)
                Env.empty
-               m.params
+               m'.params
                params
            with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (* should not happen after TC *)
-        model = mm |> normalize_model |> subst_model ~phi;
-        q = fst m.itrans.Annot.desc;
+        model = mm';
+        q = fst m'.itrans.Annot.desc;
         vars =
           List.fold_left
             (fun env (id,te) -> Env.add id (Value.default_value te.Annot.typ) env)
             Env.empty
-            m.vars
+            m'.vars
       } in
-    m, (name, (rds,wrs))
+    f, (name, (rds,wrs))
 
   let r_insts (senv_m,senv_i) insts = List.map (r_inst (senv_m,senv_i)) insts
 
