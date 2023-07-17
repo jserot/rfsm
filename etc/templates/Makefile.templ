@@ -55,6 +55,10 @@ systemc.run: systemc.code
 systemc.view:
 	if [ -d ./systemc ]; then cd ./systemc; make view; fi
 
+systemc.sim: sim.run systemc.run
+	$(VCDVIEWER) -f ./sim/$(MAIN).vcd -a ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1 &
+	if [ -d ./systemc ]; then cd ./systemc; make view; fi
+
 vhdl: vhdl.run vhdl.view
 
 vhdl.code:

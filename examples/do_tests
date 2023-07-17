@@ -1,14 +1,14 @@
 #!/bin/bash
 
 case $1 in
-usage) echo "./do_tests (dot|sim|ctask|systemc|systemc.run|vhdl) (core|full)";;
+usage) echo "./do_tests (makefile|dot|sim|ctask|systemc|systemc.run|vhdl) (core|full)";;
 *)
 nt=0
 ns=0
 for i in $2/{single,multi}/[a-z]*
 do
   (( nt = nt + 1 ))
-  ./do_test $flag $1 $i
+  ./do_test $1 $i
   (( ns = ns + $? ))
 done
 echo "***" $ns"/"$nt "test(s) OK";;

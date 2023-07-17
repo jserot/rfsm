@@ -1,12 +1,14 @@
 COMPILER
 
-- options in do_test(s) to compare VCD outputs btw sim and systemc
+- check examples/full/single/pgcd (fail)
+- check examples/full/single/sqrt (systemc duration)
+- check examples/full/single/heron SystemC (R2)
 - replace all string's by Ident.t's (?)
 - VHDL backend
 - support for synchronous actions
 - document lib/host/guest.ml
 - banner
-- VCD hierarchy (gtkwave format ?)
+- display of clocks and enums in SystemC VCD event (see examples/full/single/enums, systemc.sim)
 - dual error reporting mechanism (CLC / RfsmLight)
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)

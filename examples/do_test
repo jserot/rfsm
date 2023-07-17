@@ -12,11 +12,13 @@ try_make ()
 {
 case $1 in
 dot) make dot.run;;
-sim) make sim.run;;
+sim) make sim;;
+sim.run) make sim.run;;
 ctask) make ctask;;
 systemc) make systemc;;
 systemc.code) make systemc.code;;
 systemc.run) make systemc.run;;
+systemc.sim) make systemc.sim;;
 *) false;;
 esac
 case $? in
@@ -120,7 +122,7 @@ make_makefile ()
 }
 
 case $1 in
-usage) echo "./do_test (dot|sim|ctask|systemc.code|systemc.run|vhdl) subdir [comp] [show]";;
+usage) echo "./do_test (dot|sim|sim.run|ctask|systemc|systemc.code|systemc.run|systemc.sim|vhdl) subdir [comp] [show]";;
 makefile) make_makefile $2;;
 all) make_all $2;;
 *) case $3 in
