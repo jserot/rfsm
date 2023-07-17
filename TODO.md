@@ -1,16 +1,13 @@
 COMPILER
 
-- check examples/full/single/pgcd (fail)
-- check examples/full/single/sqrt (systemc duration)
-- check examples/full/single/heron SystemC (R2)
-- replace all string's by Ident.t's (?)
 - VHDL backend
-- support for synchronous actions
+- support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - document lib/host/guest.ml
 - banner
-- display of clocks and enums in SystemC VCD event (see examples/full/single/enums, systemc.sim)
+- replace all string's by Ident.t's (?)
 - dual error reporting mechanism (CLC / RfsmLight)
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
+- display enums as string in SystemC generated VCDs (currently not supported by SystemC 2.3) 
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)
 - allow _unsized_ arrays as parameters (ex: [fsm model m <t: int array[], sz: int> (...)])
 - bound check for arrays, ranged integers and bit ranges

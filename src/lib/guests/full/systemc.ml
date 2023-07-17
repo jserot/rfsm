@@ -9,6 +9,8 @@ exception Unsupported_type of Syntax.Types.typ option
 exception Unsupported_expr of Syntax.expr
 exception Unsupported_value of Value.t
 
+let float_print_format = format_of_string "%.8f"
+
 let pp_type_expr fmt te = 
   let open Syntax in
   let open Rfsm.Ident in
@@ -66,7 +68,7 @@ let pp_expr fmt e =
   | Syntax.EVar v, _ -> fprintf fmt "%a" pp_access v
   | Syntax.EInt i, _ -> fprintf fmt "%d" i
   | Syntax.EBool b, _ -> fprintf fmt "%b" b
-  | Syntax.EFloat f, _ -> fprintf fmt "%f" f
+  | Syntax.EFloat f, _ -> fprintf fmt float_print_format f
   | Syntax.EChar c, _ -> fprintf fmt "'%c'" c
   | Syntax.EFapp (op,[e]), _ when List.mem op.Rfsm.Ident.id ["~-";"~-."]-> fprintf fmt "-%a" (pp (level+1)) e
   | Syntax.EFapp (f,es), _ -> fprintf fmt "%a(%a)" pp_ident f (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) es
@@ -107,7 +109,7 @@ let pp_value fmt v =
   let rec pp_v fmt v = match v with
   | Val_int v -> fprintf fmt "%d" v
   | Val_bool v -> fprintf fmt "%b" v
-  | Val_float v -> fprintf fmt "%f" v
+  | Val_float v -> fprintf fmt float_print_format v
   | Val_char c -> fprintf fmt "'%c'" c
   | Val_array vs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_v) (Array.to_list vs)
   | Val_enum c -> fprintf fmt "%s::%s" "<type>" c  (* TO FIX *)

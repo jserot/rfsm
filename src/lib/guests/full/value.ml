@@ -53,7 +53,7 @@ let rec pp fmt v =
   match v with
   | Val_int v -> fprintf fmt "%d" v
   | Val_bool v -> fprintf fmt "%b" v
-  | Val_float v -> fprintf fmt "%f" v
+  | Val_float v -> fprintf fmt "%.8f" v
   | Val_char c -> fprintf fmt "'%c'" c
   | Val_array vs -> fprintf fmt "[%a]" (Rfsm.Misc.pp_list_h ~sep:"," pp) (Array.to_list vs)
   | Val_enum c -> fprintf fmt "%s" c
