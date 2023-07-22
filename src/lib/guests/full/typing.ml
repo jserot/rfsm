@@ -156,7 +156,7 @@ and type_ranged_expr ~loc env a i1 i2 =
   Types.unify ~loc:i1.Annot.loc ty_i1 (Types.type_unsized_int ());
   Types.unify ~loc:i2.Annot.loc ty_i2 (Types.type_unsized_int ());
   match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
-  | TyConstr("int",_,_) -> Types.type_unsized_int ()
+  | TyConstr("int",_,_) -> Types.type_unsized_int () (* This a gross approximation. Slicing an int should refine its type *)
   | ty -> raise (Types.Type_conflict (loc, ty, Types.type_unsized_int ()))
 
 and type_cast e t1 t2 = match t1, t2 with

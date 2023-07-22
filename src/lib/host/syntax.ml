@@ -114,6 +114,7 @@ module type SYNTAX = sig
   val pp_stimulus: Format.formatter -> stimulus -> unit
   val pp_stimulus_desc: Format.formatter -> stimulus_desc -> unit
   val pp_state: Format.formatter -> state -> unit
+  val pp_type_decl: Format.formatter -> Guest.type_decl -> unit
   val pp_model: Format.formatter -> model -> unit
   val pp_model_name: Format.formatter -> model -> unit
   val pp_program: Format.formatter -> program -> unit
@@ -241,7 +242,7 @@ struct
     
   (* Substitutions *)
 
-  let local_prefix x = "_" ^ x
+  let local_prefix x = "l_" ^ x
 
   let subst_cond phi c = match c.Annot.desc with 
     | (ev,guards) -> { c with desc = Ident.subst phi ev, List.map (Guest.subst_expr phi) guards }
@@ -273,7 +274,6 @@ struct
       Misc.warning (Misc.to_string pp_msg captured_vars)
       end;
     let phi' = List.map (fun id -> (id, Ident.upd_id local_prefix id)) captured_vars in
-    (* Format.printf "** Syntax.subst_model: phi'=%a\n" (Misc.pp_subst ~pp_ident:Ident.pp') phi' *)
     Annot.map
     (fun m -> 
     { m with 
@@ -426,6 +426,7 @@ struct
     accum emitted_events ts,
     accum written_vars ts
 
+  let pp_type_decl = Guest.pp_type_decl 
   let pp_model_desc fmt p = 
     let open Format in
     let pp_iov fmt (x,t) = fprintf fmt "%a:%a" Ident.pp x pp_type_expr t in

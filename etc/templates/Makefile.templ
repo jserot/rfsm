@@ -27,7 +27,7 @@ sim.run:
 	$(RFSMC) $(GEN_OPTS) -sim $(SIM_OPTS) -target_dir ./sim $(SRCS)
 
 sim.view:
-	$(VCDVIEWER) -f ./sim/$(MAIN).vcd -a ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1; echo $$?
+	$(VCDVIEWER) ./sim/$(MAIN).vcd ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1; echo $$?
 
 ctask: ctask.code
 
@@ -56,19 +56,25 @@ systemc.view:
 	if [ -d ./systemc ]; then cd ./systemc; make view; fi
 
 systemc.sim: sim.run systemc.run
-	$(VCDVIEWER) -f ./sim/$(MAIN).vcd -a ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1 &
+	$(VCDVIEWER) ./sim/$(MAIN).vcd ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1 &
 	if [ -d ./systemc ]; then cd ./systemc; make view; fi
 
-vhdl: vhdl.run vhdl.view
+vhdl:
+	if [ -d ./vhdl ]; then make vhdl.all; fi
+
+vhdl.all: vhdl.run vhdl.view
 
 vhdl.code:
-	mkdir -p ./vhdl
-	$(RFSMC) $(GEN_OPTS) -vhdl $(VHDL_OPTS) -target_dir ./vhdl -lib $(LIBDIR) $(SRCS)
+	if [ -d ./vhdl ]; then $(RFSMC) $(GEN_OPTS) -vhdl $(VHDL_OPTS) -target_dir ./vhdl -lib $(LIBDIR) $(SRCS); fi
 
 vhdl.run: vhdl.code
 	if [ -d ./vhdl ]; then cd ./vhdl; make; make run; fi
 
 vhdl.view: 
+	if [ -d ./vhdl ]; then cd ./vhdl; make view; fi
+
+vhdl.sim: sim.run vhdl.run
+	$(VCDVIEWER) ./sim/$(MAIN).vcd ./sim/$(MAIN).sim > /tmp/gtkwave.log 2>&1 &
 	if [ -d ./vhdl ]; then cd ./vhdl; make view; fi
 
 view:
@@ -77,22 +83,22 @@ view:
 view2:
 	make sim.run
 	make systemc.run
-	$(VCDVIEWER) -f ./sim/$(TB).vcd -a ./sim/$(TB).gtkw > /tmp/gtkwave.log 2>&1 &
+	$(VCDVIEWER) ./sim/$(TB).vcd ./sim/$(TB).vcd > /tmp/gtkwave.log 2>&1 &
 	(cd ./systemc; make view) 
 
 view3:
 	make sim.run
 	make systemc.run
 	make vhdl.run
-	$(VCDVIEWER) -f ./sim/$(TB).vcd -a ./sim/$(TB).gtkw > /tmp/gtkwave.log 2>&1 &
+	$(VCDVIEWER) ./sim/$(TB).vcd ./sim/$(TB).vcd > /tmp/gtkwave.log 2>&1 &
 	(cd ./systemc; make view) &
 	(cd ./vhdl; make view) 
 
 clean:
 	\rm -f dot/*
 	\rm -f ctask/*
-	\rm -f systemc/{*.o,tb,core,*.vcd,*.ghw}
-	\rm -f vhdl/{work*.cf,*.o,tb,*.vcd,*.ghw}
+	\rm -f systemc/{*.o,tb,main_tb,core,*.vcd,*.ghw}
+	\rm -f vhdl/{work*.cf,*.o,tb,main_tb,*.vcd,*.ghw}
 	\rm -f sim/*.vcd
 	\rm -f *_deps.dot
 	\rm -f *.output *.vcd

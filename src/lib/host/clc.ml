@@ -85,7 +85,9 @@ struct
        let fs = Systemc.output ~dir:!Options.target_dir ~pfx:!Options.main_prefix s in
        List.iter Logfile.write fs
     | Some Options.Vhdl ->
-       Misc.not_implemented "VHDL backend"
+       Misc.check_dir !Options.target_dir;
+       let fs = Vhdl.output ~dir:!Options.target_dir ~pfx:!Options.main_prefix s in
+       List.iter Logfile.write fs
        (* Misc.check_dir !Options.target_dir;
         * Vhdl.check_allowed_system s;
         * if Vhdl.need_globals s then Vhdl.dump_globals ~dir:!Options.target_dir s;
@@ -154,8 +156,16 @@ struct
        eprintf "%aThis expression cannot be statically evaluated\n" pp_location e.Annot.loc; exit 2
     | L.Vcd.Unsupported (ty,v) ->
        eprintf "No representation for VCD type/value: %a:%a\n" Vcd_types.pp_vcd_typ ty Vcd_types.pp_vcd_value v; exit 2
-    (* | L.Systemc.Invalid_output_assign (id,loc) ->
-     *    eprintf "%aSystemC backend; cannot assign non-scalar output %s\n" loc id; exit 2 *)
+    | L.Systemc.Invalid_output_assign (id,loc) ->
+       eprintf "%aSystemC backend; cannot assign non-scalar output %s\n" pp_location loc id; exit 2
+    | L.Vhdl.Invalid_output_assign (id,loc) ->
+       eprintf "%aVHDL backend; cannot assign non-scalar output %s\n" pp_location loc id; exit 2
+    (* | L.Vhdl.No_event_input m ->
+     *    eprintf "VHDL backend; no event input (and hence no possible clock) for model %a\n" Ident.pp m; exit 2 *)
+    (* | L.Vhdl.Invalid_shared_type (id,ty) ->
+     *    eprintf "Shared variable %a has type %a, which is not supported by the VHDL backend\n" Ident.pp id pp_typ ty; exit 2
+     * | L.Vhdl.Multiple_writers id ->
+     *    eprintf "Shared variable %a has multiple writers, which is not supported by the VHDL backend\n" Ident.pp id; exit 2 *)
     | Misc.Not_implemented msg ->
        eprintf "Not implemented: %s.\n" msg; flush stderr; exit 22
     | Misc.Fatal_error msg ->

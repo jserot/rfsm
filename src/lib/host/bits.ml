@@ -23,3 +23,5 @@ let set_bits ~hi ~lo ~dst v =
   let v' = v mod (1 lsl (hi-lo+1)) in
   let msk = let r = ref 0 in for i=lo to hi do r := !r lor (1 lsl i) done; !r in
   (dst land (lnot msk)) lor (v' lsl lo)
+
+let rec bit_size n = if n=0 then 0 else 1 + bit_size (n/2)

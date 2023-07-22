@@ -15,7 +15,7 @@ run: %%MAIN%%
 	./%%MAIN%%
 
 view: %%MAIN%%.vcd
-	$(VCDVIEWER) -f %%MAIN%%.vcd -a %%MAIN%%.gtkw > /tmp/gtkwave.log 2>&1
+	$(VCDVIEWER) %%MAIN%%.vcd %%MAIN%%.gtkw > /tmp/gtkwave.log 2>&1
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $<

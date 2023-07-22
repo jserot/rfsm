@@ -12,6 +12,8 @@ type type_decl_desc =
   | TD_Enum of string * string list (* Name, constructors *)
 and type_decl = (type_decl_desc,Types.typ) Annot.t
 
+let mk_alias_type_decl _ = Rfsm.Misc.not_implemented "type declarations for the Core language"
+
 let rec pp_type_decl_desc fmt td = 
   let open Format in
   match td with
@@ -121,6 +123,7 @@ let is_con0_type c (t: type_expr) =
 let is_bool_type (t: type_expr) = is_con0_type "bool" t
 let is_int_type (t: type_expr) = is_con0_type "int" t
 let is_event_type (t: type_expr) = is_con0_type "event" t
+let is_array_type (t: type_expr) = false
 
 let mk_bool_expr te e = match e.Annot.desc with
   | EInt 0 when is_bool_type te -> { e with Annot.desc = EBool false }

@@ -317,8 +317,6 @@ let subst_indexes phi ty =
     | TyConstr (c, args, SzExpr1 sz) -> TyConstr (c, args, SzExpr1 (Index.subst phi sz))
     | TyConstr (c, args, SzExpr2 (lo,hi)) -> TyConstr (c, args, SzExpr2 (Index.subst phi hi, Index.subst phi lo))
     | _ -> ty
-
-
     
 (* Printing *)
 

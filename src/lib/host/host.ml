@@ -10,6 +10,7 @@ module type T = sig
   module Vcd: Vcd.VCD 
   module Ctask: Ctask.CTASK with module Static = Static
   module Systemc: Systemc.SYSTEMC with module Static = Static
+  module Vhdl: Vhdl.VHDL with module Static = Static
   val type_program: Typing.env -> Syntax.program -> unit
   val elab: Syntax.program -> Static.t
   val run: ?vcd_file:string -> Syntax.program -> Static.t -> unit
@@ -31,6 +32,7 @@ struct
     module Cmodel = Cmodel.Make(Static)
     module Ctask = Ctask.Make(Static)(G.Ctask)
     module Systemc = Systemc.Make(Static)(G.Systemc)
+    module Vhdl = Vhdl.Make(Static)(G.Vhdl)
 
     let type_program tenv p = Typing.type_program tenv p
 

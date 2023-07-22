@@ -43,6 +43,8 @@ module type T = sig
   val pp: ?verbose_level:int -> Format.formatter -> t -> unit
   val pp_fsm: ?verbose_level:int -> Format.formatter -> fsm -> unit
 
+  val is_rtl: fsm -> bool
+
 end
 
 module Make
@@ -115,11 +117,12 @@ struct
 
   let pp ?(verbose_level=1) fmt s =
     let open Format in
-    fprintf fmt "@[<v>{ctx=%a@,models=%a@,fsms=%a@,globals=%a@,dep_order=%a@,}@."
+    fprintf fmt "@[<v>{ctx=%a@,models=%a@,fsms=%a@,globals=%a@,types=%a@,dep_order=%a@,}@."
     pp_ctx s.ctx
     (Misc.pp_list_v Syntax.pp_model) s.models
     (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
     (Env.pp Value.pp) s.globals
+    (Misc.pp_list_v Syntax.pp_type_decl) s.types
     (Misc.pp_list_h ~sep:"," (fun fmt (f,d) -> fprintf fmt "%a:%d" Ident.pp f d)) s.dep_order
 
   (* Rules *)
@@ -261,5 +264,28 @@ struct
       csts = p.Syntax.cst_decls;
       types = p.Syntax.type_decls;
       dep_order = m |> dep_sort c |> List.mapi (fun i f -> f.name, i) }
+
+  let is_rtl acts = (* Is the sequence of actions [acts] RTL ? *)
+    let module S = Set.Make(Ident) in
+    let wvars_of_action a = (* Note: this function is copied from [Syntax] *)
+      let open Syntax in
+      match a.Annot.desc with
+      | Emit _ -> S.empty
+      | Assign (lhs,_) -> S.of_list (Guest.vars_of_lhs lhs) in
+    let rec scan acc acts = match acts with
+        [] -> true
+      | a::rest ->
+         let wvs = wvars_of_action a in (* The set of variables written by [a] *)
+         if S.is_empty (S.inter acc wvs) 
+         then scan (S.union acc wvs) rest  (* Ok. None has already be written .. *)
+         else false in
+    scan S.empty acts
               
+  let is_rtl_model { Annot.desc = m; _ } =
+    let is_rtl_transition { Annot.desc = _,_,acts,_,_; _ } = is_rtl acts in
+    let is_rtl_itransition { Annot.desc = _,acts; _ } = is_rtl acts in
+       List.for_all is_rtl_transition m.Syntax.trans
+    && is_rtl_itransition m.Syntax.itrans
+
+  let is_rtl f = is_rtl_model f.model
 end

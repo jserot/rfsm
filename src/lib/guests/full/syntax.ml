@@ -56,6 +56,8 @@ and type_decl = (type_decl_desc,Types.typ) Annot.t
 
 and rfield_desc = string * type_expr 
 
+let mk_alias_type_decl name te = Rfsm.Annot.make (TD_Alias (name, te))
+
 let rec pp_type_decl_desc fmt td = 
   let open Format in
   let pp_rfield fmt (n,t) = fprintf fmt "%s: %a" n pp_type_expr t in
@@ -202,25 +204,17 @@ let subst_lhs phi l =
   | LhsRField (r,f) -> { l with Annot.desc = LhsRField (subst_var phi r, f) } 
   | LhsRange (a,hi,lo) -> { l with Annot.desc = LhsRange (subst_var phi a, subst_expr phi hi, subst_expr phi lo) } 
 
-(** VCD interface *)
-              
-(* let vcd_name lhs =
- *   match lhs.Annot.desc with
- *   | LhsVar v -> v
- *   | LhsIndex (a,i) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr i (\* Note: syntax "a[i]" is not compatible with VCD format *\)
- *   | LhsRange (a,hi,lo) -> a ^ "." ^ Rfsm.Misc.to_string pp_expr hi ^ "." ^ Rfsm.Misc.to_string pp_expr lo
- *   | LhsRField (r,f) -> r ^ "." ^ f *)
-
 (** Pre-processing *)
 
-let is_con0_type c (t: type_expr) =
+let is_con_type c (t: type_expr) =
   match t.Annot.desc with
-  | TeConstr (c', [], _) when c'.Rfsm.Ident.id = c -> true
+  | TeConstr (c', _, _) when c'.Rfsm.Ident.id = c -> true
   | _ -> false
 
-let is_bool_type (t: type_expr) = is_con0_type "bool" t
-let is_int_type (t: type_expr) = is_con0_type "int" t
-let is_event_type (t: type_expr) = is_con0_type "event" t
+let is_bool_type (t: type_expr) = is_con_type "bool" t
+let is_int_type (t: type_expr) = is_con_type "int" t
+let is_event_type (t: type_expr) = is_con_type "event" t
+let is_array_type (t: type_expr) = is_con_type "array" t
 
 let mk_bool_expr te e = match e.Annot.desc with
   | EInt 0 when is_bool_type te -> { e with Annot.desc = EBool false }

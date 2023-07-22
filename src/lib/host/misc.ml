@@ -1,5 +1,9 @@
 exception Not_implemented of string
 exception Fatal_error of string
+
+type act_semantics =
+  | Sequential
+  | Synchronous
                            
 let not_implemented m = raise (Not_implemented m)
 let fatal_error m = raise (Fatal_error m)
@@ -99,3 +103,5 @@ let swap (x,y) = (y,x)
 let pp_subst ~pp_ident fmt phi =
   let pp_subst_comp fmt (id,id') = Format.fprintf fmt "%a->%a" pp_ident id pp_ident id' in
   Format.fprintf fmt "[%a]" (pp_list_h ~sep:", " pp_subst_comp) phi
+
+let fold_left f l acc = List.fold_left f acc l

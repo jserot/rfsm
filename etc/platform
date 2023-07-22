@@ -7,8 +7,8 @@ LIBDIR=/Users/jserot/Dev/ml/rfsm/etc
 
 DOT=dot
 DOTVIEWER=graphviz
-#VCDVIEWER=gtkwave
-VCDVIEWER=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin > /tmp/gtkwave.log 2>&1
+VCDVIEWER=/Users/jserot/bin/gtkwave
+#VCDVIEWER=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin > /tmp/gtkwave.log 2>&1
 TXTVIEWER=nano
 
 CXX=g++

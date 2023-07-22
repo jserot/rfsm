@@ -10,3 +10,4 @@ module Options = Options
 module Builtins = Builtins
 module Ctask = Ctask
 module Systemc = Systemc
+module Vhdl = Vhdl

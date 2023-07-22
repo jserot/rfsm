@@ -41,8 +41,14 @@ let set_target_dir name = target_dir := name
 let set_main_name name = main_name := name
 let set_normalize () = normalize := true
 
-let set_synchronous_actions () = let open Dynamic in cfg.act_semantics <- Synchronous
-let set_sequential_actions () = let open Dynamic in cfg.act_semantics <- Sequential
+let set_synchronous_actions () =
+  Dynamic.cfg.act_semantics <- Misc.Synchronous;
+  Systemc.cfg.sc_act_semantics <- Misc.Synchronous;
+  Vhdl.cfg.vhdl_act_semantics <- Misc.Synchronous
+let set_sequential_actions () =
+  Dynamic.cfg.act_semantics <- Misc.Sequential;
+  Systemc.cfg.sc_act_semantics <- Misc.Sequential;
+  Vhdl.cfg.vhdl_act_semantics <- Misc.Sequential
 let set_sim_trace level = Dynamic.cfg.verbose_level <- level
 
 let set_dot_no_captions () = dot_captions := false
@@ -54,22 +60,22 @@ let set_dot_qual_ids () = Dot.cfg.Dot.qual_ids <- true
 let set_vcd_default_int_size s = Vcd.cfg.Vcd.default_int_size <- s
 
 let set_lib_dir d =
-  Systemc.cfg.Systemc.sc_lib_dir <- d
-  (* Vhdl.cfg.Vhdl.vhdl_lib_dir <- d *)
+  Systemc.cfg.Systemc.sc_lib_dir <- d;
+  Vhdl.cfg.Vhdl.vhdl_lib_dir <- d
 
 let set_stop_time d =
-  Systemc.cfg.Systemc.sc_stop_time <- d
-  (* Vhdl.cfg.Vhdl.vhdl_stop_time <- d *)
+  Systemc.cfg.Systemc.sc_stop_time <- d;
+  Vhdl.cfg.Vhdl.vhdl_stop_time <- d
 
 let set_systemc_time_unit u = Systemc.cfg.Systemc.sc_time_unit <- u
 let set_sc_trace () = Systemc.cfg.Systemc.sc_trace <- true
 let set_sc_double_float () = Systemc.cfg.Systemc.sc_double_float <- true
 
-(* let set_vhdl_time_unit u = Vhdl.cfg.Vhdl.vhdl_time_unit <- u
- * let set_vhdl_ev_duration d = Vhdl.cfg.Vhdl.vhdl_ev_duration <- d
- * let set_vhdl_rst_duration d = Vhdl.cfg.Vhdl.vhdl_reset_duration <- d
- * let set_vhdl_use_numeric_std () = Vhdl.cfg.Vhdl.vhdl_use_numeric_std <- true
- * let set_vhdl_bool_as_bool () = Vhdl.cfg.Vhdl.vhdl_bool_as_bool <- true
- * let set_vhdl_trace () = Vhdl.cfg.Vhdl.vhdl_trace <- true
- * let set_vhdl_dump_ghw () = Vhdl.cfg.Vhdl.vhdl_dump_format <- Vhdl.Ghw *)
+let set_vhdl_time_unit u = Vhdl.cfg.Vhdl.vhdl_time_unit <- u
+let set_vhdl_ev_duration d = Vhdl.cfg.Vhdl.vhdl_ev_duration <- d
+let set_vhdl_rst_duration d = Vhdl.cfg.Vhdl.vhdl_reset_duration <- d
+let set_vhdl_use_numeric_std () = Vhdl_types.cfg.vhdl_use_numeric_std <- true
+let set_vhdl_bool_as_bool () = Vhdl_types.cfg.vhdl_bool_as_bool <- true
+let set_vhdl_trace () = Vhdl.cfg.Vhdl.vhdl_trace <- true
+let set_vhdl_dump_ghw () = Vhdl.cfg.Vhdl.vhdl_dump_format <- Vhdl.Ghw
 

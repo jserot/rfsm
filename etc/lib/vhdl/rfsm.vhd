@@ -9,6 +9,7 @@ package rfsm is
   function cond(e1: boolean; e2: std_logic; e3: std_logic) return std_logic;
   function cond(e1: boolean; e2: std_logic_vector; e3: std_logic_vector) return std_logic_vector;
   function cond(e1: boolean; e2: integer; e3: integer) return integer;
+  function cond(e1: boolean; e2: boolean; e3: boolean) return boolean;
   function cond(e1: boolean; e2: real; e3: real) return real;
   function cond(e1: boolean; e2: character; e3: character) return character;
   function eq(e1: signed; e2: signed) return unsigned;
@@ -83,6 +84,11 @@ package body rfsm is
   end;
 
   function cond(e1: boolean; e2: integer; e3: integer) return integer is
+  begin
+    if e1 then return e2; else return e3; end if;
+  end;
+
+  function cond(e1: boolean; e2: boolean; e3: boolean) return boolean is
   begin
     if e1 then return e2; else return e3; end if;
   end;

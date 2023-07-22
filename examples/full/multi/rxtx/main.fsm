@@ -7,7 +7,7 @@ input wr:bool = value_changes(0:0, 15:1, 25:0)
 shared serial:bit
 
 output dout: int<8>  -- should recover din value here !
-output err: bool
+output err: bit
 
 fsm txd = Txd<4>(clk,din,wr,serial)
 fsm rxd = Rxd<4>(clk,serial,dout,err)

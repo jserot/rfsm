@@ -28,6 +28,7 @@ type sc_config = {
   mutable sc_trace: bool;
   mutable sc_trace_state_var: string;
   mutable sc_double_float: bool;
+  mutable sc_act_semantics: Misc.act_semantics;
   }
 
 let cfg = {
@@ -45,6 +46,7 @@ let cfg = {
   sc_trace = false;
   sc_trace_state_var = "st";
   sc_double_float = false;
+  sc_act_semantics = Misc.Sequential;
   }
 
 module type SYSTEMC = sig
@@ -228,9 +230,6 @@ struct
     fprintf ocf "\n";
     fprintf ocf "  SC_CTOR(%s) {\n" modname;
     fprintf ocf "    SC_THREAD(%s);\n" cfg.sc_proc_name;
-    (* fprintf ocf "    sensitive %a;\n"
-     *   (Misc.pp_list_h ~sep:"" (fun fmt (e,_) -> fprintf ocf " << %s.pos()" e))
-     *   (List.filter (fun (_,t) -> G.Syntax.is_event_type t) m.c_inps); *)
     fprintf ocf "    }\n";
     fprintf ocf "};\n";
     Misc.close_file (oc,ocf);

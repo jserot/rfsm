@@ -30,7 +30,7 @@ let pp_size fmt sz =
   let open Types in 
   match sz with
   | SzExpr1 (TiConst n) -> fprintf fmt "%d" n
-  | SzExpr2 _ -> Rfsm.Misc.not_implemented "Ctask translation of 2D arrays"
+  | SzExpr2 _ -> Rfsm.Misc.not_implemented "SystemC translation of 2D arrays"
   | _ -> fprintf fmt "" (* TO REFINE ? *)
 
 let pp_typ fmt t =
@@ -62,7 +62,6 @@ let pp_op fmt op =
 
 let pp_ident = Rfsm.Ident.pp 
 
-(* let pp_expr fmt ~inps e =  *)
 let pp_expr fmt e = 
   let rec pp level fmt e = match e.Syntax.Annot.desc, e.Syntax.Annot.typ with
   | Syntax.EVar v, _ -> fprintf fmt "%a" pp_access v
@@ -90,8 +89,6 @@ let pp_expr fmt e =
     match id.scope with
     | Global -> fprintf fmt "%s.read()" id.id
     | Local -> fprintf fmt "%s" id.id
-    (* if List.mem id inps then fprintf fmt "%a.read()" pp_ident id
-     * else fprintf fmt "%a" pp_ident id *)
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
@@ -122,14 +119,14 @@ let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
   | Some (Types.TyConstr ("array", [t'], sz)) -> fprintf fmt "%a %a[%a]" pp_typ t' pp_ident name pp_size sz
   | Some t -> fprintf fmt "%a %a" pp_typ t pp_ident name 
-  | None -> Rfsm.Misc.fatal_error "Ctask.pp_typed_symbol"
+  | None -> Rfsm.Misc.fatal_error "Systemc.pp_typed_symbol"
 
 let pp_cst_decl fmt name t = 
   let open Types in 
   match t.Syntax.Annot.typ with
   | Some (TyConstr ("array",_,_)) -> fprintf fmt "extern %a" pp_typed_symbol (name,t)
   | Some _ -> fprintf fmt "%a" pp_typed_symbol (name,t)
-  | None -> Rfsm.Misc.fatal_error "Ctask.pp_cst_decl"
+  | None -> Rfsm.Misc.fatal_error "Systemc.pp_cst_decl"
 
 let pp_cst_impl fmt name t v = 
   fprintf fmt "%a = %a" pp_typed_symbol (name,t) pp_expr v

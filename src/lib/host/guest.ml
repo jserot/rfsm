@@ -31,6 +31,7 @@ module type SYNTAX = sig
   type lhs = (lhs_desc,Types.typ) Annot.t
   val is_bool_type: type_expr -> bool
   val is_event_type: type_expr -> bool
+  val is_array_type: type_expr -> bool
   val mk_bool_expr: type_expr -> expr -> expr
   val lhs_base_name: lhs -> Ident.t
   val lhs_vcd_repr: lhs -> Ident.t
@@ -41,6 +42,7 @@ module type SYNTAX = sig
   val subst_lhs: Ident.subst -> lhs -> lhs
   val vars_of_expr: expr -> Ident.t list
   val vars_of_lhs: lhs -> Ident.t list
+  val mk_alias_type_decl: Ident.t -> type_expr -> type_decl
   (** Printing *)
   val ppr_expr: (Ident.t * type_expr) list -> expr -> expr
   val ppr_lhs: (Ident.t * type_expr) list -> lhs -> lhs
@@ -137,12 +139,32 @@ module type SYSTEMC = sig
   val pp_cst_decl: Format.formatter -> Ident.t -> Syntax.type_expr -> unit
   val pp_lhs: Format.formatter -> Syntax.lhs -> unit
   val pp_expr: Format.formatter -> Syntax.expr -> unit
-  (* val pp_lhs: Format.formatter -> inps:Ident.t list -> Syntax.lhs -> unit
-   * val pp_expr: Format.formatter -> inps:Ident.t list -> Syntax.expr -> unit
-   *    (\* [inps] is required to replace [e] by [e.read()] when [e] is an input *\) *)
   val pp_value: Format.formatter -> value -> unit
   val pp_cst_impl: Format.formatter -> Ident.t -> Syntax.type_expr -> Syntax.expr -> unit
   val pp_type_impl: Format.formatter -> Syntax.type_decl -> unit
+end
+
+(** VHDL interface *)
+
+module type VHDL = sig
+  module Syntax: SYNTAX
+  module Static: STATIC
+  type value
+  (* val pp_typed_symbol: Format.formatter -> Ident.t * Syntax.type_expr -> unit *)
+  val pp_type_expr: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.type_expr -> unit
+  val pp_typ: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.Types.typ -> unit
+  (* val pp_cst_decl: Format.formatter -> Ident.t -> Syntax.type_expr -> unit *)
+  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
+  val pp_expr: Format.formatter -> Syntax.expr -> unit
+  val pp_value: Format.formatter -> value * Vhdl_types.t -> unit
+  (* val pp_cst_impl: Format.formatter -> Ident.t -> Syntax.type_expr -> Syntax.expr -> unit *)
+  (* val pp_type_impl: Format.formatter -> Syntax.type_decl -> unit *)
+  val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
+  val pp_type_fns_intf: Format.formatter -> Syntax.type_decl -> unit (** Auxilliary fns attached to a user-defined type *)
+  val pp_type_fns_impl: Format.formatter -> Syntax.type_decl -> unit (** Auxilliary fns attached to a user-defined type *)
+  (* val pp_array_type_decl: Format.formatter -> Syntax.type_expr -> unit *)
+  val vhdl_type_of: Syntax.Types.typ -> Vhdl_types.t
+  val allowed_shared_type: Syntax.Types.typ -> bool  (** Used for checking model translatability *)
 end
                   
 (** Error handling *)
@@ -169,6 +191,7 @@ module type T = sig
   module Eval : EVAL with module Syntax = Syntax and module Value = Value
   module Ctask: CTASK with module Syntax = Syntax
   module Systemc: SYSTEMC with module Syntax = Syntax and module Static = Static and type value = Value.t
+  module Vhdl: VHDL with module Syntax = Syntax and module Static = Static and type value = Value.t
   module Error : ERROR
   module Options : OPTIONS
 end

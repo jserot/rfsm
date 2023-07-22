@@ -1,10 +1,12 @@
 COMPILER
 
-- VHDL backend
+- `CModel.c_consts` = `c_params` ? 
+- results for full/multi/handshake-v{1,2} (one clk delay ?)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - document lib/host/guest.ml
 - banner
 - replace all string's by Ident.t's (?)
+- refine translation of parameterized types (ex: int<n> when [n] is a model parameter) in SystemC and VHDL backends
 - dual error reporting mechanism (CLC / RfsmLight)
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - display enums as string in SystemC generated VCDs (currently not supported by SystemC 2.3) 

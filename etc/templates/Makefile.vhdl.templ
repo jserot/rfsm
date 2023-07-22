@@ -9,7 +9,11 @@ run: %%MAIN%%
 	$(GHDL) -r $(GHDLOPTS) %%MAIN%% %%DUMPOPT%%=%%MAIN%%.%%DUMPFMT%%
 
 view: run
-	$(VCDVIEWER) %%MAIN%%.%%DUMPFMT%% %%MAIN%%.gtkw > /tmp/gtkwave.log 2>&1; echo $$?
+	if [[ -f %%MAIN%%.ghw ]]; then \
+		$(VCDVIEWER) %%MAIN%%.ghw %%MAIN%%.gtkw > /tmp/gtkwave.log 2>&1; echo $$?; \
+	else \
+		$(VCDVIEWER) %%MAIN%%.vcd %%MAIN%%.sav > /tmp/gtkwave.log 2>&1; echo $$?; \
+	fi; \
 
 clean:
 	\rm -f work*.cf

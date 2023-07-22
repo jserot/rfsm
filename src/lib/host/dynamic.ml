@@ -1,16 +1,12 @@
 (** Dynamic semantics *)
 
-type act_semantics =
-  | Sequential
-  | Synchronous
-  
 type cfg = {
-    mutable act_semantics: act_semantics;
+    mutable act_semantics: Misc.act_semantics;
     mutable verbose_level: int;
   }
          
 let cfg = {
-    act_semantics = Sequential;
+    act_semantics = Misc.Sequential;
     verbose_level = 0;
   }
 
@@ -306,7 +302,7 @@ struct
    let run (p: Syntax.program) (s: Static.t) =
      let sts = extract_stimuli p in
      match cfg.act_semantics with
-     | Sequential -> r_exec s sts
-     | Synchronous -> Misc.not_implemented "Dynamic.run with synchronous semantics for actions"
+     | Misc.Sequential -> r_exec s sts
+     | Misc.Synchronous -> Misc.not_implemented "Dynamic.run with synchronous semantics for actions"
    
 end
