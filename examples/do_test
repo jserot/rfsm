@@ -22,6 +22,7 @@ systemc) make systemc;;
 systemc.code) make systemc.code;;
 systemc.run) make systemc.run;;
 systemc.sim) make systemc.sim;;
+vhdl) make vhdl;;
 vhdl.code) make vhdl.code;;
 vhdl.run) make vhdl.run;;
 vhdl.sim) make vhdl.sim;;

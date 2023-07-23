@@ -74,7 +74,7 @@ vhdl.view:
 	if [ -d ./vhdl ]; then cd ./vhdl; make view; fi
 
 vhdl.sim: sim.run vhdl.run
-	$(VCDVIEWER) ./sim/$(MAIN).vcd ./sim/$(MAIN).sim > /tmp/gtkwave.log 2>&1 &
+	$(VCDVIEWER) ./sim/$(MAIN).vcd ./sim/$(MAIN).gtkw > /tmp/gtkwave.log 2>&1 &
 	if [ -d ./vhdl ]; then cd ./vhdl; make view; fi
 
 view:

@@ -1,0 +1,35 @@
+-- FSM model a a simple Reverse Polish Calculator with a 3-places stack (X,Y,Z)
+--
+-- Input is a sequence of tokens, each token being a number, the Enter key or an operator (+,-,*,/)/
+-- Input tokens are read whenever input "wr" is true on event "h"
+-- Output is a sequence of numbers
+--
+-- This example demonstrates the use of [enum] and [record] used-defined types
+
+type tag_t = enum { Number, Enter, Plus, Minus, Times, Div }
+
+type token_t = record {
+ tag: tag_t,  -- Token type
+ val: int     -- Value when [tag=Number]
+ }
+
+fsm model rpcalc(
+  in h: event,
+  in wr: bool,
+  in inp: token_t,
+  out outp: int)
+{
+  states: Idle;
+  vars: x,y,z: int, -- The compute stack
+        l: bool;    -- Lift/no lift flag
+  trans:
+  | Idle -> Idle on h when (wr=1).(inp.tag=Number).(l=1) with z:=y, y:=x, x:=inp.val -- <number> => Push on stack
+  | Idle -> Idle on h when (wr=1).(inp.tag=Number).(l=0) with x:=inp.val -- <number> => Write on top of stack
+  | Idle -> Idle on h when (wr=1).(inp.tag=Enter) with z:=y, y:=x, l:=0 -- <enter> => Lift stack up
+  | Idle -> Idle on h when (wr=1).(inp.tag=Plus) with x:=y+x, y:=z, outp:=x, l:=1 -- <op> => Compute, lift stack down and emit
+  | Idle -> Idle on h when (wr=1).(inp.tag=Minus) with x:=y-x, y:=z, outp:=x, l:=1
+  | Idle -> Idle on h when (wr=1).(inp.tag=Times) with x:=y*x, y:=z, outp:=x, l:=1
+  | Idle -> Idle on h when (wr=1).(inp.tag=Div) with x:=y/x, y:=z, outp:=x, l:=1;
+  itrans:
+  | -> Idle with l:=0, y:=0;
+}

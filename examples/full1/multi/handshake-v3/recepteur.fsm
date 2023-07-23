@@ -1,0 +1,15 @@
+fsm model Recepteur(
+  in h: event,
+  in e_rdy: bool,
+  in data: t_data,
+  out r_rdy: bool,
+  out dout: t_data)
+{
+  states: R1 where r_rdy=1, R2 where r_rdy=0;
+  vars: t: int;
+  trans:
+  | R1 -> R2 on h when e_rdy=1 with dout:=data
+  | R2 -> R1 on h when e_rdy=0;
+  itrans:
+  | -> R1;
+}

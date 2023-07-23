@@ -1,0 +1,17 @@
+-- Synchronisation de deux automates par un protocole de type handshake
+-- CF par ex [1] "Architectures Logicielles et Materielles". Amblard et al. Dunod. Sec 3.2 pp 125-128
+-- v2. Horloges emetteur et recepteur identiques mais rythmes respectifs ajustables.
+input H:event = periodic(10,10,400)
+
+shared e_rdy, r_rdy:bool
+shared v:t_data
+
+output r_data: t_data
+
+-- Scenario 1 : recepteur plus lent que l'emetteur
+-- fsm e = Emetteur<1>(H,r_rdy,v,e_rdy)
+-- fsm r = Recepteur<3>(H,e_rdy,v,r_rdy,r_data)
+
+-- Scenario 2 : emetteur plus lent que le recepteur
+fsm e = Emetteur<3>(H,r_rdy,v,e_rdy)
+fsm r = Recepteur<1>(H,e_rdy,v,r_rdy,r_data)
