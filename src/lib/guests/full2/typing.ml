@@ -51,25 +51,10 @@ let rec type_of_type_expr env te =
     match te.Annot.desc with
     | Syntax.TeConstr (c,[],[]) ->
        lookup ~exc:(Undefined ("type constructor",te.Annot.loc, c)) c env.te_tycons |> snd
-    | Syntax.TeConstr (c,args,sz) ->
-       Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, size_of_size_expr c sz) in
+    | Syntax.TeConstr (c,args,szs) ->
+       Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, szs) in
   te.Annot.typ <- Some ty;
   ty
-
-and size_of_size_expr c sz = 
-  match c.Rfsm.Ident.id, sz with 
-  | "int", [] -> Types.new_size_var ()
-  | "array", [] -> Types.new_size_var ()
-  | _, [] -> Types.SzNone
-  | _, [s] -> Types.SzExpr1 (type_index_of_index_expr s)
-  | _, [lo;hi] -> Types.SzExpr2 (type_index_of_index_expr lo, type_index_of_index_expr hi)
-  | _, _ -> Rfsm.Misc.fatal_error "Full.Typing.size_of_size_expr" (* Should not happen thx to parsing defns *)
-
-and type_index_of_index_expr e =
-  match e.Annot.desc with 
-    Syntax.TiConst c -> Types.Index.TiConst c
-  | Syntax.TiVar v -> Types.Index.TiVar v
-  | Syntax.TiBinop (op,e1,e2) -> Types.Index.TiBinop (op, type_index_of_index_expr e1, type_index_of_index_expr e2)
 
 let rec type_expression env e =
   let loc = e.Annot.loc in
@@ -84,13 +69,16 @@ let rec type_expression env e =
        let ty_args = List.map (type_expression env) [e1;e2] in
        type_application ~loc:e.Annot.loc env ty_fn ty_args
     | Syntax.ECon0 c -> lookup ~exc:(Undefined ("value constructor",e.Annot.loc,c)) c env.te_ctors
-    | Syntax.EIndexed (a,i) -> type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *)
+    | Syntax.EIndexed (a,i) ->
+       let r = type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *) in
+       (* Format.printf "Full2.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
+       r
     | Syntax.ERanged (a,i1,i2) -> type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lhs *)
     | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 
        let ty_e1 = type_expression env e1 in
        List.iter (function e -> Types.unify ~loc ty_e1 (type_expression env e)) es;
-       Types.type_sized_array ty_e1 (List.length exps)
+       Types.type_array ty_e1 (List.length exps)
     | Syntax.ECond (e1,e2,e3) ->
        let ty_e1 = type_expression env e1 in
        let ty_e2 = type_expression env e2 in
@@ -98,9 +86,9 @@ let rec type_expression env e =
        Types.unify ~loc ty_e1 (Types.type_bool ());
        Types.unify ~loc ty_e2 ty_e3;
        ty_e2
-  | Syntax.ECast (e,te) ->
-      let ty_e = type_expression env e in
-      let ty_t = type_of_type_expr env te in
+  | Syntax.ECast (e',te) ->
+      let ty_e = Types.real_type @@ type_expression env e' in
+      let ty_t = Types.real_type @@ type_of_type_expr env te in
       type_cast e ty_e ty_t 
   | Syntax.EFapp (f,es) ->
       let ty_args = List.map (type_expression env) es in
@@ -146,7 +134,7 @@ and type_indexed_expr ~loc env a i =
   let ty_i = type_expression env i in
   Types.unify ~loc:i.Annot.loc ty_i (Types.type_unsized_int ());
   match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
-  | TyConstr ("int", _, _) -> Types.type_sized_int 1
+  | TyConstr ("int", _, _) -> Types.type_bit ()
   | TyConstr ("array", [t'], _) -> t'
   | _ -> raise (Illegal_expr (loc, "only int's and array's can be indexed"))
 
@@ -161,12 +149,16 @@ and type_ranged_expr ~loc env a i1 i2 =
 
 and type_cast e t1 t2 = match t1, t2 with
   | TyConstr("int",_,_), TyConstr("int",_,_)
+  | TyConstr("int",_,_), TyConstr("bit",_,_)
   | TyConstr("int",_,_), TyConstr("bool",_,_)
   | TyConstr("int",_,_), TyConstr ("char",_,_)
   | TyConstr ("char",_,_), TyConstr("int",_,_)
   | TyConstr("int",_,_), TyConstr ("float",_,_)
   | TyConstr("bool",_,_), TyConstr("bool",_,_)
   | TyConstr("bool",_,_), TyConstr("int",_,_)
+  | TyConstr("bit",_,_), TyConstr("bit",_,_)
+  | TyConstr("bit",_,_), TyConstr("int",_,_)
+  | TyConstr("bit",_,_), TyConstr("bool",_,_)
   | TyConstr ("float",_,_), TyConstr ("float",_,_)
   | TyConstr ("float",_,_), TyConstr("int",_,_) -> t2
   | _, _ -> raise (Illegal_cast e)
@@ -182,7 +174,7 @@ let type_type_decl env td =
     add_env (Duplicate ("record field name", td.Annot.loc, nm)) lenv (nm,(ty',ty)) in
   let ty,env' = match td.Annot.desc with
     | Syntax.TD_Enum (name, ctors) -> 
-       let ty = Types.TyConstr (name.Rfsm.Ident.id, [], SzNone) in
+       let ty = Types.TyConstr (name.Rfsm.Ident.id, [], []) in
        ty,
        { env with te_tycons = add_tycon ty env.te_tycons (name,0);
                   te_ctors = List.fold_left (add_ctor ty) env.te_ctors ctors }

@@ -15,36 +15,23 @@ let mk_global_ident = Rfsm.Ident.mk ~scope:Global
 
 type type_expr = (type_expr_desc,Types.typ) Annot.t
 and type_expr_desc = 
-  | TeConstr of ident * type_expr list * type_index_expr list (* name, args, size annotations *) 
+  | TeConstr of ident * type_expr list * type_size (* name, args, size annotations *) 
 
-and type_index_expr_desc =
-  | TiConst of int
-  | TiVar of string
-  | TiBinop of string * type_index_expr * type_index_expr
-and type_index_expr = (type_index_expr_desc,unit) Annot.t
+and type_size = int list (* []: none, [s] size for ints and arrays, [lo;hi] range for ints *)
 
 let rec pp_type_expr_desc fmt te = 
   let open Format in
   match te with
-  | TeConstr (c,[],sz) -> fprintf fmt "%a%a" pp_ident c (pp_siz c) sz
-  | TeConstr (c,[t'],sz) -> fprintf fmt "%a %a%a" pp_type_expr t' pp_ident c (pp_siz c) sz
-  | TeConstr (c,ts,sz) -> fprintf fmt "(%a) %a%a" (Rfsm.Misc.pp_list_h ~sep:"," pp_type_expr) ts pp_ident c (pp_siz c) sz
+  | TeConstr (c,[],sz) -> fprintf fmt "%a%a" pp_ident c (pp_size c) sz
+  | TeConstr (c,[t'],sz) -> fprintf fmt "%a %a%a" pp_type_expr t' pp_ident c (pp_size c) sz
+  | TeConstr (c,ts,sz) -> fprintf fmt "(%a) %a%a" (Rfsm.Misc.pp_list_h ~sep:"," pp_type_expr) ts pp_ident c (pp_size c) sz
 and pp_type_expr fmt te = 
   Format.fprintf fmt "%a" pp_type_expr_desc te.Annot.desc 
 
-and pp_siz c fmt sz =
+and pp_size c fmt sz =
   match sz with
   | [] -> ()
-  | _ -> Format.fprintf fmt "<%a>" (Rfsm.Misc.pp_list_h ~sep:"," pp_type_index_expr) sz
-
-and pp_type_index_expr_desc fmt ie = 
-  let open Format in
-  match ie with
-  | TiConst i -> fprintf fmt "%d" i
-  | TiVar v -> fprintf fmt "%s" v
-  | TiBinop (op,e1,e2) -> fprintf fmt "%a%s%a" pp_type_index_expr e1 op pp_type_index_expr e2 (* TODO : add parens *)
-and pp_type_index_expr fmt ie = 
-  Format.fprintf fmt "%a" pp_type_index_expr_desc ie.Annot.desc 
+  | _ -> Format.fprintf fmt "<%a>" (Rfsm.Misc.pp_list_h ~sep:"," Format.pp_print_int) sz
 
 (** Type declarations *)
                 
@@ -213,6 +200,7 @@ let is_con_type c (t: type_expr) =
 
 let is_bool_type (t: type_expr) = is_con_type "bool" t
 let is_int_type (t: type_expr) = is_con_type "int" t
+let is_bit_type (t: type_expr) = is_con_type "bit" t
 let is_event_type (t: type_expr) = is_con_type "event" t
 let is_array_type (t: type_expr) = is_con_type "array" t
 
@@ -229,19 +217,17 @@ let mkuminus name e =
 
 let ppr_expr env e =
   (* Replace all bool expr [e op 0/1], where [e:bool] and [op] is [=] or [!=] by [e op false/true] *)
-  (* Replace all exprs [e[i]] where [e:int] by [e[i:i]] *)
   let type_of v =
     (* Since pre-processing is carried out _before_ typing, the only type-related available information
        is given by the type expressions assigned to identifiers in the enclosing model *)
     try List.assoc v env
     with Not_found -> Rfsm.Misc.fatal_error "Full.Syntax.ppr_expr" in
   let has_bool_type v = is_bool_type (type_of v) in
-  let has_int_type v = is_int_type (type_of v) in
   match e.Annot.desc with
   | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e'') when List.mem op.Rfsm.Ident.id ["="; "!="] && has_bool_type v  ->  
-       { e with Annot.desc = EBinop (op, e', mk_bool_expr (type_of v) e'') }
-  | EIndexed (a,i) when has_int_type a ->
-       { e with Annot.desc = ERanged (a,i,i) }
+       let e''' = { e with Annot.desc = EBinop (op, e', mk_bool_expr (type_of v) e'') } in
+       (* Format.printf "Full.Syntax.ppr_expr: %a(%a) -> %a\n" pp_expr e pp_type_expr (type_of v) pp_expr e'''; *)
+       e'''
   | _ -> e
 
 let ppr_lhs _ l = l 

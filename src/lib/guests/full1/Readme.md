@@ -1,5 +1,4 @@
-`Full` language with
-- (unsized) ints, bools, floats, chars
+- (unsized) ints, bools, floats, chars and fixed size arrays
 - type declarations (aliases, enums, records)
 - function declarations
 - constant declarations

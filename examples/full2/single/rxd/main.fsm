@@ -1,6 +1,17 @@
 input clk:event = periodic(10,10,550)
-input sin:bit = value_changes(0:1, 105:0, 145:1, 185:0, 225:1, 265:0, 305:0, 345:0, 385:1, 425:0, 465:1, 505:1) -- 0x45,P=1
---                                 START     B0     B1     B2     B3     B4     B5     B6     B7      P   STOP
+input sin:bit = value_changes( -- 0x45,P=1
+    0:1::bit, -- START
+  105:0::bit, -- B0
+  145:1::bit, -- B1
+  185:0::bit, -- B2
+  225:1::bit, -- B3
+  265:0::bit, -- B4
+  305:0::bit, -- B5
+  345:0::bit, -- B6
+  385:1::bit, -- B7
+  425:0::bit, -- P
+  465:1::bit, -- STOP
+  505:1::bit)
 output dout: int<8>
 output err: bit
 

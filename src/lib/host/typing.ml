@@ -49,6 +49,8 @@ struct
       | HostSyntax.Assign (lhs,expr) -> 
          let t = GuestTyping.type_lhs env lhs in
          let t' = GuestTyping.type_expression env expr in
+         (* let pp_typ = GuestTyping.Syntax.Types.pp_typ ~abbrev:false in
+          * Format.printf "Host.type_fsm_action %a: %a <- %a\n" HostSyntax.pp_action act pp_typ t pp_typ t'; *)
          GuestTyping.type_check ~loc t t';
          t in
     act.Annot.typ <- Some ty

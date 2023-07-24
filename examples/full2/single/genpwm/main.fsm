@@ -1,4 +1,4 @@
--- PWM generator
+-- This is a rewriting of ../../../full1/single/genpwm using a ranged int type for the [r] input
 
 fsm model pwm(
   in startstop: event,
@@ -7,9 +7,9 @@ fsm model pwm(
   out s: bool)
 {
   states: Stopped, Running;
-  vars: c: int;
+  vars: c: int, foo: int;
   trans:
-  | Stopped -> Running on startstop with c:=0
+  | Stopped -> Running on startstop with c:=0, foo:=r
   | Stopped -> Stopped on h with s:=0
   | Running -> Running on h when c<r with s:=1, c:=(c+1)%10
   | Running -> Running on h when c>=r with s:=0, c:=(c+1)%10

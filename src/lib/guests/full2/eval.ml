@@ -107,11 +107,13 @@ and eval_cast ~loc ty v =
   let mk v = v in
   match v, ty with
   | Val_int _, Types.TyConstr ("int", _, _) -> v
+  | Val_int _, Types.TyConstr ("bit", _, _) -> v
   | Val_int x, Types.TyConstr ("bool", _, _) -> mk (Val_bool (x <> 0))
   | Val_int x, Types.TyConstr ("float", _, _) -> mk (Val_float (float_of_int x))
   (* | Val_int x, Types.TyConstr ("char", _, _) -> mk (Val_char (char_of_int x)) *)
   | Val_bool _, Types.TyConstr ("bool", _, _) -> v
   | Val_bool b, Types.TyConstr ("int", _, _) -> mk (Val_int (if b then 1 else 0))
+  | Val_bool b, Types.TyConstr ("bit", _, _) -> mk (Val_int (if b then 1 else 0))
   | Val_float _, Types.TyConstr ("float", _, _) -> v
   | Val_float x, Types.TyConstr ("int", _, _) -> mk (Val_int (int_of_float x))
   (* | Val_char x, Types.TyConstr ("int", _, _) -> mk (Val_int (int_of_char x)) *)

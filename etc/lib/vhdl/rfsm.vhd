@@ -47,6 +47,7 @@ package rfsm is
   function to_integer(e: integer) return integer;
   function to_integer(e: boolean) return integer;
   function to_integer(e: character) return integer;
+  function to_stdlogic(e: integer) return std_logic;
 
   procedure notify_ev(signal s: out std_logic; duration: time);
   
@@ -321,6 +322,11 @@ package body rfsm is
   function to_integer(e: character) return integer is
   begin
       return character'pos(e);
+  end;
+
+  function to_stdlogic(e: integer) return std_logic is
+  begin
+      if ( e /= 0 ) then return '1'; else return '0'; end if; 
   end;
 
   procedure notify_ev(signal s: out std_logic; duration: time) is

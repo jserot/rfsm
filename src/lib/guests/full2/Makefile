@@ -1,7 +1,7 @@
 all: byte 
 
 byte:
-	dune build full.cma
+	dune build full2.cma
 
 clean:
 	dune clean

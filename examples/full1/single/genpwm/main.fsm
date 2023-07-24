@@ -1,4 +1,6 @@
--- PWM generator
+-- Simple PWM generator
+-- See also ../../../full2/single/genpwm for a variant 
+
 
 fsm model pwm(
   in startstop: event,

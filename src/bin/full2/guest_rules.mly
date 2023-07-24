@@ -13,41 +13,24 @@ ctor:
   | c = UID { c }
 
 type_expr:
-  | TYINT sz=int_annot
-    { mk ~loc:($symbolstartofs,$endofs) (TeConstr (mk_global_ident "int", [], sz)) }
-  | t=type_expr TYARRAY LBRACKET s=array_size RBRACKET
-    { mk ~loc:($symbolstartofs,$endofs) (TeConstr (mk_global_ident "array", [t], s)) }
+  | TYINT szs=int_annot
+    { mk ~loc:($symbolstartofs,$endofs) (TeConstr (mk_global_ident "int", [], szs)) }
+  | t=type_expr TYARRAY LBRACKET szs=array_size RBRACKET
+    { mk ~loc:($symbolstartofs,$endofs) (TeConstr (mk_global_ident "array", [t], szs)) }
   | c = LID
     { mk ~loc:($symbolstartofs,$endofs) (TeConstr (mk_global_ident c, [], [])) }
 
 int_annot:
     | (* Nothing *)
       { [] }
-    | LT w=type_index_expr GT
+    | LT w=INT GT
         { [w] }
-    | LT lo=type_index_expr COLON hi=type_index_expr GT
+    | LT lo=INT COLON hi=INT GT
         { [lo; hi] }
 
 array_size:
-    | sz = type_index_expr { [sz] }
-
-type_index_expr:
-  | c = INT
-      { mk ~loc:($symbolstartofs,$endofs) (TiConst c) }
-  | i = LID
-      { mk ~loc:($symbolstartofs,$endofs) (TiVar i) }
-  | LPAREN e = type_index_expr RPAREN
-      { e }
-  | e1 = type_index_expr PLUS e2 = type_index_expr
-      { mk ~loc:($symbolstartofs,$endofs) (TiBinop ("+", e1, e2)) }
-  | e1 = type_index_expr MINUS e2 = type_index_expr
-      { mk ~loc:($symbolstartofs,$endofs) (TiBinop ("-", e1, e2)) }
-  | e1 = type_index_expr TIMES e2 = type_index_expr
-      { mk ~loc:($symbolstartofs,$endofs) (TiBinop ("*", e1, e2)) }
-  | e1 = type_index_expr DIV e2 = type_index_expr
-      { mk ~loc:($symbolstartofs,$endofs) (TiBinop ("/", e1, e2)) }
-  | e1 = type_index_expr MOD e2 = type_index_expr
-      { mk ~loc:($symbolstartofs,$endofs) (TiBinop ("mod", e1, e2)) }
+    | sz=INT { [sz] }
+    (* TODO : n-dim arrays ? *)
 
 expr:
   | e = simple_expr { e }
@@ -110,6 +93,7 @@ const:
 
 stim_const: 
   | c = scalar_const { c }
+  | c = scalar_const COLONCOLON t = type_expr { mk ~loc:($symbolstartofs,$endofs) (ECast (c,t)) }
   | c = UID { mk ~loc:($symbolstartofs,$endofs) (ECon0 (mk_global_ident c)) }
   | c = record_const { mk ~loc:($symbolstartofs,$endofs) c }
 

@@ -14,12 +14,13 @@ let rec vhdl_type_of t =
   match Types.real_type t with 
     | Types.TyConstr ("event",[],_) -> Std_logic
     | Types.TyConstr ("bool",[],_) -> if cfg.vhdl_bool_as_bool then Boolean else Std_logic
+    | Types.TyConstr ("bit",[],_) -> Std_logic
     | Types.TyConstr ("float",[],_) -> Real
     | Types.TyConstr ("char",[],_) -> Char
-    | Types.TyConstr ("int",[],SzExpr1 (TiConst sz)) ->
+    | Types.TyConstr ("int",[],[sz]) ->
        if cfg.vhdl_use_numeric_std then Unsigned sz
        else Integer (Some (0, 1 lsl sz - 1))
-    | Types.TyConstr ("int",[],SzExpr2 (TiConst lo, TiConst hi)) ->
+    | Types.TyConstr ("int",[],[lo;hi]) ->
        (* if cfg.vhdl_use_numeric_std then
         *   if lo < 0 then Signed (Rfsm.Bits.bit_size (max (-lo) hi)) else Unsigned (Rfsm.Bits.bit_size hi)
         * else *)
@@ -27,7 +28,7 @@ let rec vhdl_type_of t =
     | TyConstr ("int",[],sz) ->
        Integer None
     | TyConstr (c,[],_) -> Enum (c,[]) (* TO FIX - add ctors ? *)
-    | TyConstr ("array",[t'],SzExpr1(TiConst sz)) -> Array (sz, vhdl_type_of t')
+    | TyConstr ("array",[t'],[sz]) -> Array (sz, vhdl_type_of t')
     | TyRecord (nm, fs) ->
        Record (nm, List.map (function (n,ty) -> n, vhdl_type_of ty) fs)
     | _ -> raise (Unsupported_type (Some t))
@@ -128,12 +129,6 @@ and pp_range fmt (hi,lo) =
   | _, _ -> fprintf fmt "%a downto %a" pp_int_expr hi pp_int_expr lo
 
 and pp_cast fmt (e,te) = 
-  Format.printf "**pp_cast(%a:%a,%a): %a -> %a\n"
-    Syntax.pp_expr e
-    (Rfsm.Misc.pp_opt (Types.pp_typ ~abbrev:false)) e.Rfsm.Annot.typ
-    Syntax.pp_type_expr te
-    (Rfsm.Vhdl_types.pp ~type_mark:Rfsm.Vhdl_types.TM_Full) (vhdl_type_of_opt e.Rfsm.Annot.typ)
-    (Rfsm.Vhdl_types.pp ~type_mark:Rfsm.Vhdl_types.TM_Full) (vhdl_type_of_opt te.Rfsm.Annot.typ);
   let open Format in
   match vhdl_type_of_opt e.Rfsm.Annot.typ, vhdl_type_of_opt te.Rfsm.Annot.typ with
   | Integer _, Unsigned n -> fprintf fmt "conv_unsigned(%a,%d)" pp_expr e n
@@ -154,6 +149,7 @@ and pp_cast fmt (e,te) =
   | Unsigned _, Char -> fprintf fmt "to_char(%a)" pp_expr e
   | Char, Integer _ -> fprintf fmt "to_integer(%a)" pp_expr e
   | Char, Unsigned n -> fprintf fmt "conv_unsigned(%a,%d)" pp_expr e n
+  | Integer _, Std_logic ->  fprintf fmt "to_stdlogic(%a)" pp_expr e
   | t, t' when t=t' -> pp_expr fmt e
   | _, _ -> raise (Illegal_cast e)
 
@@ -232,7 +228,7 @@ let pp_type_fns_impl fmt td =
 
 let pp_array_type_decl fmt te =
   match te.Rfsm.Annot.typ with
-  | Some (Types.TyConstr ("array",[t'],SzExpr1(TiConst sz)) as t) -> 
+  | Some (Types.TyConstr ("array",[t'],[sz]) as t) -> 
      let open Rfsm.Vhdl_types in
      let pp_typ = pp_typ ~type_mark:TM_Abbr in
      fprintf fmt "  type %a is array (0 to %d) of %a;\n" pp_typ t (sz-1) pp_typ t'
@@ -241,6 +237,7 @@ let pp_array_type_decl fmt te =
 let allowed_shared_type ty = 
   match ty with 
     | Types.TyConstr ("int",[],_)
+    | Types.TyConstr ("bit",[],_)
     | Types.TyConstr ("bool",[],_)
     | Types.TyConstr ("float",[],_)
     | Types.TyConstr ("char",[],_)

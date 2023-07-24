@@ -32,13 +32,6 @@ let rec pp_type_decl_desc fmt td =
      fprintf fmt "typedef %a %a;" pp_type_expr t pp_ident name
 and pp_type_decl fmt td = Format.fprintf fmt "%a@." pp_type_decl_desc td.Syntax.Annot.desc
 
-let pp_size fmt sz = 
-  let open Types in 
-  match sz with
-  | SzExpr1 (TiConst n) -> fprintf fmt "%d" n
-  | SzExpr2 _ -> Rfsm.Misc.not_implemented "Ctask translation of 2D arrays"
-  | _ -> fprintf fmt "" (* TO REFINE ? *)
-
 let pp_simple_type fmt t =
   let open Types in 
   match t with
@@ -85,7 +78,7 @@ let pp_expr fmt e =
 let pp_typed_symbol fmt (name,t) =
   let open Types in 
   match t.Syntax.Annot.typ with
-  | Some (TyConstr ("array", [t'], sz)) -> fprintf fmt "%a %a[%a]" pp_simple_type t' pp_ident name pp_size sz
+  | Some (TyConstr ("array", [t'], [sz])) -> fprintf fmt "%a %a[%d]" pp_simple_type t' pp_ident name sz
   | Some t -> fprintf fmt "%a %a" pp_simple_type t pp_ident name 
   | None -> Rfsm.Misc.fatal_error "Ctask.pp_typed_symbol"
 

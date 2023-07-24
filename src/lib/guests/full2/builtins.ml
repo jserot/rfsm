@@ -3,27 +3,29 @@ open Types
 type typ_scheme = Types.typ_scheme
 
 let type_arithm2 () = 
-  let sz = Types.make_var () in
   { ts_tparams = [];
-    ts_sparams = [sz];
     ts_body =
       type_arrow
-        (type_product [type_int (SzVar sz); type_int (SzVar sz)])
-        (type_int (SzVar sz)) }
+        (type_product [type_unsized_int (); type_unsized_int ()])
+        (type_unsized_int ()) }
 
 let type_arithm1 () = 
-  let sz = Types.make_var () in
   { ts_tparams = [];
-    ts_sparams = [sz];
     ts_body =
       type_arrow
-        (type_int (SzVar sz))
-        (type_int (SzVar sz)) }
+        (type_unsized_int ())
+        (type_unsized_int ()) }
+
+let type_bit2 () = 
+  { ts_tparams = [];
+    ts_body =
+      type_arrow
+        (type_product [type_bit (); type_bit ()])
+        (type_bit ()) }
 
 let type_compar () = 
   let tv = Types.make_var () in
   { ts_tparams = [tv];
-    ts_sparams = [];
     ts_body =
       type_arrow
         (type_product [TyVar tv; TyVar tv])
@@ -31,7 +33,6 @@ let type_compar () =
 
 let type_farithm2 () = 
   { ts_tparams=[];
-    ts_sparams=[];
     ts_body=
       type_arrow
         (type_product [type_float (); type_float ()])
@@ -39,7 +40,6 @@ let type_farithm2 () =
 
 let type_farithm1 () = 
   { ts_tparams=[];
-    ts_sparams=[];
     ts_body= type_arrow (type_float ()) (type_float ()) }
 
 exception Unknown_value
@@ -106,9 +106,9 @@ let env = [
     "%", (type_arithm2 (), prim2 encode_int  ( mod ) decode_int);
     ">>", (type_arithm2 (), prim2 encode_int  ( lsr ) decode_int);
     "<<", (type_arithm2 (), prim2 encode_int  ( lsl ) decode_int);
-    "&", (type_arithm2 (), prim2 encode_int  ( land ) decode_int);
-    "|", (type_arithm2 (), prim2 encode_int  ( lor ) decode_int);
-    "^", (type_arithm2 (), prim2 encode_int  ( lxor ) decode_int);
+    "&", (type_bit2 (), prim2 encode_int  ( land ) decode_int);
+    "|", (type_bit2 (), prim2 encode_int  ( lor ) decode_int);
+    "^", (type_bit2 (), prim2 encode_int  ( lxor ) decode_int);
     "+.", (type_farithm2 (), prim2 encode_float  ( +. ) decode_float);
     "-.", (type_farithm2 (), prim2 encode_float  ( -. ) decode_float);
     "*.", (type_farithm2 (), prim2 encode_float  ( *. ) decode_float);
@@ -134,10 +134,12 @@ let typing_env =
   { tycons = [
       mk_ident "event", (0, Types.type_event ());
       mk_ident "int", (0, Types.type_unsized_int ());
+      mk_ident "bit", (0, Types.type_bit ());
+      (* Note: type [bit] is essentially equal to [int<1>]. It is introduced to ease to translation to VHDL code (std_logic) *)
       mk_ident "bool", (0, Types.type_bool ());
       mk_ident "float", (0, Types.type_float ());
       mk_ident "char", (0, Types.type_char ());
-      mk_ident "array", (1, Types.type_unsized_array (Types.new_type_var ()));
+      (* mk_ident "array", (1, Types.type_unsized_array (Types.new_type_var ())); *) (* TO FIX *)
       ];
     ctors = [
       mk_ident "true", Types.type_bool ();

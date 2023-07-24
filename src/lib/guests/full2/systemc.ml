@@ -15,8 +15,9 @@ let pp_type_expr fmt te =
   let open Syntax in
   let open Rfsm.Ident in
   match te.Annot.desc with
-  | TeConstr ({id="int";_},[],[{Annot.desc=TiConst sz;_}]) -> fprintf fmt "sc_uint<%d>" sz
+  | TeConstr ({id="int";_},[],[sz]) -> fprintf fmt "sc_uint<%d>" sz
   | TeConstr ({id="int";_},[],_) -> fprintf fmt "int" 
+  | TeConstr ({id="bit";_},[],_) -> fprintf fmt "sc_uint<1>" 
   | TeConstr ({id="bool";_},[],_) -> fprintf fmt "bool" 
   | TeConstr ({id="float";_},[],_) -> fprintf fmt "%s" (if Rfsm.Systemc.cfg.Rfsm.Systemc.sc_double_float then "double" else "float")
   | TeConstr ({id="char";_},[],_) -> fprintf fmt "char" 
@@ -26,19 +27,13 @@ let pp_type_expr fmt te =
   | TeConstr ({id=c;_},[],_) -> fprintf fmt "%s" c  (* Enums *)
   | _ -> raise (Unsupported_type te.Annot.typ)
                     
-let pp_size fmt sz = 
-  let open Types in 
-  match sz with
-  | SzExpr1 (TiConst n) -> fprintf fmt "%d" n
-  | SzExpr2 _ -> Rfsm.Misc.not_implemented "SystemC translation of 2D arrays"
-  | _ -> fprintf fmt "" (* TO REFINE ? *)
-
 let pp_typ fmt t =
   let open Types in 
   let open Format in 
   match t with
-    | TyConstr ("int",[],SzExpr1 (TiConst sz)) -> fprintf fmt "sc_uint<%d>" sz
+    | TyConstr ("int",[],[sz]) -> fprintf fmt "sc_uint<%d>" sz
     | TyConstr ("int",[], _) -> fprintf fmt "int" 
+    | TyConstr ("bit",[], _) -> fprintf fmt "sc_uint<1>" 
     | TyConstr ("float",[],_) -> fprintf fmt "%s" (if Rfsm.Systemc.cfg.Rfsm.Systemc.sc_double_float then "double" else "float")
     | TyConstr ("event",[],_) -> fprintf fmt "bool"
       (* Note: events are implemented as boolean signals because it is not possible to wait on multiple [sc_event]s 
@@ -117,7 +112,7 @@ let pp_value fmt v =
 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Some (Types.TyConstr ("array", [t'], sz)) -> fprintf fmt "%a %a[%a]" pp_typ t' pp_ident name pp_size sz
+  | Some (Types.TyConstr ("array", [t'], [sz])) -> fprintf fmt "%a %a[%d]" pp_typ t' pp_ident name sz
   | Some t -> fprintf fmt "%a %a" pp_typ t pp_ident name 
   | None -> Rfsm.Misc.fatal_error "Systemc.pp_typed_symbol"
 

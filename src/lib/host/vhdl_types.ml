@@ -31,8 +31,8 @@ let rec pp ?(type_mark=TM_Full) fmt t =
   let open Format in
   match t, type_mark with 
     | Std_logic, _ -> fprintf fmt "std_logic"
-    | Unsigned 1, _ -> fprintf fmt "std_logic"
-    | Signed 1, _ -> fprintf fmt "std_logic"
+    (* | Unsigned 1, _ -> fprintf fmt "std_logic"
+     * | Signed 1, _ -> fprintf fmt "std_logic" *)
     | Unsigned n, TM_None -> fprintf fmt "unsigned"
     | Unsigned n, _ -> fprintf fmt "unsigned(%d downto 0)" (n-1)
     | Signed n, TM_None -> fprintf fmt "signed"

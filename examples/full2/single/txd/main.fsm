@@ -1,5 +1,5 @@
 input clk:event = periodic(10,10,550)
-input din:int<8> = value_changes(10:69)  -- 0x45
+input din:int<8> = value_changes(10:69::int<8>)  -- 0x45
 input wr:bool = value_changes(0:0, 15:1, 25:0)
 output sout:bit
 

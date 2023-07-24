@@ -376,6 +376,7 @@ struct
     let top_name = prefix ^ "_top" in
     let open Static in
     dump_libraries ocf;
+    fprintf ocf "use work.%s.all;\n" cfg.vhdl_support_package;
     if need_globals s then fprintf ocf "use work.%s.all;\n" cfg.vhdl_globals_name;
     fprintf ocf "entity %s is\n" tb_name;
     fprintf ocf "end entity;\n";

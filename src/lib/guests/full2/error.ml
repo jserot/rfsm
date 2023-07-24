@@ -8,12 +8,6 @@ let handle e =
   match e with
   | Builtins.Unknown_value -> 
       eprintf "Cannot operate o undefined values\n"; exit 2
-  | Types.Index.Illegal_type_index i -> 
-     eprintf "Illegal type index: %a\n" Types.Index.pp i; exit 2
-  | Types.Index.Unbound_type_index v -> 
-     eprintf "Unbound type index: %s\n" v; exit 2
-  | Types.Index.Illegal_op op -> 
-     eprintf "Illegal operation on type index: %s\n" op; exit 2
   | Types.Type_circularity (loc,ty,ty')
   | Types.Type_conflict (loc,ty,ty') ->
       eprintf "%aTyping error: cannot unify types %a and %a\n"
