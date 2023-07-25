@@ -123,21 +123,21 @@ let eval_bool env e =
   | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_bool" (* Should not occur after TC *)
 
 let upd_env lhs v env = 
-  (* Note: bound checking (for arrays, ranged and sized integers) should take place here.
+  (* Note: bound checking for arrays should take place here.
      For example, we should reject :
-     - [r:=10] if [r] has type [int<0:9>]
-     - [a[i]:=v] if [i=10] and [a] has type [int array[10]]
-     - [u[8:4]:=0] if [u] has type [int<8>] *)
+     - [a[i]:=v] if [i=10] and [a] has type [int array[10]] *)
   let env' = match lhs.Annot.desc with
   | Syntax.LhsVar x ->
      Env.upd x v env
   | Syntax.LhsIndex (x,idx) ->
      begin match lookup ~loc:lhs.Annot.loc x env, v with
-     | Val_array vs, _ ->
+     | Val_array vs,  _ ->
         let i = eval_expr_index x ~bounds:(0,Array.length vs-1) env idx in
-        vs.(i) <- v;
+        if i >= 0 && i < Array.length vs then vs.(i) <- v
+        else raise (Out_of_bound (lhs.Annot.loc, i));
         env (* In-place update ! *)
      | Val_int dst, Val_int v' ->
+        (* No bound checking here since ints are unsized in this language *)
         let i = eval_expr_index x ~bounds:(min_int,max_int) env idx in
         Env.upd x (Val_int (Rfsm.Bits.set_bits ~hi:i ~lo:i ~dst v')) env
      | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
