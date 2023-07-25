@@ -1,4 +1,4 @@
-- (unsized) ints, bools, floats, chars and fixed size arrays
+- unsized ints, bools, floats, chars, fixed size arrays and records
 - type declarations (aliases, enums, records)
 - function declarations
 - constant declarations

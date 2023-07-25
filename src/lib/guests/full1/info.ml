@@ -1,2 +1,2 @@
-let name = "full-1"
-let version = "0.1"
+let name = "full"
+let version = "1.0"

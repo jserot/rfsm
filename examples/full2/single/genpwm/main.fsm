@@ -7,9 +7,9 @@ fsm model pwm(
   out s: bool)
 {
   states: Stopped, Running;
-  vars: c: int, foo: int;
+  vars: c: int<0:10>;
   trans:
-  | Stopped -> Running on startstop with c:=0, foo:=r
+  | Stopped -> Running on startstop with c:=11
   | Stopped -> Stopped on h with s:=0
   | Running -> Running on h when c<r with s:=1, c:=(c+1)%10
   | Running -> Running on h when c>=r with s:=0, c:=(c+1)%10

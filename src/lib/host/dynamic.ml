@@ -97,7 +97,7 @@ struct
        let pfx p lhs = if p = "" then lhs else Syntax.Guest.lhs_prefix p lhs in 
        let upd ?(prefix="") env =
          let v = Eval.eval_expr genv expr in
-         Trace.add (mk_event t (Event.Upd (pfx prefix lhs, v))) trace; (* Note: Use prefixes in traces to allow VCD scoping *)
+         Trace.add (mk_event t (Event.Upd (pfx prefix lhs, v))) trace; (* Using prefixes in traces allow VCD scoping *)
          Eval.upd_env lhs v env in
        if Env.mem x vars then (* ActUpdL *)
          (upd ~prefix:(Ident.to_string f) vars, env), (* For local updates, prefix target variable *)
