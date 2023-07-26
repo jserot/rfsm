@@ -4,7 +4,7 @@ module Location = Rfsm.Location
 module Annot = Rfsm.Annot
              
 let mk_location (p1,p2) = Location.Loc (!Location.input_name, p1, p2)
-let mk ~loc:l x = Annot.make ~loc:(mk_location l) x
+let mk ~loc:l x = Annot.{ desc=x; typ=Types.no_type; loc=mk_location l }
 
 (** Type declarations *)
                 
@@ -69,7 +69,7 @@ and pp_qual_lhs fmt l =
 
 let is_simple_lhs l = true (* Always, for the Core language *)
 
-let mk_simple_lhs v = Annot.make (LhsVar v)
+let mk_simple_lhs v = Annot.{ desc=LhsVar v; typ=Types.no_type; loc=Location.no_location }
 
 let lhs_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's *)
   let mk d = { l with Annot.desc = d } in

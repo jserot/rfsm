@@ -4,7 +4,7 @@ module Location = Rfsm.Location
 module Annot = Rfsm.Annot
              
 let mk_location (p1,p2) = Location.Loc (!Location.input_name, p1, p2)
-let mk ~loc:l x = Annot.make ~loc:(mk_location l) x
+let mk ~loc:l x = Annot.{ desc=x; typ=Types.no_type; loc=mk_location l }
 
 type ident = Rfsm.Ident.t
 let pp_ident = Rfsm.Ident.pp
@@ -37,7 +37,8 @@ and type_decl = (type_decl_desc,Types.typ) Annot.t
 
 and rfield_desc = string * type_expr 
 
-let mk_alias_type_decl name te = Rfsm.Annot.make (TD_Alias (name, te))
+let mk_alias_type_decl name te = 
+  Rfsm.Annot.{ desc=TD_Alias (name, te); typ=Types.no_type; loc=Location.no_location }
 
 let rec pp_type_decl_desc fmt td = 
   let open Format in
@@ -108,7 +109,7 @@ and pp_lhs fmt l =
 and pp_qual_lhs fmt l =
   pp_lhs_desc ~pp_ident:Rfsm.Ident.pp_qual fmt l.Annot.desc
 
-let mk_simple_lhs v = Annot.make (LhsVar v)
+let mk_simple_lhs v = Annot.{ desc=LhsVar v; typ=Types.no_type; loc=Location.no_location }
 
 let is_simple_lhs l = 
   match l.Annot.desc with

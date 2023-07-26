@@ -5,7 +5,7 @@ module Static = Static
 
 type value = Value.t
 
-exception Unsupported_type of Syntax.Types.typ option
+exception Unsupported_type of Syntax.Types.typ
 exception Unsupported_expr of Syntax.expr
 exception Illegal_cast of Syntax.expr
 
@@ -21,12 +21,7 @@ let rec vhdl_type_of t =
     | TyArray (t',sz) -> Array (sz, vhdl_type_of t')
     | TyRecord (nm, fs) ->
        Record (nm, List.map (function (n,ty) -> n, vhdl_type_of ty) fs)
-    | _ -> raise (Unsupported_type (Some t))
-
-let vhdl_type_of_opt t = 
-  match t with
-  | Some t -> vhdl_type_of t
-  | None -> Rfsm.Misc.fatal_error "Full.Vhdl.vhdl_type_of_opt"
+    | _ -> raise (Unsupported_type t)
 
 let pp_op fmt op = 
   fprintf fmt "%s"
@@ -49,17 +44,14 @@ let pp_typ fmt ~type_mark t = Rfsm.Vhdl_types.pp ~type_mark fmt (vhdl_type_of t)
 let pp_abbr_typ fmt t = pp_typ fmt ~type_mark:Rfsm.Vhdl_types.TM_Abbr t
 let pp_full_typ fmt t = pp_typ fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
 
-let pp_type_expr fmt ~type_mark te = 
-  match te.Rfsm.Annot.typ with 
-  | Some ty -> pp_typ fmt ~type_mark ty
-  | None -> Rfsm.Misc.fatal_error "Full.Vhdl.pp_type_expr"
+let pp_type_expr fmt ~type_mark te = pp_typ fmt ~type_mark te.Rfsm.Annot.typ
 let pp_abbr_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Abbr t
 let pp_full_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
 
 let rec pp_expr fmt e = 
   let open Rfsm.Vhdl_types in
   let open Format in
-  let rec pp level fmt e = match e.Syntax.Annot.desc, vhdl_type_of_opt e.Syntax.Annot.typ with
+  let rec pp level fmt e = match e.Syntax.Annot.desc, vhdl_type_of e.Syntax.Annot.typ with
     | Syntax.EVar n, _ ->  pp_ident fmt n
     | Syntax.EInt n, _ -> fprintf fmt "%d" n
     | Syntax.EBool c, _ -> pp_bool fmt c
@@ -72,7 +64,7 @@ let rec pp_expr fmt e =
     | Syntax.EBinop (Rfsm.Ident.{id="<<";_},e1,e2), _ -> 
        fprintf fmt "shift_left(%a,%a)" (pp (level+1)) e1 pp_int_expr e2
     | Syntax.EBinop (op,e1,e2), _ -> 
-       begin match op.Rfsm.Ident.id, vhdl_type_of_opt e1.Rfsm.Annot.typ, vhdl_type_of_opt e2.Rfsm.Annot.typ with
+       begin match op.Rfsm.Ident.id, vhdl_type_of e1.Rfsm.Annot.typ, vhdl_type_of e2.Rfsm.Annot.typ with
        | "*", Signed _, _
        | "*", Unsigned _, _
        | "*", _, Unsigned _
@@ -90,7 +82,7 @@ let rec pp_expr fmt e =
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
-and pp_int_expr fmt e = match e.Rfsm.Annot.desc, vhdl_type_of_opt e.Rfsm.Annot.typ with
+and pp_int_expr fmt e = match e.Rfsm.Annot.desc, vhdl_type_of e.Rfsm.Annot.typ with
     Syntax.EInt n, _ -> fprintf fmt "%d" n
   | _, Integer _ -> pp_expr fmt e
   | _, _ -> fprintf fmt "to_integer(%a)" pp_expr e
@@ -114,7 +106,7 @@ and pp_range fmt (hi,lo) =
 
 and pp_cast fmt (e,te) = 
   let open Format in
-  match vhdl_type_of_opt e.Rfsm.Annot.typ, vhdl_type_of_opt te.Rfsm.Annot.typ with
+  match vhdl_type_of e.Rfsm.Annot.typ, vhdl_type_of te.Rfsm.Annot.typ with
   | Integer _, Integer _ -> fprintf fmt "%a" pp_expr e
   | Integer _, Boolean -> fprintf fmt "to_bool(%a)" pp_expr e
   | Boolean, Integer _ -> fprintf fmt "to_integer(%a)" pp_expr e

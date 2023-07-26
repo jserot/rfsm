@@ -29,13 +29,13 @@ let handle e =
   | Eval.Illegal_application e -> 
       eprintf "%aIllegal application\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Systemc.Unsupported_type t ->
-      eprintf "SystemC backend: unsupported type: %a\n" (Rfsm.Misc.pp_opt (Types.pp_typ ~abbrev:false)) t; exit 2
+      eprintf "SystemC backend: unsupported type: %a\n" (Types.pp_typ ~abbrev:false) t; exit 2
   | Systemc.Unsupported_expr e ->
       eprintf "%aSystemC backend: unsupported expression\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Systemc.Unsupported_value v ->
       eprintf "SystemC backend: unsupported value: %a\n" Value.pp v; exit 2
   | Vhdl.Unsupported_type t ->
-      eprintf "VHDL backend: unsupported type: %a\n" (Rfsm.Misc.pp_opt (Types.pp_typ ~abbrev:false)) t; exit 2
+      eprintf "VHDL backend: unsupported type: %a\n" (Types.pp_typ ~abbrev:false) t; exit 2
   | Vhdl.Unsupported_expr e ->
       eprintf "%aVHDL backend: unsupported expression\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Vhdl.Illegal_cast e ->

@@ -64,9 +64,7 @@ let rec eval_expr env e = match e.Annot.desc with
      end
   | Syntax.ECast (e,te) ->
      let v = eval_expr env e in
-     let t = begin match te.Annot.typ with
-             | Some t -> t 
-             | None -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: cast" end in
+     let t = te.Annot.typ in
      eval_cast ~loc:e.Annot.loc t v
    | Syntax.EFapp (f, es) ->
        begin 

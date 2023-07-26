@@ -10,6 +10,7 @@ end
 module type TYPES = sig 
   type typ
   type typ_scheme
+  val no_type: typ
   val mk_type_constr0: string -> typ
   val is_type_constr0: string -> typ -> bool
   val mk_type_fun: typ list -> typ -> typ
@@ -78,7 +79,7 @@ end
 module type VALUE = sig 
   type t
   type typ
-  val default_value: typ option -> t 
+  val default_value: typ -> t 
   (** VCD interface *)
   exception Unsupported_vcd of t
   val vcd_type: t -> Vcd_types.vcd_typ

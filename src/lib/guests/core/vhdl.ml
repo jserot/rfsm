@@ -5,7 +5,7 @@ module Static = Static
 
 type value = Value.t
 
-exception Unsupported_type of Syntax.Types.typ option
+exception Unsupported_type of Syntax.Types.typ
 exception Unsupported_expr of Syntax.expr
 exception Unsupported_value of Value.t
 
@@ -15,12 +15,7 @@ let vhdl_type_of t =
     | Types.TyConstr ("int",[]) -> Integer None
     | Types.TyConstr ("event",[]) -> Std_logic
     | Types.TyConstr ("bool",[]) -> if cfg.vhdl_bool_as_bool then Boolean else Std_logic
-    | _ -> raise (Unsupported_type (Some t))
-
-let vhdl_type_of_opt t = 
-  match t with
-  | Some t -> vhdl_type_of t
-  | None -> Rfsm.Misc.fatal_error "Core.Vhdl.vhdl_type_of_opt"
+    | _ -> raise (Unsupported_type t)
 
 let pp_op fmt op = 
   fprintf fmt "%s"
@@ -39,10 +34,7 @@ let pp_typ fmt ~type_mark t = Rfsm.Vhdl_types.pp ~type_mark fmt (vhdl_type_of t)
 let pp_abbr_typ fmt t = pp_typ fmt ~type_mark:Rfsm.Vhdl_types.TM_Abbr t
 let pp_full_typ fmt t = pp_typ fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
 
-let pp_type_expr fmt ~type_mark te = 
-  match te.Rfsm.Annot.typ with 
-  | Some ty -> pp_typ fmt ~type_mark ty
-  | None -> Rfsm.Misc.fatal_error "Core.Vhdl.pp_type_expr"
+let pp_type_expr fmt ~type_mark te = pp_typ fmt ~type_mark te.Rfsm.Annot.typ
 let pp_abbr_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Abbr t
 let pp_full_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
 

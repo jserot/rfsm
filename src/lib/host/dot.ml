@@ -130,7 +130,7 @@ struct
     List.iter dump_transition m.trans;
     if with_caption then begin
         let pp_io ocf kind (id,te) =
-          fprintf ocf "%s %a: %a\\r" kind pp_ident id (Misc.pp_opt (Static.Syntax.Guest.Types.pp_typ ~abbrev:cfg.abbrev_types)) (te.Annot.typ) in
+          fprintf ocf "%s %a: %a\\r" kind pp_ident id (Static.Syntax.Guest.Types.pp_typ ~abbrev:cfg.abbrev_types) te.Annot.typ in
         let pp_ios ocf m = 
          List.iter (pp_io ocf "param") m.params; 
          List.iter (pp_io ocf "input") m.inps; 

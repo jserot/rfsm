@@ -228,7 +228,7 @@ struct
   
   let is_event_type (ty: Types.typ) = Types.is_type_constr0 "event" ty
 
-  let default_value (ty: Types.typ) = Static.Value.default_value (Some ty)
+  let default_value (ty: Types.typ) = Static.Value.default_value ty
 
   let r_init sd m = (* Rule INIT *)
     (* M --> M_0, \Gamma_0 *)
@@ -237,7 +237,7 @@ struct
         (fun env (v,cc) ->
           let ty = cc.Static.ct_typ in 
           if not (is_event_type ty)
-          then Env.add v (Static.Value.default_value (Some ty)) env
+          then Env.add v (Static.Value.default_value ty) env
           else env)
         Env.empty
         (sd.Static.inputs @ sd.Static.outputs @ sd.Static.shared) in

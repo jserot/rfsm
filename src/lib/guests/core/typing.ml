@@ -54,13 +54,13 @@ let type_type_decl env td =
        { env with te_tycons = add_tycon env.te_tycons (name,0);
                   te_ctors = List.fold_left add_ctor env.te_ctors ctors }
   in
-  td.Annot.typ <- Some ty;
+  td.Annot.typ <- ty;
   env'
 
 let rec type_of_type_expr env te =
   let ty = match te.Annot.desc with
     | Syntax.TeConstr c -> Types.TyConstr (c, List.map (type_of_type_expr env) []) in
-  te.Annot.typ <- Some ty;
+  te.Annot.typ <- ty;
   ty
 
 let rec type_expression env e =
@@ -73,7 +73,7 @@ let rec type_expression env e =
       let ty_args = List.map (type_expression env) [e1;e2] in
       type_application e env ty_fn ty_args
     | Syntax.ECon0 c -> lookup ~exc:(Undefined ("value constructor",e.Annot.loc,c)) c env.te_ctors in
-  e.Annot.typ <- Some ty;
+  e.Annot.typ <- ty;
   ty
 
 and type_application expr env ty_fn ty_args =
@@ -97,7 +97,7 @@ and type_array_access ~loc env a i =
 let type_lhs env l =
   let ty = match l.Annot.desc with
     | Syntax.LhsVar x -> lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars in
-  l.Annot.typ <- Some ty;
+  l.Annot.typ <- ty;
   ty
 
 let type_check ~loc ty ty' = Types.unify ~loc ty ty'

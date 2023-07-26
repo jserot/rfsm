@@ -53,7 +53,7 @@ struct
           * Format.printf "Host.type_fsm_action %a: %a <- %a\n" HostSyntax.pp_action act pp_typ t pp_typ t'; *)
          GuestTyping.type_check ~loc t t';
          t in
-    act.Annot.typ <- Some ty
+    act.Annot.typ <- ty
 
   let type_fsm_event ~loc t env ev =
     GuestTyping.type_check
@@ -128,10 +128,7 @@ struct
 
   let type_fsm_ios env { Annot.desc = m; Annot.loc = loc; _ } =
     (* Check that there's exactly one input with type event *)
-    let is_event_type (_,te) =
-      match te.Annot.typ with
-      | Some ty -> GuestTyping.Types.is_type_constr0 "event" ty
-      | _ -> false in
+    let is_event_type (_,te) = GuestTyping.Types.is_type_constr0 "event" te.Annot.typ in
     match List.filter is_event_type m.HostSyntax.inps with
     | [] -> raise (No_event_input loc)
     | _ -> ()
@@ -158,9 +155,7 @@ struct
       | Input, Output -> raise (Illegal_inst loc)
       | Output, Input -> raise (Illegal_inst loc)
       | _, _ -> () in
-    let type_of te = match te.Annot.typ with
-      | Some ty -> ty
-      | None -> Misc.fatal_error "Typing.type_check_fsm_inst" in
+    let type_of te = te.Annot.typ in
     let m = (lookup_model model).Annot.desc in
     let m_inps = List.map (fun (id,te) -> id, Input, type_of te) m.inps in
     let m_outps = List.map (fun (id,te) -> id, Output, type_of te) m.outps in
@@ -184,7 +179,7 @@ struct
                              
   let type_stimulus env id ty st =
     let check t = GuestTyping.type_check ~loc:st.Annot.loc ty t in 
-    st.Annot.typ <- Some ty;
+    st.Annot.typ <- ty;
     match st.Annot.desc with
     | HostSyntax.Periodic _ -> check (GuestTyping.Types.mk_type_constr0 "event")
     | HostSyntax.Sporadic _ -> check (GuestTyping.Types.mk_type_constr0 "event")
@@ -198,7 +193,7 @@ struct
     let _ = match st with 
       | Some st -> type_stimulus env id ty st
       | None -> () in
-    gl.Annot.typ <- Some ty
+    gl.Annot.typ <- ty
 
   (* Typing function declarations *)
 
@@ -213,7 +208,7 @@ struct
     let ty_result = GuestTyping.type_of_type_expr env fd.ff_res in
     GuestTyping.type_check ~loc:loc ty_body ty_result;
     let ty = GuestTyping.Types.mk_type_fun (List.map snd ty_args) ty_result in
-    f.Annot.typ <- Some ty;
+    f.Annot.typ <- ty;
     GuestTyping.add_var env (fd.ff_name, ty)
 
   (* Typing constant declarations *)
@@ -223,7 +218,7 @@ struct
     let ty = GuestTyping.type_of_type_expr env cd.cc_typ in
     let ty' = GuestTyping.type_expression env cd.cc_val in
     GuestTyping.type_check ~loc:loc ty ty';
-    c.Annot.typ <- Some ty;
+    c.Annot.typ <- ty;
     GuestTyping.add_var env (cd.cc_name, ty)
 
   let pp_env fmt env = GuestTyping.pp_env fmt env

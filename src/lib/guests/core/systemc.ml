@@ -5,7 +5,7 @@ module Static = Static
 
 type value = Value.t
 
-exception Unsupported_type of Syntax.Types.typ option
+exception Unsupported_type of Syntax.Types.typ
 exception Unsupported_expr of Syntax.expr
 exception Unsupported_value of Value.t
 
@@ -20,7 +20,7 @@ let pp_typ fmt t =
   match t with
   | TyConstr ("event",[]) -> fprintf fmt "bool"
   | TyConstr (c,[]) -> fprintf fmt "%s" c
-  | _ -> raise (Unsupported_type (Some t))
+  | _ -> raise (Unsupported_type t)
 
 let pp_op fmt op = 
   fprintf fmt "%s"
@@ -36,7 +36,7 @@ let pp_expr fmt e =
   | Syntax.EBool b, _ -> fprintf fmt "%b" b
   | Syntax.EBinop (op,e1,e2), _ ->
        fprintf fmt "%s%a%a%a%s" (paren level "(") (pp (level+1)) e1 pp_op op (pp (level+1)) e2 (paren level ")")
-  | Syntax.ECon0 c, Some (Types.TyConstr (t,_)) -> fprintf fmt "%s::%a" t Rfsm.Ident.pp c
+  | Syntax.ECon0 c, Types.TyConstr (t,_) -> fprintf fmt "%s::%a" t Rfsm.Ident.pp c
   | _, _ -> raise (Unsupported_expr e)
   and pp_access fmt id =
     let open Rfsm.Ident in
@@ -64,9 +64,7 @@ let pp_value fmt v =
  pp_v fmt v
 
 let pp_typed_symbol fmt (name,t) =
-  match t.Syntax.Annot.typ with
-  | Some t -> fprintf fmt "%a %a" pp_typ t Rfsm.Ident.pp name 
-  | None -> Rfsm.Misc.fatal_error "Systemc.pp_typed_symbol"
+  fprintf fmt "%a %a" pp_typ t.Syntax.Annot.typ Rfsm.Ident.pp name 
 
 let pp_cst_decl fmt name t = ()
   (* There's no constant declaration for the Core guest language *)

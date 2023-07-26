@@ -49,6 +49,7 @@ let mk_io (cat,(id,ty)) = id, (cat,ty)
 let mk_io' (cat,(id,ty)) = id, ty
 let mk_ident x = Rfsm.Ident.mk x
 let mk_global_ident x = Rfsm.Ident.(mk ~scope:Global x)
+let mk_state ~loc:l x = Annot.{ desc=x; typ=(); loc=mk_location l }
 %}
 
 %%
@@ -142,8 +143,8 @@ io_desc:
   | id=LID COLON ty=type_expr { mk_ident id,ty }
 
 state:
-  | id=UID { mk ~loc:($symbolstartofs,$endofs) (mk_ident id,[]) }
-  | id=UID WHERE ovs=separated_nonempty_list(AND,outp_valuation) { mk ~loc:($symbolstartofs,$endofs) (mk_ident id,ovs) }
+  | id=UID { mk_state ~loc:($symbolstartofs,$endofs) (mk_ident id,[]) }
+  | id=UID WHERE ovs=separated_nonempty_list(AND,outp_valuation) { mk_state ~loc:($symbolstartofs,$endofs) (mk_ident id,ovs) }
 
 outp_valuation:
   | id=LID EQUAL e=scalar_const { (mk_ident id, e) }

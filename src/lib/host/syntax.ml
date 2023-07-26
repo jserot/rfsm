@@ -129,7 +129,7 @@ struct
   type type_expr = Guest.type_expr
   type lhs = Guest.lhs
 
-  let pp_type_expr fmt te = Misc.pp_opt (Guest.Types.pp_typ ~abbrev:false) fmt (te.Annot.typ)
+  let pp_type_expr fmt te = Guest.Types.pp_typ ~abbrev:false fmt te.Annot.typ
   let pp_expr = Guest.pp_expr
   let pp_lhs = Guest.pp_lhs
 
@@ -298,7 +298,8 @@ struct
         []
         m.states in
     let remove_output_valuation ({ Annot.desc=q, ovs; _} as s) = { s with Annot.desc = q, List.remove_assoc o ovs } in
-    let add_act e acts = Annot.make (Assign(Guest.mk_simple_lhs o, e)) :: acts in 
+    let add_act e acts =
+      Annot.{desc=Assign(Guest.mk_simple_lhs o, e); typ=Guest.Types.no_type; loc=Location.no_location} :: acts in 
     let add_output_assignation ({ Annot.desc=q,conds,acts,q',p; _ } as t) =
       match List.assoc_opt q' updated_states with
       | Some e -> { t with Annot.desc = q,conds,add_act e acts,q',p }

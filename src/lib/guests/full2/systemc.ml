@@ -5,7 +5,7 @@ module Static = Static
 
 type value = Value.t
 
-exception Unsupported_type of Syntax.Types.typ option
+exception Unsupported_type of Syntax.Types.typ
 exception Unsupported_expr of Syntax.expr
 exception Unsupported_value of Value.t
 
@@ -40,7 +40,7 @@ let pp_typ fmt t =
          and telling afterwards which one occurred in SystemC 2.3.0 :-( *)
     | TyConstr (c,[],_) -> fprintf fmt "%s" c
     | TyRecord (nm,_) -> fprintf fmt "%s" nm
-    | _ -> raise (Unsupported_type (Some t))
+    | _ -> raise (Unsupported_type t)
 
 let pp_op fmt op = 
   fprintf fmt "%s"
@@ -68,13 +68,13 @@ let pp_expr fmt e =
   | Syntax.EFapp (f,es), _ -> fprintf fmt "%a(%a)" pp_ident f (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) es
   | Syntax.EBinop (op,e1,e2), _ ->
        fprintf fmt "%s%a%a%a%s" (paren level "(") (pp (level+1)) e1 pp_op op (pp (level+1)) e2 (paren level ")")
-  | Syntax.ECon0 c, Some (Types.TyConstr (t,_,_)) -> fprintf fmt "%s::%a" t pp_ident c
+  | Syntax.ECon0 c, Types.TyConstr (t,_,_) -> fprintf fmt "%s::%a" t pp_ident c
   | Syntax.EIndexed (a,i), _ -> fprintf fmt "%a[%a]" pp_access a (pp level) i
   | Syntax.ERanged (a,hi,lo), _ -> fprintf fmt "%a.range(%a,%a)" pp_access a (pp level) hi (pp level) lo
   | Syntax.EArrExt vs, _ -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) vs
   | Syntax.ECond (e1,e2,e3), _ -> fprintf fmt "%a?%a:%a" (pp (level+1)) e1 (pp (level+1)) e2 (pp (level+1)) e3
   | Syntax.ECast (e,t), _ -> fprintf fmt "((%a)(%a))" pp_type_expr t (pp level) e
-  | Syntax.ERecordExt fs, Some (Types.TyRecord (name,_)) ->
+  | Syntax.ERecordExt fs, Types.TyRecord (name,_) ->
      fprintf fmt "%s(%a)" name (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield_value level)) fs 
   | Syntax.ERecord (r,f), _ -> fprintf fmt "%a.repr.%s" pp_access r f 
   | _, _ -> raise (Unsupported_expr e)
@@ -112,16 +112,14 @@ let pp_value fmt v =
 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Some (Types.TyConstr ("array", [t'], [sz])) -> fprintf fmt "%a %a[%d]" pp_typ t' pp_ident name sz
-  | Some t -> fprintf fmt "%a %a" pp_typ t pp_ident name 
-  | None -> Rfsm.Misc.fatal_error "Systemc.pp_typed_symbol"
+  | Types.TyConstr ("array", [t'], [sz]) -> fprintf fmt "%a %a[%d]" pp_typ t' pp_ident name sz
+  | t -> fprintf fmt "%a %a" pp_typ t pp_ident name 
 
 let pp_cst_decl fmt name t = 
   let open Types in 
   match t.Syntax.Annot.typ with
-  | Some (TyConstr ("array",_,_)) -> fprintf fmt "extern %a" pp_typed_symbol (name,t)
-  | Some _ -> fprintf fmt "%a" pp_typed_symbol (name,t)
-  | None -> Rfsm.Misc.fatal_error "Systemc.pp_cst_decl"
+  | TyConstr ("array",_,_) -> fprintf fmt "extern %a" pp_typed_symbol (name,t)
+  | _ -> fprintf fmt "%a" pp_typed_symbol (name,t)
 
 let pp_cst_impl fmt name t v = 
   fprintf fmt "%a = %a" pp_typed_symbol (name,t) pp_expr v

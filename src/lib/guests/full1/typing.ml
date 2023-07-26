@@ -55,7 +55,7 @@ let rec type_of_type_expr env te =
        lookup ~exc:(Undefined ("type constructor",te.Annot.loc, c)) c env.te_tycons |> snd
     | Syntax.TeConstr (c,args,_) ->
        Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args) in
-  te.Annot.typ <- Some ty;
+  te.Annot.typ <- ty;
   ty
 
 let rec type_expression env e =
@@ -119,7 +119,7 @@ let rec type_expression env e =
      let ty_fs = List.map (fun (n,e) -> n, type_expression env e) fs in
      Types.TyRecord (name, ty_fs)
   in
-  e.Annot.typ <- Some ty;
+  e.Annot.typ <- ty;
   ty
 
 and type_application ~loc env ty_fn ty_args =
@@ -183,7 +183,7 @@ let type_type_decl env td =
        ty, 
        { env with te_tycons = add_tycon ty env.te_tycons (name,0) }
   in
-  td.Annot.typ <- Some ty;
+  td.Annot.typ <- ty;
   env'
 
 let type_lhs env l =
@@ -201,7 +201,7 @@ let type_lhs env l =
        | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_lhs"
        end
   in
-  l.Annot.typ <- Some ty;
+  l.Annot.typ <- ty;
   ty
 
 let type_check ~loc ty ty' = Types.unify ~loc ty ty'

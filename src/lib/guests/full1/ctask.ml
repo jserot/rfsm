@@ -1,4 +1,4 @@
-exception Unsupported_type of Syntax.Types.typ option
+exception Unsupported_type of Syntax.Types.typ
 exception Unsupported_expr of Syntax.expr
                                   
 open Format 
@@ -34,7 +34,7 @@ let pp_simple_type fmt t =
   match t with
   | TyConstr (c,[]) -> fprintf fmt "%s" c
   | TyRecord (nm,_) -> fprintf fmt "%s" nm
-  | _ -> raise (Unsupported_type (Some t))
+  | _ -> raise (Unsupported_type t)
 
 let pp_ident = Rfsm.Ident.pp 
 
@@ -75,16 +75,14 @@ let pp_expr fmt e =
 let pp_typed_symbol fmt (name,t) =
   let open Types in 
   match t.Syntax.Annot.typ with
-  | Some (TyArray (t', sz)) -> fprintf fmt "%a %a[%d]" pp_simple_type t' pp_ident name sz
-  | Some t -> fprintf fmt "%a %a" pp_simple_type t pp_ident name 
-  | None -> Rfsm.Misc.fatal_error "Ctask.pp_typed_symbol"
+  | TyArray (t', sz) -> fprintf fmt "%a %a[%d]" pp_simple_type t' pp_ident name sz
+  | t -> fprintf fmt "%a %a" pp_simple_type t pp_ident name 
 
 let pp_cst_decl fmt name t = 
   let open Types in 
   match t.Syntax.Annot.typ with
-  | Some (TyArray _) -> fprintf fmt "extern %a" pp_typed_symbol (name,t)
-  | Some _ -> fprintf fmt "%a" pp_typed_symbol (name,t)
-  | None -> Rfsm.Misc.fatal_error "Ctask.pp_cst_decl"
+  | TyArray _ -> fprintf fmt "extern %a" pp_typed_symbol (name,t)
+  | _ -> fprintf fmt "%a" pp_typed_symbol (name,t)
 
 let pp_cst_impl fmt name t v = 
   fprintf fmt "%a = %a" pp_typed_symbol (name,t) pp_expr v

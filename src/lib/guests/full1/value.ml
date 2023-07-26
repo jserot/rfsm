@@ -12,12 +12,12 @@ type t =
 type typ = Types.typ
          
 let rec default_value ty = match ty with
-  | Some (Types.TyArray (t', sz)) ->
+  | Types.TyArray (t',sz) ->
      (* The initial value of an array is not "undefined" but an _array_ of undefined value *)
-       Val_array (Array.make sz (default_value (Some t')))
-  | Some (Types.TyRecord (_, fs)) ->
+       Val_array (Array.make sz (default_value t'))
+  | Types.TyRecord (_, fs) ->
      (* The initial value of a record is not "undefined" but a _record_ of undefined value *)
-     Val_record (List.map (fun (f,ty) -> f, default_value (Some ty)) fs)
+     Val_record (List.map (fun (f,ty) -> f, default_value ty) fs)
   | _ -> Val_unknown
 
 exception Unsupported_vcd of t

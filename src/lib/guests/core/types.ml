@@ -18,6 +18,8 @@ type typ_scheme =
   { ts_params: ty_var list;
     ts_body: typ }
 
+let no_type = TyProduct [] (* This is a hack to avoid draging [typ option] value everywhere *)
+
 exception Type_circularity of Location.t * typ * typ
 exception Type_conflict of Location.t * typ * typ
 

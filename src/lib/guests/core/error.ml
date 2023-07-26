@@ -21,13 +21,13 @@ let handle e =
   | Value.Unsupported_vcd v ->
       eprintf "No VCD conversion for value %a\n" Value.pp v; exit 2
   | Systemc.Unsupported_type t ->
-      eprintf "SystemC backend: unsupported type: %a\n" (Rfsm.Misc.pp_opt (Types.pp_typ ~abbrev:false)) t; exit 2
+      eprintf "SystemC backend: unsupported type: %a\n" (Types.pp_typ ~abbrev:false) t; exit 2
   | Systemc.Unsupported_expr e ->
       eprintf "%aSystemC backend: unsupported expression\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Systemc.Unsupported_value v ->
       eprintf "SystemC backend: unsupported value: %a\n" Value.pp v; exit 2
   | Vhdl.Unsupported_type t ->
-      eprintf "VHDL backend: unsupported type: %a\n" (Rfsm.Misc.pp_opt (Types.pp_typ ~abbrev:false)) t; exit 2
+      eprintf "VHDL backend: unsupported type: %a\n" (Types.pp_typ ~abbrev:false) t; exit 2
   | Vhdl.Unsupported_expr e ->
       eprintf "%aVHDL backend: unsupported expression\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Vhdl.Unsupported_value v ->

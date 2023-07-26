@@ -83,10 +83,7 @@ struct
 
   let pp_ident = Ident.pp
 
-  let vhdl_type_of t = 
-    match t with
-    | Some t -> G.vhdl_type_of t
-    | None -> Misc.fatal_error "Host.Vhdl.vhdl_type_of_opt"
+  let vhdl_type_of t = G.vhdl_type_of t
                
   let pp_action fmt tab m a =
     let open Static in
@@ -152,9 +149,7 @@ struct
     List.iter (pp_output_valuation fmt) ovs
 
   let pp_abbr_type fmt t = G.pp_typ ~type_mark:Vhdl_types.TM_Abbr fmt t
-  let pp_abbr_type_expr fmt te = match te.Annot.typ with
-    | Some t -> pp_abbr_type fmt t
-    | None -> Misc.fatal_error "Host.Vhdl.pp_abbr_type_expr"
+  let pp_abbr_type_expr fmt te = pp_abbr_type fmt te.Annot.typ
 
   let pp_typed_symbol fmt (id,t) =
     fprintf fmt "%a: %a" pp_ident id pp_abbr_type_expr t

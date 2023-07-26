@@ -180,10 +180,7 @@ struct
 
   let build_ctx rws senv_i =  (* \mathcal{L} *)
     let open Syntax in
-    let type_of te =
-      match te.Annot.typ with
-      | Some ty -> ty
-      | _ -> Misc.fatal_error "Static.build_ctx" in
+    let type_of te = te.Annot.typ in
     let collect_rds i = List.fold_left (fun acc (name,(rds,_)) -> if List.mem i rds then name::acc else acc) [] rws in
     let collect_wrs o = List.fold_left (fun acc (name,(_,wrs)) -> if List.mem o wrs then name::acc else acc) [] rws in
     let extract cat acc senv =
