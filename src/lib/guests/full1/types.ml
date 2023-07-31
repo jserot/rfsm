@@ -1,7 +1,5 @@
 module Location = Rfsm.Location
 
-module VarSet = Set.Make(struct type t = string let compare = Stdlib.compare end)
-                 
 let print_full_types = ref false (* for debug only *)
 
 type typ =
