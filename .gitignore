@@ -36,14 +36,9 @@ examples/*/*/*/ctask/
 examples/*/*/*/sim/
 examples/*/*/*/systemc/
 examples/*/*/*/vhdl/
-!examples/*/*/sim/*.gtkw
-!examples/*/*/sim/*.sav
-!examples/*/*/systemc/*.{gtkw,sav}
-!examples/*/*/vhdl/*.{gtkw,sav}
-!examples/*/*/*/sim/*.gtkw
-!examples/*/*/*/sim/*.sav
-!examples/*/*/*/systemc/*.{gtkw,sav}
-!examples/*/*/*/vhdl/*.{gtkw,sav}
+!examples/*/*/*/*/*/sim/*.{gtkw,sav}
+!examples/*/*/*/*/*/systemc/*.{gtkw,sav}
+!examples/*/*/*/*/*/vhdl/*.{gtkw,sav}
 examples/*/*/ml/dot/
 examples/*/*/*/ml/dot/
 tests/
