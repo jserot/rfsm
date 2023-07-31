@@ -87,7 +87,7 @@ let rec pp_expr_desc fmt e =
   | EBinop (op,e1,e2) -> fprintf fmt "%a%a%a" pp_expr e1 pp_ident op pp_expr e2
   | ECon0 c -> fprintf fmt "%a" pp_ident c
   | EIndexed (a,i) -> fprintf fmt "%a[%a]" pp_ident a pp_expr i
-  | ERanged (a,hi,lo) -> fprintf fmt "%a[%a:%a]" pp_ident a pp_expr lo pp_expr hi
+  | ERanged (a,hi,lo) -> fprintf fmt "%a[%a:%a]" pp_ident a pp_expr hi pp_expr lo
   | EArrExt vs -> fprintf fmt "[%a]" (Rfsm.Misc.pp_list_h ~sep:"," pp_expr) vs
   | ECond (e1,e2,e3) -> fprintf fmt "%a?%a:%a" pp_expr e1 pp_expr e2 pp_expr e3
   | ECast (e,t) -> fprintf fmt "%a::%a" pp_expr e pp_type_expr t

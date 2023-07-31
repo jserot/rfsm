@@ -1,3 +1,5 @@
+let print_full_values = ref true (* for debug only *)
+
 type t =
   | Val_int of int
   | Val_bool of bool

@@ -163,13 +163,13 @@ let rec pp_value fmt (v,ty) =
   let open Format in
   let open Rfsm.Vhdl_types in
   match v, ty with
-    Value.Val_int i, Unsigned n -> fprintf fmt "to_unsigned(%d,%d)" i n
-  | Value.Val_int i, Signed n -> fprintf fmt "to_signed(%d,%d)" i n
-  | Value.Val_int i, Std_logic -> fprintf fmt "'%d'" i
-  | Value.Val_int i, Integer _ -> fprintf fmt "%d" i
-  | Value.Val_int i, Boolean -> pp_bool fmt (i > 0)
-  | Value.Val_int i, Real -> fprintf fmt "%d.0" i
-  | Value.Val_int i, _ -> fprintf fmt "%d" i
+    Value.Val_int (i,_), Unsigned n -> fprintf fmt "to_unsigned(%d,%d)" i n
+  | Value.Val_int (i,_), Signed n -> fprintf fmt "to_signed(%d,%d)" i n
+  | Value.Val_int (i,_), Std_logic -> fprintf fmt "'%d'" i
+  | Value.Val_int (i,_), Integer _ -> fprintf fmt "%d" i
+  | Value.Val_int (i,_), Boolean -> pp_bool fmt (i > 0)
+  | Value.Val_int (i,_), Real -> fprintf fmt "%d.0" i
+  | Value.Val_int (i,_), _ -> fprintf fmt "%d" i
   | Value.Val_float f, _ -> pp_float fmt f
   | Value.Val_char f, _ -> pp_char fmt f
   | Value.Val_bool b, _ -> pp_bool fmt b

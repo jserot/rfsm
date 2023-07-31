@@ -133,6 +133,12 @@ let type_instance ty_sch =
       let unknown_ss = List.map (fun var -> (var, new_size_var())) sparams in
       copy_type unknown_ts unknown_ss ty_sch.ts_body
 
+let size_of_type t =
+  match real_type t with
+  | TyConstr (_, _, Sz1 s) -> [s]
+  | TyConstr (_, _, Sz2 (s1,s2)) -> [s1;s2]
+  | _ -> []
+
 (* Type unification - the classical algorithm *)
 
 exception Type_circularity of Location.t * typ * typ

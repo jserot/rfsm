@@ -1,11 +1,13 @@
+let print_int_size = ref false (* For debug only *)
+
 type t =
-  | Val_int of int
+  | Val_int of int * int list (** Value, size annotation(s) *)
   | Val_bool of bool
   | Val_float of float
   | Val_char of char
   | Val_array of t array
   | Val_enum of string
-  | Val_fn of string list * Syntax.expr   (** args, body *)
+  | Val_fn of string list * Syntax.expr   (** Args, body *)
   | Val_record of (string * t) list  (** (Field name, value) list *)
   | Val_unknown
 
@@ -40,7 +42,7 @@ let vcd_type v = match v with
   | _ -> raise (Unsupported_vcd v)
 
 let vcd_value v = match v with
-  | Val_int v -> Rfsm.Vcd_types.Val_int v
+  | Val_int (v,_) -> Rfsm.Vcd_types.Val_int v
   | Val_bool v -> Rfsm.Vcd_types.Val_bool v
   | Val_float v -> Rfsm.Vcd_types.Val_float v
   | Val_enum c -> Rfsm.Vcd_types.Val_string c
@@ -50,8 +52,10 @@ let vcd_value v = match v with
 let rec pp fmt v = 
   let open Format in
   let pp_rfield fmt (f,v) = fprintf fmt "%s=%a" f pp v in
+  let pp_int_size fmt sz =
+    if !print_int_size then fprintf fmt "<%a>" (Rfsm.Misc.pp_list_h ~sep:"," Format.pp_print_int) sz in
   match v with
-  | Val_int v -> fprintf fmt "%d" v
+  | Val_int (v,sz) -> fprintf fmt "%d%a" v pp_int_size sz
   | Val_bool v -> fprintf fmt "%b" v
   | Val_float v -> fprintf fmt "%.8f" v
   | Val_char c -> fprintf fmt "'%c'" c

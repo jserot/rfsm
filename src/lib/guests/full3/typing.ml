@@ -84,7 +84,7 @@ let rec type_expression env e =
        r
     | Syntax.ERanged (a,i1,i2) ->
        let r = type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lhs *) in
-       Format.printf "Full3.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r;
+       (* Format.printf "Full3.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
        r
     | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 

@@ -45,9 +45,9 @@ let type_farithm1 () =
 exception Unknown_value
         
 let encode_int n =
-    Value.Val_int n
+    Value.Val_int (n,[])
 let decode_int = function
-  | Value.Val_int n -> n
+  | Value.Val_int (n,_) -> n
   | Val_unknown -> raise Unknown_value
   | _ -> Rfsm.Misc.fatal_error "Full.Builtins.decode_int" (* Should not occur after TC *)
 let encode_bool b =
@@ -81,12 +81,16 @@ let prim1 encode op decode =
       end
    | _ -> Rfsm.Misc.fatal_error "Full3.Builtins.prim1"
 
-let tprim2 op =
-  let decode v = v  in
+let tprim2 n op =
+  let decode v = match v with
+  | Value.Val_int (n,_) -> Value.Val_int (n,[])
+      (* Erase size. This is crucial for making generic comparison operators ("=","<",...) work ! *)
+  | _ -> v in
   function
   | [v1;v2] ->
       begin
-        try encode_bool (op (decode v1) (decode v2))
+        try 
+          encode_bool (op (decode v1) (decode v2))
         with Unknown_value -> Val_unknown
       end
    | _ -> Rfsm.Misc.fatal_error "Full3.Builtins.tprim2"
@@ -114,12 +118,12 @@ let env = [
     "*.", (type_farithm2 (), prim2 encode_float  ( *. ) decode_float);
     "/.", (type_farithm2 (), prim2 encode_float  ( /. ) decode_float);
     "~-.", (type_farithm1 (), prim1 encode_float  ( ~-. ) decode_float);
-    "=", (type_compar () , tprim2 ( = ));
-    "!=", (type_compar (), tprim2 ( <> ));
-    "<", (type_compar (), tprim2 ( < ));
-    ">", (type_compar (), tprim2 ( > ));
-    "<=", (type_compar (), tprim2 ( <= ));
-    ">=", (type_compar (), tprim2 ( >= ))
+    "=", (type_compar () , tprim2 "=" ( = ));
+    "!=", (type_compar (), tprim2 "!=" ( <> ));
+    "<", (type_compar (), tprim2 "<" ( < ));
+    ">", (type_compar (), tprim2 ">" ( > ));
+    "<=", (type_compar (), tprim2 "<=" ( <= ));
+    ">=", (type_compar (), tprim2 ">=" ( >= ))
 ]
 
 type typing_env = {

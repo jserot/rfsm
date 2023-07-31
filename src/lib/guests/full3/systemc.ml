@@ -98,7 +98,7 @@ let pp_value fmt v =
   let open Format in
   let open Value in
   let rec pp_v fmt v = match v with
-  | Val_int v -> fprintf fmt "%d" v
+  | Val_int (v,_) -> fprintf fmt "%d" v
   | Val_bool v -> fprintf fmt "%b" v
   | Val_float v -> fprintf fmt float_print_format v
   | Val_char c -> fprintf fmt "'%c'" c
