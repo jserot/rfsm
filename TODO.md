@@ -2,6 +2,7 @@ COMPILER
 
 - refine translation of parameterized types (ex: int<n> when [n] is a model parameter) in SystemC and VHDL backends
 - `CModel.c_consts` = `c_params` ? 
+- replace `Guest.Types.{mk_type_constr0,is_type_constr0}` by `is_type_{event,bool}`
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - document lib/host/guest.ml
 - banner
@@ -33,4 +34,6 @@ DIST
 DOC
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
 - man page for rfsmc
+- parameterize the formal semantics on that of the guest language (ex: the concrete `int`, `bool`
+  types and values should not show any longer in the description of "host" semantics)
 - add a section describing how to build a new language by providing a guest lib+bin

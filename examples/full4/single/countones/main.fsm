@@ -1,0 +1,32 @@
+-- This is the same code than ../../../full2/single/countones but out-of-bound errors are now
+-- correctly detected, when replacing "i<8" (resp. "i=8") by "i<9" (resp. "i=9") for example.
+
+fsm model count(
+  in h: event,
+  in start: bool,
+  in x: int<8>,
+ out n: int,
+ out rdy: bool)
+{
+  states:
+    Idle where rdy=1,
+    Count where rdy=0;
+  vars: i: int  ,
+        z: int<8>,
+        cnt: int;
+  trans:
+  | Idle -> Count on h when start=1 with z:=x, cnt:=0, i:=0
+  | Count -> Count on h when (i<8).(z[i]=1) with cnt:=cnt+1, z[i]:=0, i:=i+1
+  | Count -> Count on h when (i<8).(z[i]=0) with i:=i+1
+  | Count -> Idle on h when i=8 with n:=cnt;
+  itrans:
+  | -> Idle with i:=0, z:=0;
+}
+
+input H : event = periodic(10, 10, 140)
+input Start: bool = value_changes(0:0, 15:1, 35:0)
+input X: int<8> = value_changes(20:85)
+output N: int
+output Rdy: bool
+
+fsm c = count(H,Start,X,N,Rdy)
