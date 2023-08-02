@@ -15,7 +15,7 @@ let pp_type_expr fmt te =
   let open Syntax in
   let open Rfsm.Ident in
   match te.Annot.desc with
-  | TeConstr ({id="int";_},[],[sz]) -> fprintf fmt "sc_uint<%d>" sz
+  | TeConstr ({id="int";_},[],[sz]) -> fprintf fmt "sc_uint<%a>" pp_type_size sz
   | TeConstr ({id="int";_},[],_) -> fprintf fmt "int" 
   | TeConstr ({id="bit";_},[],_) -> fprintf fmt "sc_uint<1>" 
   | TeConstr ({id="bool";_},[],_) -> fprintf fmt "bool" 
@@ -26,12 +26,12 @@ let pp_type_expr fmt te =
          and telling afterwards which one occurred in SystemC 2.3.0 :-( *)
   | TeConstr ({id=c;_},[],_) -> fprintf fmt "%s" c  (* Enums *)
   | _ -> raise (Unsupported_type te.Annot.typ)
-                    
+
 let pp_typ fmt t =
   let open Types in 
   let open Format in 
   match t with
-    | TyConstr ("int",[],Sz1 sz) -> fprintf fmt "sc_uint<%d>" sz
+    | TyConstr ("int",[],[SzConst sz]) -> fprintf fmt "sc_uint<%d>" sz
     | TyConstr ("int",[], _) -> fprintf fmt "int" 
     | TyConstr ("float",[],_) -> fprintf fmt "%s" (if Rfsm.Systemc.cfg.Rfsm.Systemc.sc_double_float then "double" else "float")
     | TyConstr ("event",[],_) -> fprintf fmt "bool"
@@ -109,16 +109,16 @@ let pp_value fmt v =
  and pp_rfield fmt (f,v) = fprintf fmt "%s=%a" f pp_v v in
  pp_v fmt v
 
-let pp_siz fmt sz =
+let pp_size fmt sz =
   match Types.real_size sz with
-  | Types.SzNone -> ()
-  | Types.SzVar _ -> fprintf fmt "[]" 
-  | Types.Sz1 s -> fprintf fmt "[%d]" s
-  | Types.Sz2 (s1,s2) -> fprintf fmt "[%d][%d]" s1 s2
+  | Types.SzVar _ -> fprintf fmt "" 
+  | Types.SzIndex i -> fprintf fmt "%a" Rfsm.Ident.pp i
+  | Types.SzConst s -> fprintf fmt "%d" s
 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Types.TyConstr ("array", [t'], sz) -> fprintf fmt "%a %a%a" pp_typ t' pp_ident name pp_siz sz
+  | Types.TyConstr ("array", [t'], [sz]) -> fprintf fmt "%a %a%a" pp_typ t' pp_ident name pp_size sz
+  | Types.TyConstr ("array", [t'], [sz1;sz2]) -> fprintf fmt "%a %a%a%a" pp_typ t' pp_ident name pp_size sz1 pp_size sz2
   | t -> fprintf fmt "%a %a" pp_typ t pp_ident name 
 
 let pp_cst_decl fmt name t = 

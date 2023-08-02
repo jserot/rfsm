@@ -6,14 +6,15 @@ type typ =
   | TyVar of typ var
   | TyArrow of typ * typ
   | TyProduct of typ list
-  | TyConstr of string * typ list * siz (** name, args, size annotation(s) *)
+  | TyConstr of string * typ list * siz list (** name, args, size annotation *)
+              (* For int's and arrays, [[s1]] gives size
+                 For int's, [[s1;s2]] gives range *)
   | TyRecord of string * (string * typ) list    (** Name, fields *)
 
-and siz =
+and siz = 
   | SzVar of siz var
-  | SzNone
-  | Sz1 of int (* For int's and arrays: size *)
-  | Sz2 of int * int (* For int's: range *)
+  | SzIndex of Rfsm.Ident.t
+  | SzConst of int
 
 and 'a var =
   { stamp: int;             (* for debug only *)
@@ -27,6 +28,10 @@ type typ_scheme =
   { ts_tparams: (typ var) list;
     ts_sparams: (siz var) list;
     ts_body: typ }
+
+(* Type indexes *)
+
+type index = int
 
 (* Type variables *)
   
@@ -48,23 +53,25 @@ let type_product = function
   | [t] -> t
   | ts -> TyProduct ts
 let type_int sz = TyConstr ("int", [], sz)
-let type_unsized_int () = TyConstr ("int", [], new_size_var ())
-let type_sized_int sz = TyConstr ("int", [], Sz1 sz)
-let type_ranged_int lo hi = TyConstr ("int", [], Sz2 (lo,hi))
+let type_unsized_int () = TyConstr ("int", [], [new_size_var ()])
+let type_sized_int sz = TyConstr ("int", [], [sz])
+let type_ranged_int lo hi = TyConstr ("int", [], [lo;hi])
 
-let type_unsized_array t = TyConstr ("array", [t], new_size_var ())
-let type_sized_array t sz = TyConstr ("array", [t], Sz1 sz)
+let type_unsized_array t = TyConstr ("array", [t], [new_size_var ()])
+let type_sized_array t sz = TyConstr ("array", [t], [sz])
 
-let type_event () = TyConstr ("event", [], SzNone)
-let type_bool () = TyConstr ("bool", [], SzNone)
-let type_float () = TyConstr ( "float", [], SzNone)
-let type_char () = TyConstr ( "char", [], SzNone)
+let type_event () = TyConstr ("event", [], [])
+let type_bool () = TyConstr ("bool", [], [])
+let type_float () = TyConstr ( "float", [], [])
+let type_char () = TyConstr ( "char", [], [])
 
-let mk_type_constr0 c = TyConstr (c, [], SzNone)
+let mk_type_constr0 c = TyConstr (c, [], [])
 let is_type_constr0 c ty = match ty with
   | TyConstr (c', [], _) when c=c' -> true
   | _ -> false
 let mk_type_fun ty_args ty_res = type_arrow (type_product ty_args) ty_res
+
+let is_index_type ty = is_type_constr0 "int" ty
 
 let rec type_repr = function
   | TyVar ({value = Known ty1; _} as var) ->
@@ -87,7 +94,7 @@ let rec real_type ty =
   | TyVar { value=Known ty'; _} -> ty'
   | TyArrow (ty1,ty2) -> TyArrow (real_type ty1, real_type ty2)
   | TyProduct ts  -> TyProduct (List.map real_type ts)        
-  | TyConstr (c, ts, sz) -> TyConstr (c, List.map real_type ts, real_size sz)
+  | TyConstr (c, ts, szs) -> TyConstr (c, List.map real_type ts, List.map real_size szs)
   | TyRecord (name, fds) -> TyRecord (name, List.map (function (n,ty') -> n, real_type ty') fds)
   | ty -> ty
 
@@ -109,8 +116,8 @@ let rec copy_type tvbs svbs ty =
        TyArrow (copy ty1, copy ty2)
     | TyProduct ts ->
        TyProduct (List.map copy ts)
-    | TyConstr (c, args, sz) ->
-       TyConstr (c, List.map copy args, copy_size ty svbs sz)
+    | TyConstr (c, args, szs) ->
+       TyConstr (c, List.map copy args, List.map (copy_size ty svbs) szs)
     | TyRecord (nm, fds) ->
        TyRecord(nm, List.map (function (n,t) -> n, copy t) fds) in
   copy ty
@@ -133,10 +140,18 @@ let type_instance ty_sch =
       let unknown_ss = List.map (fun var -> (var, new_size_var())) sparams in
       copy_type unknown_ts unknown_ss ty_sch.ts_body
 
+exception Size_of_type
+
 let size_of_type t =
+  let int_of sz = match sz with
+    | SzConst c -> c
+    | _ -> raise Size_of_type in
   match real_type t with
-  | TyConstr (_, _, Sz1 s) -> [s]
-  | TyConstr (_, _, Sz2 (s1,s2)) -> [s1;s2]
+  | TyConstr (_, _, szs) ->
+     begin 
+       try List.map int_of szs
+       with Size_of_type -> [] 
+     end
   | _ -> []
 
 (* Type unification - the classical algorithm *)
@@ -162,10 +177,15 @@ let rec unify ~loc ty1 ty2 =
       unify ~loc ty2 ty2'
   | TyProduct ts1, TyProduct ts2 when List.length ts1 = List.length ts2 ->
       List.iter2 (unify ~loc) ts1 ts2
-  | TyConstr (constr1, args1, sz1), TyConstr (constr2, args2, sz2)
+  | TyConstr (constr1, args1, szs1), TyConstr (constr2, args2, szs2)
        when constr1=constr2 && List.length args1 = List.length args2 ->
-     List.iter2 (unify ~loc) args1 args2;
-     unify_size ~loc (val1,val2) sz1 sz2
+     begin
+       try
+         List.iter2 (unify ~loc) args1 args2;
+         List.iter2 (unify_size ~loc (val1,val2)) szs1 szs2
+      with
+        Invalid_argument _ -> raise (Type_conflict(loc,val1,val2))
+     end
   | TyRecord (nm1,fds1), TyRecord (nm2,fds2) ->
      (* TODO: what do we do with nm1 and nm2 ? *)
      List.iter2
@@ -182,8 +202,6 @@ and unify_size ~loc (ty1,ty2) sz1 sz2 =
   and s2 = real_size sz2 in
   if s1 == s2 then ()
   else match (s1,s2) with
-    | SzNone, SzNone ->
-       ()
     | SzVar var1, SzVar var2 when var1 == var2 ->
         ()
     | SzVar var, sz ->
@@ -192,10 +210,9 @@ and unify_size ~loc (ty1,ty2) sz1 sz2 =
     | sz, SzVar var ->
         occur_check_size ~loc (ty1,ty2) var sz;
         var.value <- Known sz
-    | Sz1 v1, Sz1 v2 when v1=v2 -> 
+    | SzConst c1, SzConst c2 when c1 = c2 ->
        ()
-    | Sz2 (v11,v12), Sz2 (v21,v22) when v11=v21 && v12=v22 -> 
-       ()
+    (* Note: SzIndexes have normally been eliminated at this level *)
     | _, _ ->
         raise (Type_conflict(loc,ty1,ty2))
   
@@ -220,8 +237,6 @@ and occur_check_size ~loc (ty1,ty2) var sz =
 
 (* Printing *)
 
-let pp_var fmt v = Format.fprintf fmt "_%d" v.stamp (* TO FIX *) 
-
 let rec pp_typ ~abbrev fmt t =
   let open Format in
   match real_type t with
@@ -230,9 +245,9 @@ let rec pp_typ ~abbrev fmt t =
   | TyProduct [] -> fprintf fmt "<no_type>" 
   | TyProduct [t] -> if !print_full_types then fprintf fmt "(%a)" (pp_typ ~abbrev) t else (pp_typ ~abbrev) fmt t
   | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" (pp_typ ~abbrev) fmt ts
-  | TyConstr (c,[],szs) -> fprintf fmt "%s%a" c (pp_siz c) szs
-  | TyConstr (c,[t'],szs) -> fprintf fmt "%a %s%a" (pp_typ ~abbrev) t' c (pp_siz c) szs
-  | TyConstr (c,ts,szs) -> fprintf fmt " (%a) %s%a" (Rfsm.Misc.pp_list_h ~sep:"," (pp_typ ~abbrev)) ts c (pp_siz c) szs
+  | TyConstr (c,[],szs) -> fprintf fmt "%s%a" c (pp_sizes c) szs
+  | TyConstr (c,[t'],szs) -> fprintf fmt "%a %s%a" (pp_typ ~abbrev) t' c (pp_sizes c) szs
+  | TyConstr (c,ts,szs) -> fprintf fmt " (%a) %s%a" (Rfsm.Misc.pp_list_h ~sep:"," (pp_typ ~abbrev)) ts c (pp_sizes c) szs
   | TyRecord (nm,fs) ->
      if abbrev
      then fprintf fmt "%s" nm
@@ -240,17 +255,22 @@ let rec pp_typ ~abbrev fmt t =
 
 and pp_rfield ~abbrev fmt (n,ty) = Format.fprintf fmt "%s: %a" n (pp_typ ~abbrev) ty
 
-and pp_siz c fmt sz = 
-  match c, size_repr sz with
-  | _, SzNone -> if !print_full_types then Format.fprintf fmt "<none>" else ()
-  | "int", SzVar v -> if !print_full_types then Format.fprintf fmt "<%a>" pp_var v else ()
-  | "array", SzVar v -> if !print_full_types then Format.fprintf fmt "[%a]" pp_var v else Format.fprintf fmt "[]"
-  | _, SzVar v -> Format.fprintf fmt "%a" pp_var v
-  | "array", Sz1 sz -> Format.fprintf fmt "[%d]" sz
-  | _, Sz1 sz -> Format.fprintf fmt "<%d>" sz
-  | "int", Sz2 (lo,hi) -> Format.fprintf fmt "<%d:%d>" lo hi
-  | "array", Sz2 (lo,hi) -> Format.fprintf fmt "[%d,%d]" lo hi
-  | c, Sz2 (lo,hi) -> Format.fprintf fmt "<%d,%d>" lo hi
+and pp_sizes c fmt szs = 
+  match c, szs with
+  | _, [] -> if !print_full_types then Format.fprintf fmt "<none>" else ()
+  | "array", [sz] -> Format.fprintf fmt "[%a]" pp_size sz
+  | "int", [sz] -> Format.fprintf fmt "<%a>" pp_size sz
+  | _, [sz] -> Format.fprintf fmt "<%a>" pp_size sz
+  | "int", [lo;hi] -> Format.fprintf fmt "<%a:%a>" pp_size lo pp_size hi
+  | "array", [lo;hi] -> Format.fprintf fmt "[%a,%a]" pp_size lo pp_size hi
+  | _, [lo;hi] -> Format.fprintf fmt "<%a,%a>" pp_size lo pp_size hi
+  | _, _ -> Format.fprintf fmt "<???>"
+
+and pp_size fmt sz = 
+  match real_size sz with
+  | SzVar v -> Format.fprintf fmt "_%d" v.stamp (* TO FIX ? *) 
+  | SzIndex i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i
+  | SzConst c -> Format.fprintf fmt "%d" c
 
 let pp_typ_scheme fmt t =
   let open Format in
@@ -258,4 +278,5 @@ let pp_typ_scheme fmt t =
   | [] ->
      fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
+     let pp_var fmt v = Format.fprintf fmt "_%d" v.stamp in (* TO FIX ? *)  
      fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_sparams (pp_typ ~abbrev:false) t.ts_body

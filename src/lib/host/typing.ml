@@ -18,7 +18,8 @@ end
 
 module Make
          (HS: Syntax.SYNTAX)
-         (GT: Guest.TYPING with module Syntax = HS.Guest and type Types.typ = HS.typ ) =
+         (GT: Guest.TYPING with module Syntax = HS.Guest and type Types.typ = HS.typ )
+         (GS: Guest.STATIC with type expr = HS.expr) =
 struct
   module HostSyntax = HS
   module GuestTyping = GT 
@@ -134,12 +135,22 @@ struct
     | [] -> raise (No_event_input loc)
     | _ -> ()
          
-  let type_fsm_model env m =
+  let type_fsm_model (env,params) m =
     type_fsm_states env m;
-    let env' = List.fold_left GuestTyping.add_var env (types_of_fsm_model env m) in
-    type_fsm_ios env' m;
-    List.iter (type_fsm_transition env' m) m.A.desc.trans;
-    type_fsm_itransition env' m m.A.desc.itrans
+    let type_indexes =
+      List.fold_left
+      (fun acc (id,ty,e) ->
+        if GuestTyping.Types.is_index_type ty then (id,GS.eval_index e)::acc
+        else acc)
+      []
+      params in
+    (* Format.printf "** Host.Typing.type_fsm_model: indexes=[%a]\n"
+     *   (Misc.pp_list_h ~sep:"," (fun fmt (i,v) -> Format.fprintf fmt "%a=%d" Ident.pp i v)) type_indexes; *)
+    let env' = List.fold_left GuestTyping.add_index env type_indexes in
+    let env'' = List.fold_left GuestTyping.add_var env' (types_of_fsm_model env' m) in
+    type_fsm_ios env'' m;
+    List.iter (type_fsm_transition env'' m) m.A.desc.trans;
+    type_fsm_itransition env'' m m.A.desc.itrans
 
   (* Typing FSM instances *)
 
@@ -156,29 +167,34 @@ struct
       | Input, Output -> raise (Illegal_inst loc)
       | Output, Input -> raise (Illegal_inst loc)
       | _, _ -> () in
+    (* Get associated model *)
     let mm = lookup_model model in
     let m = mm.A.desc in
-    type_fsm_model env mm;  (* Note v2-full4: we _now_ type the instanciated model in an extended environment *)
+    (* Type-check and (statically) evaluate parameters *)
+    let bind_param (id,te) e =
+      let ty = GuestTyping.type_of_type_expr env te in
+      GuestTyping.type_check
+        ~loc:loc
+        ty
+        (GuestTyping.type_expression env e);
+      (id,ty,e) in
+    let i_params =
+      try List.map2 bind_param m.params params
+      with Invalid_argument _ -> raise (Illegal_inst loc) in
+    (* Now type the instanciated model *)
+    type_fsm_model (env,i_params) mm;
     let m_inps = List.map (fun (id,te) -> id, Input, te.A.typ) m.inps in
     let m_outps = List.map (fun (id,te) -> id, Output, te.A.typ) m.outps in
     let m_inouts = List.map (fun (id,te) -> id, Shared, te.A.typ) m.inouts in
-    let m_params = List.map (fun (id,te) -> id, te.A.typ) m.params in
     let bind_arg (id,cat,ty) id' =
       let _,cat',te',_ = (lookup_io id').A.desc in
       unify_cat cat cat';
       GuestTyping.type_check ~loc ty te'.A.typ in
-    let bind_param (id,ty) e =
-      GuestTyping.type_check
-        ~loc:loc
-        ty
-        (GuestTyping.type_expression env e) in
     begin
-      try
-        List.iter2 bind_param m_params params;
-        List.iter2 bind_arg (m_inps @ m_outps @ m_inouts) args;
-      with
-        Invalid_argument _ -> raise (Illegal_inst loc)
+      try List.iter2 bind_arg (m_inps @ m_outps @ m_inouts) args;
+      with Invalid_argument _ -> raise (Illegal_inst loc)
     end
+    (* (name,m) *)
 
   (* Typing globals *)
                              

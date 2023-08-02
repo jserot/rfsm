@@ -5,19 +5,22 @@ module Env = Rfsm.Env
 module Annot = Rfsm.Annot
 module Location = Rfsm.Location
 
-type env =
-  { te_vars: Types.typ Env.t;
+type env = {
+    te_vars: Types.typ Env.t;
     te_tycons: (int * Types.typ) Env.t;  (** Type constructors, with arity and associated type *)
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
     te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *) 
-    te_prims: Types.typ_scheme Env.t }
+    te_prims: Types.typ_scheme Env.t; (** Primitive operators and functions *)
+    te_indexes: Types.index Env.t  (** Type indexes. E.g. [n=1], used in [int<n>] *)
+    }
 
 let mk_env () =
   { te_vars = Env.empty;
     te_tycons = Env.init Builtins.typing_env.tycons;
     te_ctors = Env.init Builtins.typing_env.ctors;
     te_rfields = Env.empty;
-    te_prims = Env.init Builtins.typing_env.prims; }
+    te_prims = Env.init Builtins.typing_env.prims;
+    te_indexes = Env.empty; }
 
 exception Undefined of string * Location.t * Rfsm.Ident.t
 exception Duplicate of string * Location.t * Rfsm.Ident.t
@@ -29,8 +32,10 @@ let lookup ~exc v env =
   with Not_found -> raise exc
 
 let lookup_var ~loc v env = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
+let lookup_index ~loc v env = lookup ~exc:(Undefined ("index",loc,v)) v env.te_indexes
 
 let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
+let add_index env (i,v) = { env with te_indexes = Env.add i v env.te_indexes }
 
 let pp_env fmt e = 
   let open Format in
@@ -52,18 +57,24 @@ let rec type_of_type_expr env te =
     | Syntax.TeConstr (c,[],[]) ->
        lookup ~exc:(Undefined ("type constructor",te.Annot.loc, c)) c env.te_tycons |> snd
     | Syntax.TeConstr (c,args,sz) ->
-       Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, size_of_size_expr c sz) in
+       Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, sizes_of_sizes_expr env ~loc:te.Annot.loc c sz) in
   te.Annot.typ <- ty;
   ty
 
-and size_of_size_expr c sz = 
-  match c.Rfsm.Ident.id, sz with 
-  | "int", [] -> Types.new_size_var ()
-  | "array", [] -> Types.new_size_var ()
-  | _, [] -> Types.SzNone
-  | _, [s] -> Types.Sz1 s
-  | _, [lo;hi] -> Types.Sz2 (lo,hi)
-  | _, _ -> Rfsm.Misc.fatal_error "Full3.Typing.size_of_size_expr" (* Should not happen thx to parsing defns *)
+and sizes_of_sizes_expr env ~loc c se = 
+  match c.Rfsm.Ident.id, se with 
+  | "int", [] -> [Types.new_size_var ()]  (* Special case *)
+  | "array", [] -> [Types.new_size_var ()]  (* Special case *)
+  | _, ses -> List.map (size_of_size_expr env ~loc) ses
+
+and size_of_size_expr env ~loc se = 
+  match se with
+  | SzIndex i ->
+     (* Format.printf "** Typing.size_of_size_expr: looking up index %a in %a\n"
+      *   Rfsm.Ident.pp i 
+      *   (Rfsm.Env.pp Format.pp_print_int) env.te_indexes; *)
+     Types.SzConst (lookup ~exc:(Undefined ("index",loc,i)) i env.te_indexes)
+  | SzConst c -> Types.SzConst c
 
 let rec type_expression env e =
   let loc = e.Annot.loc in
@@ -80,17 +91,17 @@ let rec type_expression env e =
     | Syntax.ECon0 c -> lookup ~exc:(Undefined ("value constructor",e.Annot.loc,c)) c env.te_ctors
     | Syntax.EIndexed (a,i) ->
        let r = type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *) in
-       (* Format.printf "Full3.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
+       (* Format.printf "Full4.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
        r
     | Syntax.ERanged (a,i1,i2) ->
        let r = type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lhs *) in
-       (* Format.printf "Full3.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
+       (* Format.printf "Full4.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
        r
     | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 
        let ty_e1 = type_expression env e1 in
        List.iter (function e -> Types.unify ~loc ty_e1 (type_expression env e)) es;
-       Types.type_sized_array ty_e1 (List.length exps)
+       Types.type_sized_array ty_e1 (SzConst (List.length exps))
     | Syntax.ECond (e1,e2,e3) ->
        let ty_e1 = type_expression env e1 in
        let ty_e2 = type_expression env e2 in
@@ -146,7 +157,7 @@ and type_indexed_expr ~loc env a i =
   let ty_i = type_expression env i in
   Types.unify ~loc:i.Annot.loc ty_i (Types.type_unsized_int ());
   match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
-  | TyConstr ("int", _, _) -> Types.type_sized_int 1
+  | TyConstr ("int", _, _) -> Types.type_sized_int (SzConst 1)
   | TyConstr ("array", [t'], _) -> t'
   | _ -> raise (Illegal_expr (loc, "only int's and array's can be indexed"))
 
@@ -159,10 +170,10 @@ and type_ranged_expr ~loc env a i1 i2 =
   | TyConstr("int",_,_) ->
      let sz = 
        begin match i1.Annot.desc, i2.Annot.desc with 
-      | Syntax.EInt hi, Syntax.EInt lo -> Types.Sz1 (hi-lo+1) (* The result size can here be statially determined ... *)
+      | Syntax.EInt hi, Syntax.EInt lo -> Types.SzConst (hi-lo+1) (* The result size can here be statially determined ... *)
       | _, _ -> Types.new_size_var () (* ... but we cannot do more in the general case *)
        end  in
-     Types.type_int sz 
+     Types.type_sized_int sz 
   | ty -> raise (Types.Type_conflict (loc, ty, Types.type_unsized_int ()))
 
 and type_cast e t1 t2 = match t1, t2 with
@@ -187,7 +198,7 @@ let type_type_decl env td =
     add_env (Duplicate ("record field name", td.Annot.loc, nm)) lenv (nm,(ty',ty)) in
   let ty,env' = match td.Annot.desc with
     | Syntax.TD_Enum (name, ctors) -> 
-       let ty = Types.TyConstr (name.Rfsm.Ident.id, [], SzNone) in
+       let ty = Types.TyConstr (name.Rfsm.Ident.id, [], []) in
        ty,
        { env with te_tycons = add_tycon ty env.te_tycons (name,0);
                   te_ctors = List.fold_left (add_ctor ty) env.te_ctors ctors }

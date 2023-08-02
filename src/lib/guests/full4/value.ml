@@ -14,7 +14,7 @@ type t =
 type typ = Types.typ
          
 let rec default_value ty = match ty with
-  | Types.TyConstr ("array", [t'], Sz1 sz) ->
+  | Types.TyConstr ("array", [t'], [SzConst sz]) ->
      (* The initial value of an array is not "undefined" but an _array_ of undefined value *)
        Val_array (Array.make sz (default_value t'))
   | Types.TyConstr ("array", _, _) ->

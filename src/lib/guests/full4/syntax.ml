@@ -15,12 +15,16 @@ let mk_global_ident = Rfsm.Ident.mk ~scope:Global
 
 type type_expr = (type_expr_desc,Types.typ) Annot.t
 and type_expr_desc = 
-  | TeConstr of ident * type_expr list * type_size (* name, args, size annotations *) 
+  | TeConstr of ident * type_expr list * size_annot (* name, args, size annotations *) 
 
-and type_size = int list (* []: none, [s] size for ints and arrays, [lo;hi] range for ints *)
+and size_annot = type_size list (* []: none, [s] size for ints and arrays, [lo;hi] range for ints *)
+
+and type_size = 
+  | SzIndex of Rfsm.Ident.t 
+  | SzConst of int
 
 let rec pp_type_expr_desc fmt te = 
-  let open Format in
+ let open Format in
   match te with
   | TeConstr (c,[],sz) -> fprintf fmt "%a%a" pp_ident c (pp_size c) sz
   | TeConstr (c,[t'],sz) -> fprintf fmt "%a %a%a" pp_type_expr t' pp_ident c (pp_size c) sz
@@ -31,7 +35,12 @@ and pp_type_expr fmt te =
 and pp_size c fmt sz =
   match sz with
   | [] -> ()
-  | _ -> Format.fprintf fmt "<%a>" (Rfsm.Misc.pp_list_h ~sep:"," Format.pp_print_int) sz
+  | _ -> Format.fprintf fmt "<%a>" (Rfsm.Misc.pp_list_h ~sep:"," pp_type_size) sz
+
+and pp_type_size fmt sz = 
+  match sz with
+  | SzIndex i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i
+  | SzConst n -> Format.fprintf fmt "%d" n
 
 (** Type declarations *)
                 

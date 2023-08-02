@@ -24,7 +24,7 @@ module Make (G: Guest.T)
 struct
     module Guest = G
     module Syntax = Syntax.Make(G.Syntax)
-    module Typing = Typing.Make(Syntax)(G.Typing)
+    module Typing = Typing.Make(Syntax)(G.Typing)(G.Static)
     module Static = Static.Make(Syntax)(G.Value)(G.Static)
     module Dot = Dot.Make(Static)
     module Dynamic = Dynamic.Make(Syntax)(Static)(G.Eval)

@@ -10,6 +10,8 @@ end
 module type TYPES = sig 
   type typ
   type typ_scheme
+  type index = int (** For indexing sized types (int's, arrays, ...) *)
+  val is_index_type: typ -> bool
   val no_type: typ
   val mk_type_constr0: string -> typ
   val is_type_constr0: string -> typ -> bool
@@ -63,6 +65,7 @@ module type TYPING = sig
   val mk_env: unit -> env
   val lookup_var: loc:Location.t -> Ident.t -> env -> Types.typ
   val add_var: env -> Ident.t * Types.typ -> env
+  val add_index: env -> Ident.t * Types.index -> env
   (* TODO : add_prim, add_constr, ... *)
   val pp_env: Format.formatter -> env -> unit
   (** Low-level interface to the the type-checking engine *)
@@ -98,6 +101,8 @@ module type STATIC = sig
   type expr
   type value
   exception Non_static_value of expr
+  exception Illegal_index_value of expr
+  val eval_index: expr -> int
   val eval_fn: string list -> expr -> value (* Args, body *)
   val eval: expr -> value  (* Static evaluation of constant expressions *)
 end

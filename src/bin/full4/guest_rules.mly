@@ -23,14 +23,18 @@ type_expr:
 int_annot:
     | (* Nothing *)
       { [] }
-    | LT w=INT GT
+    | LT w=size_annot GT
         { [w] }
-    | LT lo=INT COLON hi=INT GT
+    | LT lo=size_annot COLON hi=size_annot GT
         { [lo; hi] }
 
 array_size:
-    | sz=INT { [sz] }
+    | sz=size_annot { [sz] }
     (* TODO : n-dim arrays ? *)
+
+size_annot:
+    | c=INT { SzConst c }
+    | i=LID { SzIndex (mk_ident i) }
 
 expr:
   | e = simple_expr { e }

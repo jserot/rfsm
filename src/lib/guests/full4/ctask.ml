@@ -75,16 +75,22 @@ let pp_expr fmt e =
   and pp_rfield level fmt (n,v) = fprintf fmt "%s=%a" n (pp level) v in
   pp 0 fmt e
 
-let pp_siz fmt sz =
+let pp_size fmt sz =
   match Types.real_size sz with
-  | Types.SzNone -> ()
-  | Types.SzVar _ -> fprintf fmt "[]" 
-  | Types.Sz1 s -> fprintf fmt "[%d]" s
-  | Types.Sz2 (s1,s2) -> fprintf fmt "[%d][%d]" s1 s2
+  | Types.SzVar _ -> ()
+  | Types.SzIndex i -> fprintf fmt "%a" Rfsm.Ident.pp i
+  | Types.SzConst c -> fprintf fmt "%d" c
 
+let pp_sizes fmt szs =
+  match szs with
+  | [] -> ()
+  | [sz] -> fprintf fmt "[%a]" pp_size sz 
+  | [sz1;sz2] -> fprintf fmt "[%a][%a]" pp_size sz1 pp_size sz2
+  | _ -> fprintf fmt "[]"
+ 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Types.TyConstr ("array", [t'], sz) -> fprintf fmt "%a %a%a" pp_simple_type t' pp_ident name pp_siz sz
+  | Types.TyConstr ("array", [t'], szs) -> fprintf fmt "%a %a%a" pp_simple_type t' pp_ident name pp_sizes szs
   | t -> fprintf fmt "%a %a" pp_simple_type t pp_ident name 
 
 let pp_cst_decl fmt name t = 

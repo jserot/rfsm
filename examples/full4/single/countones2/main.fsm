@@ -23,10 +23,12 @@ fsm model count<n: int> (
   | -> Idle with i:=0, z:=0;
 }
 
-input H : event = periodic(10, 10, 140)
-input Start: bool = value_changes(0:0, 15:1, 35:0)
-input X: int<8> = value_changes(20:85)
-output N: int
-output Rdy: bool
+input h : event = periodic(10, 10, 140)
+input start: bool = value_changes(0:0, 15:1, 35:0)
+input x8: int<8> = value_changes(20:85)
+input x4: int<4> = value_changes(20:14)
+output r4, r8: int
+output rdy4, rdy8: bool
 
-fsm c = count<8>(H,Start,X,N,Rdy)
+fsm c8 = count<8>(h,start,x8,r8,rdy8)
+fsm c4 = count<4>(h,start,x4,r4,rdy4)
