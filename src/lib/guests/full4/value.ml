@@ -34,7 +34,8 @@ let flatten ~base v =
      [base, v]
                            
 let vcd_type v = match v with
-  | Val_int _ -> Rfsm.Vcd_types.TyInt None
+  | Val_int (_,[n]) -> Rfsm.Vcd_types.TyInt (Some n)
+  | Val_int (_,[]) -> Rfsm.Vcd_types.TyInt None
   | Val_bool _ -> Rfsm.Vcd_types.TyBool
   | Val_float _ -> Rfsm.Vcd_types.TyFloat
   | Val_char _ -> Rfsm.Vcd_types.TyChar

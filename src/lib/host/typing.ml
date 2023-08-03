@@ -3,9 +3,23 @@
 module type TYPING = sig
   module HostSyntax: Syntax.SYNTAX
   type env
+  type typed_inst = {
+      name: Ident.t; 
+      params: (Ident.t * HostSyntax.typ * HostSyntax.Guest.expr) list;
+      args: (Ident.t * HostSyntax.typ) list;
+      model: HostSyntax.model_desc;  (* Typed model *)
+      }
+  type typed_program = {
+      type_decls: HostSyntax.type_decl list;  
+      fun_decls: HostSyntax.fun_decl list;
+      cst_decls: HostSyntax.cst_decl list;
+      globals: HostSyntax.global list;
+      insts: typed_inst list;
+      }
   val mk_env: unit -> env
-  val type_program: env -> HostSyntax.program -> unit
+  val type_program: env -> HostSyntax.program -> typed_program
   val pp_env: Format.formatter -> env -> unit
+  val pp_typed_program: Format.formatter -> typed_program -> unit
 
   exception Undefined_symbol of Location.t * Ident.t
   exception Duplicate_symbol of Location.t * Ident.t
@@ -26,6 +40,21 @@ struct
   module A = Annot 
 
   type env = GuestTyping.env
+
+  type typed_inst = {
+      name: Ident.t; 
+      params: (Ident.t * HostSyntax.typ * HostSyntax.Guest.expr) list;
+      args: (Ident.t * HostSyntax.typ) list;
+      model: HostSyntax.model_desc;  (* Typed model *)
+      } [@@deriving show {with_path=false}]
+
+  type typed_program = {
+      type_decls: HostSyntax.type_decl list;  
+      fun_decls: HostSyntax.fun_decl list;
+      cst_decls: HostSyntax.cst_decl list;
+      globals: HostSyntax.global list;
+      insts: typed_inst list;
+      } [@@deriving show {with_path=false}]
 
   exception Undefined_symbol of Location.t * Ident.t
   exception Duplicate_symbol of Location.t * Ident.t
@@ -168,7 +197,9 @@ struct
       | Output, Input -> raise (Illegal_inst loc)
       | _, _ -> () in
     (* Get associated model *)
-    let mm = lookup_model model in
+    let mm = Misc.clone @@ lookup_model model in
+      (* Note: we need a _deep copy_ of the model so that destructive updates performed by the
+         type-checking are applied to fresh copies *)
     let m = mm.A.desc in
     (* Type-check and (statically) evaluate parameters *)
     let bind_param (id,te) e =
@@ -189,12 +220,15 @@ struct
     let bind_arg (id,cat,ty) id' =
       let _,cat',te',_ = (lookup_io id').A.desc in
       unify_cat cat cat';
-      GuestTyping.type_check ~loc ty te'.A.typ in
-    begin
-      try List.iter2 bind_arg (m_inps @ m_outps @ m_inouts) args;
-      with Invalid_argument _ -> raise (Illegal_inst loc)
-    end
-    (* (name,m) *)
+      GuestTyping.type_check ~loc ty te'.A.typ;
+      (id',ty) in
+    let i_args = 
+      try List.map2 bind_arg (m_inps @ m_outps @ m_inouts) args;
+      with Invalid_argument _ -> raise (Illegal_inst loc) in
+    { name = name;
+      params = i_params;
+      args = i_args;
+      model = m }
 
   (* Typing globals *)
                              
@@ -258,6 +292,10 @@ struct
        can only be checked when the model [f] is instanciated (as [fsm f1 = f<8>(...)] for example)
        because of the assignation [z:=i] ! *)
     List.iter (type_global env) p.globals;
-    List.iter (type_fsm_inst env p) p.insts
+    { type_decls = p.type_decls; 
+      fun_decls = p.fun_decls;
+      cst_decls = p.cst_decls;
+      globals = p.globals;
+      insts = List.map (type_fsm_inst env p) p.insts }
 
 end

@@ -57,8 +57,8 @@ struct
     (* Format.printf "parsed=%a" pp_program p; *)
     let tenv0 = Typing.mk_env () in
     if !Options.dump_tenv then Format.printf "tenv=%a" pp_tenv tenv0;
-    type_program tenv0 p;
-    if !Options.dump_typed then Format.printf "tp=%a" pp_program p;
+    let tp = type_program tenv0 p in
+    if !Options.dump_typed then Format.printf "tp=%a" Typing.pp_typed_program tp;
     let s = elab p in
     if !Options.dump_static then Format.printf "s=%a" (Static.pp ~verbose_level:2) s;
     Logfile.start ();

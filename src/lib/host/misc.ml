@@ -105,3 +105,7 @@ let pp_subst ~pp_ident fmt phi =
   Format.fprintf fmt "[%a]" (pp_list_h ~sep:", " pp_subst_comp) phi
 
 let fold_left f l acc = List.fold_left f acc l
+
+let clone (type t) (x : t) : t = 
+  let buf = Marshal.(to_bytes x [No_sharing; Closures]) in
+  Marshal.from_bytes buf 0

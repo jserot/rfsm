@@ -9,8 +9,10 @@ module type SYNTAX = sig
   type type_expr = Guest.type_expr
   type lhs = Guest.lhs
 
+  type type_decl = Guest.type_decl
+
   type program = {
-      type_decls: Guest.type_decl list;
+      type_decls: type_decl list;
       fun_decls: fun_decl list;
       cst_decls: cst_decl list;
       models: model list;
@@ -101,6 +103,7 @@ module type SYNTAX = sig
   val ppr_program: program -> program
   exception Undefined_symbol of Location.t * Ident.t
     
+  val pp_typ: Format.formatter -> typ -> unit
   val pp_expr: Format.formatter -> expr -> unit
   val pp_type_expr: Format.formatter -> type_expr -> unit
   val pp_cond: Format.formatter -> cond -> unit
@@ -116,7 +119,11 @@ module type SYNTAX = sig
   val pp_state: Format.formatter -> state -> unit
   val pp_type_decl: Format.formatter -> Guest.type_decl -> unit
   val pp_model: Format.formatter -> model -> unit
+  val pp_model_desc: Format.formatter -> model_desc -> unit
   val pp_model_name: Format.formatter -> model -> unit
+  val pp_global: Format.formatter -> global -> unit
+  val pp_cst_decl: Format.formatter -> cst_decl -> unit
+  val pp_fun_decl: Format.formatter -> fun_decl -> unit
   val pp_program: Format.formatter -> program -> unit
 end
 
@@ -129,6 +136,9 @@ struct
   type type_expr = Guest.type_expr
   type lhs = Guest.lhs
 
+  type type_decl = Guest.type_decl
+
+  let pp_typ = Guest.Types.pp_typ ~abbrev:false
   let pp_type_expr fmt te = Guest.Types.pp_typ ~abbrev:false fmt te.Annot.typ
   let pp_expr = Guest.pp_expr
   let pp_lhs = Guest.pp_lhs

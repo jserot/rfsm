@@ -11,8 +11,8 @@ module type T = sig
   module Ctask: Ctask.CTASK with module Static = Static
   module Systemc: Systemc.SYSTEMC with module Static = Static
   module Vhdl: Vhdl.VHDL with module Static = Static
-  val type_program: Typing.env -> Syntax.program -> unit
-  val elab: Syntax.program -> Static.t
+  val type_program: Typing.env -> Syntax.program -> Typing.typed_program
+  val elab: Typing.typed_program -> Static.t
   val run: ?vcd_file:string -> Syntax.program -> Static.t -> unit
   val pp_program: Format.formatter -> Syntax.program -> unit
   val pp_tenv: Format.formatter -> Typing.env -> unit
