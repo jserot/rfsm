@@ -3,13 +3,13 @@
 module type T = sig
   
   module Syntax: Syntax.SYNTAX
-  module Typing: Typing.TYPING
+  module Typing: Typing.TYPING with module HostSyntax = Syntax
   module Value: Guest.VALUE with type typ = Syntax.typ
 
   (** FSM instances *)
   type fsm = {
       name: Ident.t;
-      model: Syntax.model_desc;    (* Normalized model (without output valuations) *)
+      model: Syntax.model;    (* Normalized, type-refined model *)
       params: Value.t Env.t;
       q: Ident.t;
       vars: Value.t Env.t;
@@ -30,7 +30,7 @@ module type T = sig
 
   type t = {
     ctx: ctx;
-    (* models: Syntax.model list; (\** Original, un-normalized models *\) *)
+    models: Syntax.model list; (** Original, un-type-refined and un-normalized models. Not used any longer *)
     fsms: fsm list;
     globals: Value.t Env.t; (** Functions and constants *)
     fns: Syntax.fun_decl list; (** Functions *)
@@ -39,10 +39,10 @@ module type T = sig
     dep_order: (Ident.t * int) list; 
     }
 
-  val build: Typing.typed_program -> t
+  val build: Typing.typed_program -> Syntax.program -> t
 
-  val pp: ?verbose_level:int -> Format.formatter -> t -> unit
-  val pp_fsm: ?verbose_level:int -> Format.formatter -> fsm -> unit
+  val pp: verbose_level:int -> Format.formatter -> t -> unit
+  val pp_fsm: verbose_level:int -> Format.formatter -> fsm -> unit
 
   val is_rtl: fsm -> bool
 
@@ -50,10 +50,11 @@ end
 
 module Make
          (HS: Syntax.SYNTAX)
-         (HT: Typing.TYPING)
+         (HT: Typing.TYPING with module HostSyntax = HS)
          (GV: Guest.VALUE with type typ = HS.typ)
          (GS: Guest.STATIC with type expr = HS.expr and type value = GV.t)
   : T with module Syntax = HS
+       and module Typing = HT
        and module Value = GV =
 struct
 
@@ -63,25 +64,26 @@ struct
 
   type fsm = {
       name: Ident.t;
-      model: Syntax.model_desc;
+      model: Syntax.model;
       params: Value.t Env.t;
       q: Ident.t;
       vars: Value.t Env.t;
     } [@@deriving show {with_path=false}]
 
-  let pp_fsm ?(verbose_level=2) fmt f  = 
+  let pp_fsm ~verbose_level fmt f  = 
     let open Format in
     match verbose_level with
     | 0 -> Format.fprintf fmt "%a" Ident.pp f.name  (* Name only *)
     | 1 -> (* With model name, state and vars only *)
-       fprintf fmt "@[<h>{@,name=%a,@,q=%a,@,vars=%a}@]"
+       fprintf fmt "@[<h>{@,name=%a,model=%a@,q=%a,@,vars=%a}@]"
          Ident.pp f.name
+         Ident.pp f.model.Annot.desc.name
          Ident.pp f.q
          (Env.pp Value.pp) f.vars
     | _ -> (* Full *)
        fprintf fmt "@[<v>{@,name=%a@,model=%a@,params=%a@,q=%a@,vars=%a}@]"
          Ident.pp f.name
-         Ident.pp f.model.name
+         Syntax.pp_model f.model
          (Env.pp Value.pp) f.params
          Ident.pp f.q
          (Env.pp Value.pp) f.vars
@@ -109,7 +111,7 @@ struct
 
   type t = {
     ctx: ctx;
-    (* models: Syntax.model list; *)
+    models: Syntax.model list;
     fsms: fsm list;
     globals: Value.t Env.t;
     fns: Syntax.fun_decl list;
@@ -118,11 +120,10 @@ struct
     dep_order: (Ident.t * int) list; 
     }
 
-  let pp ?(verbose_level=1) fmt s =
+  let pp ~verbose_level fmt s =
     let open Format in
-    fprintf fmt "@[<v>{ctx=%a@,models=%a@,fsms=%a@,globals=%a@,types=%a@,dep_order=%a@,}@."
+    fprintf fmt "@[<v>{ctx=%a@,fsms=%a@,globals=%a@,types=%a@,dep_order=%a@,}@."
     pp_ctx s.ctx
-    (* (Misc.pp_list_v Syntax.pp_model) s.models *)
     (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
     (Env.pp Value.pp) s.globals
     (Misc.pp_list_v Syntax.pp_type_decl) s.types
@@ -130,35 +131,38 @@ struct
 
   (* Rules *)
          
-  (* let r_inst senv_i { Annot.desc=name,model,params,args; Annot.loc=loc; _ } = *)
-  let r_inst senv_i (i: Typing.typed_inst) =   
+  let r_inst tp senv_i { Annot.desc=name,model,params,args; Annot.loc=loc; _ } =
     let open Syntax in
-    let m = i.model in
+    let mm = 
+      try List.assoc name tp.Typing.tp_insts
+      with Not_found -> Misc.fatal_error "Static.r_inst"  in (* should not happen after TC *)
+    let m = mm.Annot.desc in
     let phi = 
-      try List.map2 (fun (io',_) (io,_) -> io', io) m.ios i.args
+      try List.map2 (fun (io',_) io -> io', io) m.ios args
       with Invalid_argument _ -> Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
     let collect cats =
       List.fold_left2 
-        (fun acc (id,(cat,_)) (arg,_) -> if List.mem cat cats then  arg::acc else acc)
+        (fun acc (id,(cat,_)) arg -> if List.mem cat cats then  arg::acc else acc)
         []
         m.ios
-        i.args in
-    (* let mm' =  mm |> normalize_model |> subst_model ~phi in
-     * let m' = mm'.Annot.desc in *)
-    let m' = m in
-    let rds = [] in (*collect [Syntax.In; Syntax.InOut] in*)
-    let wrs = [] in (*collect [Syntax.Out; Syntax.InOut] in*)
+        args in
+    let mm' =  mm |> normalize_model |> subst_model ~phi in
+    let m' = mm'.Annot.desc in
+    let rds = collect [Syntax.In; Syntax.InOut] in
+    let wrs = collect [Syntax.Out; Syntax.InOut] in
     let f = {
-        name = i.name;
-        params = Env.empty;
-          (* (try
-           *    List.fold_left2
-           *      (fun env (id,_) expr -> Env.add id (GS.eval expr) env)
-           *      Env.empty
-           *      m'.params
-           *      params
-           *  with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (\* should not happen after TC *\) *)
-        model = m';
+        name = name;
+        params =
+          (* TOFIX : evaluation of parameter value should already have been carried out by the typing phase
+             (since this is required to refine parameter-dependent types). *)
+          (try
+             List.fold_left2
+               (fun env (id,_) expr -> Env.add id (GS.eval expr) env)
+               Env.empty
+               m'.params
+               params
+           with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (* should not happen after TC *)
+        model = mm';
         q = fst m'.itrans.Annot.desc;
         vars =
           List.fold_left
@@ -168,17 +172,17 @@ struct
       } in
     f, (name, (rds,wrs))
 
-  let r_insts senv_i insts = List.map (r_inst senv_i) insts
+  let r_insts tp senv_i insts = List.map (r_inst tp senv_i) insts
 
   let r_global env { Annot.desc=id,cat,ty,st; _ } = 
     Env.add id (cat,ty,st) env
     
   let r_globals gls = List.fold_left r_global Env.empty gls
                 
-  let r_model env m =
-    Env.add m.Annot.desc.Syntax.name m env
-    
-  let r_models models = List.fold_left r_model Env.empty models
+  (* let r_model env m =
+   *   Env.add m.Annot.desc.Syntax.name m env
+   *   
+   * let r_models models = List.fold_left r_model Env.empty models *)
 
   let build_ctx rws senv_i =  (* \mathcal{L} *)
     let open Syntax in
@@ -207,10 +211,10 @@ struct
       outputs = extract Output [] senv_i;
       shared = extract Shared [] senv_i; }
 
-  let r_program p =
+  let r_program tp p =
     (* let senv_m = r_models p.Syntax.models in *)
-    let senv_i = r_globals p.Typing.globals in
-    let m, rws = List.split @@ r_insts senv_i p.Typing.insts in
+    let senv_i = r_globals p.Syntax.globals in
+    let m, rws = List.split @@ r_insts tp senv_i p.Syntax.insts in
     let c = build_ctx rws senv_i in
     m, c
     
@@ -253,17 +257,16 @@ struct
 
   (* Main function *)
 
-  let build (p: Typing.typed_program) =
-    let m, c = r_program p in
+  let build tp p =
+    let m, c = r_program tp p in
     { ctx = c;
-      (* models = p.Syntax.models; *)
-      fsms = []; (*m;*)
-      globals = Env.empty; (*r_globals p;*)
-      fns = []; (*p.Typing.fun_decls;*)
-      csts = []; (*p.Typing.cst_decls;*)
-      types = []; (*p.Typing.type_decls;*)
-      dep_order = []; (*m |> dep_sort c |> List.mapi (fun i f -> f.name, i)*)
-      }
+      models = p.Syntax.models;
+      fsms = m;
+      globals = r_globals p;
+      fns = p.Syntax.fun_decls;
+      csts = p.Syntax.cst_decls;
+      types = p.Syntax.type_decls;
+      dep_order = m |> dep_sort c |> List.mapi (fun i f -> f.name, i) }
 
   let is_rtl acts = (* Is the sequence of actions [acts] RTL ? *)
     let module S = Set.Make(Ident) in

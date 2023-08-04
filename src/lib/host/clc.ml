@@ -56,22 +56,16 @@ struct
     let p = Syntax.ppr_program p0 in
     (* Format.printf "parsed=%a" pp_program p; *)
     let tenv0 = Typing.mk_env () in
-    if !Options.dump_tenv then Format.printf "tenv=%a" pp_tenv tenv0;
+    if !Options.dump_tenv then Format.printf "tenv=%a@." pp_tenv tenv0;
     let tp = type_program tenv0 p in
-    if !Options.dump_typed then Format.printf "tp=%a" Typing.pp_typed_program tp;
-    let s = elab p in
-    if !Options.dump_static then Format.printf "s=%a" (Static.pp ~verbose_level:2) s;
+    if !Options.dump_typed then Format.printf "tp=%a@." Typing.pp_typed_program tp;
+    let s = elab tp p in
+    if !Options.dump_static then Format.printf "s=%a@." (Static.pp ~verbose_level:2) s;
     Logfile.start ();
     begin match !Options.target with
     | Some Options.Dot ->
        Misc.check_dir !Options.target_dir;
-       let fs =
-         Dot.output_static 
-           ~dir:!Options.target_dir
-           ~name:!Options.main_prefix
-           ~with_models:!Options.dot_show_models
-           ~with_caption:!Options.dot_captions
-           s in
+       let fs = Dot.output_static ~dir:!Options.target_dir ~name:!Options.main_prefix s in
        List.iter Logfile.write fs
     | Some Options.CTask ->
        (* let cms = List.map Cmodel.c_model_of_fsm_model s.Static.models in

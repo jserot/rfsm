@@ -212,7 +212,8 @@ and unify_size ~loc (ty1,ty2) sz1 sz2 =
         var.value <- Known sz
     | SzConst c1, SzConst c2 when c1 = c2 ->
        ()
-    (* Note: SzIndexes have normally been eliminated at this level *)
+    | SzIndex i1, SzIndex i2 when i1 = i2 ->
+       ()
     | _, _ ->
         raise (Type_conflict(loc,ty1,ty2))
   

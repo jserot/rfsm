@@ -70,10 +70,9 @@ and sizes_of_sizes_expr env ~loc c se =
 and size_of_size_expr env ~loc se = 
   match se with
   | SzIndex i ->
-     (* Format.printf "** Typing.size_of_size_expr: looking up index %a in %a\n"
-      *   Rfsm.Ident.pp i 
-      *   (Rfsm.Env.pp Format.pp_print_int) env.te_indexes; *)
-     Types.SzConst (lookup ~exc:(Undefined ("index",loc,i)) i env.te_indexes)
+         if Env.mem i env.te_indexes
+         then Types.SzConst (Env.find i env.te_indexes)
+         else Types.SzIndex i
   | SzConst c -> Types.SzConst c
 
 let rec type_expression env e =

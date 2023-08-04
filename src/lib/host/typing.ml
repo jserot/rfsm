@@ -3,19 +3,24 @@
 module type TYPING = sig
   module HostSyntax: Syntax.SYNTAX
   type env
-  type typed_inst = {
-      name: Ident.t; 
-      params: (Ident.t * HostSyntax.typ * HostSyntax.Guest.expr) list;
-      args: (Ident.t * HostSyntax.typ) list;
-      model: HostSyntax.model_desc;  (* Typed model *)
-      }
+  (* type typed_inst = {
+   *     name: Ident.t; 
+   *     params: (Ident.t * HostSyntax.typ * HostSyntax.Guest.expr) list;
+   *     args: (Ident.t * HostSyntax.typ) list;
+   *     model: HostSyntax.model_desc;  (\* Typed model *\)
+   *     }
+   * type typed_program = {
+   *     type_decls: HostSyntax.type_decl list;  
+   *     fun_decls: HostSyntax.fun_decl list;
+   *     cst_decls: HostSyntax.cst_decl list;
+   *     globals: HostSyntax.global list;
+   *     insts: typed_inst list;
+   *     } *)
   type typed_program = {
-      type_decls: HostSyntax.type_decl list;  
-      fun_decls: HostSyntax.fun_decl list;
-      cst_decls: HostSyntax.cst_decl list;
-      globals: HostSyntax.global list;
-      insts: typed_inst list;
-      }
+      tp_models: HostSyntax.model list;  (* Un-instanciated models *)
+      tp_insts: (Ident.t * HostSyntax.model) list;  (* Model instances *)
+      } [@@deriving show {with_path=false}]
+
   val mk_env: unit -> env
   val type_program: env -> HostSyntax.program -> typed_program
   val pp_env: Format.formatter -> env -> unit
@@ -41,19 +46,16 @@ struct
 
   type env = GuestTyping.env
 
-  type typed_inst = {
-      name: Ident.t; 
-      params: (Ident.t * HostSyntax.typ * HostSyntax.Guest.expr) list;
-      args: (Ident.t * HostSyntax.typ) list;
-      model: HostSyntax.model_desc;  (* Typed model *)
-      } [@@deriving show {with_path=false}]
-
+  (* type typed_inst = {
+   *     name: Ident.t; 
+   *     params: (Ident.t * HostSyntax.typ * HostSyntax.Guest.expr) list;
+   *     args: (Ident.t * HostSyntax.typ) list;
+   *     model: HostSyntax.model_desc;  (\* Typed model *\)
+   *     } [@@deriving show {with_path=false}] *)
+  
   type typed_program = {
-      type_decls: HostSyntax.type_decl list;  
-      fun_decls: HostSyntax.fun_decl list;
-      cst_decls: HostSyntax.cst_decl list;
-      globals: HostSyntax.global list;
-      insts: typed_inst list;
+      tp_models: HostSyntax.model list;  
+      tp_insts: (Ident.t * HostSyntax.model) list;  
       } [@@deriving show {with_path=false}]
 
   exception Undefined_symbol of Location.t * Ident.t
@@ -179,7 +181,8 @@ struct
     let env'' = List.fold_left GuestTyping.add_var env' (types_of_fsm_model env' m) in
     type_fsm_ios env'' m;
     List.iter (type_fsm_transition env'' m) m.A.desc.trans;
-    type_fsm_itransition env'' m m.A.desc.itrans
+    type_fsm_itransition env'' m m.A.desc.itrans;
+    m
 
   (* Typing FSM instances *)
 
@@ -213,7 +216,7 @@ struct
       try List.map2 bind_param m.params params
       with Invalid_argument _ -> raise (Illegal_inst loc) in
     (* Now type the instanciated model *)
-    type_fsm_model (env,i_params) mm;
+    let _ = type_fsm_model (env,i_params) mm in
     let m_inps = List.map (fun (id,te) -> id, Input, te.A.typ) m.inps in
     let m_outps = List.map (fun (id,te) -> id, Output, te.A.typ) m.outps in
     let m_inouts = List.map (fun (id,te) -> id, Shared, te.A.typ) m.inouts in
@@ -222,13 +225,14 @@ struct
       unify_cat cat cat';
       GuestTyping.type_check ~loc ty te'.A.typ;
       (id',ty) in
-    let i_args = 
+    let _ = 
       try List.map2 bind_arg (m_inps @ m_outps @ m_inouts) args;
       with Invalid_argument _ -> raise (Illegal_inst loc) in
-    { name = name;
-      params = i_params;
-      args = i_args;
-      model = m }
+    (name, mm)
+    (* { name = name;
+     *   params = i_params;
+     *   args = i_args;
+     *   model = m } *)
 
   (* Typing globals *)
                              
@@ -292,10 +296,12 @@ struct
        can only be checked when the model [f] is instanciated (as [fsm f1 = f<8>(...)] for example)
        because of the assignation [z:=i] ! *)
     List.iter (type_global env) p.globals;
-    { type_decls = p.type_decls; 
-      fun_decls = p.fun_decls;
-      cst_decls = p.cst_decls;
-      globals = p.globals;
-      insts = List.map (type_fsm_inst env p) p.insts }
+    { tp_models = List.map (type_fsm_model (env,[])) p.models;
+      tp_insts =  List.map (type_fsm_inst env p) p.insts }
+    (* { type_decls = p.type_decls; 
+     *   fun_decls = p.fun_decls;
+     *   cst_decls = p.cst_decls;
+     *   globals = p.globals;
+     *   insts = List.map (type_fsm_inst env p) p.insts } *)
 
 end

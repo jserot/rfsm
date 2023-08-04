@@ -1,8 +1,10 @@
 COMPILER
 
-- refine translation of parameterized types (ex: int<n> when [n] is a model parameter) in SystemC and VHDL backends
+- do not re-evaluate parameter values in Static since it has been done in Typing
 - `CModel.c_consts` = `c_params` ? 
+- erase parameters in instanciated models
 - replace `Guest.Types.{mk_type_constr0,is_type_constr0}` by `is_type_{event,bool}`
+- Add a "org" field to ident's (to keep track of name before substitution)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - document lib/host/guest.ml
 - banner

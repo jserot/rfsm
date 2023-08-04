@@ -81,16 +81,13 @@ let pp_size fmt sz =
   | Types.SzIndex i -> fprintf fmt "%a" Rfsm.Ident.pp i
   | Types.SzConst c -> fprintf fmt "%d" c
 
-let pp_sizes fmt szs =
-  match szs with
-  | [] -> ()
-  | [sz] -> fprintf fmt "[%a]" pp_size sz 
-  | [sz1;sz2] -> fprintf fmt "[%a][%a]" pp_size sz1 pp_size sz2
-  | _ -> fprintf fmt "[]"
- 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Types.TyConstr ("array", [t'], szs) -> fprintf fmt "%a %a%a" pp_simple_type t' pp_ident name pp_sizes szs
+  | Types.TyConstr ("int",[],[SzVar _]) -> fprintf fmt "int %a" pp_ident name
+  | Types.TyConstr ("int",[],[sz]) -> fprintf fmt "int<%a> %a" pp_size sz pp_ident name
+  | Types.TyConstr ("int",[],[lo; hi]) -> fprintf fmt "int<%a,%a> %a" pp_size lo pp_size hi pp_ident name
+  | Types.TyConstr ("array", [t'], [SzVar _]) -> fprintf fmt "%a %a[]" pp_simple_type t' pp_ident name
+  | Types.TyConstr ("array", [t'], [sz]) -> fprintf fmt "%a %a[%a]" pp_simple_type t' pp_ident name pp_size sz
   | t -> fprintf fmt "%a %a" pp_simple_type t pp_ident name 
 
 let pp_cst_decl fmt name t = 

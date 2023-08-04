@@ -28,6 +28,8 @@ let handle e =
       eprintf "%aOut of bound array access (%d)\n" pp_loc loc i; exit 2
   | Eval.Illegal_application e -> 
       eprintf "%aIllegal application\n" pp_loc e.Rfsm.Annot.loc; exit 2
+  | Ctask.Unsupported_type t ->
+      eprintf "CTask backend: unsupported type: %a\n" (Types.pp_typ ~abbrev:false) t; exit 2
   | Systemc.Unsupported_type t ->
       eprintf "SystemC backend: unsupported type: %a\n" (Types.pp_typ ~abbrev:false) t; exit 2
   | Systemc.Unsupported_expr e ->

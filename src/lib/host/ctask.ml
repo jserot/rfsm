@@ -13,16 +13,18 @@ open Format
 
 (* CTask backend *)
 
-type ctsk_config = {
+type cfg = {
     state_var_name: string;
     recvd_ev_name: string;
     globals_name: string;
+    mutable show_models: bool;
   }
 
 let cfg = {
     state_var_name = "state";
     recvd_ev_name = "received";
     globals_name = "globals";
+    show_models = false;
   }
 
 module type CTASK = sig
@@ -155,14 +157,15 @@ struct
     output_files := fname :: !output_files;
     close_out oc
 
-  let dump_fsm_model ?(prefix="") ?(dir="./ctask") m =
-    let c = Cmodel.of_fsm_model m in
-    let prefix = match prefix with "" -> Ident.to_string c.Cmodel.c_name | p -> p in
+  let dump_fsm ?(prefix="") ?(dir="./ctask") f =
+    let c = Cmodel.of_fsm_model f.Static.model in
+    let prefix = match prefix with "" -> Ident.to_string f.name | p -> p in
     dump_model (dir ^ "/" ^ prefix ^ ".c") c
 
-  (* let dump_fsm_inst ?(prefix="") ?(dir="./ctask") m f =
-   *   let prefix = match prefix with "" -> f.Fsm.f_name | p -> p in
-   *   dump_model (dir ^ "/" ^ prefix ^ ".c") (Cmodel.c_model_of_fsm_inst m f)  *)
+  let dump_fsm_model ?(prefix="") ?(dir="./ctask") m =
+    let c = Cmodel.of_fsm_model m in
+    let prefix = match prefix with "" -> Ident.to_string m.Annot.desc.Cmodel.Static.Syntax.name | p -> p in
+    dump_model (dir ^ "/" ^ prefix ^ ".c") c
 
   (* Dumping global type declarations, functions and constants *)
 
@@ -225,8 +228,10 @@ struct
 
   let output ~dir s =
     output_files := [];
+    if cfg.show_models then 
+      List.iter (dump_fsm_model ~dir) s.Static.models;
     if need_globals s then dump_globals ~dir s;
-    List.iter (dump_fsm_model ~dir) s.Static.models;
+    List.iter (dump_fsm ~dir) s.Static.fsms;
     !output_files
 
 end

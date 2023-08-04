@@ -12,7 +12,7 @@ module type T = sig
   module Systemc: Systemc.SYSTEMC with module Static = Static
   module Vhdl: Vhdl.VHDL with module Static = Static
   val type_program: Typing.env -> Syntax.program -> Typing.typed_program
-  val elab: Typing.typed_program -> Static.t
+  val elab: Typing.typed_program -> Syntax.program -> Static.t
   val run: ?vcd_file:string -> Syntax.program -> Static.t -> unit
   val pp_program: Format.formatter -> Syntax.program -> unit
   val pp_tenv: Format.formatter -> Typing.env -> unit
@@ -25,7 +25,7 @@ struct
     module Guest = G
     module Syntax = Syntax.Make(G.Syntax)
     module Typing = Typing.Make(Syntax)(G.Typing)(G.Static)
-    module Static = Static.Make(Syntax)(G.Value)(G.Static)
+    module Static = Static.Make(Syntax)(Typing)(G.Value)(G.Static)
     module Dot = Dot.Make(Static)
     module Dynamic = Dynamic.Make(Syntax)(Static)(G.Eval)
     module Vcd = Vcd.Make(Dynamic.EvSeq)
@@ -36,7 +36,7 @@ struct
 
     let type_program tenv p = Typing.type_program tenv p
 
-    let elab p = Static.build p
+    let elab tp p = Static.build tp p
 
     let run ?(vcd_file="") p s =
       let rs = Dynamic.run p s in

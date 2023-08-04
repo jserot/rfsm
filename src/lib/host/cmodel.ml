@@ -26,7 +26,6 @@ module type CMODEL = sig
       c_mname: Ident.t; (* Model name *)
       c_name: Ident.t;  (* Instance name *)
       c_states: c_state list;
-      (* c_types: (Ident.t * c_type_defn) list; *) (* TODO: GET RID ? *)
       c_params: (Ident.t * type_expr) list;
       c_consts: (Ident.t * (type_expr * Static.Value.t)) list;
       c_inps: (Ident.t * type_expr) list;
@@ -83,7 +82,6 @@ struct
       c_mname: Ident.t; 
       c_name: Ident.t; 
       c_states: c_state list;
-      (* c_types: (Ident.t * c_type_defn) list; *)
       c_params: (Ident.t * type_expr) list;
       c_consts: (Ident.t * (type_expr * Static.Value.t)) list;
       c_inps: (Ident.t * type_expr) list;
@@ -123,7 +121,6 @@ struct
     { c_mname = m.name;
       c_name = m.name;
       c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
-      (* c_types = []; *)
       c_params = m.params;
       c_consts = [];
       c_inps = m.inps;
@@ -141,8 +138,7 @@ struct
     { c_mname = m.name;
       c_name = f.name;
       c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
-      (* c_types = []; *)
-      c_params = [];
+      c_params = []; (* TOFIX : is this not c_consts ? *)
       c_consts = List.map2 (fun (id,ty) (_,v) -> (id,(ty,v))) m.params (Env.bindings f.params);
       c_inps = m.inps;
       c_outps = m.outps;
@@ -150,7 +146,7 @@ struct
       c_vars = m.vars; 
       c_init = m.itrans.Annot.desc;
       c_body = List.map (mk_state_case m) m.states;
-      c_ddepth = List.assoc f.name s.dep_order (* Depg.Mark.get (s.deps.sd_node f.name); *)
+      c_ddepth = List.assoc f.name s.dep_order 
     }
 
 end

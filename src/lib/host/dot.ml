@@ -1,12 +1,6 @@
 module type DOT = sig
   module Static: Static.T
-  val output_static:
-    dir:string ->
-    name:string ->
-    with_models:bool ->
-    with_caption:bool ->
-    Static.t ->
-    string list
+  val output_static: dir:string -> name:string -> Static.t -> string list
 end
 
 type cfg = {
@@ -18,6 +12,8 @@ type cfg = {
     mutable trans_vlayout: bool;
     mutable qual_ids: bool;
     mutable abbrev_types: bool;
+    mutable show_models: bool;
+    mutable show_captions: bool;
   }
              
 let cfg = {
@@ -29,6 +25,8 @@ let cfg = {
     trans_vlayout = true;
     qual_ids = false;
     abbrev_types = false;
+    show_models = false;
+    show_captions = true;
   }
 
 module Make(S: Static.T) : DOT with module Static = S =
@@ -138,11 +136,11 @@ struct
         fprintf ocf "%a_ios [label=\"%a\", shape=rect, style=rounded]\n" Ident.pp m.name pp_ios m
       end
 
-  let output_model ~dir ~name ~with_caption { Annot.desc=m; _ } = 
+  let output_model ~dir ~name { Annot.desc=m; _ } = 
     let fname = Filename.concat dir (Ident.to_string name ^ ".dot") in
     let oc = open_out fname in
     let ocf = Format.formatter_of_out_channel oc in
-    outp_model ocf ~name:m.Syntax.name ~kind:"digraph" ~with_caption m;
+    outp_model ocf ~name:m.Syntax.name ~kind:"digraph" ~with_caption:cfg.show_captions m;
     Format.fprintf ocf "}";
     close_out oc;
     fname
@@ -157,13 +155,13 @@ struct
       end;
     Format.fprintf ocf "}"
 
-  let output_static ~dir ~name ~with_models ~with_caption (sd: Static.t) =
+  let output_static ~dir ~name (sd: Static.t) =
     let open Static in
     let open Format in
     let fnames = (* Dump all FSM models *)
-      if with_models then 
+      if cfg.show_models then 
         List.map
-          (function m -> output_model ~dir ~name:m.Annot.desc.Syntax.name ~with_caption m)
+          (function m -> output_model ~dir ~name:m.Annot.desc.Syntax.name m)
           sd.models
       else 
         [] in

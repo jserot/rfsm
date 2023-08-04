@@ -9,7 +9,7 @@ noide;general;-ctask;Arg.Unit;set_ctask;generate CTask code
 noide;general;-systemc;Arg.Unit;set_systemc;generate SystemC code
 noide;general;-vhdl;Arg.Unit;set_vhdl;generate VHDL code
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
-noide;dot;-dot_show_models;Arg.Unit;set_dot_show_models;generated separate .dot representations for FSM models
+noide;general;-show_models;Arg.Unit;set_show_models;generate separate representations for uninstanciated FSM models 
 noide;dot;-dot_qual_ids;Arg.Unit;set_dot_qual_ids;print qualified identifiers in DOT representations
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
 ide;dot;-dot_short_trans;Arg.Unit;set_dot_short_trans;Print single-line transition labels (default is multi-lines)
