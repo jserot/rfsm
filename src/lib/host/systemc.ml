@@ -216,9 +216,10 @@ struct
       (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst m.c_states)
       cfg.sc_state_var;
     fprintf ocf "  // IOs\n";
-    List.iter (fun (id,ty) -> fprintf ocf "  sc_in<%a> %a;\n" G.pp_type_expr ty Ident.pp id) m.c_inps;
-    List.iter (fun (id,ty) -> fprintf ocf "  sc_out<%a> %a;\n" G.pp_type_expr ty Ident.pp id) m.c_outps;
-    List.iter (fun (id,ty) -> fprintf ocf "  sc_inout<%a> %a;\n" G.pp_type_expr ty Ident.pp id) m.c_inouts;
+    let pp_io kind (id,te) = fprintf ocf "  %s<%a> %a;\n" kind G.pp_typ te.Annot.typ Ident.pp id in
+    List.iter (pp_io "sc_in") m.c_inps;
+    List.iter (pp_io "sc_out") m.c_outps;
+    List.iter (pp_io "sc_inout") m.c_inouts;
     if cfg.sc_trace then fprintf ocf "  sc_out<int> %s;\n" cfg.sc_trace_state_var;
     fprintf ocf "  // Constants\n";
     List.iter (fun (id,(ty,_)) -> fprintf ocf "  static const %a;\n" G.pp_typed_symbol (id,ty)) m.c_consts;
@@ -526,11 +527,11 @@ struct
     else
       Misc.warning (Printf.sprintf "No file %s. No Makefile generated." templ_fname)
 
-  let dump_fsm_model ?(prefix="") ?(dir="./systemc") fm =
-    let f = Cmodel.of_fsm_model fm in
-    let prefix = match prefix with "" -> Ident.to_string f.c_name | p -> p in
-    dump_module_intf false (dir ^ "/" ^ prefix ^ ".h") f;
-    dump_module_impl false (dir ^ "/" ^ prefix ^ ".cpp") f
+  (* let dump_fsm_model ?(prefix="") ?(dir="./systemc") fm =
+   *   let f = Cmodel.of_fsm_model fm in
+   *   let prefix = match prefix with "" -> Ident.to_string f.c_name | p -> p in
+   *   dump_module_intf false (dir ^ "/" ^ prefix ^ ".h") f;
+   *   dump_module_impl false (dir ^ "/" ^ prefix ^ ".cpp") f *)
 
   let dump_fsm_inst ?(dir="./systemc") m fi =
     let f = Cmodel.of_fsm_inst m fi in
@@ -548,16 +549,11 @@ struct
 
   let output ~dir ?(pfx="") s =
     output_files := [];
-    if s.Static.fsms <> [] then
-      begin
-        List.iter (dump_input ~dir s) s.Static.ctx.inputs;
-        if need_globals s then dump_globals ~dir s;
-        List.iter (dump_fsm_inst ~dir s) s.Static.fsms;
-        dump_testbench ~name:pfx ~dir s;
-        dump_makefile ~name:pfx ~dir s
-      end
-    else (* No instances, dump only models *)
-      List.iter (dump_fsm_model ~dir) s.Static.models;
+    List.iter (dump_input ~dir s) s.Static.ctx.inputs;
+    if need_globals s then dump_globals ~dir s;
+    List.iter (dump_fsm_inst ~dir s) s.Static.fsms;
+    dump_testbench ~name:pfx ~dir s;
+    dump_makefile ~name:pfx ~dir s;
     !output_files
 
 end
