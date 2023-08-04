@@ -8,9 +8,7 @@ let of_uint s n =
   h n (s-1);
   Bytes.to_string b
 
-let cpl2 n x =
-  let rec pow2 k = if k = 0 then 1 else 2 * pow2 (k-1) in (* Not tail recursive, but who cares, here ... *)
-  pow2 n - x
+let cpl2 n x = Misc.pow2 n - x
 
 let of_int s v = 
   if v < 0 

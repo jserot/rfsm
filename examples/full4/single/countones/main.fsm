@@ -1,32 +1,34 @@
--- This is the same code than ../../../full2/single/countones but out-of-bound errors are now
--- correctly detected, when replacing "i<8" (resp. "i=8") by "i<9" (resp. "i=9") for example.
+-- This is the same code than ../../../full3/single/countones but the size of the input
+-- is now given by the model parameter [n]
 
-fsm model count(
+fsm model count<n: int> (
   in h: event,
   in start: bool,
-  in x: int<8>,
- out n: int,
+  in x: int<n>,
+ out r: int,
  out rdy: bool)
 {
   states:
     Idle where rdy=1,
     Count where rdy=0;
   vars: i: int  ,
-        z: int<8>,
+        z: int<n>,
         cnt: int;
   trans:
   | Idle -> Count on h when start=1 with z:=x, cnt:=0, i:=0
-  | Count -> Count on h when (i<8).(z[i]=1) with cnt:=cnt+1, z[i]:=0, i:=i+1
-  | Count -> Count on h when (i<8).(z[i]=0) with i:=i+1
-  | Count -> Idle on h when i=8 with n:=cnt;
+  | Count -> Count on h when (i<n).(z[i]=1) with cnt:=cnt+1, z[i]:=0, i:=i+1
+  | Count -> Count on h when (i<n).(z[i]=0) with i:=i+1
+  | Count -> Idle on h when i=n with r:=cnt;
   itrans:
   | -> Idle with i:=0, z:=0;
 }
 
-input H : event = periodic(10, 10, 140)
-input Start: bool = value_changes(0:0, 15:1, 35:0)
-input X: int<8> = value_changes(20:85)
-output N: int
-output Rdy: bool
+input h : event = periodic(10, 10, 140)
+input start: bool = value_changes(0:0, 15:1, 35:0)
+input x8: int<8> = value_changes(20:85)
+input x4: int<4> = value_changes(20:14)
+output r4, r8: int
+output rdy4, rdy8: bool
 
-fsm c = count(H,Start,X,N,Rdy)
+fsm c8 = count<8>(h,start,x8,r8,rdy8)
+fsm c4 = count<4>(h,start,x4,r4,rdy4)

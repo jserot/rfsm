@@ -46,3 +46,79 @@ Implementation issues:
   instanciations of this model in the program; in practice, this means that each instance must now
   have its own copy of the (typed) associated model
   
+Compilation flow
+----------------
+
+Raw AST (from parsing) : models + instance defns
+         |
+         |
+   [INSTANCIATION / ELAB] (involving _superficial_ typing of (of IOs and parameters))
+         |
+         V
+FSM set : collection of instanciated models (in which parameter occurrences have been substituted in types and expressions)
+         |
+         | 
+   [TYPING] (deep typing of instanciated model defns)
+         |
+         V
+     typed program
+         |
+         | 
+   [BACKENDS] 
+     | ... |
+     V     V
+
+In this view, (static) elaboration is performed _before_ typing !
+This is required because parameterized models cannot be typed before instanciation.
+For example, in this pgm :
+```
+fsm model f (n:int) (in i:int<n>, ...)
+  vars z:int<8> ...
+  trans: 
+  | ... with z:=i ...
+  
+...
+input x8: int<8>
+...
+fsm f8 = f<8>(x8,...)
+```
+when the _model_ `f` cannot be type-checked "in isolation" (un-instanciated), because
+there's no way to tell whether the assignation `z:=i` is well-typed "per se". 
+Only the _instanciated model_ `f8` can be type-checked, i.e. the FSM
+```
+fsm f8 (in i:int<8>, ...)
+  vars z:int<8> ...
+  trans: 
+  | ... with z:=i ...
+```
+  
+This static elaboration phase can in fact remove _all occurrence_ of parameters in the model. 
+In the previous example, a rule 
+```
+q -> q' when h.z<n-1 with ...
+```
+in `f` would be (syntactically) rewritten as
+```
+q -> q' when h.z<8-1 with ...
+```
+in `f8`.
+This way, we don't need generic parameters in generated CTask, SystemC and VHDL models. 
+
+Static elaboration can even be pushed a little further. If an expression containing a parameter
+contains only litteral constants and parameters, it can be (statically) evaluated and the resulting
+value -- turned back into a constant expression, because we are dealing with syntactic objects at
+this level -- replace this expression.
+In the previous example, this mean that resulting rule would be rewritten as
+```
+q -> q' when h.z<8-1 with ...
+```
+in `f8`.
+
+With is approach, the parameter mechanism is really viewed as a "macro" or "template" mechanism
+(performing substitions in the "source" code) before it is actually "compiled".
+This clearly simplifies the compilation process. In particular, parameters do not appear only longer
+in the dynamic semantics. OTOH, it can make simulation or error reporting more ambiguous (?)
+
+
+
+

@@ -8,6 +8,8 @@ type act_semantics =
 let not_implemented m = raise (Not_implemented m)
 let fatal_error m = raise (Fatal_error m)
 let warning msg = Printf.printf "** Warning: %s\n" msg; flush stdout
+
+let rec pow2 k = if k = 0 then 1 else 2 * pow2 (k-1) (* Not tail recursive, but who cares, here ... *)
                       
 let pp_spc fmt () = Format.fprintf fmt "@ "
 let pp_cut fmt () = Format.fprintf fmt "@,"

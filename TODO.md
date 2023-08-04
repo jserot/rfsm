@@ -1,5 +1,9 @@
 COMPILER
 
+- recraft type size impl; in the current version, we can unify, say `int<'a>` and `int<8>` (creating
+  link `'a=8`, but we can't unify `int<'a>` with, say again, `int<0:15>` :( (see
+  `examples/full4/single/mul` for ex)
+- recraft compilation flow as 1) elab 2) typing (see `Notes.md`)
 - do not re-evaluate parameter values in Static since it has been done in Typing
 - `CModel.c_consts` = `c_params` ? 
 - erase parameters in instanciated models
@@ -16,7 +20,7 @@ COMPILER
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - display enums as string in SystemC generated VCDs (currently not supported by SystemC 2.3) 
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)
-- allow _unsized_ arrays as parameters (ex: [fsm model m <t: int array[], sz: int> (...)])
+- allow _unsized_ arrays as parameters (ex: `fsm model m <t: int array[], sz: int> (...)`)
 - check for coherency in reaction responses (see src/lib/simul.ml)
 - clarify mechanism for delta-waits insertion in SystemC backend
 - VHDL implementation of models with multiple input events

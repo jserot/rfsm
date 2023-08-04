@@ -1,0 +1,12 @@
+input H: event = periodic (10,10,140)
+input Start: bool = value_changes(0:0, 15:1, 35:0)
+input N41: int<4> = value_changes(20:6)
+input N42: int<4> = value_changes(20:5)
+output R8: int<8>
+input N81: int<8> = value_changes(20:6)
+input N82: int<8> = value_changes(20:5)
+output R16: int<16>
+output Rdy4, Rdy8: bool
+
+fsm m4 = mult<4,8>(H,Start,N41,N42,R8,Rdy4)
+fsm m8 = mult<8,16>(H,Start,N81,N82,R16,Rdy8)

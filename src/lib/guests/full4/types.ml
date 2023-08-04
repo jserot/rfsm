@@ -182,7 +182,7 @@ let rec unify ~loc ty1 ty2 =
      begin
        try
          List.iter2 (unify ~loc) args1 args2;
-         List.iter2 (unify_size ~loc (val1,val2)) szs1 szs2
+         unify_sizes ~loc constr1 (val1,val2) szs1 szs2
       with
         Invalid_argument _ -> raise (Type_conflict(loc,val1,val2))
      end
@@ -196,6 +196,25 @@ let rec unify ~loc ty1 ty2 =
        fds1 fds2
   | _, _ ->
       raise (Type_conflict(loc,val1,val2))
+
+and unify_sizes ~loc c (ty1,ty2) szs1 szs2 =
+  match c, szs1, szs2 with
+  | "int", [sz1], [sz2] ->
+     unify_size ~loc (ty1,ty2) sz1 sz2
+  | "int", [lo1;hi1], [lo2;hi2] -> 
+     unify_size ~loc (ty1,ty2) lo1 lo2;
+     unify_size ~loc (ty1,ty2) hi1 hi2
+  | "int", [SzConst s1], [SzConst lo2; SzConst hi2] when lo2 >= 0 && lo2 < Rfsm.Misc.pow2 s1 && hi2 >= 0 && hi2 < Rfsm.Misc.pow2 s1 ->  
+     (* The very special case.
+        Can we unify, [int<n>] with [int<lo:hi>] ?
+        Yes iff 
+        - [n] and [lo] and [hi] are constants. 
+        - the value of [lo] (resp. [hi]) is in [[0,...,2^n-1]] (assuming here unsigned ints) *) 
+     ()
+  | "int", [SzVar _], _ ->
+  | "int", _, _ ->
+      raise (Type_conflict(loc,ty1,ty2))
+  | _, _, _ -> List.iter2 (unify_size ~loc (ty1,ty2)) szs1 szs2
 
 and unify_size ~loc (ty1,ty2) sz1 sz2 =
   let s1 = real_size sz1
