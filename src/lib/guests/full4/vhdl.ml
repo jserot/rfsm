@@ -16,10 +16,10 @@ let rec vhdl_type_of t =
     | Types.TyConstr ("bool",[],_) -> if cfg.vhdl_bool_as_bool then Boolean else Std_logic
     | Types.TyConstr ("float",[],_) -> Real
     | Types.TyConstr ("char",[],_) -> Char
-    | Types.TyConstr ("int",[],[SzConst sz]) ->
+    | Types.TyConstr ("int",[],SzVal1 (SzConst sz)) ->
        if cfg.vhdl_use_numeric_std then Unsigned sz
        else Integer (Some (0, 1 lsl sz - 1))
-    | Types.TyConstr ("int",[],[SzConst lo; SzConst hi]) ->
+    | Types.TyConstr ("int",[],SzVal2 (SzConst lo, SzConst hi)) ->
        (* if cfg.vhdl_use_numeric_std then
         *   if lo < 0 then Signed (Rfsm.Bits.bit_size (max (-lo) hi)) else Unsigned (Rfsm.Bits.bit_size hi)
         * else *)
@@ -27,7 +27,7 @@ let rec vhdl_type_of t =
     | TyConstr ("int",[],_) ->
        Integer None
     | TyConstr (c,[],_) -> Enum (c,[]) (* TO FIX - add ctors ? *)
-    | TyConstr ("array",[t'],[SzConst sz]) -> Array (sz, vhdl_type_of t')
+    | TyConstr ("array",[t'],SzVal1 (SzConst sz)) -> Array (sz, vhdl_type_of t')
     | TyRecord (nm, fs) ->
        Record (nm, List.map (function (n,ty) -> n, vhdl_type_of ty) fs)
     | _ -> raise (Unsupported_type t)
@@ -226,7 +226,7 @@ let pp_type_fns_impl fmt td =
 
 let pp_array_type_decl fmt te =
   match te.Rfsm.Annot.typ with
-  | Types.TyConstr ("array",[t'],[SzConst sz]) as t -> 
+  | Types.TyConstr ("array",[t'],(SzVal1 (SzConst sz))) as t -> 
      let open Rfsm.Vhdl_types in
      let pp_typ = pp_typ ~type_mark:TM_Abbr in
      fprintf fmt "  type %a is array (0 to %d) of %a;\n" pp_typ t (sz-1) pp_typ t'

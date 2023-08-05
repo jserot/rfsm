@@ -1,5 +1,5 @@
-Size vars (in `full3`)
----------
+Size vars (in `full3` and `full4`)
+==================================
    - by default, an `int` has type `'a int` where `'a` is a _size variable_ (just as a list has type `a list`). 
    - type unification also unifies sizes. For example, unifying `8 int` and `_v12 int` (where `_v12`
      is a size variable creates the indirection `_v12 -> 8`
@@ -16,8 +16,44 @@ Size vars (in `full3`)
    - this _not_ dependent types because the actual sizes will always be supplied litteraly and not
      given by arguments (but maybe by parameters ?)
 
+More formally :
+-------------
+
+\tau ::=                                    types
+       | ...
+       | \alpha                             type variable
+       | \khi (\tau_1,...,\tau_m) \sigma    constructed type (constructor, arguments, size)
+
+\sigma ::=                                  type sizes
+       | \empty                             none (for bool type for ex)
+       | \beta                              size variable
+       | \iota                              litteral (int size or array dimension)
+       | \iota \times \iota                 pair of litterals (range for int's, dimensions for 2D arrays)
+       | \iota                              parameter name (to be removed by the elaboration step)
+
+\iota ::=                                  size litteral
+       | int
+       | ident                             parameter name (temporary; should be replaced by int during elaboration) 
+
+Examples
+--------
+
+type expression                   associated type
+int<8>                            int([],8)
+int                               int([],'a)
+bool array[8]                     array([bool([],\empty)],8)
+int<0:7>                          int([],(0,7))
+int<n>                            int([],"n")
+int<0:n>                          int([],(0,"n"))
+
+Note that 
+- there's no type expression for unsized arrays (it is therefore not possible to declare such an
+  array in a program); this could change in future extensions (?)
+- a type like [int([],(0,'a)] will never occur; this explains why size variables can occur in type
+  size position but not in size litteral position
+
 Parameterized types (in `full4`)
--------------------
+================================
 
 The goal is to be able to write pgms like, for ex
 ```

@@ -8,8 +8,8 @@ let type_arithm2 () =
     ts_sparams = [sz];
     ts_body =
       type_arrow
-        (type_product [type_int [SzVar sz]; type_int [SzVar sz]])
-        (type_int [SzVar sz]) }
+        (type_product [type_int (SzVar sz); type_int (SzVar sz)])
+        (type_int (SzVar sz)) }
 
 let type_arithm1 () = 
   let sz = Types.make_var () in
@@ -17,8 +17,8 @@ let type_arithm1 () =
     ts_sparams = [sz];
     ts_body =
       type_arrow
-        (type_int [SzVar sz])
-        (type_int [SzVar sz]) }
+        (type_int (SzVar sz))
+        (type_int (SzVar sz)) }
 
 let type_compar () = 
   let tv = Types.make_var () in
