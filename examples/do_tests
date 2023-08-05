@@ -1,15 +1,37 @@
 #!/bin/bash
 
-case $1 in
-usage) echo "./do_tests (makefile|dot|sim|ctask|systemc|systemc.run|vhdl) (core|full)";;
-*)
+DO_TEST="./do_test"
+
+while : ; do
+  case "$1" in
+    "") break;;
+    --compiler)
+        DO_TEST="$DO_TEST --compiler $2"; shift;;
+    -help|--help)
+        cat <<EOF
+Usage: do_tests [options] kind subdir
+where
+options: [defaults in brackets after descriptions]
+  --compiler path         path to the rfsmc compiler [default: $RFSMC]
+  # --show                  launch DOT or VCD viewer after running the test [default: no]
+  --help                  print this message
+kind=makefile|dot.run|dot|sim|ctask|systemc.code|systemc.run|systemc|systemc.sim|vhdl.code|vhdl.run|vhdl|vhdl.sim
+subdir=core|full|...
+EOF
+	exit 0;;
+    *) break;;
+  esac
+  shift
+done
+
+#echo "DO_TEST=$DO_TEST 1=$1 2=$2"
+
 nt=0
 ns=0
 for i in $2/{single,multi}/[a-z]*
 do
   (( nt = nt + 1 ))
-  ./do_test $1 $i
+  $DO_TEST $1 $i
   (( ns = ns + $? ))
 done
-echo "***" $ns"/"$nt "test(s) OK";;
-esac
+echo "***" $ns"/"$nt "test(s) OK"
