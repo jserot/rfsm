@@ -31,7 +31,7 @@ let pp_typ fmt t =
   let open Types in 
   let open Format in 
   match t with
-    | TyConstr ("int",[],[SzConst sz]) -> fprintf fmt "sc_uint<%d>" sz
+    | TyConstr ("int",[],SzVal1 (SzConst sz)) -> fprintf fmt "sc_uint<%d>" sz
     | TyConstr ("int",[], _) -> fprintf fmt "int" 
     | TyConstr ("float",[],_) -> fprintf fmt "%s" (if Rfsm.Systemc.cfg.Rfsm.Systemc.sc_double_float then "double" else "float")
     | TyConstr ("event",[],_) -> fprintf fmt "bool"
@@ -109,16 +109,15 @@ let pp_value fmt v =
  and pp_rfield fmt (f,v) = fprintf fmt "%s=%a" f pp_v v in
  pp_v fmt v
 
-let pp_size fmt sz =
-  match Types.real_size sz with
-  | Types.SzVar _ -> fprintf fmt "" 
+let pp_size_val fmt sv =
+  match sv with
   | Types.SzIndex i -> fprintf fmt "%a" Rfsm.Ident.pp i
   | Types.SzConst s -> fprintf fmt "%d" s
 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Types.TyConstr ("array", [t'], [sz]) -> fprintf fmt "%a %a%a" pp_typ t' pp_ident name pp_size sz
-  | Types.TyConstr ("array", [t'], [sz1;sz2]) -> fprintf fmt "%a %a%a%a" pp_typ t' pp_ident name pp_size sz1 pp_size sz2
+  | Types.TyConstr ("array", [t'], Types.SzVal1 sz) -> fprintf fmt "%a %a%a" pp_typ t' pp_ident name pp_size_val sz
+  | Types.TyConstr ("array", [t'], Types.SzVal2 (sz1,sz2)) -> fprintf fmt "%a %a%a%a" pp_typ t' pp_ident name pp_size_val sz1 pp_size_val sz2
   | t -> fprintf fmt "%a %a" pp_typ t pp_ident name 
 
 let pp_cst_decl fmt name t = 

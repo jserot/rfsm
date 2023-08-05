@@ -1,8 +1,5 @@
 COMPILER
 
-- recraft type size impl; in the current version, we can unify, say `int<'a>` and `int<8>` (creating
-  link `'a=8`, but we can't unify `int<'a>` with, say again, `int<0:15>` :( (see
-  `examples/full4/single/mul` for ex)
 - recraft compilation flow as 1) elab 2) typing (see `Notes.md`)
 - do not re-evaluate parameter values in Static since it has been done in Typing
 - `CModel.c_consts` = `c_params` ? 

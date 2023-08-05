@@ -57,23 +57,24 @@ let rec type_of_type_expr env te =
     | Syntax.TeConstr (c,[],[]) ->
        lookup ~exc:(Undefined ("type constructor",te.Annot.loc, c)) c env.te_tycons |> snd
     | Syntax.TeConstr (c,args,sz) ->
-       Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, sizes_of_sizes_expr env ~loc:te.Annot.loc c sz) in
+       Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, size_of_size_expr env ~loc:te.Annot.loc c sz) in
   te.Annot.typ <- ty;
   ty
 
-and sizes_of_sizes_expr env ~loc c se = 
-  match c.Rfsm.Ident.id, se with 
-  | "int", [] -> [Types.new_size_var ()]  (* Special case *)
-  | "array", [] -> [Types.new_size_var ()]  (* Special case *)
-  | _, ses -> List.map (size_of_size_expr env ~loc) ses
-
-and size_of_size_expr env ~loc se = 
-  match se with
-  | SzIndex i ->
-         if Env.mem i env.te_indexes
-         then Types.SzConst (Env.find i env.te_indexes)
-         else Types.SzIndex i
-  | SzConst c -> Types.SzConst c
+and size_of_size_expr env ~loc c se = 
+  let size_val_of s = match s with
+  | Syntax.SzConst c -> Types.SzConst c
+  | Syntax.SzIndex i -> (* TO FIX : parameter substition should have been carried out in the pre-typing elab phase *)
+     if Env.mem i env.te_indexes
+     then Types.SzConst (Env.find i env.te_indexes)
+     else Types.SzIndex i in
+  match c.Rfsm.Ident.id, se with
+  | "int", [] -> Types.new_size_var ()  (* Special case *)
+  | "array", [] -> Types.new_size_var ()  (* Special case *)
+  | _, [] -> Types.SzNone
+  | _, [s] -> Types.SzVal1 (size_val_of s)
+  | _, [s1;s2] -> Types.SzVal2 (size_val_of s1, size_val_of s2)
+  | _, _ -> Rfsm.Misc.fatal_error "Typing.size_of_size_expr" (* Should not occur due to syntax definition *)
 
 let rec type_expression env e =
   let loc = e.Annot.loc in
@@ -156,7 +157,7 @@ and type_indexed_expr ~loc env a i =
   let ty_i = type_expression env i in
   Types.unify ~loc:i.Annot.loc ty_i (Types.type_unsized_int ());
   match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
-  | TyConstr ("int", _, _) -> Types.type_sized_int (SzConst 1)
+  | TyConstr ("int", _, _) -> Types.type_sized_int (SzVal1 (SzConst 1))
   | TyConstr ("array", [t'], _) -> t'
   | _ -> raise (Illegal_expr (loc, "only int's and array's can be indexed"))
 
@@ -169,7 +170,7 @@ and type_ranged_expr ~loc env a i1 i2 =
   | TyConstr("int",_,_) ->
      let sz = 
        begin match i1.Annot.desc, i2.Annot.desc with 
-      | Syntax.EInt hi, Syntax.EInt lo -> Types.SzConst (hi-lo+1) (* The result size can here be statially determined ... *)
+      | Syntax.EInt hi, Syntax.EInt lo -> Types.SzVal1 (SzConst (hi-lo+1)) (* The result size can here be statially determined ... *)
       | _, _ -> Types.new_size_var () (* ... but we cannot do more in the general case *)
        end  in
      Types.type_sized_int sz 
@@ -197,7 +198,7 @@ let type_type_decl env td =
     add_env (Duplicate ("record field name", td.Annot.loc, nm)) lenv (nm,(ty',ty)) in
   let ty,env' = match td.Annot.desc with
     | Syntax.TD_Enum (name, ctors) -> 
-       let ty = Types.TyConstr (name.Rfsm.Ident.id, [], []) in
+       let ty = Types.TyConstr (name.Rfsm.Ident.id, [], SzNone) in
        ty,
        { env with te_tycons = add_tycon ty env.te_tycons (name,0);
                   te_ctors = List.fold_left (add_ctor ty) env.te_ctors ctors }

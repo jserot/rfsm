@@ -75,19 +75,21 @@ let pp_expr fmt e =
   and pp_rfield level fmt (n,v) = fprintf fmt "%s=%a" n (pp level) v in
   pp 0 fmt e
 
-let pp_size fmt sz =
-  match Types.real_size sz with
-  | Types.SzVar _ -> ()
-  | Types.SzIndex i -> fprintf fmt "%a" Rfsm.Ident.pp i
+let pp_size_val fmt sv =
+  match sv with
   | Types.SzConst c -> fprintf fmt "%d" c
+  | Types.SzIndex i -> fprintf fmt "%a" Rfsm.Ident.pp i
 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Types.TyConstr ("int",[],[SzVar _]) -> fprintf fmt "int %a" pp_ident name
-  | Types.TyConstr ("int",[],[sz]) -> fprintf fmt "int<%a> %a" pp_size sz pp_ident name
-  | Types.TyConstr ("int",[],[lo; hi]) -> fprintf fmt "int<%a,%a> %a" pp_size lo pp_size hi pp_ident name
-  | Types.TyConstr ("array", [t'], [SzVar _]) -> fprintf fmt "%a %a[]" pp_simple_type t' pp_ident name
-  | Types.TyConstr ("array", [t'], [sz]) -> fprintf fmt "%a %a[%a]" pp_simple_type t' pp_ident name pp_size sz
+  | Types.TyConstr ("int",[],SzNone)
+  | Types.TyConstr ("int",[],SzVar _) -> fprintf fmt "int %a" pp_ident name
+  | Types.TyConstr ("int",[],SzVal1 sz) -> fprintf fmt "int<%a> %a" pp_size_val sz pp_ident name
+  | Types.TyConstr ("int",[],SzVal2 (lo,hi)) -> fprintf fmt "int<%a:%a> %a" pp_size_val lo pp_size_val hi pp_ident name
+  | Types.TyConstr ("array", [t'], SzNone)
+  | Types.TyConstr ("array", [t'], SzVar _) -> fprintf fmt "%a %a[]" pp_simple_type t' pp_ident name
+  | Types.TyConstr ("array", [t'], SzVal1 sz) -> fprintf fmt "%a %a[%a]" pp_simple_type t' pp_ident name pp_size_val sz
+  | Types.TyConstr ("array", [t'], SzVal2 (sz1,sz2)) -> fprintf fmt "%a %a[%a][%a]" pp_simple_type t' pp_ident name pp_size_val sz1 pp_size_val sz2
   | t -> fprintf fmt "%a %a" pp_simple_type t pp_ident name 
 
 let pp_cst_decl fmt name t = 
