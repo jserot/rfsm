@@ -1,0 +1,25 @@
+-- Serial to parallel converter (1 start bit, LSB->MSB, 1 parity bit, 1 stop bit)
+
+type bit = int<1>
+
+fsm model Rxd<n: int>( -- n is the duration of a single bit (in clk periods)
+  in clk: event,
+  in sin: bit,
+  out dout: int<8>,
+  out err: bit)
+{
+  states: Idle, Sync, Rx;
+  vars: i: int, -- TO FIX: this should really be [int<0:8>]
+        k: int, -- TO FIX : this should really be [int<0:n>]
+        r: int<8>,
+        p: bit;
+  trans:
+  | Idle -> Sync on clk when sin=0::bit with r:=0::int<8>, k:=0
+  | Sync -> Sync on clk when k<n/2-1 with k:=k+1
+  | Sync -> Rx on clk when k=n/2-1 with k:=0, i:=0, p:=0::bit
+  | Rx -> Rx on clk when k<n-1 with k:=k+1
+  | Rx -> Rx on clk when (k=n-1).(i<8) with r[i]:=sin, p:=p^sin, k:=0, i:=i+1
+  | Rx -> Idle on clk when (k=n-1).(i=8) with err:=p^sin, dout:=r;
+  itrans:
+  | -> Idle;
+}
