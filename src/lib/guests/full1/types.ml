@@ -31,6 +31,10 @@ let new_stamp =
 let make_var () = { stamp=new_stamp (); value = Unknown }
 let new_type_var () = TyVar (make_var ())
 
+(* Type indexes - not used in this guest language - TO FIX *)
+
+type index = int
+
 (* Builders *)
 
 let no_type = TyProduct []
@@ -52,6 +56,8 @@ let is_type_constr0 c ty = match ty with
   | TyConstr (c', []) when c=c' -> true
   | _ -> false
 let mk_type_fun ty_args ty_res = type_arrow (type_product ty_args) ty_res
+
+let is_index_type ty = is_type_constr0 "int" ty
 
 let rec type_repr = function
   | TyVar ({value = Known ty1; _} as var) ->
