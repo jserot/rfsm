@@ -27,6 +27,7 @@ let lookup ~exc v env =
 let lookup_var ~loc v env = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
 
 let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
+let add_index env (v,ty) =  env
 
 let pp_env fmt e = 
   let open Format in

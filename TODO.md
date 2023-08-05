@@ -7,6 +7,7 @@ COMPILER
 - replace `Guest.Types.{mk_type_constr0,is_type_constr0}` by `is_type_{event,bool}`
 - Add a "org" field to ident's (to keep track of name before substitution)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
+- rename full<i> with a more explicit name
 - document lib/host/guest.ml
 - banner
 - move VCD fns in guest language from Syntax module to a separate Vcd module
