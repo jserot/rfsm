@@ -223,6 +223,8 @@ and unify_size_value ~loc c (ty1,ty2) sv1 sv2 =
   match sv1, sv2 with
   | SzConst c1, SzConst c2 when c1 = c2 -> ()
   | SzIndex i1, SzIndex i2 when i1 = i2 -> ()  (* TO FIX : this should not occur after elaboration *)
+  | SzIndex _, SzConst _ -> ()  (* TO FIX: this too permissive - and  should not occur after elaboration, anyway *)
+  | SzConst _, SzIndex _ -> ()  (* TO FIX: this too permissive - and  should not occur after elaboration, anyway *)
   | _, _ -> raise (Type_conflict(loc,ty1,ty2))
   
 and occur_check ~loc var ty =

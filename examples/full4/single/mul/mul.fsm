@@ -16,8 +16,7 @@ fsm model mult <n: int, nn: int> (
   vars:
     a: int<nn>,
     b: int<n>,
-    -- i: int<0:n>, -- should be this but unification of ranges is not correctly supported yet 
-    i: int,
+    i: int<0:n>, 
   acc: int<nn>;
   trans:
   | Idle -> Comp on h when start=1 with a:=n1::int<nn>, b:=n2, acc:=0::int<nn>, i:=0
