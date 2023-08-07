@@ -88,13 +88,20 @@ Compilation flow
 Raw AST (from parsing) : models + instance defns
          |
          |
-   [INSTANCIATION / ELAB] (involving _superficial_ typing of (of IOs and parameters))
+   [SHALLOW TYPING] 
          |
          V
-FSM set : collection of instanciated models (in which parameter occurrences have been substituted in types and expressions)
+AST with typed type/fun/cst decls and fsm instanciations
+         |
+         V
+   [ELABORATION] (FSM instanciation)
+         |
+         V
+Collection of instanciated models (in which parameter occurrences have been substituted in types and
+         expressions and local ios substituted by bound global ios)
          |
          | 
-   [TYPING] (deep typing of instanciated model defns)
+   [DEEP TYPING] (instanciated model defns)
          |
          V
      typed program
@@ -104,8 +111,30 @@ FSM set : collection of instanciated models (in which parameter occurrences have
      | ... |
      V     V
 
-In this view, (static) elaboration is performed _before_ typing !
-This is required because parameterized models cannot be typed before instanciation.
+In this view, typing and type-checking is performed in two separate steps:
+1. during the elaboration phase
+   - type, function and constant declarations and type-checked (and added to the typing environment)
+   - each model instanciation is type-checked; i.e. we check that
+     i) the type of the actual parameters supplied for the instance match the type of the formal
+     parameters declared in the model. for example, if model [f] has been declared as
+       [fsm model f (n: int) (...) ...]
+     then we should flag an instanciation like
+       [fsm f1 = f(true) (...)]
+     ii) the type of the actual arguments supplied for the instance match the type of the the formal
+     arguments declated in the model; but type matching must adopt a more "relaxed" interpretation
+     because the type of formal arguments may involve parameters; for example, if model [f] has been declared as
+       [fsm model f (n: int) (i: int<n>, ...) ...]
+     then we should accept an instanciation like
+       [fsm f1 = f(8) (x,...)] where [x] has been declared as [input x: int<8>]
+     but also an instanciation like
+       [fsm f1 = f(8) (x,...)] where [x] has been declared as [input x: int<4>]
+     Of course, we should reject an instanciation like
+       [fsm f1 = f(8) (x,...)] where [x] has been declared as [input x: bool]
+     ** Q: why can't we type-check "strictly" such instanciations ?
+2. after the elaboration step id completed, the FSM models themselves (variables, rules, ...) are
+   type-checked; this step is called "deep typing"
+
+This organisation is required because _parameterized_ models cannot be (deeply) typed before instanciation.
 For example, in this pgm :
 ```
 fsm model f (n:int) (in i:int<n>, ...)
@@ -118,7 +147,7 @@ input x8: int<8>
 ...
 fsm f8 = f<8>(x8,...)
 ```
-when the _model_ `f` cannot be type-checked "in isolation" (un-instanciated), because
+the _model_ `f` cannot be type-checked "in isolation" (un-instanciated), because
 there's no way to tell whether the assignation `z:=i` is well-typed "per se". 
 Only the _instanciated model_ `f8` can be type-checked, i.e. the FSM
 ```
@@ -128,6 +157,9 @@ fsm f8 (in i:int<8>, ...)
   | ... with z:=i ...
 ```
   
+** REM : "deep" typing _could_ be carried out for each instanciation if we keep, in the environment,
+the value of each parameter, couldn't it ?
+
 This static elaboration phase can in fact remove _all occurrence_ of parameters in the model. 
 In the previous example, a rule 
 ```
