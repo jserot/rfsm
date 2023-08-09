@@ -8,7 +8,7 @@ type t = {
     id: string
     }
                      
-type subst = (t * t) list
+(* type subst = (t * t) list *)
 
 let mk ?(scope=Local) id = { scope=scope; id=id }
 
@@ -16,8 +16,8 @@ let mk_global id = { id with scope = Global }
 
 let upd_id f i = { i with id = f i.id }
 
-let subst (phi: subst) id =
-  if List.mem_assoc id phi then List.assoc id phi else id
+(* let subst (phi: subst) id =
+ *   if List.mem_assoc id phi then List.assoc id phi else id *)
 
 let pp fmt i = Format.fprintf fmt "%s" i.id
 

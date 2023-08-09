@@ -1,4 +1,63 @@
-(** Dependency graph between FSM instances *)
+(** Static elaboration *)
+
+(** TODO: DESCRIPTION TO BE ADJUSTED *)
+(** This step takes a (typed) program consisting of
+    - types, functions and constant declarations
+    - global IO declarations 
+    - FSM instance declarations
+    and produce a representation, consisting of
+    - the same types, functions and constant declarations
+    - a set of FSM instances.
+    In the latter
+    i) the formal IOs of the corresponding model have been bound to the global IOs;
+      for ex, if the input program is like
+        [
+        fsm model f (in x: bool, out y: int, ...) ... rules | q -> q' when h.(x=1) with y:=0 ...
+        ...
+        input X: bool
+        output Y: int
+        ...
+        fsm f0 = f(X,Y,...)
+        ]
+      then, the model describing [f0] in the result representation will be like 
+        [
+        fsm model f (in X: bool, out X: int, ...) ... rules | q -> q' when h.(X=1) with Y:=0 ...
+        ]
+      Superficial typing means that the compiler has the substituted symbols have compatible types
+      (i.e., here, that the types of x and X (resp. y and Y) are compatible).
+    ii) the (generic) parameters have been replaced by their actual value
+      for ex, if the input program is like
+        [
+        fsm model f <n: int> (in x: int<n>, ...) ... vars z: int ... rules | q -> q' when h.(x=1).(z<n) ...
+        ...
+        input X: int<8>
+        ...
+        fsm f8 = f<8>(X,,...)
+        ]
+      then, the model describing [f8] in the result representation will be like 
+        [
+        fsm model f (in X: int<8>, ...) ... vars z: int ... rules | q -> q' when h.(X=1).(z<8)  ...
+        ]
+      Hence, models attached to instances in the result representation are parameter-less.
+      iii) Moore-style descriptions (with output assignations attached to states) have been turned to
+      to Mealy-style ones (with output assignations attached to transitions). 
+      for ex, if the input program is like
+        [
+        fsm model f  (out o: int, ...) states { ..., q' with o=1 } ... rules | q -> q' ...
+        ...
+        fsm f0 = f(...)
+        ]
+      then, the model describing [f0] in the result representation will be like 
+        [
+        fsm model f (out o: int, ...) states { ..., q } ... rules | q -> q' with o:=1 ...
+        ]
+   
+      The elaboration step also computes the dependency order induced by shared variables
+      between FSMs. An FSM [f] depends on another FSM [f'] if [f] reads a variable that is written by [f'].
+      Note that this order is here purely static because all rules are considered for reading and writing,
+      independentely of the actual FSM state. The resulting order will used by the SystemC (and possibly other)
+      backend to implement instantaneous broadcast using delta cycles.
+      *) 
 
 module type T = sig
   
@@ -133,35 +192,39 @@ struct
          
   let r_inst tp senv_i { Annot.desc=name,model,params,args; Annot.loc=loc; _ } =
     let open Syntax in
+    (* Find the corresponding instanciated model *)
     let mm = 
       try List.assoc name tp.Typing.tp_insts
       with Not_found -> Misc.fatal_error "Static.r_inst"  in (* should not happen after TC *)
     let m = mm.Annot.desc in
-    let phi = 
-      try List.map2 (fun (io',_) io -> io', io) m.ios args
-      with Invalid_argument _ -> Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
+    (* Build the parameter substitution *)
+    let bind_param (id,_) e = (id, e) in
+      (* Note: parameters are _not_ evaluated here. They will be syntactically substituted  *)
+    let phi_p =
+      try List.map2 bind_param m.params params
+      with Invalid_argument _ ->  Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
+    (* Build the IO substitution *)
+    let bind_arg (l_id,_) g_id = (l_id,g_id) in
+    let phi_io = 
+      try List.map2 bind_arg m.ios args
+      with Invalid_argument _ ->  Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
+    let mm' =
+         mm
+         |> normalize_model
+         |> subst_model_param ~phi:phi_p
+         |> subst_model_io ~phi:phi_io in
     let collect cats =
       List.fold_left2 
         (fun acc (id,(cat,_)) arg -> if List.mem cat cats then  arg::acc else acc)
         []
         m.ios
         args in
-    let mm' =  mm |> normalize_model |> subst_model ~phi in
     let m' = mm'.Annot.desc in
     let rds = collect [Syntax.In; Syntax.InOut] in
     let wrs = collect [Syntax.Out; Syntax.InOut] in
     let f = {
         name = name;
-        params =
-          (* Note: parameters occuring in _type expressions_ have already been evaluated by the typing phase.
-             There's a bit a redundancy to re-evaluate them here. But it's simpler. *)
-          (try
-             List.fold_left2
-               (fun env (id,_) expr -> Env.add id (GS.eval expr) env)
-               Env.empty
-               m'.params
-               params
-           with Invalid_argument _ -> Misc.fatal_error "Static.r_inst");  (* should not happen after TC *)
+        params = Env.empty; (* No more parameters in static representations ! TODO: remove! *)
         model = mm';
         q = fst m'.itrans.Annot.desc;
         vars =

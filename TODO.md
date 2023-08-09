@@ -8,6 +8,7 @@ COMPILER
 - Add a "org" field to ident's (to keep track of name before substitution)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - rename full<i> with a more explicit name
+- rename "LHS" as "pattern" ? 
 - document lib/host/guest.ml
 - banner
 - move VCD fns in guest language from Syntax module to a separate Vcd module

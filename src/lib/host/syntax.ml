@@ -89,7 +89,8 @@ module type SYNTAX = sig
   val empty_program: program
   val add_program: program -> program -> program
 
-  val subst_model: phi:(Ident.t * Ident.t) list -> model -> model (** Name substitution *)
+  val subst_model_io: phi:Ident.t Subst.t -> model -> model (** IO substitution *)
+  val subst_model_param: phi:expr Subst.t -> model -> model (** Parameter substitution *)
     
   val state_ios: model -> Ident.t -> Ident.t list * Ident.t list * Ident.t list * Ident.t list
     (** [state_ios m q] is [l1,l2,l3,l4] where
@@ -250,26 +251,28 @@ struct
 
   let pp_model_name fmt m = Format.fprintf fmt "%a" Ident.pp m.Annot.desc.name
     
-  (* Substitutions *)
+  (* IO substitutions *)
+
+  let subst_id phi i = Subst.apply phi i 
 
   let local_prefix x = "l_" ^ x
 
-  let subst_cond phi c = match c.Annot.desc with 
-    | (ev,guards) -> { c with desc = Ident.subst phi ev, List.map (Guest.subst_expr phi) guards }
+  let subst_io_cond phi c = match c.Annot.desc with 
+    | (ev,guards) -> { c with desc = Subst.apply phi ev, List.map (Guest.subst_id phi) guards }
 
-  let subst_iov phi (id,ty) = Ident.subst phi id, ty
+  let subst_io_iov phi (id,ty) = Subst.apply phi id, ty
                                   
-  let subst_action phi act = match act.Annot.desc with
-    | Emit ev -> { act with desc = Emit (Ident.subst phi ev) }
-    | Assign (lhs,expr) -> { act with desc = Assign (Guest.subst_lhs phi lhs, Guest.subst_expr phi expr) }
+  let subst_io_action phi act = match act.Annot.desc with
+    | Emit ev -> { act with desc = Emit (Subst.apply phi ev) }
+    | Assign (lhs,expr) -> { act with desc = Assign (Guest.subst_lhs phi lhs, Guest.subst_id phi expr) }
                         
-  let subst_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
-   { t with desc = (q, subst_cond phi cond, List.map (subst_action phi) acts, q', p) }
+  let subst_io_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
+   { t with desc = (q, subst_io_cond phi cond, List.map (subst_io_action phi) acts, q', p) }
 
-  let subst_itransition phi ({Annot.desc=(q,acts); _} as t)  =
-    { t with desc = (q, List.map (subst_action phi) acts) }
+  let subst_io_itransition phi ({Annot.desc=(q,acts); _} as t)  =
+    { t with desc = (q, List.map (subst_io_action phi) acts) }
 
-  let subst_model ~phi m =
+  let subst_model_io ~phi m =
     let mm = m.Annot.desc in
     let phi_r = List.map Misc.swap phi in
     let captured_vars = 
@@ -287,14 +290,45 @@ struct
     Annot.map
     (fun m -> 
     { m with 
-      inps = List.map (subst_iov phi) m.inps;
-      outps = List.map (subst_iov phi) m.outps;
-      inouts = List.map (subst_iov phi) m.inouts;
-      vars = m.vars |> List.map (subst_iov phi') |> List.map (subst_iov phi);
-      trans = m.trans |> List.map (subst_transition phi') |> List.map (subst_transition phi);
-      itrans = m.itrans |> subst_itransition phi' |> subst_itransition phi })
+      inps = List.map (subst_io_iov phi) m.inps;
+      outps = List.map (subst_io_iov phi) m.outps;
+      inouts = List.map (subst_io_iov phi) m.inouts;
+      vars = m.vars |> List.map (subst_io_iov phi') |> List.map (subst_io_iov phi);
+      trans = m.trans |> List.map (subst_io_transition phi') |> List.map (subst_io_transition phi);
+      itrans = m.itrans |> subst_io_itransition phi' |> subst_io_itransition phi })
     (Fun.id)
     m
+
+  (* Parameter substitution *)
+
+  let subst_param_cond phi c = match c.Annot.desc with 
+    | (ev,guards) -> { c with desc = ev, List.map (Guest.subst_expr phi) guards }
+  
+  let subst_param_iov phi (id,ty) = id, Guest.subst_type_expr phi ty
+                                  
+  let subst_param_action phi act = match act.Annot.desc with
+    | Emit ev -> act
+    | Assign (lhs,expr) -> { act with desc = Assign (lhs, Guest.subst_expr phi expr) }
+                        
+  let subst_param_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
+   { t with desc = (q, subst_param_cond phi cond, List.map (subst_param_action phi) acts, q', p) }
+  
+  let subst_param_itransition phi ({Annot.desc=(q,acts); _} as t)  =
+    { t with desc = (q, List.map (subst_param_action phi) acts) }
+
+  let subst_model_param ~phi m =
+    Annot.map
+    (fun m -> 
+    { m with 
+      inps = List.map (subst_param_iov phi) m.inps;
+      outps = List.map (subst_param_iov phi) m.outps;
+      inouts = List.map (subst_param_iov phi) m.inouts;
+      vars = List.map (subst_param_iov phi)  m.vars;
+      trans = List.map (subst_param_transition phi) m.trans;
+      itrans = subst_param_itransition phi m.itrans })
+    (Fun.id)
+    m
+
 
   (* Moore-Mealy conversion *)
 

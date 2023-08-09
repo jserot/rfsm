@@ -41,8 +41,18 @@ module type SYNTAX = sig
   val lhs_prefix: string -> lhs -> lhs
   val is_simple_lhs: lhs -> bool
   val mk_simple_lhs: Ident.t -> lhs
-  val subst_expr: Ident.subst -> expr -> expr
-  val subst_lhs: Ident.subst -> lhs -> lhs
+  val subst_id: Ident.t Subst.t -> expr -> expr
+    (** [subst_id phi e] applies substitution [phi] to expression [e], substituting each occurrence of identifier
+        [id] by identifier [phi id] *)
+  val subst_expr: expr Subst.t -> expr -> expr
+    (** [subst_expr phi e] applies substitution [phi] to expression [e], substituting each occurrence of identifier
+        [id] by expression [phi id] *)
+  val subst_lhs: Ident.t Subst.t -> lhs -> lhs
+    (** [subst_expr phi l] applies substitution [phi] to LHS [l], substituting each occurrence of identifier
+        [id] by identifier [phi id] *)
+  val subst_type_expr: expr Subst.t -> type_expr -> type_expr
+  (** [subst_type_expr phi te] applies substitution [phi] to type_expression [te], replacing all occurences of parameter
+      name [id] in type expression [te] by [phi id]. *)
   val vars_of_expr: expr -> Ident.t list
   val vars_of_lhs: lhs -> Ident.t list
   val mk_alias_type_decl: Ident.t -> type_expr -> type_decl
