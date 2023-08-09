@@ -20,7 +20,7 @@ and type_expr_desc =
 and size_annot = type_size list (* []: none, [s] size for ints and arrays, [lo;hi] range for ints *)
 
 and type_size = 
-  | SzIndex of Rfsm.Ident.t 
+  | SzParam of Rfsm.Ident.t 
   | SzConst of int
 
 let rec pp_type_expr_desc fmt te = 
@@ -39,7 +39,7 @@ and pp_size c fmt sz =
 
 and pp_type_size fmt sz = 
   match sz with
-  | SzIndex i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i
+  | SzParam i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i
   | SzConst n -> Format.fprintf fmt "%d" n
 
 (** Type declarations *)

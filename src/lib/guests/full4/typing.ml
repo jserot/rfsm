@@ -11,7 +11,7 @@ type env = {
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
     te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *) 
     te_prims: Types.typ_scheme Env.t; (** Primitive operators and functions *)
-    te_indexes: Types.index Env.t  (** Type indexes. E.g. [n=1], used in [int<n>] *)
+    te_params: int Env.t  (** Type size parameters. E.g. [n=1], used in [int<n>] *)
     }
 
 let mk_env () =
@@ -20,31 +20,42 @@ let mk_env () =
     te_ctors = Env.init Builtins.typing_env.ctors;
     te_rfields = Env.empty;
     te_prims = Env.init Builtins.typing_env.prims;
-    te_indexes = Env.empty; }
+    te_params = Env.empty; }
 
 exception Undefined of string * Location.t * Rfsm.Ident.t
 exception Duplicate of string * Location.t * Rfsm.Ident.t
 exception Illegal_cast of Syntax.expr
 exception Illegal_expr of Location.t * string
+exception Illegal_parameter_value of Syntax.expr
+
+let eval_param e = (** Static evaluation of type size parameters *)
+  (* Note: this cannot go into [Static], as expected, because this will create a dependency loop btw modules :( *)
+  (* TODO: extend this to allow, for instances, arithmetic expressions (such as [n+1] where [n] is a parameter) *)
+  match e.Annot.desc with
+  | Syntax.EInt v -> v
+  | _ -> raise (Illegal_parameter_value e)
 
 let lookup ~exc v env = 
   try Env.find v env 
   with Not_found -> raise exc
 
 let lookup_var ~loc v env = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
-let lookup_index ~loc v env = lookup ~exc:(Undefined ("index",loc,v)) v env.te_indexes
+(* let lookup_param ~loc v env = lookup ~exc:(Undefined ("type size parameter",loc,v)) v env.te_params *)
 
 let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
-let add_index env (i,v) = { env with te_indexes = Env.add i v env.te_indexes }
+let add_param env (p,e) =
+  let v = eval_param e in
+  { env with te_params = Env.add p v env.te_params }
 
 let pp_env fmt e = 
   let open Format in
   let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity (Types.pp_typ ~abbrev:false) ty in
-  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,rfields=%a@,prims=%a}@]@."
+  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,rfields=%a@,params=%a@,prims=%a}@]@."
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_vars
     (Env.pp ~sep:":" pp_tycon) e.te_tycons
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
     (Env.pp ~sep:":" (fun fmt (_,ty) -> fprintf fmt "%a" (Types.pp_typ ~abbrev:true) ty)) e.te_rfields
+    (Env.pp ~sep:":" pp_print_int) e.te_params
     (Env.pp ~sep:":" Types.pp_typ_scheme) e.te_prims
 
 let add_env exc env (k,v)  =
@@ -64,10 +75,11 @@ let rec type_of_type_expr env te =
 and size_of_size_expr env ~loc c se = 
   let size_val_of s = match s with
   | Syntax.SzConst c -> Types.SzConst c
-  | Syntax.SzIndex i -> (* TO FIX : parameter substition should have been carried out in the pre-typing elab phase *)
-     if Env.mem i env.te_indexes
-     then Types.SzConst (Env.find i env.te_indexes)
-     else Types.SzIndex i in
+  | Syntax.SzParam i -> 
+     (* SzConst (lookup ~exc:(Undefined ("type size parameter",loc,p)) p env.te_params) in *)
+     if Env.mem i env.te_params
+     then Types.SzConst (Env.find i env.te_params)   (* When typing FSM instances, resolve type parameters *)
+     else Types.SzParam i in                         (* When typing FSM models *)
   match c.Rfsm.Ident.id, se with
   | "int", [] -> Types.new_size_var ()  (* Special case *)
   | "array", [] -> Types.new_size_var ()  (* Special case *)

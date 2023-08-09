@@ -111,7 +111,7 @@ let pp_value fmt v =
 
 let pp_size_val fmt sv =
   match sv with
-  | Types.SzIndex i -> fprintf fmt "%a" Rfsm.Ident.pp i
+  | Types.SzParam i -> fprintf fmt "%a" Rfsm.Ident.pp i
   | Types.SzConst s -> fprintf fmt "%d" s
 
 let pp_typed_symbol fmt (name,t) =

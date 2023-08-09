@@ -153,8 +153,8 @@ struct
     let f = {
         name = name;
         params =
-          (* TOFIX : evaluation of parameter value should already have been carried out by the typing phase
-             (since this is required to refine parameter-dependent types). *)
+          (* Note: parameters occuring in _type expressions_ have already been evaluated by the typing phase.
+             There's a bit a redundancy to re-evaluate them here. But it's simpler. *)
           (try
              List.fold_left2
                (fun env (id,_) expr -> Env.add id (GS.eval expr) env)

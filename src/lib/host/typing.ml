@@ -166,22 +166,20 @@ struct
     | [] -> raise (No_event_input loc)
     | _ -> ()
          
-  let type_fsm_model (env,params) m =
+  let type_fsm_model env m =
     type_fsm_states env m;
-    let type_indexes =
-      List.fold_left
-      (fun acc (id,ty,e) ->
-        if GuestTyping.Types.is_index_type ty then (id,GS.eval_index e)::acc
-        else acc)
-      []
-      params in
-    (* Format.printf "** Host.Typing.type_fsm_model: indexes=[%a]\n"
-     *   (Misc.pp_list_h ~sep:"," (fun fmt (i,v) -> Format.fprintf fmt "%a=%d" Ident.pp i v)) type_indexes; *)
-    let env' = List.fold_left GuestTyping.add_index env type_indexes in
-    let env'' = List.fold_left GuestTyping.add_var env' (types_of_fsm_model env' m) in
-    type_fsm_ios env'' m;
-    List.iter (type_fsm_transition env'' m) m.A.desc.trans;
-    type_fsm_itransition env'' m m.A.desc.itrans;
+    (* let type_indexes =
+     *   List.fold_left
+     *   (fun acc (id,ty,e) ->
+     *     if GuestTyping.Types.is_index_type ty then (id,GS.eval_index e)::acc
+     *     else acc)
+     *   []
+     *   params in
+     * let env' = List.fold_left GuestTyping.add_index env type_indexes in *)
+    let env' = List.fold_left GuestTyping.add_var env (types_of_fsm_model env m) in
+    type_fsm_ios env' m;
+    List.iter (type_fsm_transition env' m) m.A.desc.trans;
+    type_fsm_itransition env' m m.A.desc.itrans;
     m
 
   (* Typing FSM instances *)
@@ -207,16 +205,17 @@ struct
     (* Type-check and (statically) evaluate parameters *)
     let bind_param (id,te) e =
       let ty = GuestTyping.type_of_type_expr env te in
-      GuestTyping.type_check
-        ~loc:loc
-        ty
-        (GuestTyping.type_expression env e);
-      (id,ty,e) in
-    let i_params =
+      let ty' = GuestTyping.type_expression env e in
+      GuestTyping.type_check ~loc:loc ty ty';
+      (* let v = GuestTyping.eval_param e in *)
+      (id,e) in
+    let ty_params =
       try List.map2 bind_param m.params params
       with Invalid_argument _ -> raise (Illegal_inst loc) in
-    (* Now type the instanciated model *)
-    let _ = type_fsm_model (env,i_params) mm in
+    (* Augment the typing environment with the bindings of parameters *)
+    let env' = List.fold_left GuestTyping.add_param env ty_params in
+    (* Type the instanciated model *)
+    let _ = type_fsm_model env' mm in
     let m_inps = List.map (fun (id,te) -> id, Input, te.A.typ) m.inps in
     let m_outps = List.map (fun (id,te) -> id, Output, te.A.typ) m.outps in
     let m_inouts = List.map (fun (id,te) -> id, Shared, te.A.typ) m.inouts in
@@ -289,14 +288,8 @@ struct
     let env1 = List.fold_left GuestTyping.type_type_decl env0 p.type_decls in
     let env2 = List.fold_left type_fun_decl env1 p.fun_decls in
     let env = List.fold_left type_cst_decl env2 p.cst_decls in
-    (* List.iter (type_fsm_model env) p.models; *)
-    (* Note v2-full4: we cannot check the models alone in the presence of type parameters.
-       For ex:
-         [fsm model f (n:int) (in i:int<n>, ...) vars z:int<8> ... trans: ... with z:=i ...]
-       can only be checked when the model [f] is instanciated (as [fsm f1 = f<8>(...)] for example)
-       because of the assignation [z:=i] ! *)
     List.iter (type_global env) p.globals;
-    { tp_models = List.map (type_fsm_model (env,[])) p.models;
+    { tp_models = List.map (type_fsm_model env) p.models;
       tp_insts =  List.map (type_fsm_inst env p) p.insts }
     (* { type_decls = p.type_decls; 
      *   fun_decls = p.fun_decls;

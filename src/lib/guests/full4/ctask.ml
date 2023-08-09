@@ -78,7 +78,7 @@ let pp_expr fmt e =
 let pp_size_val fmt sv =
   match sv with
   | Types.SzConst c -> fprintf fmt "%d" c
-  | Types.SzIndex i -> fprintf fmt "%a" Rfsm.Ident.pp i
+  | Types.SzParam i -> fprintf fmt "%a" Rfsm.Ident.pp i
 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with

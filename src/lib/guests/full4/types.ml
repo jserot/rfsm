@@ -19,7 +19,7 @@ and siz =
 
 and size_value = 
   | SzConst of int
-  | SzIndex of Rfsm.Ident.t  (* TOFIX : indexes should be replaced by constants by the elab phase *)
+  | SzParam of Rfsm.Ident.t
 
 and 'a var =
   { stamp: int;             (* for debug only *)
@@ -33,8 +33,6 @@ type typ_scheme =
   { ts_tparams: (typ var) list;
     ts_sparams: (siz var) list;
     ts_body: typ }
-
-(* Type indexes *)
 
 type index = int
 
@@ -222,9 +220,9 @@ and unify_size ~loc c (ty1,ty2) sz1 sz2 =
 and unify_size_value ~loc c (ty1,ty2) sv1 sv2 =
   match sv1, sv2 with
   | SzConst c1, SzConst c2 when c1 = c2 -> ()
-  | SzIndex i1, SzIndex i2 when i1 = i2 -> ()  (* TO FIX : this should not occur after elaboration *)
-  | SzIndex _, SzConst _ -> ()  (* TO FIX: this too permissive - and  should not occur after elaboration, anyway *)
-  | SzConst _, SzIndex _ -> ()  (* TO FIX: this too permissive - and  should not occur after elaboration, anyway *)
+  | SzParam i1, SzParam i2 when i1 = i2 -> ()  (* TO FIX : this should not occur after elaboration *)
+  | SzParam _, SzConst _ -> ()  (* TO FIX: this too permissive - and  should not occur after elaboration, anyway *)
+  | SzConst _, SzParam _ -> ()  (* TO FIX: this too permissive - and  should not occur after elaboration, anyway *)
   | _, _ -> raise (Type_conflict(loc,ty1,ty2))
   
 and occur_check ~loc var ty =
@@ -281,7 +279,7 @@ and pp_size c fmt sz =
   let pp_siz_var fmt v = Format.fprintf fmt "_%d" v.stamp in (* TO FIX ? *) 
   let pp_siz_val fmt v = match v with
     | SzConst s -> Format.fprintf fmt "%d" s
-    | SzIndex i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i in
+    | SzParam i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i in
   match c, real_size sz with
   | _, SzNone -> ()
   | "array", SzVar v -> Format.fprintf fmt "[%a]" pp_siz_var v

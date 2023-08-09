@@ -80,7 +80,7 @@ Implementation issues:
 
 - the type of a model is no longer unique; there are possibly has many possible types as distinct
   instanciations of this model in the program; in practice, this means that each instance must now
-  have its own copy of the (typed) associated model
+  have its own copy of the (typed) associated model (see Sec. Compilation flow below)
   
 Compilation flow
 ----------------
@@ -88,104 +88,63 @@ Compilation flow
 Raw AST (from parsing) : models + instance defns
          |
          |
-   [SHALLOW TYPING] 
+     [TYPING] 
          |
          V
-AST with typed type/fun/cst decls and fsm instanciations
+   [ELABORATION]
          |
          V
-   [ELABORATION] (FSM instanciation)
+  static representation
          |
-         V
-Collection of instanciated models (in which parameter occurrences have been substituted in types and
-         expressions and local ios substituted by bound global ios)
-         |
-         | 
-   [DEEP TYPING] (instanciated model defns)
-         |
-         V
-     typed program
-         |
-         | 
-   [BACKENDS] 
-     | ... |
-     V     V
+         V 
+   [SIMUL / BACKENDS] 
+     | ... |  ... |
+     V     V      V
 
-In this view, typing and type-checking is performed in two separate steps:
-1. during the elaboration phase
-   - type, function and constant declarations and type-checked (and added to the typing environment)
-   - each model instanciation is type-checked; i.e. we check that
-     i) the type of the actual parameters supplied for the instance match the type of the formal
-     parameters declared in the model. for example, if model [f] has been declared as
-       [fsm model f (n: int) (...) ...]
-     then we should flag an instanciation like
-       [fsm f1 = f(true) (...)]
-     ii) the type of the actual arguments supplied for the instance match the type of the the formal
-     arguments declated in the model; but type matching must adopt a more "relaxed" interpretation
-     because the type of formal arguments may involve parameters; for example, if model [f] has been declared as
-       [fsm model f (n: int) (i: int<n>, ...) ...]
-     then we should accept an instanciation like
-       [fsm f1 = f(8) (x,...)] where [x] has been declared as [input x: int<8>]
-     but also an instanciation like
-       [fsm f1 = f(8) (x,...)] where [x] has been declared as [input x: int<4>]
-     Of course, we should reject an instanciation like
-       [fsm f1 = f(8) (x,...)] where [x] has been declared as [input x: bool]
-     ** Q: why can't we type-check "strictly" such instanciations ?
-2. after the elaboration step id completed, the FSM models themselves (variables, rules, ...) are
-   type-checked; this step is called "deep typing"
-
-This organisation is required because _parameterized_ models cannot be (deeply) typed before instanciation.
-For example, in this pgm :
+The flow is classical. The main main issue is typing in case of type systems supporting
+_parameterized types_ (e.g. `int<n>`). In this case, the FSM models cannot be type-checked "in
+isolation", because the _value_ of parameters, given at the instanciation point, is required.
+For example, the following model:
 ```
 fsm model f (n:int) (in i:int<n>, ...)
-  vars z:int<8> ...
+  vars z:int<8>, k:int ...
   trans: 
-  | ... with z:=i ...
+  | ... when k=n-1 ... with z:=i ...
   
+```
+the _model_ `f` cannot be type-checked without knowing the value of `n`.
+But an _instanciation_ of this model can be type-checked, like in
+```
 ...
 input x8: int<8>
 ...
 fsm f8 = f<8>(x8,...)
 ```
-the _model_ `f` cannot be type-checked "in isolation" (un-instanciated), because
-there's no way to tell whether the assignation `z:=i` is well-typed "per se". 
-Only the _instanciated model_ `f8` can be type-checked, i.e. the FSM
+
+As a side-effect, typing a model instanciation can _remove_ all parameters from this model, replacing
+them by their actual values. In the previous example, the following (instanciated) model will be
+attached to FSM `f8`:
 ```
 fsm f8 (in i:int<8>, ...)
   vars z:int<8> ...
   trans: 
-  | ... with z:=i ...
+  | ... when k=8-1 ... with z:=i ...
 ```
-  
-** REM : "deep" typing _could_ be carried out for each instanciation if we keep, in the environment,
-the value of each parameter, couldn't it ?
 
-This static elaboration phase can in fact remove _all occurrence_ of parameters in the model. 
-In the previous example, a rule 
-```
-q -> q' when h.z<n-1 with ...
-```
-in `f` would be (syntactically) rewritten as
-```
-q -> q' when h.z<8-1 with ...
-```
-in `f8`.
-This way, we don't need generic parameters in generated CTask, SystemC and VHDL models. 
+The models submitted to the static elaboration step (and, further, to the backends) are then 
+parameter-less. In this view, the parameter mechanism can be viewed as (typed) "macro" or "template"
+system.
 
-Static elaboration can even be pushed a little further. If an expression containing a parameter
-contains only litteral constants and parameters, it can be (statically) evaluated and the resulting
+Parameter substitution can in fact be pushed a little further. If an expression containing a parameter
+contains only litteral constants and parameters, it can be _evaluated_ at typing time and the resulting
 value -- turned back into a constant expression, because we are dealing with syntactic objects at
 this level -- replace this expression.
-In the previous example, this mean that resulting rule would be rewritten as
+In the previous example, this means that rule in the `trans` section could actually be rewritten as:
 ```
-q -> q' when h.z<8-1 with ...
+  | ... when k=7 ... with z:=i ...
 ```
-in `f8`.
+in instanciated model `f8`.
 
-With is approach, the parameter mechanism is really viewed as a "macro" or "template" mechanism
-(performing substitions in the "source" code) before it is actually "compiled".
-This clearly simplifies the compilation process. In particular, parameters do not appear only longer
-in the dynamic semantics. OTOH, it can make simulation or error reporting more ambiguous (?)
 
 
 

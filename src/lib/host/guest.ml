@@ -65,7 +65,7 @@ module type TYPING = sig
   val mk_env: unit -> env
   val lookup_var: loc:Location.t -> Ident.t -> env -> Types.typ
   val add_var: env -> Ident.t * Types.typ -> env
-  val add_index: env -> Ident.t * Types.index -> env
+  val add_param: env -> Ident.t * Syntax.expr -> env
   (* TODO : add_prim, add_constr, ... *)
   val pp_env: Format.formatter -> env -> unit
   (** Low-level interface to the the type-checking engine *)
@@ -75,6 +75,8 @@ module type TYPING = sig
   val type_expression: env -> Syntax.expr -> Types.typ
   val type_of_type_expr: env -> Syntax.type_expr -> Types.typ
   val type_lhs: env -> Syntax.lhs -> Types.typ
+  (** Static evaluation of type parameters *)
+  val eval_param: Syntax.expr -> int
 end
   
 (** Values *)
@@ -101,8 +103,6 @@ module type STATIC = sig
   type expr
   type value
   exception Non_static_value of expr
-  exception Illegal_index_value of expr
-  val eval_index: expr -> int
   val eval_fn: string list -> expr -> value (* Args, body *)
   val eval: expr -> value  (* Static evaluation of constant expressions *)
 end

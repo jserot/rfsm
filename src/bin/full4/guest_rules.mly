@@ -34,7 +34,7 @@ array_size:
 
 size_annot:
     | c=INT { SzConst c }
-    | i=LID { SzIndex (mk_ident i) }
+    | i=LID { SzParam (mk_ident i) }
 
 expr:
   | e = simple_expr { e }

@@ -1,1 +1,1 @@
-- type parameters (ex: fsm model (n: int) (in i:int<n> ...))
+- type parameters (ex: `fsm model (n: int) (in i:int<n> ...)`)
