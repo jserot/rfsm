@@ -9,5 +9,5 @@ shared serial:bit
 output dout: int<8>  -- should recover din value here !
 output err: bit
 
-fsm txd = Txd<4>(clk,din,wr,serial)
-fsm rxd = Rxd<4>(clk,serial,dout,err)
+fsm t = Txd<4>(clk,din,wr,serial)
+fsm r = Rxd<4>(clk,serial,dout,err)

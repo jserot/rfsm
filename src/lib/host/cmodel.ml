@@ -27,7 +27,7 @@ module type CMODEL = sig
       c_name: Ident.t;  (* Instance name *)
       c_states: c_state list;
       c_params: (Ident.t * type_expr) list;
-      c_consts: (Ident.t * (type_expr * Static.Value.t)) list;
+      (* c_consts: (Ident.t * (type_expr * Static.Value.t)) list; *)
       c_inps: (Ident.t * type_expr) list;
       c_outps: (Ident.t * type_expr) list;
       c_inouts: (Ident.t * type_expr) list;
@@ -83,7 +83,7 @@ struct
       c_name: Ident.t; 
       c_states: c_state list;
       c_params: (Ident.t * type_expr) list;
-      c_consts: (Ident.t * (type_expr * Static.Value.t)) list;
+      (* c_consts: (Ident.t * (type_expr * Static.Value.t)) list; *)
       c_inps: (Ident.t * type_expr) list;
       c_outps: (Ident.t * type_expr) list;
       c_inouts: (Ident.t * type_expr) list;
@@ -116,37 +116,60 @@ struct
       st_sensibility_list = List.map fst ts;
       st_transitions = ts }
   
-  let of_fsm_model { Annot.desc = m; _ } =
+  let of_model ?(dep_order=0) ~mname ~name m  =
     let open Static.Syntax in 
-    { c_mname = m.name;
-      c_name = m.name;
+    { c_mname = name;
+      c_name = name;
       c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
       c_params = m.params;
-      c_consts = [];
       c_inps = m.inps;
       c_outps = m.outps;
       c_inouts = m.inouts;
       c_vars = m.vars;
       c_init = m.itrans.Annot.desc;
       c_body = List.map (mk_state_case m) m.states;
-      c_ddepth = 0; (* Not applicable to models, only to instances *)
+      c_ddepth = dep_order
     }
 
+  let of_fsm_model { Annot.desc = m; _ } =
+    let open Syntax in
+    of_model ~mname:m.name ~name:m.name m 
+
   let of_fsm_inst s f = 
-    let open Static in 
+    let open Static in
     let m = f.model.Annot.desc in 
-    { c_mname = m.name;
-      c_name = f.name;
-      c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
-      c_params = []; (* TOFIX : is this not c_consts ? *)
-      c_consts = List.map2 (fun (id,ty) (_,v) -> (id,(ty,v))) m.params (Env.bindings f.params);
-      c_inps = m.inps;
-      c_outps = m.outps;
-      c_inouts = m.inouts;
-      c_vars = m.vars; 
-      c_init = m.itrans.Annot.desc;
-      c_body = List.map (mk_state_case m) m.states;
-      c_ddepth = List.assoc f.name s.dep_order 
-    }
+    of_model ~dep_order:(List.assoc f.name s.dep_order ) ~mname:m.name ~name:f.name m
+
+  (* let of_fsm_model { Annot.desc = m; _ } =
+   *   { c_mname = m.name;
+   *     c_name = m.name;
+   *     c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
+   *     c_params = m.params;
+   *     (\* c_consts = []; *\)
+   *     c_inps = m.inps;
+   *     c_outps = m.outps;
+   *     c_inouts = m.inouts;
+   *     c_vars = m.vars;
+   *     c_init = m.itrans.Annot.desc;
+   *     c_body = List.map (mk_state_case m) m.states;
+   *     c_ddepth = 0; (\* Not applicable to models, only to instances *\)
+   *   } *)
+
+  (* let of_fsm_inst s f = 
+   *   let open Static in 
+   *   let m = f.model.Annot.desc in 
+   *   { c_mname = m.name;
+   *     c_name = f.name;
+   *     c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
+   *     c_params = []; (\* TOFIX : is this not c_consts ? *\)
+   *     (\* c_consts = List.map2 (fun (id,ty) (_,v) -> (id,(ty,v))) m.params (Env.bindings f.params); *\)
+   *     c_inps = m.inps;
+   *     c_outps = m.outps;
+   *     c_inouts = m.inouts;
+   *     c_vars = m.vars; 
+   *     c_init = m.itrans.Annot.desc;
+   *     c_body = List.map (mk_state_case m) m.states;
+   *     c_ddepth = List.assoc f.name s.dep_order 
+   *   } *)
 
 end

@@ -10,8 +10,8 @@ fsm model Rxd<n: int>( -- n is the duration of a single bit (in clk periods)
   out err: bit)
 {
   states: Idle, Sync, Rx;
-  vars: i: int<0:8>, -- TO FIX: this should really be [int<0:8>]
-        k: int<0:n>, -- TO FIX : this should really be [int<0:n>]
+  vars: i: int<0:8>, 
+        k: int<0:n>,
         r: int<8>,
         p: bit;
   trans:

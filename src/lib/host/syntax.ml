@@ -102,7 +102,6 @@ module type SYNTAX = sig
   val normalize_model: model -> model
 
   val ppr_program: program -> program
-  exception Undefined_symbol of Location.t * Ident.t
     
   val pp_typ: Format.formatter -> typ -> unit
   val pp_expr: Format.formatter -> expr -> unit
@@ -253,17 +252,19 @@ struct
     
   (* IO substitutions *)
 
-  let subst_id phi i = Subst.apply phi i 
+  let subst_var phi i = 
+    try Subst.apply phi i 
+    with Not_found -> i 
 
   let local_prefix x = "l_" ^ x
 
   let subst_io_cond phi c = match c.Annot.desc with 
-    | (ev,guards) -> { c with desc = Subst.apply phi ev, List.map (Guest.subst_id phi) guards }
+    | (ev,guards) -> { c with desc = subst_var phi ev, List.map (Guest.subst_id phi) guards }
 
-  let subst_io_iov phi (id,ty) = Subst.apply phi id, ty
+  let subst_io_iov phi (id,ty) = subst_var phi id, ty
                                   
   let subst_io_action phi act = match act.Annot.desc with
-    | Emit ev -> { act with desc = Emit (Subst.apply phi ev) }
+    | Emit ev -> { act with desc = Emit (subst_var phi ev) }
     | Assign (lhs,expr) -> { act with desc = Assign (Guest.subst_lhs phi lhs, Guest.subst_id phi expr) }
                         
   let subst_io_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
@@ -302,7 +303,10 @@ struct
   (* Parameter substitution *)
 
   let subst_param_cond phi c = match c.Annot.desc with 
-    | (ev,guards) -> { c with desc = ev, List.map (Guest.subst_expr phi) guards }
+    | (ev,guards) ->
+       let c' = { c with desc = ev, List.map (Guest.subst_expr phi) guards } in
+       (* Format.printf "Syntax.subst_param_cond(%a) : %a -> %a\n" (Subst.pp pp_expr) phi pp_cond c pp_cond c'; *)
+       c'
   
   let subst_param_iov phi (id,ty) = id, Guest.subst_type_expr phi ty
                                   
@@ -362,13 +366,11 @@ struct
 
   (* Pre-processing *)
 
-  exception Undefined_symbol of Location.t * Ident.t
-
   let type_of ~loc env v =
       (* Since pre-processing is carried out _before_ typing, the only type-related available information
          is given by the type expressions assigned to identifiers in the enclosing model *)
       try List.assoc v env
-      with Not_found -> raise (Undefined_symbol (loc,v)) 
+      with Not_found -> raise (Misc.Undefined ("symbol",loc,Ident.to_string v)) 
 
   let rec ppr_model m = { m with Annot.desc = ppr_model_desc m.Annot.desc }
   and ppr_model_desc m =

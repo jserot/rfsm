@@ -86,7 +86,7 @@ module type TYPING = sig
   val type_of_type_expr: env -> Syntax.type_expr -> Types.typ
   val type_lhs: env -> Syntax.lhs -> Types.typ
   (** Static evaluation of type parameters *)
-  val eval_param: Syntax.expr -> int
+  (* val eval_param: Syntax.expr -> int *)
 end
   
 (** Values *)

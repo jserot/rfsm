@@ -18,7 +18,8 @@ let upd_env lhs v env =
 exception Uninitialized of Location.t
 
 let lookup ~loc v env = 
-  match Rfsm.Env.find v env with
+  (* Format.printf "** Core.Eval.lookup %a in %a\n" Rfsm.Ident.pp v (Rfsm.Env.pp Value.pp) env; *)
+ match Rfsm.Env.find v env with
   | Val_unknown -> raise (Uninitialized loc)
   | v -> v
   | exception Not_found -> raise (Rfsm.Misc.Fatal_error "Core.Eval.lookup") (* Should not occur after TC *)

@@ -173,10 +173,10 @@ struct
     fprintf ocf "#include \"%s.h\"\n" cfg.sc_lib_name;
     if with_globals then fprintf ocf "#include \"%s.h\"\n" cfg.sc_globals_name;
     fprintf ocf "\n";
-    List.iter
-      (fun (id,(ty,v)) ->
-        fprintf ocf "const %a = %a;\n" (G.pp_typed_symbol) (scope modname id,ty) G.pp_value v)
-      m.Cmodel.c_consts;
+    (* List.iter
+     *   (fun (id,(ty,v)) ->
+     *     fprintf ocf "const %a = %a;\n" (G.pp_typed_symbol) (scope modname id,ty) G.pp_value v)
+     *   m.Cmodel.c_consts; *)
     fprintf ocf "\n";
     if m.c_params <> [] then 
       fprintf ocf "template <%a>\n" (Misc.pp_list_h ~sep:"," G.pp_typed_symbol) m.c_params;
@@ -221,8 +221,8 @@ struct
     List.iter (pp_io "sc_out") m.c_outps;
     List.iter (pp_io "sc_inout") m.c_inouts;
     if cfg.sc_trace then fprintf ocf "  sc_out<int> %s;\n" cfg.sc_trace_state_var;
-    fprintf ocf "  // Constants\n";
-    List.iter (fun (id,(ty,_)) -> fprintf ocf "  static const %a;\n" G.pp_typed_symbol (id,ty)) m.c_consts;
+    (* fprintf ocf "  // Constants\n";
+     * List.iter (fun (id,(ty,_)) -> fprintf ocf "  static const %a;\n" G.pp_typed_symbol (id,ty)) m.c_consts; *)
     fprintf ocf "  // Local variables\n";
     fprintf ocf "  t_%s %s;\n" cfg.sc_state_var cfg.sc_state_var;
     List.iter (fun (id,ty) -> fprintf ocf "  %a;\n" G.pp_typed_symbol (id,ty)) m.c_vars;

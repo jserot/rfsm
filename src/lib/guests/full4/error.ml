@@ -12,14 +12,14 @@ let handle e =
   | Types.Type_conflict (loc,ty,ty') ->
       eprintf "%aTyping error: cannot unify types %a and %a\n"
         pp_loc loc (Types.pp_typ ~abbrev:false) ty (Types.pp_typ ~abbrev:false) ty'; exit 2
-  | Typing.Undefined (what,loc,s) -> 
-      eprintf "%aUndefined %s: %a\n" pp_loc loc what Rfsm.Ident.pp s; exit 2
   | Typing.Duplicate (what,loc,x) -> 
       eprintf "%aDuplicate %s: %a\n" pp_loc loc what Rfsm.Ident.pp x; exit 2
   | Typing.Illegal_cast e -> 
       eprintf "%aIllegal cast\n" pp_loc e.Rfsm.Annot.loc; exit 2
   | Typing.Illegal_expr (loc,what) -> 
       eprintf "%aIllegal expression: %s\n" pp_loc loc what; exit 2
+  | Syntax.Invalid_parameter (loc,p) -> 
+      eprintf "%aInvalid type parameter : %a. Should be an constant integer expression\n" pp_loc loc Rfsm.Ident.pp p; exit 2
   | Eval.Uninitialized (what,loc) -> 
      if loc = Location.no_location then eprintf "Uninitialized value: %s\n" what
      else eprintf "%aUninitialized value: %s\n" pp_loc loc what; 

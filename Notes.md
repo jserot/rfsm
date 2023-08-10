@@ -1,3 +1,67 @@
+Compilation flow
+----------------
+
+Raw AST (from parsing) : models + instance defns
+         |
+         |
+     [TYPING] 
+         |
+         V
+   [ELABORATION]
+         |
+         V
+  static representation
+         |
+         V 
+   [SIMUL / BACKENDS] 
+     | ... |  ... |
+     V     V      V
+
+The flow is classical. The main main issue is typing in case of type systems supporting
+_parameterized types_ (e.g. `int<n>`). In this case, the FSM models cannot be type-checked "in
+isolation", because the _value_ of parameters, given at the instanciation point, is required.
+For example, the following model:
+```
+fsm model f (n:int) (in i:int<n>, ...)
+  vars z:int<8>, k:int ...
+  trans: 
+  | ... when k=n-1 ... with z:=i ...
+  
+```
+the _model_ `f` cannot be type-checked without knowing the value of `n`.
+But an _instanciation_ of this model can be type-checked, like in
+```
+...
+input x8: int<8>
+...
+fsm f8 = f<8>(x8,...)
+```
+
+As a side-effect, typing a model instanciation can _remove_ all parameters from this model, replacing
+them by their actual values. In the previous example, the following (instanciated) model will be
+attached to FSM `f8`:
+```
+fsm f8 (in i:int<8>, ...)
+  vars z:int<8> ...
+  trans: 
+  | ... when k=8-1 ... with z:=i ...
+```
+
+The models submitted to the static elaboration step (and, further, to the backends) are then 
+parameter-less. In this view, the parameter mechanism can be viewed as (typed) "macro" or "template"
+system.
+
+Parameter substitution can in fact be pushed a little further. If an expression containing a parameter
+contains only litteral constants and parameters, it can be _evaluated_ at typing time and the resulting
+value -- turned back into a constant expression, because we are dealing with syntactic objects at
+this level -- replace this expression.
+In the previous example, this means that rule in the `trans` section could actually be rewritten as:
+```
+  | ... when k=7 ... with z:=i ...
+```
+in instanciated model `f8`.
+
+
 Size vars (in `full3` and `full4`)
 ==================================
    - by default, an `int` has type `'a int` where `'a` is a _size variable_ (just as a list has type `a list`). 
@@ -81,71 +145,4 @@ Implementation issues:
 - the type of a model is no longer unique; there are possibly has many possible types as distinct
   instanciations of this model in the program; in practice, this means that each instance must now
   have its own copy of the (typed) associated model (see Sec. Compilation flow below)
-  
-Compilation flow
-----------------
-
-Raw AST (from parsing) : models + instance defns
-         |
-         |
-     [TYPING] 
-         |
-         V
-   [ELABORATION]
-         |
-         V
-  static representation
-         |
-         V 
-   [SIMUL / BACKENDS] 
-     | ... |  ... |
-     V     V      V
-
-The flow is classical. The main main issue is typing in case of type systems supporting
-_parameterized types_ (e.g. `int<n>`). In this case, the FSM models cannot be type-checked "in
-isolation", because the _value_ of parameters, given at the instanciation point, is required.
-For example, the following model:
-```
-fsm model f (n:int) (in i:int<n>, ...)
-  vars z:int<8>, k:int ...
-  trans: 
-  | ... when k=n-1 ... with z:=i ...
-  
-```
-the _model_ `f` cannot be type-checked without knowing the value of `n`.
-But an _instanciation_ of this model can be type-checked, like in
-```
-...
-input x8: int<8>
-...
-fsm f8 = f<8>(x8,...)
-```
-
-As a side-effect, typing a model instanciation can _remove_ all parameters from this model, replacing
-them by their actual values. In the previous example, the following (instanciated) model will be
-attached to FSM `f8`:
-```
-fsm f8 (in i:int<8>, ...)
-  vars z:int<8> ...
-  trans: 
-  | ... when k=8-1 ... with z:=i ...
-```
-
-The models submitted to the static elaboration step (and, further, to the backends) are then 
-parameter-less. In this view, the parameter mechanism can be viewed as (typed) "macro" or "template"
-system.
-
-Parameter substitution can in fact be pushed a little further. If an expression containing a parameter
-contains only litteral constants and parameters, it can be _evaluated_ at typing time and the resulting
-value -- turned back into a constant expression, because we are dealing with syntactic objects at
-this level -- replace this expression.
-In the previous example, this means that rule in the `trans` section could actually be rewritten as:
-```
-  | ... when k=7 ... with z:=i ...
-```
-in instanciated model `f8`.
-
-
-
-
 

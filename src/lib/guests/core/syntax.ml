@@ -95,17 +95,23 @@ let vars_of_lhs l = match l.Annot.desc with
 
 (** Substitution *)
               
-let subst_var phi v = Rfsm.Ident.subst phi v
+let subst_var phi v = 
+  try Rfsm.Subst.apply phi v
+  with Not_found -> v
                     
-let rec subst_expr phi e =
+let rec subst_id phi e =
   match e.Annot.desc with
   | EVar v -> { e with Annot.desc = EVar (subst_var phi v) }
-  | EBinop (op,e1,e2) -> { e with Annot.desc = EBinop (op, subst_expr phi e1, subst_expr phi e2) }
+  | EBinop (op,e1,e2) -> { e with Annot.desc = EBinop (op, subst_id phi e1, subst_id phi e2) }
   | _ -> e
 
 let subst_lhs phi l = 
   match l.Annot.desc with
   | LhsVar v -> { l with Annot.desc = LhsVar (subst_var phi v) }
+
+let subst_expr phi e = e
+
+let subst_type_expr phi te = te
 
 (** VCD interface *)
               

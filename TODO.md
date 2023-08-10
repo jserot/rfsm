@@ -1,15 +1,13 @@
 COMPILER
 
-- recraft compilation flow as 1) elab 2) typing (see `Notes.md`)
-- do not re-evaluate parameter values in Static since it has been done in Typing
-- `CModel.c_consts` = `c_params` ? 
-- erase parameters in instanciated models
+- update descr in host/static.ml
 - replace `Guest.Types.{mk_type_constr0,is_type_constr0}` by `is_type_{event,bool}`
-- Add a "org" field to ident's (to keep track of name before substitution)
+- Add a "org" field to ident's (to keep track of name before substitution) (?)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - rename full<i> with a more explicit name
 - rename "LHS" as "pattern" ? 
 - document lib/host/guest.ml
+- code cleanup
 - banner
 - move VCD fns in guest language from Syntax module to a separate Vcd module
 - replace all string's by Ident.t's (?)

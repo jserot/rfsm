@@ -10,7 +10,7 @@ type env =
     te_tycons: (int * Types.typ) Env.t;  (** Type constructors, with arity and associated type *)
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
     te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *) 
-    te_indexes: Types.index Env.t;  (** Type indexes. Not used here *)
+    (* te_indexes: Types.index Env.t;  (\** Type indexes. Not used here *\) *)
     te_prims: Types.typ_scheme Env.t }
 
 let mk_env () =
@@ -18,7 +18,7 @@ let mk_env () =
     te_tycons = Env.init Builtins.typing_env.tycons;
     te_ctors = Env.init Builtins.typing_env.ctors;
     te_rfields = Env.empty;
-    te_indexes = Env.empty;
+    (* te_indexes = Env.empty; *)
     te_prims = Env.init Builtins.typing_env.prims; }
 
 exception Undefined of string * Location.t * Rfsm.Ident.t
@@ -33,7 +33,7 @@ let lookup ~exc v env =
 let lookup_var ~loc v env = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
 
 let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
-let add_index env (i,v) = { env with te_indexes = Env.add i v env.te_indexes }
+let add_param env _ = env  (** There's no type parameters in this language *)
 
 let pp_env fmt e = 
   let open Format in

@@ -9,6 +9,8 @@ let not_implemented m = raise (Not_implemented m)
 let fatal_error m = raise (Fatal_error m)
 let warning msg = Printf.printf "** Warning: %s\n" msg; flush stdout
 
+exception Undefined of string * Location.t * string (** What, where, identifier *) 
+
 let rec pow2 k = if k = 0 then 1 else 2 * pow2 (k-1) (* Not tail recursive, but who cares, here ... *)
                       
 let pp_spc fmt () = Format.fprintf fmt "@ "
@@ -32,6 +34,11 @@ let pp_opt ?(none="?") pp fmt v =
   match v with
 | None -> Format.pp_print_string fmt none
 | Some v' -> Format.fprintf fmt "%a" pp v'
+
+let pp_assoc (pp_k,pp_v) fmt l = 
+  let open Format in
+  let pp_elem fmt (k,v) =  fprintf fmt "%a->%a" pp_k k pp_v v in
+  Format.fprintf fmt "[%a]" (pp_list_h ~sep:"," pp_elem) l
 
 let neg f x = not (f x)
 

@@ -1,6 +1,6 @@
 module Location = Rfsm.Location
 
-let print_full_types = ref true (* for debug only *)
+let print_full_types = ref false (* for debug only *)
 
 type typ =
   | TyVar of typ var
@@ -280,15 +280,20 @@ and pp_size c fmt sz =
   let pp_siz_val fmt v = match v with
     | SzConst s -> Format.fprintf fmt "%d" s
     | SzParam i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i in
-  match c, real_size sz with
-  | _, SzNone -> ()
-  | "array", SzVar v -> Format.fprintf fmt "[%a]" pp_siz_var v
-  | _, SzVar v -> Format.fprintf fmt "<%a>" pp_siz_var v
-  | "array", SzVal1 v -> Format.fprintf fmt "[%a]" pp_siz_val v
-  | _ , SzVal1 v -> Format.fprintf fmt "<%a>" pp_siz_val v
-  | "array", SzVal2 (v1,v2) -> Format.fprintf fmt "[%a][%a]" pp_siz_val v1 pp_siz_val v2
-  | "int" , SzVal2 (v1,v2) -> Format.fprintf fmt "<%a:%a>" pp_siz_val v1 pp_siz_val v2
-  | _ , SzVal2 (v1,v2) -> Format.fprintf fmt "<%a,%a>" pp_siz_val v1 pp_siz_val v2
+  match c, real_size sz, !print_full_types with
+  | _, SzNone, _ -> ()
+  | "array", SzVar v, true -> Format.fprintf fmt "[%a]" pp_siz_var v
+  | "array", SzVar v, false -> Format.fprintf fmt "[]"
+  | "array", SzVal1 v, _ -> Format.fprintf fmt "[%a]" pp_siz_val v
+  | "array", SzVal2 (v1,v2), _ -> Format.fprintf fmt "[%a][%a]" pp_siz_val v1 pp_siz_val v2
+  | "int" , SzVar v, false -> ()
+  | "int" , SzVar v, true -> Format.fprintf fmt "<%a>" pp_siz_var v
+  | "int", SzVal1 v, _ -> Format.fprintf fmt "<%a>" pp_siz_val v
+  | "int" , SzVal2 (v1,v2), _ -> Format.fprintf fmt "<%a:%a>" pp_siz_val v1 pp_siz_val v2
+  | _, SzVar v, false -> ()
+  | _, SzVar v, true -> Format.fprintf fmt "<%a>" pp_siz_var v
+  | _ , SzVal1 v, _ -> Format.fprintf fmt "<%a>" pp_siz_val v
+  | _ , SzVal2 (v1,v2), _ -> Format.fprintf fmt "<%a,%a>" pp_siz_val v1 pp_siz_val v2
 
 let pp_typ_scheme fmt t =
   let open Format in

@@ -15,4 +15,4 @@ input sin:bit = value_changes( -- 0x45,P=1
 output dout: int<8>
 output err: bit
 
-fsm rxd = Rxd<4>(clk,sin,dout,err)
+fsm r = Rxd<4>(clk,sin,dout,err)

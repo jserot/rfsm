@@ -69,7 +69,7 @@ module type T = sig
   type fsm = {
       name: Ident.t;
       model: Syntax.model;    (* Normalized, type-refined model *)
-      params: Value.t Env.t;
+      (* params: Value.t Env.t; *)
       q: Ident.t;
       vars: Value.t Env.t;
     }
@@ -124,7 +124,7 @@ struct
   type fsm = {
       name: Ident.t;
       model: Syntax.model;
-      params: Value.t Env.t;
+      (* params: Value.t Env.t; *)
       q: Ident.t;
       vars: Value.t Env.t;
     } [@@deriving show {with_path=false}]
@@ -140,10 +140,11 @@ struct
          Ident.pp f.q
          (Env.pp Value.pp) f.vars
     | _ -> (* Full *)
-       fprintf fmt "@[<v>{@,name=%a@,model=%a@,params=%a@,q=%a@,vars=%a}@]"
+       (* fprintf fmt "@[<v>{@,name=%a@,model=%a@,params=%a@,q=%a@,vars=%a}@]" *)
+       fprintf fmt "@[<v>{@,name=%a@,model=%a@,q=%a@,vars=%a}@]"
          Ident.pp f.name
          Syntax.pp_model f.model
-         (Env.pp Value.pp) f.params
+         (* (Env.pp Value.pp) f.params *)
          Ident.pp f.q
          (Env.pp Value.pp) f.vars
 
@@ -208,11 +209,14 @@ struct
     let phi_io = 
       try List.map2 bind_arg m.ios args
       with Invalid_argument _ ->  Misc.fatal_error "Static.r_inst" in  (* should not happen after TC *)
+    let erase_params m = { m with Annot.desc = { m.Annot.desc with params = [] } } in
+    (* Format.printf "Static.phi_p = %a\n" (Subst.pp Syntax.pp_expr) phi_p; *)
     let mm' =
          mm
          |> normalize_model
          |> subst_model_param ~phi:phi_p
-         |> subst_model_io ~phi:phi_io in
+         |> subst_model_io ~phi:phi_io
+         |> erase_params in
     let collect cats =
       List.fold_left2 
         (fun acc (id,(cat,_)) arg -> if List.mem cat cats then  arg::acc else acc)
@@ -224,7 +228,7 @@ struct
     let wrs = collect [Syntax.Out; Syntax.InOut] in
     let f = {
         name = name;
-        params = Env.empty; (* No more parameters in static representations ! TODO: remove! *)
+        (* params = Env.empty; (\* No more parameters in static representations ! TODO: remove! *\) *)
         model = mm';
         q = fst m'.itrans.Annot.desc;
         vars =

@@ -211,10 +211,10 @@ struct
   let dump_module_intf kind ocf m = 
     let open Cmodel in
     let modname = String.capitalize_ascii (Ident.to_string m.Cmodel.c_name) in
-    let pp_param fmt (id,(ty,v)) = pp_typed_symbol fmt (id,ty) in
+    (* let pp_param fmt (id,(ty,v)) = pp_typed_symbol fmt (id,ty) in *)
     fprintf ocf "%s %s %s\n" kind modname (if kind = "entity" then "is" else "");
-    if m.c_consts <> [] then 
-      fprintf ocf "  generic (%a);\n" (Misc.pp_list_h ~sep:";" pp_param) m.c_consts;
+    (* if m.c_consts <> [] then 
+     *   fprintf ocf "  generic (%a);\n" (Misc.pp_list_h ~sep:";" pp_param) m.c_consts; *)
     fprintf ocf "  port(\n";
     List.iter (fun (id,ty) -> fprintf ocf "        %a: in %a;\n" Ident.pp id pp_abbr_type_expr ty) m.c_inps;
     List.iter (fun (id,ty) -> fprintf ocf "        %a: out %a;\n" Ident.pp id pp_abbr_type_expr ty) m.c_outps;
@@ -338,19 +338,20 @@ struct
     fprintf ocf "\n";
     fprintf ocf "begin\n";
     (* Instanciated components *)
-    let pp_param fmt (id,(t,v)) = fprintf fmt "%a" G.pp_value (v, vhdl_type_of t.Annot.typ) in 
-    let pp_params fmt ps = 
-      match ps with
-      | [] -> ()
-      | _ -> fprintf fmt " generic map (%a)" (Misc.pp_list_h ~sep:"," pp_param) ps in
+    (* let pp_param fmt (id,(t,v)) = fprintf fmt "%a" G.pp_value (v, vhdl_type_of t.Annot.typ) in 
+     * let pp_params fmt ps = 
+     *   match ps with
+     *   | [] -> ()
+     *   | _ -> fprintf fmt " generic map (%a)" (Misc.pp_list_h ~sep:"," pp_param) ps in *)
     List.iteri
       (fun i f ->
          let m = Cmodel.of_fsm_inst s f in
-         fprintf ocf "  %s%d: %s%a port map(%a,%s%s);\n"
+         (* fprintf ocf "  %s%d: %s%a port map(%a,%s%s);\n" *)
+         fprintf ocf "  %s%d: %s port map(%a,%s%s);\n"
            (modname f.name)
           i
            (modname f.name)
-           pp_params m.c_consts 
+           (* pp_params m.c_consts  *)
            (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst (m.c_inps @ m.c_outps @ m.c_inouts))
            cfg.vhdl_reset_sig
            (if cfg.vhdl_trace then "," ^ Ident.to_string f.name ^ "_state" else ""))

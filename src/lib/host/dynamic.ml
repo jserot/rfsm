@@ -127,7 +127,8 @@ struct
   let r_reaction sd (m,env) s_e = (* Rules React1, React0 and ReactN *)
     (*  \mu, \Gamma -- \sigma_e | \rho_e --> \mu', \Gamma' *)
     let t = Evset.date s_e in
-    let env' = List.fold_left Env.union Env.empty [m.Static.vars; m.Static.params; env] in
+    (* let env' = List.fold_left Env.union Env.empty [m.Static.vars; m.Static.params; env] in *)
+    let env' = List.fold_left Env.union Env.empty [m.Static.vars; env] in
       (* The folding order in the previous defn forces the _local_ definitions (vars and params) to
          shadow the global ones. *)
     match fireable env' m (Evset.events s_e) with
@@ -249,7 +250,8 @@ struct
           let nu',env', r_e = r_acts ~f:mu.name sd (nu, env) (acts,0) in
           Trace.add (mk_event 0 (Event.StateMove (state_name mu,Ident.to_string q0))) trace; 
           Trace.add r_e trace; 
-          env', { mu with Static.q=q0 ; Static.vars = Env.union nu' mu.Static.params })
+          (* env', { mu with Static.q=q0 ; Static.vars = Env.union nu' mu.Static.params }) *)
+          env', { mu with Static.q=q0 ; Static.vars = nu' })
         env0
         m in
     m', env'

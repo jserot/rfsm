@@ -26,7 +26,6 @@ module type TYPING = sig
   val pp_env: Format.formatter -> env -> unit
   val pp_typed_program: Format.formatter -> typed_program -> unit
 
-  exception Undefined_symbol of Location.t * Ident.t
   exception Duplicate_symbol of Location.t * Ident.t
   exception Invalid_state of Location.t * Ident.t
   exception Duplicate_state of Location.t * Ident.t
@@ -58,7 +57,6 @@ struct
       tp_insts: (Ident.t * HostSyntax.model) list;  
       } [@@deriving show {with_path=false}]
 
-  exception Undefined_symbol of Location.t * Ident.t
   exception Duplicate_symbol of Location.t * Ident.t
   exception Invalid_state of Location.t * Ident.t
   exception Duplicate_state of Location.t * Ident.t
@@ -188,10 +186,10 @@ struct
     let open HostSyntax in
     let lookup_model name =
       try List.find (fun { A.desc = m; _ } -> m.name = name) p.models
-      with Not_found -> raise (Undefined_symbol (loc, name)) in
+      with Not_found -> raise (Misc.Undefined ("symbol",loc,Ident.to_string name)) in
     let lookup_io name =
       try List.find (fun { A.desc = (id,_,_,_); _ } -> id = name) p.globals
-      with Not_found -> raise (Undefined_symbol (loc,name)) in
+      with Not_found -> raise (Misc.Undefined ("symbol",loc,Ident.to_string name)) in
     let unify_cat cat cat' = match cat, cat' with
       (* Check that an Input (resp. Output) is not plugged on an Output (resp. Input) *)
       | Input, Output -> raise (Illegal_inst loc)

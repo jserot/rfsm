@@ -174,9 +174,13 @@ let vars_of_lhs l = match l.Annot.desc with
   | LhsRange (a,hi,lo) -> [a] @ vars_of_expr hi @ vars_of_expr lo
   | LhsRField (r,f) -> [r]
 
-(** Substitution *)
+(** Substitutions *)
+
+exception Invalid_parameter of Rfsm.Location.t * Rfsm.Ident.t
               
-let subst_var phi v = Rfsm.Subst.apply phi v
+let subst_var phi v = 
+  try Rfsm.Subst.apply phi v
+  with Not_found -> v
                     
 let rec subst_id phi e =
   let subst e d = { e with Annot.desc = d } in
@@ -201,10 +205,38 @@ let subst_lhs phi l =
   | LhsRField (r,f) -> { l with Annot.desc = LhsRField (subst_var phi r, f) } 
   | LhsRange (a,hi,lo) -> { l with Annot.desc = LhsRange (subst_var phi a, subst_id phi hi, subst_id phi lo) } 
 
-let subst_expr phi e = e
+let rec subst_expr phi e =
+  let subst e d = { e with Annot.desc = d } in
+  match e.Annot.desc with
+  | EVar v -> if List.mem_assoc v phi then List.assoc v phi else e
+  | EInt _ | EBool _ | EFloat _ | EChar _ | ECon0 _ -> e
+  | EBinop (op,e1,e2) -> subst e (EBinop (op, subst_expr phi e1, subst_expr phi e2))
+  | EIndexed (a,i) -> subst e (EIndexed (a, subst_expr phi i))
+  | ERanged (a,e1,e2) -> subst e (ERanged (a, subst_expr phi e1, subst_expr phi e2))
+  | EArrExt vs -> subst e (EArrExt (List.map (subst_expr phi) vs))
+  | ECond (e1,e2,e3) -> subst e (ECond (subst_expr phi e1, subst_expr phi e2, subst_expr phi e3))
+  | ECast (e,t) -> subst e (ECast (subst_expr phi e, t))
+  | EFapp (f,es) -> subst e (EFapp (f, List.map (subst_expr phi) es))
+  | ERecord (r,f) -> e
+  | ERecordExt fs -> subst e (ERecordExt (List.map (fun (n,e) -> n, subst_expr phi e) fs))
 
-let subst_type_expr phi te = te 
+let rec subst_type_expr phi te = 
+  match te.Annot.desc with
+  | TeConstr (c,args,szs) ->
+     { te with Annot.desc = TeConstr (c,
+                                      List.map (subst_type_expr phi) args,
+                                      List.map (subst_size_expr ~loc:te.Annot.loc phi) szs) }
 
+and subst_size_expr ~loc phi sz =
+  match sz with
+  | SzParam p ->
+     begin match List.assoc_opt p phi with
+     | Some { Annot.desc = EInt n; _ } -> SzConst n 
+     | Some _ -> raise (Invalid_parameter (loc,p))
+     | None -> raise (Rfsm.Misc.Undefined ("parameter",loc,Rfsm.Ident.to_string p))
+     end
+  | _ -> sz
+       
 (** Pre-processing *)
 
 let is_con_type c (t: type_expr) =
