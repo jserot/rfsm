@@ -8,16 +8,16 @@ let mk ~loc:l x = Annot.{ desc=x; typ=Types.no_type; loc=mk_location l }
 
 (** Type declarations *)
                 
-type type_decl_desc =
-  | TD_Enum of string * string list (* Name, constructors *)
+type type_decl_desc = unit (* No type declaration in the Core language *)
+  (* | TD_Enum of string * string list (\* Name, constructors *\) *)
 and type_decl = (type_decl_desc,Types.typ) Annot.t
 
 let mk_alias_type_decl _ = Rfsm.Misc.not_implemented "type declarations for the Core language"
 
-let rec pp_type_decl_desc fmt td = 
-  let open Format in
-  match td with
-  | TD_Enum (name,ctors) -> fprintf fmt "(\"%s\", enum { %a })" name (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors
+let rec pp_type_decl_desc fmt td = () (* No type declaration in the Core language *)
+(*   let open Format in
+ *   match td with
+ *   | TD_Enum (name,ctors) -> fprintf fmt "(\"%s\", enum { %a })" name (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors *)
 and pp_type_decl fmt td = Format.fprintf fmt "%a" pp_type_decl_desc td.Annot.desc
 
 (** Type expressions *)
@@ -93,7 +93,7 @@ let rec vars_of_expr e = match e.Annot.desc with
 let vars_of_lhs l = match l.Annot.desc with
   | LhsVar v -> [v]
 
-(** Substitution *)
+(** Substitutions *)
               
 let subst_var phi v = 
   try Rfsm.Subst.apply phi v
@@ -109,9 +109,9 @@ let subst_lhs phi l =
   match l.Annot.desc with
   | LhsVar v -> { l with Annot.desc = LhsVar (subst_var phi v) }
 
-let subst_expr phi e = e
+let subst_expr phi e = e  (* No parameters, hence no need to substitute *)
 
-let subst_type_expr phi te = te
+let subst_type_expr phi te = te  (* No parameters, hence no need to substitute *)
 
 (** VCD interface *)
               

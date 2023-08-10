@@ -41,22 +41,22 @@ let add_env exc env (k,v)  =
   if not (Env.mem k env) then Env.add k v env  
   else raise exc
 
-let type_type_decl env td =
-  let ty,env' = match td.Annot.desc with
-    | Syntax.TD_Enum (name, ctors) -> 
-       let ty = Types.TyConstr (name,[]) in
-       let add_ctor env name =
-         let id = Rfsm.Ident.mk name in
-         add_env (Duplicate ("value constructor", td.Annot.loc, id)) env (id,ty) in
-       let add_tycon env (name,arity) =
-         let id = Rfsm.Ident.mk name in
-         add_env (Duplicate ("type constructor", td.Annot.loc, id)) env (id,arity) in
-       ty,
-       { env with te_tycons = add_tycon env.te_tycons (name,0);
-                  te_ctors = List.fold_left add_ctor env.te_ctors ctors }
-  in
-  td.Annot.typ <- ty;
-  env'
+let type_type_decl env td = env (* No type declaration in the core language *)
+  (* let ty,env' = match td.Annot.desc with
+   *   | Syntax.TD_Enum (name, ctors) -> 
+   *      let ty = Types.TyConstr (name,[]) in
+   *      let add_ctor env name =
+   *        let id = Rfsm.Ident.mk name in
+   *        add_env (Duplicate ("value constructor", td.Annot.loc, id)) env (id,ty) in
+   *      let add_tycon env (name,arity) =
+   *        let id = Rfsm.Ident.mk name in
+   *        add_env (Duplicate ("type constructor", td.Annot.loc, id)) env (id,arity) in
+   *      ty,
+   *      { env with te_tycons = add_tycon env.te_tycons (name,0);
+   *                 te_ctors = List.fold_left add_ctor env.te_ctors ctors }
+   * in
+   * td.Annot.typ <- ty;
+   * env' *)
 
 let rec type_of_type_expr env te =
   let ty = match te.Annot.desc with

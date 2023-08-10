@@ -3,5 +3,5 @@ input start: event = sporadic(5)
 output done: event
 shared t: int
 
-fsm timer = timer(h, start, done, t)
+fsm timer = timer<10>(h, start, done, t)
 

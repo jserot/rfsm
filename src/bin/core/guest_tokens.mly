@@ -3,7 +3,6 @@
 %token NOTEQUAL
 %token RPAREN LPAREN
 %token TYPE
-%token ENUM
 
 %left EQUAL NOTEQUAL GT LT
 %left PLUS MINUS 

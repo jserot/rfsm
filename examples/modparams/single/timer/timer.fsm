@@ -3,7 +3,7 @@
 -- The counter value is available on IO [t]
 -- See ../../../xxx for a generalized version, with the the number of occurrences to count specified as a model parameter
 
-fsm model timer(
+fsm model timer<n: int>(
   in h: event,
   in start: event,
   out done: event,
@@ -12,8 +12,8 @@ fsm model timer(
   states: Idle, Count;
   trans:
   | Idle -> Count on start with t:=0
-  | Count -> Count on h when t<9 with t:=t+1
-  | Count -> Idle on h when t=9 with done;
+  | Count -> Count on h when t<n-1 with t:=t+1
+  | Count -> Idle on h when t=n-1 with done;
   itrans:
   | -> Idle ;
 }
