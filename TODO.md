@@ -1,7 +1,6 @@
 COMPILER
 
 - fix bug in examples/typarams/single/mul (spurious unification ? )
-- replace `Guest.Types.{mk_type_constr0,is_type_constr0}` by `is_type_{event,bool}`
 - code cleanup
 - Add a "org" field to ident's (to keep track of name before substitution) (?)
 - Fix substitution of array parameters or simply restrict parameters to scalar (?)

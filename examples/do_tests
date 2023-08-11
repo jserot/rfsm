@@ -16,7 +16,7 @@ options: [defaults in brackets after descriptions]
   # --show                  launch DOT or VCD viewer after running the test [default: no]
   --help                  print this message
 kind=makefile|dot.run|dot|sim|ctask|systemc.code|systemc.run|systemc|systemc.sim|vhdl.code|vhdl.run|vhdl|vhdl.sim
-subdir=core|full|...
+subdir=core|simple|...
 EOF
 	exit 0;;
     *) break;;

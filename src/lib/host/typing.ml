@@ -32,6 +32,7 @@ module type TYPING = sig
   exception No_event_input of Location.t
   exception Illegal_inst of Location.t
   exception Illegal_state_output of Location.t * Ident.t * Ident.t
+  exception Type_mismatch of Location.t * string * HostSyntax.typ
 end
 
 module Make
@@ -63,6 +64,7 @@ struct
   exception No_event_input of Location.t
   exception Illegal_inst of Location.t
   exception Illegal_state_output of Location.t * Ident.t * Ident.t
+  exception Type_mismatch of Location.t * string * HostSyntax.typ
 
   let mk_env () = GuestTyping.mk_env ()
 
@@ -73,10 +75,13 @@ struct
     let loc = act.A.loc in
     let ty = match act.A.desc with 
       | HostSyntax.Emit s ->
-         let t = GuestTyping.Types.mk_type_constr0 "event" in 
-         let t' = GuestTyping.lookup_var ~loc:act.A.loc s env in
-         GuestTyping.type_check ~loc t t';
-         t
+         let t = GuestTyping.lookup_var ~loc s env in
+         if GuestTyping.Types.is_event_type t then t 
+         else raise (Type_mismatch (loc,"event",t))
+         (* let t = GuestTyping.Types.mk_type_constr0 "event" in 
+          * let t' = GuestTyping.lookup_var ~loc:act.A.loc s env in
+          * GuestTyping.type_check ~loc t t';
+          * t *)
       | HostSyntax.Assign (lhs,expr) -> 
          let t = GuestTyping.type_lhs env lhs in
          let t' = GuestTyping.type_expression env expr in
@@ -86,34 +91,32 @@ struct
          t in
     act.A.typ <- ty
 
-  let type_fsm_event ~loc t env ev =
-    GuestTyping.type_check
-      ~loc 
-      (GuestTyping.Types.mk_type_constr0 "event")
-      (GuestTyping.lookup_var ~loc ev env)
+  let check_type ~loc ~what check t =
+    if not @@ check t
+    then raise (Type_mismatch (loc,what,t))
 
-  let type_fsm_guard t env gexp =
-    GuestTyping.type_check
-      ~loc:gexp.A.loc
-      (GuestTyping.Types.mk_type_constr0 "bool")
-      (GuestTyping.type_expression env gexp)
+  let type_fsm_event ~loc env ev =
+    check_type ~loc ~what:"event" GuestTyping.Types.is_event_type @@ GuestTyping.lookup_var ~loc ev env
 
-  let type_fsm_condition t env A.{ desc=ev,gs; loc=loc; _ } =
-    type_fsm_event ~loc t env ev;
-    List.iter (type_fsm_guard t env) gs 
+  let type_fsm_guard env gexp =
+    check_type ~loc:gexp.Annot.loc ~what:"bool" GuestTyping.Types.is_bool_type @@ GuestTyping.type_expression env gexp
+
+  let type_fsm_condition env A.{ desc=ev,gs; loc=loc; _ } =
+    type_fsm_event ~loc env ev;
+    List.iter (type_fsm_guard env) gs 
 
   let check_fsm_state ~loc A.{ desc=m; _} q = 
     let states = List.map (function s -> s.A.desc) m.HostSyntax.states in 
     if not (List.mem_assoc q states) then raise (Invalid_state (loc, q))
 
-  let type_fsm_transition env m (A.{ desc= q,cond,acts,q',_; loc=loc; _ } as t) =
+  let type_fsm_transition env m A.{ desc= q,cond,acts,q',_; loc=loc; _ } =
     (* For each transition [q -> cond / acts -> q'] check that
      *    - [q] and [q'] are listed as states in the model declaration
      *    - [cond] has form [e.[guard1]...[guardn]] where [e] has type [event] and each [guardi] type [bool]
      *    - for each [act]=[lhs:=rhs] in [acts], [type(rhs)=type(lhs)] *)
     check_fsm_state ~loc m q;
     check_fsm_state ~loc m q';
-    type_fsm_condition t env cond;
+    type_fsm_condition env cond;
     List.iter (type_fsm_action env m) acts
 
   let type_fsm_itransition env m A.{ desc=q,acts; loc=loc; _ } =
@@ -159,7 +162,7 @@ struct
 
   let type_fsm_ios env A.{ desc = m; loc = loc; _ } =
     (* Check that there's exactly one input with type event *)
-    let is_event_type (_,te) = GuestTyping.Types.is_type_constr0 "event" te.A.typ in
+    let is_event_type (_,te) = GuestTyping.Types.is_event_type te.A.typ in
     match List.filter is_event_type m.HostSyntax.inps with
     | [] -> raise (No_event_input loc)
     | _ -> ()
@@ -234,14 +237,14 @@ struct
   (* Typing globals *)
                              
   let type_stimulus env id ty st =
-    let check t = GuestTyping.type_check ~loc:st.A.loc ty t in 
     st.A.typ <- ty;
     match st.A.desc with
-    | HostSyntax.Periodic _ -> check (GuestTyping.Types.mk_type_constr0 "event")
-    | HostSyntax.Sporadic _ -> check (GuestTyping.Types.mk_type_constr0 "event")
+    | HostSyntax.Periodic _ 
+    | HostSyntax.Sporadic _ -> 
+       check_type ~loc:st.A.loc ~what:"event" GuestTyping.Types.is_event_type ty
     | HostSyntax.Value_change vcs ->
        List.iter
-         check
+         (GuestTyping.type_check ~loc:st.A.loc ty)
          (List.map (function (_,e) -> GuestTyping.type_expression env e) vcs)
 
   let type_global env  ({ A.desc = id,cat,te,st; _ } as gl) = 

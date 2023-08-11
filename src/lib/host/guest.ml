@@ -11,8 +11,10 @@ module type TYPES = sig
   type typ
   type typ_scheme
   val no_type: typ
-  val mk_type_constr0: string -> typ
-  val is_type_constr0: string -> typ -> bool
+  (* val mk_type_constr0: string -> typ
+   * val is_type_constr0: string -> typ -> bool *)
+  val is_event_type: typ -> bool
+  val is_bool_type: typ -> bool
   val mk_type_fun: typ list -> typ -> typ
   val pp_typ: abbrev:bool -> Format.formatter -> typ -> unit
   val pp_typ_scheme: Format.formatter -> typ_scheme -> unit

@@ -227,8 +227,6 @@ struct
     dump3 1 ">> REACT ... -- [%a] ->@.   M'=%a@.   G'=%a@." Evset.pp r_e pp_fsms m' pp_env env';
     (m',env'), r_e
   
-  let is_event_type (ty: Types.typ) = Types.is_type_constr0 "event" ty
-
   let default_value (ty: Types.typ) = Static.Value.default_value ty
 
   let r_init sd m = (* Rule INIT *)
@@ -237,7 +235,7 @@ struct
       List.fold_left
         (fun env (v,cc) ->
           let ty = cc.Static.ct_typ in 
-          if not (is_event_type ty)
+          if not (Types.is_event_type ty)
           then Env.add v (Static.Value.default_value ty) env
           else env)
         Env.empty
@@ -259,13 +257,13 @@ struct
   let is_input ctx evs =
     let check ev = match ev with
       | Event.Ev x ->
-         if List.mem_assoc x ctx.Static.inputs && is_event_type ((List.assoc x ctx.Static.inputs).ct_typ) then
+         if List.mem_assoc x ctx.Static.inputs && Types.is_event_type ((List.assoc x ctx.Static.inputs).ct_typ) then
            ()
          else
            Misc.fatal_error ("Dynamic.is_input: " ^ Ident.to_string x ^ " is not an event typed input")
       | Event.Upd (l,_) ->
          let x = Syntax.Guest.lhs_base_name l in
-         if List.mem_assoc x ctx.Static.inputs && not (is_event_type ((List.assoc x ctx.Static.inputs).ct_typ)) then
+         if List.mem_assoc x ctx.Static.inputs && not (Types.is_event_type ((List.assoc x ctx.Static.inputs).ct_typ)) then
            ()
          else
            Misc.fatal_error ("Dynamic.is_input: " ^ Ident.to_string x ^ " is an event typed input")

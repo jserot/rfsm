@@ -70,6 +70,8 @@ let mk_type_constr0 c = TyConstr (c, [], SzNone)
 let is_type_constr0 c ty = match ty with
   | TyConstr (c', [], _) when c=c' -> true
   | _ -> false
+let is_event_type t = is_type_constr0 "event" t 
+let is_bool_type t = is_type_constr0 "bool" t 
 let mk_type_fun ty_args ty_res = type_arrow (type_product ty_args) ty_res
 
 let rec type_repr = function

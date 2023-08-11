@@ -137,6 +137,8 @@ struct
        eprintf "%aThere must be at least one input with type event for this model\n" pp_location loc; exit 2
     | L.Typing.Illegal_state_output (loc,q,o) ->
        eprintf "%aIllegal valuation for output %a in state %a\n" pp_location loc Ident.pp o Ident.pp q; exit 2
+    | L.Typing.Type_mismatch (loc,t,t') ->
+       eprintf "%aType mismatch: the expected type here was %s, not %a\n" pp_location loc t L.Typing.HostSyntax.pp_typ t' ; exit 2
     | L.Dynamic.Illegal_stimulus_value loc ->
        eprintf "%aIllegal stimulus value\n" pp_location loc; exit 2
     | L.Dynamic.Non_deterministic_transition (f, t, ts) ->
