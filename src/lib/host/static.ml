@@ -1,13 +1,12 @@
 (** Static elaboration *)
 
-(** TODO: DESCRIPTION TO BE ADJUSTED *)
-(** This step takes a (typed) program consisting of
+(** This step takes a typed program consisting of 
     - types, functions and constant declarations
     - global IO declarations 
-    - FSM instance declarations
+    - typed FSM instances
     and produce a representation, consisting of
     - the same types, functions and constant declarations
-    - a set of FSM instances.
+    - a elaborated set of FSM instances
     In the latter
     i) the formal IOs of the corresponding model have been bound to the global IOs;
       for ex, if the input program is like
@@ -23,8 +22,7 @@
         [
         fsm model f (in X: bool, out X: int, ...) ... rules | q -> q' when h.(X=1) with Y:=0 ...
         ]
-      Superficial typing means that the compiler has the substituted symbols have compatible types
-      (i.e., here, that the types of x and X (resp. y and Y) are compatible).
+      Note: the compatibility between formal and actual IOs has already been checked by the typing phase.
     ii) the (generic) parameters have been replaced by their actual value
       for ex, if the input program is like
         [
@@ -38,7 +36,7 @@
         [
         fsm model f (in X: int<8>, ...) ... vars z: int ... rules | q -> q' when h.(X=1).(z<8)  ...
         ]
-      Hence, models attached to instances in the result representation are parameter-less.
+      Note: the compatibility between formal and actual parameters has already been checked by the typing phase.
       iii) Moore-style descriptions (with output assignations attached to states) have been turned to
       to Mealy-style ones (with output assignations attached to transitions). 
       for ex, if the input program is like
