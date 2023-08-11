@@ -1,10 +1,12 @@
 COMPILER
 
+- fix bug in examples/typarams/single/mul (spurious unification ? )
 - update descr in host/static.ml
 - replace `Guest.Types.{mk_type_constr0,is_type_constr0}` by `is_type_{event,bool}`
 - Add a "org" field to ident's (to keep track of name before substitution) (?)
+- Fix substitution of array parameters or simply restrict parameters to scalar (?)
+  (see Note `src/lib/guests/simple/syntax.ml/subst_expr` and `examples/simple/single/fir`)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
-- rename full<i> with a more explicit name
 - rename "LHS" as "pattern" ? 
 - document lib/host/guest.ml
 - code cleanup

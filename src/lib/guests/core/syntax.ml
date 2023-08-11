@@ -142,7 +142,7 @@ let ppr_expr (env: (Rfsm.Ident.t * type_expr) list) e =
     (* Since pre-processing is carried out _before_ typing, the only type-related available information
        is given by the type expressions assigned to identifiers in the enclosing model *)
     try List.assoc v env
-    with Not_found -> Rfsm.Misc.fatal_error "Core.Syntax.ppr_expr" in
+    with Not_found -> Rfsm.Misc.fatal_error "Syntax.ppr_expr" in
   let has_bool_type v = is_bool_type (type_of v) in
   match e.Annot.desc with
   | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e'') when List.mem op.Rfsm.Ident.id ["="; "!="] && has_bool_type v  ->  

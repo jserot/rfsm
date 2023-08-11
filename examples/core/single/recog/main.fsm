@@ -1,5 +1,5 @@
 -- Sets output [s] so [1] whenever [3] consecutive [1] are read on input [e]
--- See ../../../xxx for a generalized version, with the impulsion duration specified as a model parameter
+-- See ../../../simple/single/recog for a generalized version, with the impulsion duration specified as a model parameter
 
 fsm model recog(
   in h: event,

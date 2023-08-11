@@ -16,14 +16,14 @@ let encode_int n =
 let decode_int = function
   | Value.Val_int n -> n
   | Value.Val_unknown -> raise Unknown_value
-  | _ -> Rfsm.Misc.fatal_error "Core.Builtins.decode_int" (* Should not occur after TC *)
+  | _ -> Rfsm.Misc.fatal_error "Builtins.decode_int" (* Should not occur after TC *)
 
 let encode_bool n =
     Value.Val_bool n
 let decode_bool = function
   | Value.Val_bool n -> n
   | Value.Val_unknown -> raise Unknown_value
-  | _ -> Rfsm.Misc.fatal_error "Core.Builtins.decode_bool" (* Should not occur after TC *)
+  | _ -> Rfsm.Misc.fatal_error "Builtins.decode_bool" (* Should not occur after TC *)
 
 let prim2 encode op decode =
   function
@@ -32,7 +32,7 @@ let prim2 encode op decode =
         try encode (op (decode v1) (decode v2))
         with Unknown_value -> Value.Val_unknown
       end
-   | _ -> Rfsm.Misc.fatal_error "Core.Builtins.prim2"
+   | _ -> Rfsm.Misc.fatal_error "Builtins.prim2"
 
 let tprim2 op =
   let decode v = v  in
@@ -86,4 +86,4 @@ let eval_env = List.map (fun (id, desc) -> mk_ident id, snd desc) env
 
 let lookup id env =
   try List.assoc id env
-  with Not_found -> Rfsm.Misc.fatal_error "Core.Builtins.lookup" (* Should not occur after TC *)
+  with Not_found -> Rfsm.Misc.fatal_error "Builtins.lookup" (* Should not occur after TC *)

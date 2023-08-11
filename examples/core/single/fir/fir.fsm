@@ -1,6 +1,6 @@
 -- Model of 1x3 Finite Impulse Responde filter
 -- y_i = a_0 * x_i + a_1 * x_{i-1} + a_2 * x_{i-2}
--- (a_0,a_1,a_2) are hardcoded as (1,2,2) here (see ../../../xxx for a parameterized model)
+-- (a_0,a_1,a_2) are hardcoded as (1,2,2) here (see ../../../simple/single/fir for a parameterized model)
 
 fsm model conv13(
   in h: event,

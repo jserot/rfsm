@@ -1,0 +1,26 @@
+-- This is a rewriting of ../../../simple/single/genpwm using a ranged int type for the [r] input
+
+fsm model pwm(
+  in startstop: event,
+  in h: event,
+  in r: int<0:10>,
+  out s: bool)
+{
+  states: Stopped, Running;
+  vars: c: int<0:10>;
+  trans:
+  | Stopped -> Running on startstop with c:=0
+  | Stopped -> Stopped on h with s:=0
+  | Running -> Running on h when c<r with s:=1, c:=(c+1)%10
+  | Running -> Running on h when c>=r with s:=0, c:=(c+1)%10
+  | Running -> Stopped on startstop;
+  itrans:
+  | -> Stopped with s:=0;
+}
+
+input H : event = periodic(10, 10, 510)
+input r : int<0:10> = value_changes(0:7, 300:9)
+input StartStop : event = sporadic(15, 235, 305)
+output s : bool
+
+fsm p = pwm(StartStop,H,r,s)

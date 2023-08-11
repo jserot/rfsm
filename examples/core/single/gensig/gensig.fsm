@@ -1,5 +1,5 @@
 -- Generates an impulsion of duration 3.Th on output [s] whenever [e=1] when [h] occurs
--- See ../../../xxx for a generalized version, with the impulsion duration specified as a model parameter
+-- See ../../../simple/single/gensig for a generalized version, with the impulsion duration specified as a model parameter
 
 -- First version : Moore-style output
 

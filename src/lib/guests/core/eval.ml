@@ -18,11 +18,10 @@ let upd_env lhs v env =
 exception Uninitialized of Location.t
 
 let lookup ~loc v env = 
-  (* Format.printf "** Core.Eval.lookup %a in %a\n" Rfsm.Ident.pp v (Rfsm.Env.pp Value.pp) env; *)
  match Rfsm.Env.find v env with
   | Val_unknown -> raise (Uninitialized loc)
   | v -> v
-  | exception Not_found -> raise (Rfsm.Misc.Fatal_error "Core.Eval.lookup") (* Should not occur after TC *)
+  | exception Not_found -> raise (Rfsm.Misc.Fatal_error "Eval.lookup") (* Should not occur after TC *)
 
 let rec eval_expr env e = match e.Annot.desc with
   | Syntax.EVar v -> lookup ~loc:e.Annot.loc v env
@@ -40,7 +39,7 @@ and eval_arg env e = match eval_expr env e with
 let eval_bool env e = 
   match eval_expr env e with
   | Val_bool b -> b
-  | _ -> Rfsm.Misc.fatal_error "Core.eval_bool" (* Should not occur after TC *)
+  | _ -> Rfsm.Misc.fatal_error "Eval.eval_bool" (* Should not occur after TC *)
 
 let pp_env fmt env = 
   Format.fprintf fmt "%a\n" (Env.pp ~sep:"=" Value.pp) env
