@@ -23,7 +23,7 @@ let no_type = TyProduct [] (* This is a hack to avoid draging [typ option] value
 exception Type_circularity of Location.t * typ * typ
 exception Type_conflict of Location.t * typ * typ
 
-type index = int (* Type indexes - not used in this guest language - TO FIX *)
+(* type index = int (\* Type indexes - not used in this guest language - TO FIX *\) *)
 
 let rec type_repr = function
   | TyVar({value = Known ty1; _} as var) ->
@@ -54,7 +54,7 @@ let is_type_constr0 c ty = match ty with
   | _ -> false
 let mk_type_fun ty_args ty_res = type_arrow (type_product ty_args) ty_res
 
-let is_index_type ty = is_type_constr0 "int" ty
+(* let is_index_type ty = is_type_constr0 "int" ty *)
 
 let occur_check ~loc var ty =
   let rec test t =

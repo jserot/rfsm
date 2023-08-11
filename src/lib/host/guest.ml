@@ -10,8 +10,6 @@ end
 module type TYPES = sig 
   type typ
   type typ_scheme
-  type index = int (** For indexing sized types (int's, arrays, ...) *)
-  val is_index_type: typ -> bool
   val no_type: typ
   val mk_type_constr0: string -> typ
   val is_type_constr0: string -> typ -> bool

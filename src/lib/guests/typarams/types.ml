@@ -34,8 +34,6 @@ type typ_scheme =
     ts_sparams: (siz var) list;
     ts_body: typ }
 
-type index = int
-
 (* Type variables *)
   
 let new_stamp =
@@ -73,8 +71,6 @@ let is_type_constr0 c ty = match ty with
   | TyConstr (c', [], _) when c=c' -> true
   | _ -> false
 let mk_type_fun ty_args ty_res = type_arrow (type_product ty_args) ty_res
-
-let is_index_type ty = is_type_constr0 "int" ty
 
 let rec type_repr = function
   | TyVar ({value = Known ty1; _} as var) ->
