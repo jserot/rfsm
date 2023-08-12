@@ -1,0 +1,17 @@
+constant nn: int = 16
+
+fsm model foo <n: int> (
+  in h: event)
+{
+  states: Idle, Comp;
+  vars: i: int<n>; 
+  trans:
+  | Idle -> Comp on h with i:=nn;
+  itrans:
+  | -> Idle;
+}
+
+input H: event = periodic (10,10,140)
+
+fsm f4 = foo<4>(H)
+fsm f8 = foo<8>(H)

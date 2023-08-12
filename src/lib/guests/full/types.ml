@@ -271,21 +271,6 @@ and unify_size ~loc (ty1,ty2) sz1 sz2 =
     | _, _ ->
         raise (Type_conflict(loc,ty1,ty2))
 
-and pp_siz c fmt sz = 
-  match c, size_repr sz with
-  | _, SzNone -> if !print_full_types then Format.fprintf fmt "<none>" else ()
-  | "int", SzVar v -> if !print_full_types then Format.fprintf fmt "<%a>" pp_var v else ()
-  | "array", SzVar v -> if !print_full_types then Format.fprintf fmt "[%a]" pp_var v else Format.fprintf fmt "[]"
-  | _, SzVar v -> Format.fprintf fmt "%a" pp_var v
-  | "array", SzExpr1 sz -> Format.fprintf fmt "[%a]" Index.pp sz
-  | _, SzExpr1 sz -> Format.fprintf fmt "<%a>" Index.pp sz
-  | "int", SzExpr2 (lo,hi) -> Format.fprintf fmt "<%a:%a>" Index.pp lo Index.pp hi
-  | "array", SzExpr2 (lo,hi) -> Format.fprintf fmt "[%a,%a]" Index.pp lo Index.pp hi
-  | _, SzExpr2 (lo,hi) -> Format.fprintf fmt "<%a,%a>" Index.pp lo Index.pp hi
-
-and pp_var fmt v = Format.fprintf fmt "_%d" v.stamp (* TO FIX *) 
-
-
 and occur_check ~loc var ty =
   let rec test t =
     match type_repr t with
@@ -305,20 +290,34 @@ and occur_check_size ~loc (ty1,ty2) var sz =
         ()
   in test sz
 
-let ivars_of = function
-  | TyConstr (_, _, SzExpr1 sz) -> VarSet.elements (Index.vars_of sz)
-  | TyConstr (_, _, SzExpr2 (lo,hi)) -> VarSet.elements (VarSet.union (Index.vars_of lo) (Index.vars_of hi))
-  | _ -> []
+(* let ivars_of = function
+ *   | TyConstr (_, _, SzExpr1 sz) -> VarSet.elements (Index.vars_of sz)
+ *   | TyConstr (_, _, SzExpr2 (lo,hi)) -> VarSet.elements (VarSet.union (Index.vars_of lo) (Index.vars_of hi))
+ *   | _ -> [] *)
 
 (* Index manipulation *)
        
-let subst_indexes phi ty =
-  match ty with
-    | TyConstr (c, args, SzExpr1 sz) -> TyConstr (c, args, SzExpr1 (Index.subst phi sz))
-    | TyConstr (c, args, SzExpr2 (lo,hi)) -> TyConstr (c, args, SzExpr2 (Index.subst phi hi, Index.subst phi lo))
-    | _ -> ty
+(* let subst_indexes phi ty =
+ *   match ty with
+ *     | TyConstr (c, args, SzExpr1 sz) -> TyConstr (c, args, SzExpr1 (Index.subst phi sz))
+ *     | TyConstr (c, args, SzExpr2 (lo,hi)) -> TyConstr (c, args, SzExpr2 (Index.subst phi hi, Index.subst phi lo))
+ *     | _ -> ty *)
     
 (* Printing *)
+
+let pp_var fmt v = Format.fprintf fmt "_%d" v.stamp (* TODO: use alpha naming  *)
+
+let pp_siz c fmt sz = 
+  match c, size_repr sz with
+  | _, SzNone -> if !print_full_types then Format.fprintf fmt "<none>" else ()
+  | "int", SzVar v -> if !print_full_types then Format.fprintf fmt "<%a>" pp_var v else ()
+  | "array", SzVar v -> if !print_full_types then Format.fprintf fmt "[%a]" pp_var v else Format.fprintf fmt "[]"
+  | _, SzVar v -> Format.fprintf fmt "%a" pp_var v
+  | "array", SzExpr1 sz -> Format.fprintf fmt "[%a]" Index.pp sz
+  | _, SzExpr1 sz -> Format.fprintf fmt "<%a>" Index.pp sz
+  | "int", SzExpr2 (lo,hi) -> Format.fprintf fmt "<%a:%a>" Index.pp lo Index.pp hi
+  | "array", SzExpr2 (lo,hi) -> Format.fprintf fmt "[%a,%a]" Index.pp lo Index.pp hi
+  | _, SzExpr2 (lo,hi) -> Format.fprintf fmt "<%a,%a>" Index.pp lo Index.pp hi
 
 let rec pp_typ ~abbrev fmt t =
   let open Format in
@@ -343,4 +342,4 @@ let pp_typ_scheme fmt t = (* TODO: add size parameters *)
   | [] ->
      fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_sparams (pp_typ ~abbrev:false) t.ts_body
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_tparams (pp_typ ~abbrev:false) t.ts_body

@@ -8,9 +8,12 @@ let init kvs = List.fold_left (fun e (k,v) -> add k v e) empty kvs
 
 let union e1 e2 = union (fun _ v1 _ -> Some v1) e1 e2
              
-let pp ?(sep="=") ?(vlayout=false) pp_v fmt e =
+let localize e = 
+  e |> bindings |> List.map (fun (i,v) -> Ident.mk_local i, v) |> init
+
+let pp ?(sep="=") ?(vlayout=false) ?(qual=false) pp_v fmt e =
   let open Format in
-  let pp_binding fmt (k,v) = fprintf fmt "%a%s%a" Ident.pp k sep pp_v v in
+  let pp_binding fmt (k,v) = fprintf fmt "%a%s%a" (if qual then Ident.pp_qual else Ident.pp) k sep pp_v v in
   match bindings e with
   | [] -> fprintf fmt "[]"
   | [b] -> fprintf fmt "@[[%a]@]" pp_binding b

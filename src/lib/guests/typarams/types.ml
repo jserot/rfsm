@@ -2,6 +2,11 @@ module Location = Rfsm.Location
 
 let print_full_types = ref false (* for debug only *)
 
+let set_print_full_types, reset_print_full_types =
+ let st = ref false in
+ (fun () -> st := !print_full_types; print_full_types := true),
+ (fun () -> print_full_types := !st)
+
 type typ =
   | TyVar of typ var
   | TyArrow of typ * typ
@@ -244,6 +249,10 @@ and occur_check_size ~loc (ty1,ty2) var sz =
 
 (* Printing *)
 
+let pp_var ~pfx fmt v = Format.fprintf fmt "%s%d" pfx v.stamp (* TODO: print as 'a, 'b, ... *)
+let pp_tvar = pp_var ~pfx:"_"
+let pp_svar = pp_var ~pfx:"#"
+
 let rec pp_typ ~abbrev fmt t =
   let open Format in
   match real_type t with
@@ -295,9 +304,14 @@ and pp_size c fmt sz =
 
 let pp_typ_scheme fmt t =
   let open Format in
-  match t.ts_sparams with
-  | [] ->
+  set_print_full_types (); (* TO FIX ! *)
+  begin match t.ts_tparams, t.ts_sparams with
+  | [], [] ->
      fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
-  | _ ->
-     let pp_var fmt v = Format.fprintf fmt "_%d" v.stamp in (* TO FIX ? *)  
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_sparams (pp_typ ~abbrev:false) t.ts_body
+  | _, _ ->
+     fprintf fmt "@[<h>forall %a%a. %a@]"
+       (Rfsm.Misc.pp_list_h ~sep:"," pp_tvar) t.ts_tparams
+       (Rfsm.Misc.pp_list_h ~sep:"," pp_svar) t.ts_sparams
+       (pp_typ ~abbrev:false) t.ts_body
+  end;
+  reset_print_full_types () (* TO FIX ! *)

@@ -83,11 +83,13 @@ struct
           * GuestTyping.type_check ~loc t t';
           * t *)
       | HostSyntax.Assign (lhs,expr) -> 
+         (* let pp_env fmt env = GuestTyping.pp_env fmt env in Format.printf "Host.type_fsm_action: env=%a@." pp_env env; *)
          let t = GuestTyping.type_lhs env lhs in
          let t' = GuestTyping.type_expression env expr in
          (* let pp_typ = GuestTyping.Syntax.Types.pp_typ ~abbrev:false in
-          * Format.printf "Host.type_fsm_action %a: %a <- %a\n" HostSyntax.pp_action act pp_typ t pp_typ t'; *)
+          * Format.printf "Host.type_fsm_action %a: %a <- %a@." HostSyntax.pp_action act pp_typ t pp_typ t'; *)
          GuestTyping.type_check ~loc t t';
+         (* Format.printf "Host.type_fsm_action rhs has now type %a@." pp_typ t'; *)
          t in
     act.A.typ <- ty
 
@@ -187,6 +189,9 @@ struct
 
   let type_fsm_inst env p A.{ desc=name,model,params,args; loc=loc; _ } =
     let open HostSyntax in
+    (* let pp_typed_param fmt e = Format.fprintf fmt "%a:%a" GuestTyping.Syntax.pp_expr e (GuestTyping.Types.pp_typ ~abbrev:false) e.Annot.typ in
+     * Format.printf "** type_fsm_int: name=%a params=[%a]\n"
+     *   Ident.pp name (Misc.pp_list_h pp_typed_param) params; *)
     let lookup_model name =
       try List.find (fun { A.desc = m; _ } -> m.name = name) p.models
       with Not_found -> raise (Misc.Undefined ("symbol",loc,Ident.to_string name)) in
@@ -203,7 +208,7 @@ struct
       (* Note: we need a _deep copy_ of the model so that destructive updates performed by the
          type-checking are applied to fresh copies *)
     let m = mm.A.desc in
-    (* Type-check and (statically) evaluate parameters *)
+    (* Type-check parameters *)
     let bind_param (id,te) e =
       let ty = GuestTyping.type_of_type_expr env te in
       let ty' = GuestTyping.type_expression env e in
@@ -211,7 +216,7 @@ struct
       (* let v = GuestTyping.eval_param e in *)
       (id,e) in
     let ty_params =
-      try List.map2 bind_param m.params params
+      try List.map2 bind_param m.params (Misc.clone params)
       with Invalid_argument _ -> raise (Illegal_inst loc) in
     (* Augment the typing environment with the bindings of parameters *)
     let env' = List.fold_left GuestTyping.add_param env ty_params in
@@ -290,8 +295,9 @@ struct
     let env2 = List.fold_left type_fun_decl env1 p.fun_decls in
     let env = List.fold_left type_cst_decl env2 p.cst_decls in
     List.iter (type_global env) p.globals;
-    { tp_models = List.map (type_fsm_model env) p.models;
-      tp_insts =  List.map (type_fsm_inst env p) p.insts }
+    let lenv = GuestTyping.localize_env env in  (* TO FIX ! Remove local/global scope in Ident ? *)
+    { tp_models = List.map (type_fsm_model lenv) p.models;
+      tp_insts =  List.map (type_fsm_inst lenv p) p.insts }
     (* { type_decls = p.type_decls; 
      *   fun_decls = p.fun_decls;
      *   cst_decls = p.cst_decls;

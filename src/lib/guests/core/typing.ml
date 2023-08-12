@@ -17,6 +17,8 @@ let mk_env () =
     te_tycons = Env.init Builtins.typing_env.tycons;
     te_prims = Env.init Builtins.typing_env.prims; }
 
+let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars }
+
 exception Undefined of string * Location.t * Rfsm.Ident.t 
 exception Duplicate of string * Location.t * Rfsm.Ident.t
 

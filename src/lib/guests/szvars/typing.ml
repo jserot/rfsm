@@ -21,6 +21,8 @@ let mk_env () =
     (* te_indexes = Env.empty; *)
     te_prims = Env.init Builtins.typing_env.prims; }
 
+let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars }
+
 exception Undefined of string * Location.t * Rfsm.Ident.t
 exception Duplicate of string * Location.t * Rfsm.Ident.t
 exception Illegal_cast of Syntax.expr

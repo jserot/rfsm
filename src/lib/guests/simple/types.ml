@@ -180,4 +180,8 @@ and pp_rfield ~abbrev fmt (n,ty) = Format.fprintf fmt "%s: %a" n (pp_typ ~abbrev
 
 let pp_typ_scheme fmt t = 
   let open Format in
-  fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
+  match t.ts_tparams with
+  | [] ->
+     fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
+  | _ ->
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_tparams (pp_typ ~abbrev:false) t.ts_body

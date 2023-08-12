@@ -1,6 +1,10 @@
 COMPILER
 
 - fix bug in examples/typarams/single/mul (spurious unification ? )
+- fix local vs. global bug (ex: examples/simple/single/heron); get rid of `localize_env` and `scope`
+  field `Ident.t` (?)
+- replace `Guest.Types.print_full_types` by an optional arg to `pp_typ`
+- make `abbrev` arg to `pp_typ` optional (check whether it is really useful)
 - code cleanup
 - Add a "org" field to ident's (to keep track of name before substitution) (?)
 - Fix substitution of array parameters or simply restrict parameters to scalar (?)

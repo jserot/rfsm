@@ -191,6 +191,10 @@ and pp_siz c fmt szs =
   | "array", [sz1;sz2] -> Format.fprintf fmt "[%d,%d]" sz1 sz2
   | _ -> ()
 
-let pp_typ_scheme fmt t =
+let pp_typ_scheme fmt t = 
   let open Format in
-  fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
+  match t.ts_tparams with
+  | [] ->
+     fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
+  | _ ->
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_tparams (pp_typ ~abbrev:false) t.ts_body

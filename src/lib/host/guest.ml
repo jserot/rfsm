@@ -73,6 +73,7 @@ module type TYPING = sig
   module Types : TYPES
   type env
   val mk_env: unit -> env
+  val localize_env: env -> env
   val lookup_var: loc:Location.t -> Ident.t -> env -> Types.typ
   val add_var: env -> Ident.t * Types.typ -> env
   val add_param: env -> Ident.t * Syntax.expr -> env

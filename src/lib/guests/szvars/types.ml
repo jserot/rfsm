@@ -253,10 +253,10 @@ and pp_siz c fmt sz =
   | "array", Sz2 (lo,hi) -> Format.fprintf fmt "[%d,%d]" lo hi
   | c, Sz2 (lo,hi) -> Format.fprintf fmt "<%d,%d>" lo hi
 
-let pp_typ_scheme fmt t =
+let pp_typ_scheme fmt t = (* TODO: add size params ! *)
   let open Format in
-  match t.ts_sparams with
+  match t.ts_tparams with
   | [] ->
      fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_sparams (pp_typ ~abbrev:false) t.ts_body
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_tparams (pp_typ ~abbrev:false) t.ts_body

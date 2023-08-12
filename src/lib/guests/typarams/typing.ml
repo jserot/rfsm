@@ -22,7 +22,8 @@ let mk_env () =
     te_prims = Env.init Builtins.typing_env.prims;
     te_params = Env.empty; }
 
-exception Undefined of string * Location.t * Rfsm.Ident.t
+let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars }
+
 exception Duplicate of string * Location.t * Rfsm.Ident.t
 exception Illegal_cast of Syntax.expr
 exception Illegal_expr of Location.t * string
@@ -35,17 +36,9 @@ let eval_param e = (** Static evaluation of type size parameters *)
   | Syntax.EInt v -> v
   | _ -> raise (Illegal_parameter_value e)
 
-let lookup ~exc v env = 
-  try Env.find v env 
-  with Not_found -> raise exc
-
-let lookup_var ~loc v env = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
-(* let lookup_param ~loc v env = lookup ~exc:(Undefined ("type size parameter",loc,v)) v env.te_params *)
-
-let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
-let add_param env (p,e) =
-  let v = eval_param e in
-  { env with te_params = Env.add p v env.te_params }
+let lookup ~loc what id env = 
+  try Env.find id env 
+  with Not_found -> raise (Rfsm.Misc.Undefined (what,loc,Rfsm.Ident.to_string id))
 
 let pp_env fmt e = 
   let open Format in
@@ -56,7 +49,17 @@ let pp_env fmt e =
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
     (Env.pp ~sep:":" (fun fmt (_,ty) -> fprintf fmt "%a" (Types.pp_typ ~abbrev:true) ty)) e.te_rfields
     (Env.pp ~sep:":" pp_print_int) e.te_params
-    (Env.pp ~sep:":" Types.pp_typ_scheme) e.te_prims
+    (Env.pp ~sep:":" ~vlayout:true Types.pp_typ_scheme) e.te_prims
+
+let lookup_var ~loc v env =
+  (* Format.printf "** Looking up %a in %a@." Rfsm.Ident.pp v pp_env env; *)
+  lookup ~loc "symbol" v env.te_vars
+(* let lookup_param ~loc v env = lookup ~exc:(Rfsm.Misc.Undefined ("type size parameter",loc,v)) v env.te_params *)
+
+let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
+let add_param env (p,e) =
+  let v = eval_param e in
+  { env with te_params = Env.add p v env.te_params }
 
 let add_env exc env (k,v)  =
   if not (Env.mem k env) then Env.add k v env  
@@ -66,7 +69,7 @@ let rec type_of_type_expr env te =
   let ty =
     match te.Annot.desc with
     | Syntax.TeConstr (c,[],[]) ->
-       lookup ~exc:(Undefined ("type constructor",te.Annot.loc, c)) c env.te_tycons |> snd
+       lookup ~loc:te.Annot.loc "type constructor" c env.te_tycons  |> snd
     | Syntax.TeConstr (c,args,sz) ->
        Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, size_of_size_expr env ~loc:te.Annot.loc c sz) in
   te.Annot.typ <- ty;
@@ -76,7 +79,7 @@ and size_of_size_expr env ~loc c se =
   let size_val_of s = match s with
   | Syntax.SzConst c -> Types.SzConst c
   | Syntax.SzParam i -> 
-     (* SzConst (lookup ~exc:(Undefined ("type size parameter",loc,p)) p env.te_params) in *)
+     (* SzConst (lookup ~exc:(Rfsm.Misc.Undefined ("type size parameter",loc,p)) p env.te_params) in *)
      if Env.mem i env.te_params
      then Types.SzConst (Env.find i env.te_params)   (* When typing FSM instances, resolve type parameters *)
      else Types.SzParam i in                         (* When typing FSM models *)
@@ -91,16 +94,20 @@ and size_of_size_expr env ~loc c se =
 let rec type_expression env e =
   let loc = e.Annot.loc in
   let ty = match e.Annot.desc with
-    | Syntax.EVar v -> lookup ~exc:(Undefined ("symbol",e.Annot.loc,v)) v env.te_vars
+    | Syntax.EVar v -> lookup_var ~loc:e.Annot.loc v env
     | Syntax.EInt _ -> Types.type_unsized_int ()
     | Syntax.EBool _ -> Types.type_bool ()
     | Syntax.EFloat _ -> Types.type_float ()
     | Syntax.EChar _ -> Types.type_char ()
     | Syntax.EBinop (op,e1,e2) ->
-       let ty_fn = Types.type_instance (lookup ~exc:(Undefined("operator",e.Annot.loc,op)) op env.te_prims) in
+       let ty_fn = Types.type_instance (lookup ~loc:e.Annot.loc "operator" op env.te_prims) in
+       Format.printf "Guest.type_expression: typing %a with type(<)=%a gives %a@."
+         Syntax.pp_expr e
+         Types.pp_typ_scheme (Env.find (Rfsm.Ident.mk ~scope:Global "<") env.te_prims)
+         (Types.pp_typ ~abbrev:false) ty_fn;
        let ty_args = List.map (type_expression env) [e1;e2] in
        type_application ~loc:e.Annot.loc env ty_fn ty_args
-    | Syntax.ECon0 c -> lookup ~exc:(Undefined ("value constructor",e.Annot.loc,c)) c env.te_ctors
+    | Syntax.ECon0 c -> lookup ~loc:e.Annot.loc "value constructor" c env.te_ctors
     | Syntax.EIndexed (a,i) ->
        let r = type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *) in
        (* Format.printf "Full4.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
@@ -132,14 +139,14 @@ let rec type_expression env e =
                      Env.union
                        env.te_vars
                        (Env.map Types.type_instance env.te_prims) } in 
-      let ty_fn = lookup ~exc:(Undefined ("symbol",e.Annot.loc,f)) f env'.te_vars in
+      let ty_fn = lookup_var ~loc:e.Annot.loc f env' in
       type_application ~loc:e.Annot.loc env' ty_fn ty_args
   | Syntax.ERecord (r,f) ->
-     begin match lookup ~exc:(Undefined ("symbol",e.Annot.loc,r)) r env.te_vars with
+     begin match lookup_var ~loc:e.Annot.loc r env with
        | TyRecord (_,fs) ->
           begin
             try List.assoc f fs
-            with Not_found -> raise (Undefined ("record field",e.Annot.loc, Rfsm.Ident.mk f))
+            with Not_found -> raise (Rfsm.Misc.Undefined ("record field",e.Annot.loc, f))
           end
        | ty ->
           raise (Illegal_expr (e.Annot.loc, "not a record"))
@@ -148,7 +155,7 @@ let rec type_expression env e =
      Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty record extension" (* should not happen *)
   | Syntax.ERecordExt ((f,_)::_ as fs) -> 
      let f' = Rfsm.Ident.(mk ~scope:Global f) in
-     let _, ty_r = lookup ~exc:(Undefined ("record field name",e.Annot.loc,Rfsm.Ident.mk f)) f' env.te_rfields in
+     let _, ty_r = lookup ~loc:e.Annot.loc "record field name" f' env.te_rfields in
      let name = match ty_r with
        | TyRecord(name, _) -> name
        | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_expression" in
@@ -168,7 +175,7 @@ and type_application ~loc env ty_fn ty_args =
 and type_indexed_expr ~loc env a i = 
   let ty_i = type_expression env i in
   Types.unify ~loc:i.Annot.loc ty_i (Types.type_unsized_int ());
-  match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
+  match lookup_var ~loc a env with
   | TyConstr ("int", _, _) -> Types.type_sized_int (SzVal1 (SzConst 1))
   | TyConstr ("array", [t'], _) -> t'
   | _ -> raise (Illegal_expr (loc, "only int's and array's can be indexed"))
@@ -178,7 +185,7 @@ and type_ranged_expr ~loc env a i1 i2 =
   let ty_i2 = type_expression env i2 in
   Types.unify ~loc:i1.Annot.loc ty_i1 (Types.type_unsized_int ());
   Types.unify ~loc:i2.Annot.loc ty_i2 (Types.type_unsized_int ());
-  match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
+  match lookup_var ~loc a env with
   | TyConstr("int",_,_) ->
      let sz = 
        begin match i1.Annot.desc, i2.Annot.desc with 
@@ -229,15 +236,15 @@ let type_type_decl env td =
 
 let type_lhs env l =
   let ty = match l.Annot.desc with
-    | Syntax.LhsVar x -> lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars
+    | Syntax.LhsVar x -> lookup_var ~loc:l.Annot.loc x env
     | Syntax.LhsIndex (a,i) -> type_indexed_expr ~loc:l.Annot.loc env a i
     | Syntax.LhsRange (a,i1,i2) -> type_ranged_expr ~loc:l.Annot.loc env a i1 i2
     | Syntax.LhsRField (x,f) -> 
-       begin match lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars with
+       begin match lookup ~loc:l.Annot.loc "symbol" x env.te_vars with
        | TyRecord (_,fs) -> 
           begin
             try List.assoc f fs 
-            with Not_found -> raise (Undefined ("record field",l.Annot.loc,Syntax.mk_global_ident f))
+            with Not_found -> raise (Rfsm.Misc.Undefined ("record field",l.Annot.loc, f))
           end
        | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_lhs"
        end

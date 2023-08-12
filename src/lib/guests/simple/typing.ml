@@ -19,6 +19,8 @@ let mk_env () =
     te_rfields = Env.empty;
     te_prims = Env.init Builtins.typing_env.prims; }
 
+let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars }
+
 exception Undefined of string * Location.t * Rfsm.Ident.t
 exception Duplicate of string * Location.t * Rfsm.Ident.t
 exception Illegal_cast of Syntax.expr
@@ -28,7 +30,9 @@ let lookup ~exc v env =
   try Env.find v env 
   with Not_found -> raise exc
 
-let lookup_var ~loc v env = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
+let lookup_var ~loc v env =
+  (* Format.printf "** looking up var %a in %a@." Rfsm.Ident.pp_qual v (Rfsm.Env.pp ~qual:true (Types.pp_typ ~abbrev:false)) env.te_vars;  *)
+  lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
 
 let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
 let add_param env _ = env
@@ -62,7 +66,7 @@ let rec type_of_type_expr env te =
 let rec type_expression env e =
   let loc = e.Annot.loc in
   let ty = match e.Annot.desc with
-    | Syntax.EVar v -> lookup ~exc:(Undefined ("symbol",e.Annot.loc,v)) v env.te_vars
+    | Syntax.EVar v -> lookup_var ~loc:e.Annot.loc v env
     | Syntax.EInt _ -> Types.type_int ()
     | Syntax.EBool _ -> Types.type_bool ()
     | Syntax.EFloat _ -> Types.type_float ()
@@ -97,10 +101,10 @@ let rec type_expression env e =
                      Env.union
                        env.te_vars
                        (Env.map Types.type_instance env.te_prims) } in 
-      let ty_fn = lookup ~exc:(Undefined ("symbol",e.Annot.loc,f)) f env'.te_vars in
+      let ty_fn = lookup_var ~loc:e.Annot.loc f env' in
       type_application ~loc:e.Annot.loc env' ty_fn ty_args
   | Syntax.ERecord (r,f) ->
-     begin match lookup ~exc:(Undefined ("symbol",e.Annot.loc,r)) r env.te_vars with
+     begin match lookup_var ~loc:e.Annot.loc r env with
        | TyRecord (_,fs) ->
           begin
             try List.assoc f fs
@@ -133,7 +137,7 @@ and type_application ~loc env ty_fn ty_args =
 and type_indexed_expr ~loc env a i = 
   let ty_i = type_expression env i in
   Types.unify ~loc:i.Annot.loc ty_i (Types.type_int ());
-  match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
+  match lookup_var ~loc a env with
   | TyConstr ("int", _) -> Types.type_int ()
   | TyArray (t', _) -> t'
   | _ -> raise (Illegal_expr (loc, "only int's and array's can be indexed"))
@@ -143,7 +147,7 @@ and type_ranged_expr ~loc env a i1 i2 =
   let ty_i2 = type_expression env i2 in
   Types.unify ~loc:i1.Annot.loc ty_i1 (Types.type_int ());
   Types.unify ~loc:i2.Annot.loc ty_i2 (Types.type_int ());
-  match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
+  match lookup_var ~loc a env with
   | TyConstr("int",_) -> Types.type_int () 
   | ty -> raise (Types.Type_conflict (loc, ty, Types.type_int ()))
 
@@ -189,7 +193,7 @@ let type_type_decl env td =
 
 let type_lhs env l =
   let ty = match l.Annot.desc with
-    | Syntax.LhsVar x -> lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars
+    | Syntax.LhsVar x -> lookup_var ~loc:l.Annot.loc x env
     | Syntax.LhsIndex (a,i) -> type_indexed_expr ~loc:l.Annot.loc env a i
     | Syntax.LhsRange (a,i1,i2) -> type_ranged_expr ~loc:l.Annot.loc env a i1 i2
     | Syntax.LhsRField (x,f) -> 
