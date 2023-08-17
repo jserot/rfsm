@@ -13,6 +13,7 @@ module type TYPES = sig
   val no_type: typ
   (* val mk_type_constr0: string -> typ
    * val is_type_constr0: string -> typ -> bool *)
+  (* val copy: typ -> typ *)
   val is_event_type: typ -> bool
   val is_bool_type: typ -> bool
   val mk_type_fun: typ list -> typ -> typ

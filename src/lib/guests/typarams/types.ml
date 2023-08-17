@@ -1,6 +1,6 @@
 module Location = Rfsm.Location
 
-let print_full_types = ref false (* for debug only *)
+let print_full_types = ref true (* for debug only *)
 
 let set_print_full_types, reset_print_full_types =
  let st = ref false in
@@ -138,13 +138,116 @@ and copy_size ty svbs sz =
       end
   | sz -> sz
 
+(* Printing : tO FIX : at end ! *)
+
+let pp_var ~pfx fmt v = Format.fprintf fmt "%s%d" pfx v.stamp (* TODO: print as 'a, 'b, ... *)
+let pp_tvar = pp_var ~pfx:"_"
+let pp_svar = pp_var ~pfx:"#"
+
+let rec pp_typ ~abbrev fmt t =
+  let open Format in
+  match real_type t with
+  | TyVar v -> fprintf fmt "_%d" v.stamp
+  | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" (pp_typ ~abbrev) t1 (pp_typ ~abbrev) t2 
+  | TyProduct [] -> fprintf fmt "<no_type>" 
+  | TyProduct [t] -> if !print_full_types then fprintf fmt "(%a)" (pp_typ ~abbrev) t else (pp_typ ~abbrev) fmt t
+  | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" (pp_typ ~abbrev) fmt ts
+  | TyConstr (c,[],sz) -> fprintf fmt "%s%a" c (pp_size c) sz
+  | TyConstr (c,[t'],sz) -> fprintf fmt "%a %s%a" (pp_typ ~abbrev) t' c (pp_size c) sz
+  | TyConstr (c,ts,sz) -> fprintf fmt " (%a) %s%a" (Rfsm.Misc.pp_list_h ~sep:"," (pp_typ ~abbrev)) ts c (pp_size c) sz
+  | TyRecord (nm,fs) ->
+     if abbrev
+     then fprintf fmt "%s" nm
+     else fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield ~abbrev)) fs
+
+and pp_rfield ~abbrev fmt (n,ty) = Format.fprintf fmt "%s: %a" n (pp_typ ~abbrev) ty
+
+(* and pp_sizes c fmt szs = 
+ *   match c, szs with
+ *   | _, [] -> if !print_full_types then Format.fprintf fmt "<none>" else ()
+ *   | "array", [sz] -> Format.fprintf fmt "[%a]" pp_size sz
+ *   | "int", [sz] -> Format.fprintf fmt "<%a>" pp_size sz
+ *   | _, [sz] -> Format.fprintf fmt "<%a>" pp_size sz
+ *   | "int", [lo;hi] -> Format.fprintf fmt "<%a:%a>" pp_size lo pp_size hi
+ *   | "array", [lo;hi] -> Format.fprintf fmt "[%a,%a]" pp_size lo pp_size hi
+ *   | _, [lo;hi] -> Format.fprintf fmt "<%a,%a>" pp_size lo pp_size hi
+ *   | _, _ -> Format.fprintf fmt "<???>" *)
+
+and pp_size c fmt sz = 
+  let pp_siz_var fmt v = Format.fprintf fmt "_%d" v.stamp in (* TO FIX ? *) 
+  let pp_siz_val fmt v = match v with
+    | SzConst s -> Format.fprintf fmt "%d" s
+    | SzParam i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i in
+  match c, real_size sz, !print_full_types with
+  | _, SzNone, _ -> ()
+  | "array", SzVar v, true -> Format.fprintf fmt "[%a]" pp_siz_var v
+  | "array", SzVar v, false -> Format.fprintf fmt "[]"
+  | "array", SzVal1 v, _ -> Format.fprintf fmt "[%a]" pp_siz_val v
+  | "array", SzVal2 (v1,v2), _ -> Format.fprintf fmt "[%a][%a]" pp_siz_val v1 pp_siz_val v2
+  | "int" , SzVar v, false -> ()
+  | "int" , SzVar v, true -> Format.fprintf fmt "<%a>" pp_siz_var v
+  | "int", SzVal1 v, _ -> Format.fprintf fmt "<%a>" pp_siz_val v
+  | "int" , SzVal2 (v1,v2), _ -> Format.fprintf fmt "<%a:%a>" pp_siz_val v1 pp_siz_val v2
+  | _, SzVar v, false -> ()
+  | _, SzVar v, true -> Format.fprintf fmt "<%a>" pp_siz_var v
+  | _ , SzVal1 v, _ -> Format.fprintf fmt "<%a>" pp_siz_val v
+  | _ , SzVal2 (v1,v2), _ -> Format.fprintf fmt "<%a,%a>" pp_siz_val v1 pp_siz_val v2
+
+let pp_typ_scheme fmt t =
+  let open Format in
+  set_print_full_types (); (* TO FIX ! *)
+  begin match t.ts_tparams, t.ts_sparams with
+  | [], [] ->
+     fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
+  | _, _ ->
+     fprintf fmt "@[<h>forall %a%a. %a@]"
+       (Rfsm.Misc.pp_list_h ~sep:"," pp_tvar) t.ts_tparams
+       (Rfsm.Misc.pp_list_h ~sep:"," pp_svar) t.ts_sparams
+       (pp_typ ~abbrev:false) t.ts_body
+  end;
+  reset_print_full_types () (* TO FIX ! *)
+
 let type_instance ty_sch =
   match ty_sch.ts_tparams, ty_sch.ts_sparams with
   | [], [] -> ty_sch.ts_body
   | tparams, sparams ->
       let unknown_ts = List.map (fun var -> (var, new_type_var())) tparams in
       let unknown_ss = List.map (fun var -> (var, new_size_var())) sparams in
-      copy_type unknown_ts unknown_ss ty_sch.ts_body
+      let t = copy_type unknown_ts unknown_ss ty_sch.ts_body in
+      (* Format.printf "Types.type_instance %a = %a@." pp_typ_scheme ty_sch (pp_typ ~abbrev:false) t; *)
+      t
+
+let vars_of_type ty = 
+    let tvars, svars = ref [], ref [] in
+    let rec scan_ty t =
+      match type_repr t with
+      | TyVar var ->
+          if not (List.memq var !tvars) then tvars := var :: !tvars
+      | TyArrow (t1, t2) ->
+          scan_ty t1;
+          scan_ty t2
+      | TyProduct ts ->
+          List.iter scan_ty ts
+      | TyConstr (_, args, sz) ->
+          List.iter scan_ty args;
+          scan_sz sz
+      | TyRecord (_, fs) ->
+         List.iter (fun (_, t) -> scan_ty t) fs
+    and scan_sz sz = 
+      match size_repr sz with 
+      | SzVar var -> 
+          if not (List.memq var !svars) then svars := var :: !svars
+      | _ -> () in
+    scan_ty ty;
+    (!tvars, !svars)
+
+let copy t = (* Replace all type and size variables in a type by fresh copies *)
+  let tvars, svars = vars_of_type t in
+  let tvars' = List.map (fun var -> (var, new_type_var())) tvars in
+  let svars' = List.map (fun var -> (var, new_size_var())) svars in
+  copy_type tvars' svars' t
+
+let trivial_scheme ty = {ts_tparams = []; ts_sparams = []; ts_body = ty}
 
 let size_of_type t =
   match real_type t with
@@ -247,71 +350,3 @@ and occur_check_size ~loc (ty1,ty2) var sz =
         ()
   in test sz
 
-(* Printing *)
-
-let pp_var ~pfx fmt v = Format.fprintf fmt "%s%d" pfx v.stamp (* TODO: print as 'a, 'b, ... *)
-let pp_tvar = pp_var ~pfx:"_"
-let pp_svar = pp_var ~pfx:"#"
-
-let rec pp_typ ~abbrev fmt t =
-  let open Format in
-  match real_type t with
-  | TyVar v -> fprintf fmt "_%d" v.stamp
-  | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" (pp_typ ~abbrev) t1 (pp_typ ~abbrev) t2 
-  | TyProduct [] -> fprintf fmt "<no_type>" 
-  | TyProduct [t] -> if !print_full_types then fprintf fmt "(%a)" (pp_typ ~abbrev) t else (pp_typ ~abbrev) fmt t
-  | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" (pp_typ ~abbrev) fmt ts
-  | TyConstr (c,[],sz) -> fprintf fmt "%s%a" c (pp_size c) sz
-  | TyConstr (c,[t'],sz) -> fprintf fmt "%a %s%a" (pp_typ ~abbrev) t' c (pp_size c) sz
-  | TyConstr (c,ts,sz) -> fprintf fmt " (%a) %s%a" (Rfsm.Misc.pp_list_h ~sep:"," (pp_typ ~abbrev)) ts c (pp_size c) sz
-  | TyRecord (nm,fs) ->
-     if abbrev
-     then fprintf fmt "%s" nm
-     else fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield ~abbrev)) fs
-
-and pp_rfield ~abbrev fmt (n,ty) = Format.fprintf fmt "%s: %a" n (pp_typ ~abbrev) ty
-
-(* and pp_sizes c fmt szs = 
- *   match c, szs with
- *   | _, [] -> if !print_full_types then Format.fprintf fmt "<none>" else ()
- *   | "array", [sz] -> Format.fprintf fmt "[%a]" pp_size sz
- *   | "int", [sz] -> Format.fprintf fmt "<%a>" pp_size sz
- *   | _, [sz] -> Format.fprintf fmt "<%a>" pp_size sz
- *   | "int", [lo;hi] -> Format.fprintf fmt "<%a:%a>" pp_size lo pp_size hi
- *   | "array", [lo;hi] -> Format.fprintf fmt "[%a,%a]" pp_size lo pp_size hi
- *   | _, [lo;hi] -> Format.fprintf fmt "<%a,%a>" pp_size lo pp_size hi
- *   | _, _ -> Format.fprintf fmt "<???>" *)
-
-and pp_size c fmt sz = 
-  let pp_siz_var fmt v = Format.fprintf fmt "_%d" v.stamp in (* TO FIX ? *) 
-  let pp_siz_val fmt v = match v with
-    | SzConst s -> Format.fprintf fmt "%d" s
-    | SzParam i -> Format.fprintf fmt "%a" Rfsm.Ident.pp i in
-  match c, real_size sz, !print_full_types with
-  | _, SzNone, _ -> ()
-  | "array", SzVar v, true -> Format.fprintf fmt "[%a]" pp_siz_var v
-  | "array", SzVar v, false -> Format.fprintf fmt "[]"
-  | "array", SzVal1 v, _ -> Format.fprintf fmt "[%a]" pp_siz_val v
-  | "array", SzVal2 (v1,v2), _ -> Format.fprintf fmt "[%a][%a]" pp_siz_val v1 pp_siz_val v2
-  | "int" , SzVar v, false -> ()
-  | "int" , SzVar v, true -> Format.fprintf fmt "<%a>" pp_siz_var v
-  | "int", SzVal1 v, _ -> Format.fprintf fmt "<%a>" pp_siz_val v
-  | "int" , SzVal2 (v1,v2), _ -> Format.fprintf fmt "<%a:%a>" pp_siz_val v1 pp_siz_val v2
-  | _, SzVar v, false -> ()
-  | _, SzVar v, true -> Format.fprintf fmt "<%a>" pp_siz_var v
-  | _ , SzVal1 v, _ -> Format.fprintf fmt "<%a>" pp_siz_val v
-  | _ , SzVal2 (v1,v2), _ -> Format.fprintf fmt "<%a,%a>" pp_siz_val v1 pp_siz_val v2
-
-let pp_typ_scheme fmt t =
-  let open Format in
-  set_print_full_types (); (* TO FIX ! *)
-  begin match t.ts_tparams, t.ts_sparams with
-  | [], [] ->
-     fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
-  | _, _ ->
-     fprintf fmt "@[<h>forall %a%a. %a@]"
-       (Rfsm.Misc.pp_list_h ~sep:"," pp_tvar) t.ts_tparams
-       (Rfsm.Misc.pp_list_h ~sep:"," pp_svar) t.ts_sparams
-       (pp_typ ~abbrev:false) t.ts_body
-  end;
-  reset_print_full_types () (* TO FIX ! *)

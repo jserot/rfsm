@@ -135,6 +135,36 @@ let type_instance ty_sch =
       let unknown_ss = List.map (fun var -> (var, new_size_var())) sparams in
       copy_type unknown_ts unknown_ss ty_sch.ts_body
 
+let vars_of_type ty = 
+    let tvars, svars = ref [], ref [] in
+    let rec scan_ty t =
+      match type_repr t with
+      | TyVar var ->
+          if not (List.memq var !tvars) then tvars := var :: !tvars
+      | TyArrow (t1, t2) ->
+          scan_ty t1;
+          scan_ty t2
+      | TyProduct ts ->
+          List.iter scan_ty ts
+      | TyConstr (_, args, sz) ->
+          List.iter scan_ty args;
+          scan_sz sz
+      | TyRecord (_, fs) ->
+         List.iter (fun (_, t) -> scan_ty t) fs
+    and scan_sz sz = 
+      match size_repr sz with 
+      | SzVar var -> 
+          if not (List.memq var !svars) then svars := var :: !svars
+      | _ -> () in
+    scan_ty ty;
+    (!tvars, !svars)
+
+let copy t = (* Replace all type and size variables in a type by fresh copies *)
+  let tvars, svars = vars_of_type t in
+  let tvars' = List.map (fun var -> (var, new_type_var())) tvars in
+  let svars' = List.map (fun var -> (var, new_size_var())) svars in
+  copy_type tvars' svars' t
+
 let size_of_type t =
   match real_type t with
   | TyConstr (_, _, Sz1 s) -> [s]

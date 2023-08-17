@@ -1,12 +1,27 @@
 .PHONY: doc tests
 
-all: build doc
+all: host guests doc
 
-build:
-	dune build src/lib/rfsm.cma
-	dune build src/lib/rfsm.cmxa
-	dune build src/bin/rfsmc.bc
-	dune build src/bin/rfsmc.exe
+host:
+	dune build src/lib/host/rfsm.cma
+#	dune build src/lib/host/rfsm.cmxa
+
+guests: core simple szdints szvars typarams
+
+core:
+	dune build src/bin/core/rfsmc.bc
+
+simple:
+	dune build src/bin/simple/rfsmc.bc
+
+szdints:
+	dune build src/bin/szdints/rfsmc.bc
+
+szvars:
+	dune build src/bin/szvars/rfsmc.bc
+
+typarams:
+	dune build src/bin/typarams/rfsmc.bc
 
 install:
 	dune build @install

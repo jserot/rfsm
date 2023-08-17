@@ -10,7 +10,6 @@ type env =
     te_tycons: (int * Types.typ) Env.t;  (** Type constructors, with arity and associated type *)
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
     te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *) 
-    (* te_indexes: Types.index Env.t;  (\** Type indexes. Not used here *\) *)
     te_prims: Types.typ_scheme Env.t }
 
 let mk_env () =
@@ -18,7 +17,6 @@ let mk_env () =
     te_tycons = Env.init Builtins.typing_env.tycons;
     te_ctors = Env.init Builtins.typing_env.ctors;
     te_rfields = Env.empty;
-    (* te_indexes = Env.empty; *)
     te_prims = Env.init Builtins.typing_env.prims; }
 
 let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars }
@@ -32,7 +30,15 @@ let lookup ~exc v env =
   try Env.find v env 
   with Not_found -> raise exc
 
-let lookup_var ~loc v env = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
+let lookup_var ~loc v env =
+  let t = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars in
+  let t' = Types.copy t in
+  (* Type and size variables are systematically generalized. Iow, types in [te_vars] are really type schemes *)
+  (* Format.printf "** Typing.looking up %a first gives type %a, then %a@." 
+   *   Rfsm.Ident.pp v
+   *   (Types.pp_typ ~abbrev:false) t
+   *   (Types.pp_typ ~abbrev:false) t'; *)
+  t'
 
 let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
 let add_param env _ = env  (** There's no type parameters in this language *)
@@ -73,7 +79,7 @@ and size_of_size_expr c sz =
 let rec type_expression env e =
   let loc = e.Annot.loc in
   let ty = match e.Annot.desc with
-    | Syntax.EVar v -> lookup ~exc:(Undefined ("symbol",e.Annot.loc,v)) v env.te_vars
+    | Syntax.EVar v -> lookup_var ~loc:e.Annot.loc v env
     | Syntax.EInt _ -> Types.type_unsized_int ()
     | Syntax.EBool _ -> Types.type_bool ()
     | Syntax.EFloat _ -> Types.type_float ()
@@ -114,10 +120,10 @@ let rec type_expression env e =
                      Env.union
                        env.te_vars
                        (Env.map Types.type_instance env.te_prims) } in 
-      let ty_fn = lookup ~exc:(Undefined ("symbol",e.Annot.loc,f)) f env'.te_vars in
+      let ty_fn = lookup_var ~loc:e.Annot.loc f env' in
       type_application ~loc:e.Annot.loc env' ty_fn ty_args
   | Syntax.ERecord (r,f) ->
-     begin match lookup ~exc:(Undefined ("symbol",e.Annot.loc,r)) r env.te_vars with
+     begin match lookup_var ~loc:e.Annot.loc r env with
        | TyRecord (_,fs) ->
           begin
             try List.assoc f fs
@@ -150,7 +156,7 @@ and type_application ~loc env ty_fn ty_args =
 and type_indexed_expr ~loc env a i = 
   let ty_i = type_expression env i in
   Types.unify ~loc:i.Annot.loc ty_i (Types.type_unsized_int ());
-  match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
+  match lookup_var ~loc a env with
   | TyConstr ("int", _, _) -> Types.type_sized_int 1
   | TyConstr ("array", [t'], _) -> t'
   | _ -> raise (Illegal_expr (loc, "only int's and array's can be indexed"))
@@ -160,7 +166,7 @@ and type_ranged_expr ~loc env a i1 i2 =
   let ty_i2 = type_expression env i2 in
   Types.unify ~loc:i1.Annot.loc ty_i1 (Types.type_unsized_int ());
   Types.unify ~loc:i2.Annot.loc ty_i2 (Types.type_unsized_int ());
-  match lookup ~exc:(Undefined ("symbol", loc, a)) a env.te_vars with
+  match lookup_var ~loc a env with
   | TyConstr("int",_,_) ->
      let sz = 
        begin match i1.Annot.desc, i2.Annot.desc with 
@@ -211,11 +217,11 @@ let type_type_decl env td =
 
 let type_lhs env l =
   let ty = match l.Annot.desc with
-    | Syntax.LhsVar x -> lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars
+    | Syntax.LhsVar x -> lookup_var ~loc:l.Annot.loc x env
     | Syntax.LhsIndex (a,i) -> type_indexed_expr ~loc:l.Annot.loc env a i
     | Syntax.LhsRange (a,i1,i2) -> type_ranged_expr ~loc:l.Annot.loc env a i1 i2
     | Syntax.LhsRField (x,f) -> 
-       begin match lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars with
+       begin match lookup_var ~loc:l.Annot.loc x env with
        | TyRecord (_,fs) -> 
           begin
             try List.assoc f fs 

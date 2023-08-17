@@ -22,6 +22,17 @@ let mk_env () =
     te_prims = Env.init Builtins.typing_env.prims;
     te_params = Env.empty; }
 
+let pp_env fmt e = 
+  let open Format in
+  let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity (Types.pp_typ ~abbrev:false) ty in
+  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,rfields=%a@,params=%a@,prims=%a}@]@."
+    (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_vars
+    (Env.pp ~sep:":" pp_tycon) e.te_tycons
+    (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
+    (Env.pp ~sep:":" (fun fmt (_,ty) -> fprintf fmt "%a" (Types.pp_typ ~abbrev:true) ty)) e.te_rfields
+    (Env.pp ~sep:":" pp_print_int) e.te_params
+    (Env.pp ~sep:":" ~vlayout:true Types.pp_typ_scheme) e.te_prims
+
 let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars }
 
 exception Duplicate of string * Location.t * Rfsm.Ident.t
@@ -39,22 +50,19 @@ let eval_param e = (** Static evaluation of type size parameters *)
 let lookup ~loc what id env = 
   try Env.find id env 
   with Not_found -> raise (Rfsm.Misc.Undefined (what,loc,Rfsm.Ident.to_string id))
-
-let pp_env fmt e = 
-  let open Format in
-  let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity (Types.pp_typ ~abbrev:false) ty in
-  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,rfields=%a@,params=%a@,prims=%a}@]@."
-    (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_vars
-    (Env.pp ~sep:":" pp_tycon) e.te_tycons
-    (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
-    (Env.pp ~sep:":" (fun fmt (_,ty) -> fprintf fmt "%a" (Types.pp_typ ~abbrev:true) ty)) e.te_rfields
-    (Env.pp ~sep:":" pp_print_int) e.te_params
-    (Env.pp ~sep:":" ~vlayout:true Types.pp_typ_scheme) e.te_prims
+(* let lookup ~exc v env = 
+ *   try Env.find v env 
+ *   with Not_found -> raise exc *)
 
 let lookup_var ~loc v env =
-  (* Format.printf "** Looking up %a in %a@." Rfsm.Ident.pp v pp_env env; *)
-  lookup ~loc "symbol" v env.te_vars
-(* let lookup_param ~loc v env = lookup ~exc:(Rfsm.Misc.Undefined ("type size parameter",loc,v)) v env.te_params *)
+  let t = lookup ~loc "symbol" v env.te_vars in
+  let t' = Types.copy t in
+  (* Type and size variables are systematically generalized. Iow, types in [te_vars] are really type schemes *)
+  (* Format.printf "** Typing.looking up %a first gives type %a, then %a@." 
+   *   Rfsm.Ident.pp v
+   *   (Types.pp_typ ~abbrev:false) t
+   *   (Types.pp_typ ~abbrev:false) t'; *)
+  t'
 
 let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
 let add_param env (p,e) =
@@ -101,10 +109,10 @@ let rec type_expression env e =
     | Syntax.EChar _ -> Types.type_char ()
     | Syntax.EBinop (op,e1,e2) ->
        let ty_fn = Types.type_instance (lookup ~loc:e.Annot.loc "operator" op env.te_prims) in
-       Format.printf "Guest.type_expression: typing %a with type(<)=%a gives %a@."
-         Syntax.pp_expr e
-         Types.pp_typ_scheme (Env.find (Rfsm.Ident.mk ~scope:Global "<") env.te_prims)
-         (Types.pp_typ ~abbrev:false) ty_fn;
+       (* Format.printf "Guest.type_expression: typing %a with type(<)=%a gives %a@."
+        *   Syntax.pp_expr e
+        *   Types.pp_typ_scheme (Env.find (Rfsm.Ident.mk ~scope:Global "<") env.te_prims)
+        *   (Types.pp_typ ~abbrev:false) ty_fn; *)
        let ty_args = List.map (type_expression env) [e1;e2] in
        type_application ~loc:e.Annot.loc env ty_fn ty_args
     | Syntax.ECon0 c -> lookup ~loc:e.Annot.loc "value constructor" c env.te_ctors
@@ -135,10 +143,9 @@ let rec type_expression env e =
   | Syntax.EFapp (f,es) ->
       let ty_args = List.map (type_expression env) es in
       let env' = 
-        { env with te_vars =
-                     Env.union
-                       env.te_vars
-                       (Env.map Types.type_instance env.te_prims) } in 
+        { env with te_vars = Env.union
+                               env.te_vars
+                               (Env.map Types.type_instance env.te_prims) } in 
       let ty_fn = lookup_var ~loc:e.Annot.loc f env' in
       type_application ~loc:e.Annot.loc env' ty_fn ty_args
   | Syntax.ERecord (r,f) ->
@@ -240,7 +247,7 @@ let type_lhs env l =
     | Syntax.LhsIndex (a,i) -> type_indexed_expr ~loc:l.Annot.loc env a i
     | Syntax.LhsRange (a,i1,i2) -> type_ranged_expr ~loc:l.Annot.loc env a i1 i2
     | Syntax.LhsRField (x,f) -> 
-       begin match lookup ~loc:l.Annot.loc "symbol" x env.te_vars with
+       begin match lookup_var ~loc:l.Annot.loc x env with
        | TyRecord (_,fs) -> 
           begin
             try List.assoc f fs 

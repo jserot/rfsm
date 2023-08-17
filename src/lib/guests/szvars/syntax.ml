@@ -224,12 +224,12 @@ let rec subst_expr phi e =
   | ERanged (a,e1,e2) -> subst e (ERanged (a, subst_expr phi e1, subst_expr phi e2))
   | EArrExt vs -> subst e (EArrExt (List.map (subst_expr phi) vs))
   | ECond (e1,e2,e3) -> subst e (ECond (subst_expr phi e1, subst_expr phi e2, subst_expr phi e3))
-  | ECast (e,t) -> subst e (ECast (subst_expr phi e, t))
+  | ECast (e,t) -> subst e (ECast (subst_expr phi e, subst_type_expr phi t))
   | EFapp (f,es) -> subst e (EFapp (f, List.map (subst_expr phi) es))
   | ERecord (r,f) -> e
   | ERecordExt fs -> subst e (ERecordExt (List.map (fun (n,e) -> n, subst_expr phi e) fs))
 
-let rec subst_type_expr phi te = 
+and subst_type_expr phi te = 
   match te.Annot.desc with
   | TeConstr (c,args,sz) ->
      { te with Annot.desc = TeConstr (c, List.map (subst_type_expr phi) args, sz) }

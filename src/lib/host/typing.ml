@@ -83,13 +83,9 @@ struct
           * GuestTyping.type_check ~loc t t';
           * t *)
       | HostSyntax.Assign (lhs,expr) -> 
-         (* let pp_env fmt env = GuestTyping.pp_env fmt env in Format.printf "Host.type_fsm_action: env=%a@." pp_env env; *)
          let t = GuestTyping.type_lhs env lhs in
          let t' = GuestTyping.type_expression env expr in
-         (* let pp_typ = GuestTyping.Syntax.Types.pp_typ ~abbrev:false in
-          * Format.printf "Host.type_fsm_action %a: %a <- %a@." HostSyntax.pp_action act pp_typ t pp_typ t'; *)
          GuestTyping.type_check ~loc t t';
-         (* Format.printf "Host.type_fsm_action rhs has now type %a@." pp_typ t'; *)
          t in
     act.A.typ <- ty
 
@@ -158,6 +154,7 @@ struct
       (fun acc (id,te) ->
         if List.mem_assoc id acc
         then raise (Duplicate_symbol (loc, id)) 
+        (* else (id, GuestTyping.Types.copy @@ GuestTyping.type_of_type_expr env te) :: acc) *)
         else (id, GuestTyping.type_of_type_expr env te) :: acc)
       []
       (m.HostSyntax.params @ m.HostSyntax.inps @ m.HostSyntax.outps @ m.HostSyntax.inouts @  m.HostSyntax.vars)
@@ -216,7 +213,7 @@ struct
       (* let v = GuestTyping.eval_param e in *)
       (id,e) in
     let ty_params =
-      try List.map2 bind_param m.params (Misc.clone params)
+      try List.map2 bind_param m.params params
       with Invalid_argument _ -> raise (Illegal_inst loc) in
     (* Augment the typing environment with the bindings of parameters *)
     let env' = List.fold_left GuestTyping.add_param env ty_params in
