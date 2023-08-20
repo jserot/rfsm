@@ -6,10 +6,11 @@ module Annot = Rfsm.Annot
 module Location = Rfsm.Location
 
 type env =
-  { te_vars: Types.typ Env.t;
+  { te_vars: Types.typ_scheme Env.t;
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
     te_tycons: int Env.t;  (** Type constructors, with arity. Ex: "array"->(1, 'a array) *)
     te_prims: Types.typ_scheme Env.t }
+(* TODO: merge te_prims and te_vars since they now both contain type schemes *)
 
 let mk_env () =
   { te_vars = Env.empty;
@@ -26,15 +27,21 @@ let lookup ~exc v env =
   try Env.find v env 
   with Not_found -> raise exc
 
-let lookup_var ~loc v env = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
+let lookup_var ~loc v env =
+  Types.type_instance @@ lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
+let lookup_prim ~loc v env =
+  Types.type_instance @@ lookup ~exc:(Undefined ("primitive",loc,v)) v env.te_prims
+(* TODO : merge the two prev defns *)
+let lookup_ctor ~loc v env =
+  lookup ~exc:(Undefined ("value constructor",loc,v)) v env.te_ctors
 
-let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
-let add_param env _ =  env
+let add_var env (v,ty) = { env with te_vars = Env.add v (Types.generalize ty) env.te_vars }
+let add_param env _ = env (* No parameter in the [core] guest language *)
 
 let pp_env fmt e = 
   let open Format in
   fprintf fmt "@[<v>[@,vars=%a@,ctors=%a@,tycons=%a@,prims=%a]@]@."
-    (Env.pp ~sep:" : " (Types.pp_typ ~abbrev:false)) e.te_vars
+    (Env.pp ~sep:" : " Types.pp_typ_scheme) e.te_vars
     (Env.pp ~sep:" : " (Types.pp_typ ~abbrev:false)) e.te_ctors
     (Env.pp ~sep:" : " pp_print_int) e.te_tycons
     (Env.pp ~sep:" : " Types.pp_typ_scheme) e.te_prims
@@ -68,14 +75,14 @@ let rec type_of_type_expr env te =
 
 let rec type_expression env e =
   let ty = match e.Annot.desc with
-    | Syntax.EVar v -> lookup ~exc:(Undefined ("symbol",e.Annot.loc,v)) v env.te_vars
+    | Syntax.EVar v -> lookup_var ~loc:e.Annot.loc v env
     | Syntax.EInt _ -> Types.TyConstr ("int", [])
     | Syntax.EBool _ -> Types.TyConstr ("bool", [])
     | Syntax.EBinop (op,e1,e2) ->
-      let ty_fn = Types.type_instance (lookup ~exc:(Undefined("operator",e.Annot.loc,op)) op env.te_prims) in
+      let ty_fn = lookup_prim ~loc:e.Annot.loc op env in
       let ty_args = List.map (type_expression env) [e1;e2] in
       type_application e env ty_fn ty_args
-    | Syntax.ECon0 c -> lookup ~exc:(Undefined ("value constructor",e.Annot.loc,c)) c env.te_ctors in
+    | Syntax.ECon0 c -> lookup_ctor ~loc:e.Annot.loc c env in
   e.Annot.typ <- ty;
   ty
 
@@ -89,7 +96,7 @@ and type_application expr env ty_fn ty_args =
 and type_array_access ~loc env a i =
   let ty_idx = type_expression env i in
   Types.unify ~loc:i.Annot.loc ty_idx (Types.TyConstr ("int", []));
-  let ty_arg = lookup ~exc:(Undefined ("symbol",loc,a)) a env.te_vars in
+  let ty_arg = lookup_var ~loc a env in
   let ty_res =
     begin match ty_arg with
     | Types.TyConstr ("array", [t']) -> t'
@@ -99,7 +106,7 @@ and type_array_access ~loc env a i =
 
 let type_lhs env l =
   let ty = match l.Annot.desc with
-    | Syntax.LhsVar x -> lookup ~exc:(Undefined ("symbol",l.Annot.loc,x)) x env.te_vars in
+    | Syntax.LhsVar x -> lookup_var ~loc:l.Annot.loc x env in
   l.Annot.typ <- ty;
   ty
 

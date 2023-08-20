@@ -202,7 +202,7 @@ struct
       | _, _ -> () in
     (* Get associated model *)
     let mm = Misc.clone @@ lookup_model model in
-      (* Note: we need a _deep copy_ of the model so that destructive updates performed by the
+      (* Note: we need a _deep copy_ of the model so that destructive updates performed by
          type-checking are applied to fresh copies *)
     let m = mm.A.desc in
     (* Type-check parameters *)

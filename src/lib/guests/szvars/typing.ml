@@ -6,7 +6,7 @@ module Annot = Rfsm.Annot
 module Location = Rfsm.Location
 
 type env =
-  { te_vars: Types.typ Env.t;
+  { te_vars: Types.typ_scheme Env.t;
     te_tycons: (int * Types.typ) Env.t;  (** Type constructors, with arity and associated type *)
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
     te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *) 
@@ -31,23 +31,25 @@ let lookup ~exc v env =
   with Not_found -> raise exc
 
 let lookup_var ~loc v env =
-  let t = lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars in
-  let t' = Types.copy t in
-  (* Type and size variables are systematically generalized. Iow, types in [te_vars] are really type schemes *)
-  (* Format.printf "** Typing.looking up %a first gives type %a, then %a@." 
-   *   Rfsm.Ident.pp v
-   *   (Types.pp_typ ~abbrev:false) t
-   *   (Types.pp_typ ~abbrev:false) t'; *)
-  t'
+  Types.type_instance @@ lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
+let lookup_prim ~loc v env =
+  Types.type_instance @@ lookup ~exc:(Undefined ("primitive",loc,v)) v env.te_prims
+(* TODO : merge the two prev defns *)
+let lookup_tycon ~loc v env =
+  lookup ~exc:(Undefined ("type constructor",loc,v)) v env.te_tycons
+let lookup_ctor ~loc v env =
+  lookup ~exc:(Undefined ("value constructor",loc,v)) v env.te_ctors
+let lookup_rfield ~loc v env =
+  lookup ~exc:(Undefined ("record field",loc,v)) v env.te_rfields
 
-let add_var env (v,ty) = { env with te_vars = Env.add v ty env.te_vars }
-let add_param env _ = env  (** There's no type parameters in this language *)
+let add_var env (v,ty) = { env with te_vars = Env.add v (Types.generalize ty) env.te_vars }
+let add_param env _ = env (* No parameter in the [szvars] guest language *)
 
 let pp_env fmt e = 
   let open Format in
   let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity (Types.pp_typ ~abbrev:false) ty in
   fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,rfields=%a@,prims=%a}@]@."
-    (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_vars
+    (Env.pp ~sep:":" Types.pp_typ_scheme) e.te_vars
     (Env.pp ~sep:":" pp_tycon) e.te_tycons
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
     (Env.pp ~sep:":" (fun fmt (_,ty) -> fprintf fmt "%a" (Types.pp_typ ~abbrev:true) ty)) e.te_rfields
@@ -61,7 +63,7 @@ let rec type_of_type_expr env te =
   let ty =
     match te.Annot.desc with
     | Syntax.TeConstr (c,[],[]) ->
-       lookup ~exc:(Undefined ("type constructor",te.Annot.loc, c)) c env.te_tycons |> snd
+       snd @@ lookup_tycon ~loc:te.Annot.loc c env 
     | Syntax.TeConstr (c,args,sz) ->
        Types.TyConstr (c.Rfsm.Ident.id, List.map (type_of_type_expr env) args, size_of_size_expr c sz) in
   te.Annot.typ <- ty;
@@ -74,7 +76,7 @@ and size_of_size_expr c sz =
   | _, [] -> Types.SzNone
   | _, [s] -> Types.Sz1 s
   | _, [lo;hi] -> Types.Sz2 (lo,hi)
-  | _, _ -> Rfsm.Misc.fatal_error "Full3.Typing.size_of_size_expr" (* Should not happen thx to parsing defns *)
+  | _, _ -> Rfsm.Misc.fatal_error "Guest.Typing.size_of_size_expr" (* Should not happen thx to parsing defns *)
 
 let rec type_expression env e =
   let loc = e.Annot.loc in
@@ -85,17 +87,17 @@ let rec type_expression env e =
     | Syntax.EFloat _ -> Types.type_float ()
     | Syntax.EChar _ -> Types.type_char ()
     | Syntax.EBinop (op,e1,e2) ->
-       let ty_fn = Types.type_instance (lookup ~exc:(Undefined("operator",e.Annot.loc,op)) op env.te_prims) in
+       let ty_fn = lookup_prim ~loc:e.Annot.loc op env in
        let ty_args = List.map (type_expression env) [e1;e2] in
        type_application ~loc:e.Annot.loc env ty_fn ty_args
-    | Syntax.ECon0 c -> lookup ~exc:(Undefined ("value constructor",e.Annot.loc,c)) c env.te_ctors
+    | Syntax.ECon0 c -> lookup_ctor ~loc:e.Annot.loc c env
     | Syntax.EIndexed (a,i) ->
        let r = type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *) in
-       (* Format.printf "Full3.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
+       (* Format.printf "Guest.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
        r
     | Syntax.ERanged (a,i1,i2) ->
        let r = type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lhs *) in
-       (* Format.printf "Full3.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
+       (* Format.printf "Guest.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
        r
     | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 
@@ -115,11 +117,7 @@ let rec type_expression env e =
       type_cast e ty_e ty_t 
   | Syntax.EFapp (f,es) ->
       let ty_args = List.map (type_expression env) es in
-      let env' = 
-        { env with te_vars =
-                     Env.union
-                       env.te_vars
-                       (Env.map Types.type_instance env.te_prims) } in 
+      let env' = { env with te_vars = Env.union env.te_vars env.te_prims } in
       let ty_fn = lookup_var ~loc:e.Annot.loc f env' in
       type_application ~loc:e.Annot.loc env' ty_fn ty_args
   | Syntax.ERecord (r,f) ->

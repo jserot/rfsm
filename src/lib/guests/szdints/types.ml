@@ -18,7 +18,7 @@ and 'a value =
   | Known of 'a
 
 type typ_scheme =
-  { ts_tparams: (typ var) list;
+  { ts_params: (typ var) list;
     ts_body: typ }
 
 (* Type variables *)
@@ -77,31 +77,57 @@ let rec real_type ty =
   | TyRecord (name, fds) -> TyRecord (name, List.map (function (n,ty') -> n, real_type ty') fds)
   | ty -> ty
 
-let copy_type tvbs ty =
-  let rec copy ty = 
+(* Generalisation / instanciation *)
+
+let vars_of ty = (* Returns the list of type variables occuring in [t] *)
+  let vars = ref [] in
+  let rec scan t =
+    match type_repr t with
+    | TyVar var ->
+       if not (List.memq var !vars) then vars := var :: !vars
+    | TyArrow (t1, t2) ->
+       scan t1;
+       scan t2
+    | TyProduct ts ->
+       List.iter scan ts
+    | TyConstr (_, args, _) ->
+       List.iter scan args
+    | TyRecord (_, fds) ->
+       List.iter (function (_,t) -> scan t) fds  in
+  scan ty;
+  !vars
+
+let generalize t =
+  (* Turn a type [t] into a type scheme by extracting all type variables occuring in [t] *)
+  (* This a simplified version of the classical [generalize] function in which all variables are taken as generic *)  
+  { ts_params = vars_of t; ts_body = t }
+
+let trivial_scheme ty =
+  { ts_params = []; ts_body = ty }
+
+let copy vars t = (* Make a copy a type, replacing all type variables occuring in [vars] *)
+  let rec cp ty = 
     match type_repr ty with
     | TyVar var as ty ->
         begin try
-          List.assq var tvbs
+          List.assq var vars
         with Not_found ->
             ty
         end
     | TyArrow (ty1, ty2) ->
-       TyArrow (copy ty1, copy ty2)
+        TyArrow (cp ty1, cp ty2)
     | TyProduct ts ->
-       TyProduct (List.map copy ts)
+        TyProduct (List.map cp ts)
     | TyConstr (c, args, szs) ->
-       TyConstr (c, List.map copy args, szs)
+        TyConstr (c, List.map cp args, szs)
     | TyRecord (nm, fds) ->
-       TyRecord(nm, List.map (function (n,t) -> n, copy t) fds) in
-  copy ty
+       TyRecord(nm, List.map (function (n,t) -> n, cp t) fds)  in
+  cp t 
 
-let type_instance ty_sch =
-  match ty_sch.ts_tparams with
-  | [] -> ty_sch.ts_body
-  | tparams ->
-      let unknown_ts = List.map (fun var -> (var, new_type_var())) tparams in
-      copy_type unknown_ts ty_sch.ts_body
+let type_instance ts =
+  (* Take an instance of a type scheme, replacing all its generic variables by fresh ones *)
+  let gvars = List.map (fun var -> (var, new_type_var())) ts.ts_params in
+  copy gvars ts.ts_body
 
 (* Type unification - the classical algorithm *)
 
@@ -193,8 +219,8 @@ and pp_siz c fmt szs =
 
 let pp_typ_scheme fmt t = 
   let open Format in
-  match t.ts_tparams with
+  match t.ts_params with
   | [] ->
      fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_tparams (pp_typ ~abbrev:false) t.ts_body
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_params (pp_typ ~abbrev:false) t.ts_body

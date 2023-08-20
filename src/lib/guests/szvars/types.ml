@@ -82,23 +82,44 @@ let rec size_repr = function
       sz
   | sz -> sz
 
-(* Real type : path compression + unabbreviation *)
+(* Generalisation / instanciation *)
 
-let rec real_type ty = 
-  match type_repr ty with
-  | TyVar { value=Known ty'; _} -> ty'
-  | TyArrow (ty1,ty2) -> TyArrow (real_type ty1, real_type ty2)
-  | TyProduct ts  -> TyProduct (List.map real_type ts)        
-  | TyConstr (c, ts, sz) -> TyConstr (c, List.map real_type ts, real_size sz)
-  | TyRecord (name, fds) -> TyRecord (name, List.map (function (n,ty') -> n, real_type ty') fds)
-  | ty -> ty
+let vars_of ty = (* Returns the lists of type and size variables occuring in [t] *)
+    let tvars, svars = ref [], ref [] in
+    let rec scan_ty t =
+      match type_repr t with
+      | TyVar var ->
+          if not (List.memq var !tvars) then tvars := var :: !tvars
+      | TyArrow (t1, t2) ->
+          scan_ty t1;
+          scan_ty t2
+      | TyProduct ts ->
+          List.iter scan_ty ts
+      | TyConstr (_, args, sz) ->
+          List.iter scan_ty args;
+          scan_sz sz
+      | TyRecord (_, fs) ->
+         List.iter (fun (_, t) -> scan_ty t) fs
+    and scan_sz sz = 
+      match size_repr sz with 
+      | SzVar var -> 
+          if not (List.memq var !svars) then svars := var :: !svars
+      | _ -> () in
+    scan_ty ty;
+    (!tvars, !svars)
 
-and real_size sz = 
-  match size_repr sz with
-  | SzVar { value=Known sz'; _} -> sz'
-  | sz -> sz
 
-let rec copy_type tvbs svbs ty =
+let generalize t =
+  (* Turn a type [t] into a type scheme by extracting all type and size variables occuring in [t] *)
+  (* This a simplified version of the classical [generalize] function in which all variables are taken as generic *)  
+  let tvars, svars = vars_of t in 
+  { ts_tparams = tvars; ts_sparams = svars; ts_body = t }
+
+let trivial_scheme ty =
+  { ts_tparams = []; ts_sparams = []; ts_body = ty }
+
+let rec copy tvbs svbs ty =
+  (* Make a copy a type, replacing all type (resp. size) variables occuring in [tvbs] (resp. svbs) by fresh copies *)
   let rec copy ty = 
     match type_repr ty with
     | TyVar var as ty ->
@@ -127,43 +148,27 @@ and copy_size ty svbs sz =
       end
   | sz -> sz
 
-let type_instance ty_sch =
-  match ty_sch.ts_tparams, ty_sch.ts_sparams with
-  | [], [] -> ty_sch.ts_body
-  | tparams, sparams ->
-      let unknown_ts = List.map (fun var -> (var, new_type_var())) tparams in
-      let unknown_ss = List.map (fun var -> (var, new_size_var())) sparams in
-      copy_type unknown_ts unknown_ss ty_sch.ts_body
+let type_instance ts =
+  (* Take an instance of a type scheme, replacing all its generic variables by fresh ones *)
+  let tvars = List.map (fun var -> (var, new_type_var())) ts.ts_tparams in
+  let svars = List.map (fun var -> (var, new_size_var())) ts.ts_sparams in
+  copy tvars svars ts.ts_body
 
-let vars_of_type ty = 
-    let tvars, svars = ref [], ref [] in
-    let rec scan_ty t =
-      match type_repr t with
-      | TyVar var ->
-          if not (List.memq var !tvars) then tvars := var :: !tvars
-      | TyArrow (t1, t2) ->
-          scan_ty t1;
-          scan_ty t2
-      | TyProduct ts ->
-          List.iter scan_ty ts
-      | TyConstr (_, args, sz) ->
-          List.iter scan_ty args;
-          scan_sz sz
-      | TyRecord (_, fs) ->
-         List.iter (fun (_, t) -> scan_ty t) fs
-    and scan_sz sz = 
-      match size_repr sz with 
-      | SzVar var -> 
-          if not (List.memq var !svars) then svars := var :: !svars
-      | _ -> () in
-    scan_ty ty;
-    (!tvars, !svars)
+(* Real type : path compression + unabbreviation *)
 
-let copy t = (* Replace all type and size variables in a type by fresh copies *)
-  let tvars, svars = vars_of_type t in
-  let tvars' = List.map (fun var -> (var, new_type_var())) tvars in
-  let svars' = List.map (fun var -> (var, new_size_var())) svars in
-  copy_type tvars' svars' t
+let rec real_type ty = 
+  match type_repr ty with
+  | TyVar { value=Known ty'; _} -> ty'
+  | TyArrow (ty1,ty2) -> TyArrow (real_type ty1, real_type ty2)
+  | TyProduct ts  -> TyProduct (List.map real_type ts)        
+  | TyConstr (c, ts, sz) -> TyConstr (c, List.map real_type ts, real_size sz)
+  | TyRecord (name, fds) -> TyRecord (name, List.map (function (n,ty') -> n, real_type ty') fds)
+  | ty -> ty
+
+and real_size sz = 
+  match size_repr sz with
+  | SzVar { value=Known sz'; _} -> sz'
+  | sz -> sz
 
 let size_of_type t =
   match real_type t with

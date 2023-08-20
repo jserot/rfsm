@@ -18,12 +18,10 @@ type typ_scheme =
   { ts_params: ty_var list;
     ts_body: typ }
 
-let no_type = TyProduct [] (* This is a hack to avoid draging [typ option] value everywhere *)
+let no_type = TyProduct []
 
 exception Type_circularity of Location.t * typ * typ
 exception Type_conflict of Location.t * typ * typ
-
-(* type index = int (\* Type indexes - not used in this guest language - TO FIX *\) *)
 
 let rec type_repr = function
   | TyVar({value = Known ty1; _} as var) ->
@@ -56,8 +54,6 @@ let is_event_type t = is_type_constr0 "event" t
 let is_bool_type t = is_type_constr0 "bool" t 
 let mk_type_fun ty_args ty_res = type_arrow (type_product ty_args) ty_res
 
-
-(* let is_index_type ty = is_type_constr0 "int" ty *)
 
 let occur_check ~loc var ty =
   let rec test t =
@@ -104,69 +100,55 @@ let new_stamp =
 let mk_type_var () = { stamp = new_stamp(); value = Unknown }
 let new_type_var () = TyVar (mk_type_var ())
 
-let generalize env ty =
-  (* Note : we use here a naive version in which generic variables are detected by
-     simply checking whether they do not occur free in the englobing typing environment.
-     A more efficient version would use binding levels *)
-  let vars_of tvars' ty = 
-     (* Returns the list of type variables occuring in [t] but not in [tvars'] *)
-    let tvars = ref [] in
-    let rec scan_ty t =
-      match type_repr t with
-      | TyVar var ->
-          if not (List.memq var !tvars) && not (List.memq var tvars') 
-          then tvars := var :: !tvars
-      | TyArrow (t1, t2) ->
-          scan_ty t1;
-          scan_ty t2
-      | TyProduct ts ->
-          List.iter scan_ty ts
-      | TyConstr (_, args) ->
-          List.iter scan_ty args in
-    scan_ty ty;
-    !tvars in
-  let free_tvars = 
-    List.fold_left
-      (fun tvs (_,ts) -> 
-        let tvs' = vars_of ts.ts_params ts.ts_body in
-        tvs @ tvs')
-      []
-      env in
-  let gen_tvars = vars_of free_tvars ty in
-  {ts_params = List.rev gen_tvars; ts_body = ty}
+(* Generalisation / instanciation *)
 
-let trivial_scheme ty = {ts_params = []; ts_body = ty}
+let vars_of ty = (* Returns the list of type variables occuring in [t] *)
+  let vars = ref [] in
+  let rec scan t =
+    match type_repr t with
+    | TyVar var ->
+       if not (List.memq var !vars) then vars := var :: !vars
+    | TyArrow (t1, t2) ->
+       scan t1;
+       scan t2
+    | TyProduct ts ->
+       List.iter scan ts
+    | TyConstr (_, args) ->
+       List.iter scan args in
+  scan ty;
+  !vars
 
-(* Type instanciation *)
+let generalize t =
+  (* Turn a type [t] into a type scheme by extracting all type variables occuring in [t] *)
+  (* This a simplified version of the classical [generalize] function in which all variables are taken as generic *)  
+  { ts_params = vars_of t; ts_body = t }
 
-let copy_type tvbs ty =
-  let rec copy ty = 
+let trivial_scheme ty =
+  { ts_params = []; ts_body = ty }
+  
+let copy vars t = (* Make a copy a type, replacing all type variables occuring in [vars] *)
+  let rec cp ty = 
     match type_repr ty with
     | TyVar var as ty ->
         begin try
-          List.assq var tvbs
+          List.assq var vars
         with Not_found ->
             ty
         end
     | TyArrow (ty1, ty2) ->
-        TyArrow (copy ty1, copy ty2)
+        TyArrow (cp ty1, cp ty2)
     | TyProduct ts ->
-        TyProduct (List.map copy ts)
+        TyProduct (List.map cp ts)
     | TyConstr (c, args) ->
-        TyConstr (c, List.map copy args) in
-  copy ty
+        TyConstr (c, List.map cp args) in
+  cp t 
 
-let full_type_instance ty_sch =
-  match ty_sch.ts_params with
-  | [] -> ty_sch.ts_body, []
-  | tparams ->
-      let unknown_ts = List.map (fun var -> (var, new_type_var())) tparams in
-      copy_type unknown_ts ty_sch.ts_body,
-      unknown_ts
+let type_instance ts =
+  (* Take an instance of a type scheme, replacing all its generic variables by fresh ones *)
+  let gvars = List.map (fun var -> (var, new_type_var())) ts.ts_params in
+  copy gvars ts.ts_body
 
-let type_instance ty_sch = fst (full_type_instance ty_sch)
-
-let type_copy t = type_instance (generalize [] t) 
+(* Printing *)
 
 let rec pp_typ ~abbrev fmt t =
   let open Format in
@@ -179,12 +161,12 @@ let rec pp_typ ~abbrev fmt t =
   | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" (pp_typ ~abbrev) t1 (pp_typ ~abbrev) t2 
   | TyVar v -> fprintf fmt "_%d" v.stamp
 
-let pp_tvar fmt tv = Format.fprintf fmt "_%d" tv.stamp (* TO FIX *) 
+let pp_var fmt tv = Format.fprintf fmt "_%d" tv.stamp (* TO FIX. Use 'a, 'b, ... instead *) 
 
-let pp_typ_scheme fmt t =
+let pp_typ_scheme fmt t = 
   let open Format in
   match t.ts_params with
   | [] ->
      fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_tvar) t.ts_params (pp_typ ~abbrev:false) t.ts_body
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_params (pp_typ ~abbrev:false) t.ts_body

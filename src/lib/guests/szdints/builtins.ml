@@ -3,21 +3,21 @@ open Types
 type typ_scheme = Types.typ_scheme
 
 let type_arithm2 () = 
-  { ts_tparams = [];
+  { ts_params = [];
     ts_body =
       type_arrow
         (type_product [type_unsized_int (); type_unsized_int ()])
         (type_unsized_int ()) }
 
 let type_arithm1 () = 
-  { ts_tparams = [];
+  { ts_params = [];
     ts_body =
       type_arrow
         (type_unsized_int ())
         (type_unsized_int ()) }
 
 let type_bit2 () = 
-  { ts_tparams = [];
+  { ts_params = [];
     ts_body =
       type_arrow
         (type_product [type_bit (); type_bit ()])
@@ -25,21 +25,21 @@ let type_bit2 () =
 
 let type_compar () = 
   let tv = Types.make_var () in
-  { ts_tparams = [tv];
+  { ts_params = [tv];
     ts_body =
       type_arrow
         (type_product [TyVar tv; TyVar tv])
         (type_bool ()) }
 
 let type_farithm2 () = 
-  { ts_tparams=[];
+  { ts_params=[];
     ts_body=
       type_arrow
         (type_product [type_float (); type_float ()])
         (type_float ()) }
 
 let type_farithm1 () = 
-  { ts_tparams=[];
+  { ts_params=[];
     ts_body= type_arrow (type_float ()) (type_float ()) }
 
 exception Unknown_value

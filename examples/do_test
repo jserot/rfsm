@@ -26,6 +26,10 @@ vhdl.code) make vhdl.code;;
 vhdl.run) make vhdl.run;;
 vhdl) make vhdl;;
 vhdl.sim) make vhdl.sim;;
+all) for i in dot.run sim.run systemc.run vhdl.run
+     do
+        make $i
+     done;;
 *) false;;
 esac
 case $? in
