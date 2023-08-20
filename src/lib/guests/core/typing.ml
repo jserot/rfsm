@@ -8,17 +8,15 @@ module Location = Rfsm.Location
 type env =
   { te_vars: Types.typ_scheme Env.t;
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
-    te_tycons: int Env.t;  (** Type constructors, with arity. Ex: "array"->(1, 'a array) *)
-    te_prims: Types.typ_scheme Env.t }
-(* TODO: merge te_prims and te_vars since they now both contain type schemes *)
+    te_tycons: int Env.t;  (** Type constructors, with arity. Ex: "int", "bool", "event" *) }
 
 let mk_env () =
-  { te_vars = Env.empty;
+  { te_vars = Env.init Builtins.typing_env.prims;
     te_ctors = Env.init Builtins.typing_env.ctors;
-    te_tycons = Env.init Builtins.typing_env.tycons;
-    te_prims = Env.init Builtins.typing_env.prims; }
+    te_tycons = Env.init Builtins.typing_env.tycons; }
 
-let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars }
+(* let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars } *)
+let localize_env env = env
 
 exception Undefined of string * Location.t * Rfsm.Ident.t 
 exception Duplicate of string * Location.t * Rfsm.Ident.t
@@ -28,10 +26,8 @@ let lookup ~exc v env =
   with Not_found -> raise exc
 
 let lookup_var ~loc v env =
-  Types.type_instance @@ lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
-let lookup_prim ~loc v env =
-  Types.type_instance @@ lookup ~exc:(Undefined ("primitive",loc,v)) v env.te_prims
-(* TODO : merge the two prev defns *)
+  try Types.type_instance @@ lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
+  with _ -> Format.printf "** env=%a@." (Env.pp ~sep:" : " ~vlayout:true ~qual:true Types.pp_typ_scheme) env.te_vars; raise(Undefined ("symbol",loc,v))
 let lookup_ctor ~loc v env =
   lookup ~exc:(Undefined ("value constructor",loc,v)) v env.te_ctors
 
@@ -40,11 +36,10 @@ let add_param env _ = env (* No parameter in the [core] guest language *)
 
 let pp_env fmt e = 
   let open Format in
-  fprintf fmt "@[<v>[@,vars=%a@,ctors=%a@,tycons=%a@,prims=%a]@]@."
+  fprintf fmt "@[<v>[@,vars=%a@,ctors=%a@,tycons=%a@]@]@."
     (Env.pp ~sep:" : " Types.pp_typ_scheme) e.te_vars
     (Env.pp ~sep:" : " (Types.pp_typ ~abbrev:false)) e.te_ctors
     (Env.pp ~sep:" : " pp_print_int) e.te_tycons
-    (Env.pp ~sep:" : " Types.pp_typ_scheme) e.te_prims
 
 let add_env exc env (k,v)  =
   if not (Env.mem k env) then Env.add k v env  
@@ -79,7 +74,7 @@ let rec type_expression env e =
     | Syntax.EInt _ -> Types.TyConstr ("int", [])
     | Syntax.EBool _ -> Types.TyConstr ("bool", [])
     | Syntax.EBinop (op,e1,e2) ->
-      let ty_fn = lookup_prim ~loc:e.Annot.loc op env in
+      let ty_fn = lookup_var ~loc:e.Annot.loc op env in
       let ty_args = List.map (type_expression env) [e1;e2] in
       type_application e env ty_fn ty_args
     | Syntax.ECon0 c -> lookup_ctor ~loc:e.Annot.loc c env in

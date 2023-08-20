@@ -62,7 +62,7 @@ let env = [
 ]
 
 type typing_env = {
-    tycons: (Rfsm.Ident.t * int) list; (* name, arity *)
+    tycons: (Rfsm.Ident.t * int) list; (* name, arity (always 0 here) *)
     ctors: (Rfsm.Ident.t * Types.typ) list; (* name, target type *)
     prims: (Rfsm.Ident.t * Types.typ_scheme) list; (* name, type scheme *)
   }
@@ -73,7 +73,7 @@ let typing_env =
   { tycons = [
       mk_ident "int", 0;
       mk_ident "bool", 0;
-      mk_ident "array", 1;
+      mk_ident "event", 0;
       ];
     ctors = [
       mk_ident "true", Types.type_bool ();

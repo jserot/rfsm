@@ -9,17 +9,16 @@ type env =
   { te_vars: Types.typ_scheme Env.t;
     te_tycons: (int * Types.typ) Env.t;  (** Type constructors, with arity and associated type *)
     te_ctors: Types.typ Env.t;  (** Data constructors, with target type. Ex: "true"->TyBool *)
-    te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *) 
-    te_prims: Types.typ_scheme Env.t }
+    te_rfields: (Types.typ * Types.typ) Env.t;  (** Record fields, with source and target types *)  }
 
 let mk_env () =
-  { te_vars = Env.empty;
+  { te_vars = Env.init Builtins.typing_env.prims;
     te_tycons = Env.init Builtins.typing_env.tycons;
     te_ctors = Env.init Builtins.typing_env.ctors;
-    te_rfields = Env.empty;
-    te_prims = Env.init Builtins.typing_env.prims; }
+    te_rfields = Env.empty; }
 
-let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars }
+let localize_env env =  env
+(* let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars } *)
 
 exception Undefined of string * Location.t * Rfsm.Ident.t
 exception Duplicate of string * Location.t * Rfsm.Ident.t
@@ -32,9 +31,6 @@ let lookup ~exc v env =
 
 let lookup_var ~loc v env =
   Types.type_instance @@ lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
-let lookup_prim ~loc v env =
-  Types.type_instance @@ lookup ~exc:(Undefined ("primitive",loc,v)) v env.te_prims
-(* TODO : merge the two prev defns *)
 let lookup_tycon ~loc v env =
   lookup ~exc:(Undefined ("type constructor",loc,v)) v env.te_tycons
 let lookup_ctor ~loc v env =
@@ -48,12 +44,11 @@ let add_param env _ = env (* No parameter in the [szdints] guest language *)
 let pp_env fmt e = 
   let open Format in
   let pp_tycon fmt (arity,ty) = fprintf fmt "<%d,%a>" arity (Types.pp_typ ~abbrev:false) ty in
-  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,rfields=%a@,prims=%a}@]@."
+  fprintf fmt "@[<v>{@,vars=%a@,tycons=%a@,ctors=%a@,rfields=%a@,}@]@."
     (Env.pp ~sep:":" Types.pp_typ_scheme) e.te_vars
     (Env.pp ~sep:":" pp_tycon) e.te_tycons
     (Env.pp ~sep:":" (Types.pp_typ ~abbrev:false)) e.te_ctors
     (Env.pp ~sep:":" (fun fmt (_,ty) -> fprintf fmt "%a" (Types.pp_typ ~abbrev:true) ty)) e.te_rfields
-    (Env.pp ~sep:":" Types.pp_typ_scheme) e.te_prims
 
 let add_env exc env (k,v)  =
   if not (Env.mem k env) then Env.add k v env  
@@ -78,7 +73,7 @@ let rec type_expression env e =
     | Syntax.EFloat _ -> Types.type_float ()
     | Syntax.EChar _ -> Types.type_char ()
     | Syntax.EBinop (op,e1,e2) ->
-       let ty_fn = lookup_prim ~loc:e.Annot.loc op env in
+       let ty_fn = lookup_var ~loc:e.Annot.loc op env in
        let ty_args = List.map (type_expression env) [e1;e2] in
        type_application ~loc:e.Annot.loc env ty_fn ty_args
     | Syntax.ECon0 c -> lookup_ctor ~loc:e.Annot.loc c env
@@ -105,10 +100,8 @@ let rec type_expression env e =
       type_cast e ty_e ty_t 
   | Syntax.EFapp (f,es) ->
       let ty_args = List.map (type_expression env) es in
-      let env' = 
-        { env with te_vars = Env.union env.te_vars env.te_prims } in 
-      let ty_fn = lookup_var ~loc:e.Annot.loc f env' in
-      type_application ~loc:e.Annot.loc env' ty_fn ty_args
+      let ty_fn = lookup_var ~loc:e.Annot.loc f env in
+      type_application ~loc:e.Annot.loc env ty_fn ty_args
   | Syntax.ERecord (r,f) ->
      begin match lookup_var ~loc:e.Annot.loc r env with
        | TyRecord (_,fs) ->
