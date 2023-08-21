@@ -10,7 +10,7 @@ type t = {
                      
 (* type subst = (t * t) list *)
 
-let mk ?(scope=Local) id = { scope=scope; id=id }
+let mk ?(scope=Global) id = { scope=scope; id=id }
 
 let mk_global id = { id with scope = Global }
 let mk_local id = { id with scope = Local }

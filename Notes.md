@@ -100,7 +100,7 @@ This is because the instanciation of the FSM model `f` will effectively create a
 (and, consequently, of the contained size variables).
 
 Last but not least, from a typing point of view, model parameters should be considered as global
-constants. And, therefore, have their type generalized when retrieved. For example, consider 
+constants. And, therefore, have their type generalized when retrieved. 
 
 Implementation
 --------------
@@ -113,7 +113,6 @@ the expression in which this type occurs). Generalisation extracts all type and 
 put them in the list(s) associated to the resulting type scheme. Instanciation systematically
 replaces all the variables of these lists by fresh copies.
 
-TBC
 
 
 

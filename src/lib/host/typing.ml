@@ -147,17 +147,16 @@ struct
     check_dupl states;
     List.iter (type_fsm_state env m) states
 
-  let types_of_fsm_model env A.{ desc = m; loc = loc; _ } = 
-    (* Computes the "local" typing environment associated to an FSM model, containing
-       the types of parameters, inputs, outputs and local variables *)
-    List.fold_left
-      (fun acc (id,te) ->
-        if List.mem_assoc id acc
-        then raise (Duplicate_symbol (loc, id)) 
-        (* else (id, GuestTyping.Types.copy @@ GuestTyping.type_of_type_expr env te) :: acc) *)
-        else (id, GuestTyping.type_of_type_expr env te) :: acc)
-      []
-      (m.HostSyntax.params @ m.HostSyntax.inps @ m.HostSyntax.outps @ m.HostSyntax.inouts @  m.HostSyntax.vars)
+  (* let types_of_fsm_model env A.{ desc = m; loc = loc; _ } = 
+   *   (\* Computes the "local" typing environment associated to an FSM model, containing
+   *      the types of parameters, inputs, outputs and local variables *\)
+   *   List.fold_left
+   *     (fun acc (id,te) ->
+   *       if List.mem_assoc id acc
+   *       then raise (Duplicate_symbol (loc, id)) 
+   *       else (id, GuestTyping.type_of_type_expr env te) :: acc)
+   *     []
+   *     (m.HostSyntax.params @ m.HostSyntax.inps @ m.HostSyntax.outps @ m.HostSyntax.inouts @  m.HostSyntax.vars) *)
 
   let type_fsm_ios env A.{ desc = m; loc = loc; _ } =
     (* Check that there's exactly one input with type event *)
@@ -166,20 +165,24 @@ struct
     | [] -> raise (No_event_input loc)
     | _ -> ()
          
-  let type_fsm_model env m =
+  let type_fsm_model env (A.{ desc = md; _ } as m) =
     type_fsm_states env m;
-    (* let type_indexes =
-     *   List.fold_left
-     *   (fun acc (id,ty,e) ->
-     *     if GuestTyping.Types.is_index_type ty then (id,GS.eval_index e)::acc
-     *     else acc)
-     *   []
-     *   params in
-     * let env' = List.fold_left GuestTyping.add_index env type_indexes in *)
-    let env' = List.fold_left GuestTyping.add_var env (types_of_fsm_model env m) in
+    let add_sym ~global (env,syms) (id,te) =
+      if List.mem id syms then
+        raise (Duplicate_symbol (m.A.loc, id)) 
+      else 
+        let ty = GuestTyping.type_of_type_expr env te in
+        GuestTyping.add_var ~global env (id,ty), id::syms in
+    let env', _ = 
+         (env,[])
+      |> Misc.fold_left (add_sym ~global:false) md.HostSyntax.inps 
+      |> Misc.fold_left (add_sym ~global:false) md.HostSyntax.outps 
+      |> Misc.fold_left (add_sym ~global:false) md.HostSyntax.inouts 
+      |> Misc.fold_left (add_sym ~global:false) md.HostSyntax.vars 
+      |> Misc.fold_left (add_sym ~global:true) md.HostSyntax.params in 
     type_fsm_ios env' m;
-    List.iter (type_fsm_transition env' m) m.A.desc.trans;
-    type_fsm_itransition env' m m.A.desc.itrans;
+    List.iter (type_fsm_transition env' m) md.trans;
+    type_fsm_itransition env' m md.itrans;
     m
 
   (* Typing FSM instances *)
@@ -270,7 +273,7 @@ struct
     GuestTyping.type_check ~loc:loc ty_body ty_result;
     let ty = GuestTyping.Types.mk_type_fun (List.map snd ty_args) ty_result in
     f.A.typ <- ty;
-    GuestTyping.add_var env (fd.ff_name, ty)
+    GuestTyping.add_var ~global:true env (fd.ff_name, ty)  (* Global (generalisable) type here *) 
 
   (* Typing constant declarations *)
 
@@ -280,7 +283,7 @@ struct
     let ty' = GuestTyping.type_expression env cd.cc_val in
     GuestTyping.type_check ~loc:loc ty ty';
     c.A.typ <- ty;
-    GuestTyping.add_var env (cd.cc_name, ty)
+    GuestTyping.add_var ~global:true env (cd.cc_name, ty) (* Global (generalisable) type here *)
 
   let pp_env fmt env = GuestTyping.pp_env fmt env
 

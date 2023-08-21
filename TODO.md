@@ -1,8 +1,8 @@
 COMPILER
 
-- get rid of type schemes since type (and size) variables occuring in types will _always_ be generalized  (?)
-- replace `Misc.clone` by a proper model copying fn (using `Types.copy`)
-- fix local vs. global bug (ex: examples/simple/single/heron); get rid of `localize_env` and `scope` field in `Ident.t` (?)
+- remove scope in Ident.t
+- fix systemc globals/{c,h} generation bug (see examples/szvars/tests/generic_const for ex)
+- move Undefined exc defn and catch from guests to host
 - replace `Guest.Types.print_full_types` by an optional arg to `pp_typ`
 - make `abbrev` arg to `pp_typ` optional (check whether it is really useful)
 - code cleanup

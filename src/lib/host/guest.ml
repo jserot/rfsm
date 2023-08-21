@@ -74,7 +74,9 @@ module type TYPING = sig
   val mk_env: unit -> env
   val localize_env: env -> env
   val lookup_var: loc:Location.t -> Ident.t -> env -> Types.typ
-  val add_var: env -> Ident.t * Types.typ -> env
+  val add_var: ?global:bool -> env -> Ident.t * Types.typ -> env
+    (* If the added type contains variables, these variables will be generalized if global is true.
+       By default, global=false. *)
   val add_param: env -> Ident.t * Syntax.expr -> env
   (* TODO : add_prim, add_constr, ... *)
   val pp_env: Format.formatter -> env -> unit
