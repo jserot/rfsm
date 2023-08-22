@@ -370,7 +370,7 @@ struct
       (* Since pre-processing is carried out _before_ typing, the only type-related available information
          is given by the type expressions assigned to identifiers in the enclosing model *)
       try List.assoc v env
-      with Not_found -> raise (Misc.Undefined ("symbol",loc,Ident.to_string v)) 
+      with Not_found -> raise (Ident.Undefined ("symbol",loc,v)) 
 
   let rec ppr_model m = { m with Annot.desc = ppr_model_desc m.Annot.desc }
   and ppr_model_desc m =

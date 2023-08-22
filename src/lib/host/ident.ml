@@ -8,6 +8,9 @@ type t = {
     scope: scope;
     id: string
     }
+
+exception Undefined of string * Location.t * t 
+exception Duplicate of string * Location.t * t
                      
 let mk ?(scope=Local) id = { scope=scope; id=id }
 

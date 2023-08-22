@@ -194,10 +194,10 @@ struct
      *   Ident.pp name (Misc.pp_list_h pp_typed_param) params; *)
     let lookup_model name =
       try List.find (fun { A.desc = m; _ } -> m.name = name) p.models
-      with Not_found -> raise (Misc.Undefined ("symbol",loc,Ident.to_string name)) in
+      with Not_found -> raise (Ident.Undefined ("symbol",loc,name)) in
     let lookup_io name =
       try List.find (fun { A.desc = (id,_,_,_); _ } -> id = name) p.globals
-      with Not_found -> raise (Misc.Undefined ("symbol",loc,Ident.to_string name)) in
+      with Not_found -> raise (Ident.Undefined ("symbol",loc,name)) in
     let unify_cat cat cat' = match cat, cat' with
       (* Check that an Input (resp. Output) is not plugged on an Output (resp. Input) *)
       | Input, Output -> raise (Illegal_inst loc)

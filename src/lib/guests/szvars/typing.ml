@@ -20,8 +20,6 @@ let mk_env () =
 (* let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars } *)
 let localize_env env = env
 
-exception Undefined of string * Location.t * Rfsm.Ident.t
-exception Duplicate of string * Location.t * Rfsm.Ident.t
 exception Illegal_cast of Syntax.expr
 exception Illegal_expr of Location.t * string
 
@@ -30,13 +28,13 @@ let lookup ~exc v env =
   with Not_found -> raise exc
 
 let lookup_var ~loc v env =
-  Types.type_instance @@ lookup ~exc:(Undefined ("symbol",loc,v)) v env.te_vars
+  Types.type_instance @@ lookup ~exc:(Rfsm.Ident.Undefined ("symbol",loc,v)) v env.te_vars
 let lookup_tycon ~loc v env =
-  lookup ~exc:(Undefined ("type constructor",loc,v)) v env.te_tycons
+  lookup ~exc:(Rfsm.Ident.Undefined ("type constructor",loc,v)) v env.te_tycons
 let lookup_ctor ~loc v env =
-  lookup ~exc:(Undefined ("value constructor",loc,v)) v env.te_ctors
+  lookup ~exc:(Rfsm.Ident.Undefined ("value constructor",loc,v)) v env.te_ctors
 let lookup_rfield ~loc v env =
-  lookup ~exc:(Undefined ("record field",loc,v)) v env.te_rfields
+  lookup ~exc:(Rfsm.Ident.Undefined ("record field",loc,v)) v env.te_rfields
 
 let add_var ?(global=false) env (v,ty) =
   let ts = if global then Types.generalize ty else Types.trivial_scheme ty in
@@ -121,7 +119,7 @@ let rec type_expression env e =
        | TyRecord (_,fs) ->
           begin
             try List.assoc f fs
-            with Not_found -> raise (Undefined ("record field",e.Annot.loc, Rfsm.Ident.mk f))
+            with Not_found -> raise (Rfsm.Ident.Undefined ("record field",e.Annot.loc, Rfsm.Ident.mk f))
           end
        | ty ->
           raise (Illegal_expr (e.Annot.loc, "not a record"))
@@ -130,7 +128,7 @@ let rec type_expression env e =
      Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty record extension" (* should not happen *)
   | Syntax.ERecordExt ((f,_)::_ as fs) -> 
      let f' = Rfsm.Ident.(mk ~scope:Global f) in
-     let _, ty_r = lookup ~exc:(Undefined ("record field name",e.Annot.loc,Rfsm.Ident.mk f)) f' env.te_rfields in
+     let _, ty_r = lookup ~exc:(Rfsm.Ident.Undefined ("record field name",e.Annot.loc,Rfsm.Ident.mk f)) f' env.te_rfields in
      let name = match ty_r with
        | TyRecord(name, _) -> name
        | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_expression" in
@@ -182,14 +180,14 @@ and type_cast e t1 t2 = match t1, t2 with
   | _, _ -> raise (Illegal_cast e)
 
 let type_type_decl env td =
-  let add_tycon ty env (name,arity) = add_env (Duplicate ("type constructor", td.Annot.loc, name)) env (name,(arity,ty)) in
+  let add_tycon ty env (name,arity) = add_env (Rfsm.Ident.Duplicate ("type constructor", td.Annot.loc, name)) env (name,(arity,ty)) in
   let add_ctor ty env name =
     let nm = Rfsm.Ident.(mk ~scope:Global name) in
-    add_env (Duplicate ("value constructor", td.Annot.loc, nm)) env (nm,ty) in
+    add_env (Rfsm.Ident.Duplicate ("value constructor", td.Annot.loc, nm)) env (nm,ty) in
   let add_rfield ty lenv (name,te) =
     let ty' = type_of_type_expr env te in 
     let nm = Rfsm.Ident.(mk ~scope:Global name) in
-    add_env (Duplicate ("record field name", td.Annot.loc, nm)) lenv (nm,(ty',ty)) in
+    add_env (Rfsm.Ident.Duplicate ("record field name", td.Annot.loc, nm)) lenv (nm,(ty',ty)) in
   let ty,env' = match td.Annot.desc with
     | Syntax.TD_Enum (name, ctors) -> 
        let ty = Types.TyConstr (name.Rfsm.Ident.id, [], SzNone) in
@@ -219,7 +217,7 @@ let type_lhs env l =
        | TyRecord (_,fs) -> 
           begin
             try List.assoc f fs 
-            with Not_found -> raise (Undefined ("record field",l.Annot.loc,Syntax.mk_global_ident f))
+            with Not_found -> raise (Rfsm.Ident.Undefined ("record field",l.Annot.loc,Syntax.mk_global_ident f))
           end
        | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_lhs"
        end

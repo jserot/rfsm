@@ -233,7 +233,7 @@ and subst_size_expr ~loc phi sz =
      begin match List.assoc_opt p phi with
      | Some { Annot.desc = EInt n; _ } -> SzConst n 
      | Some _ -> raise (Invalid_parameter (loc,p))
-     | None -> raise (Rfsm.Misc.Undefined ("parameter",loc,Rfsm.Ident.to_string p))
+     | None -> raise (Rfsm.Ident.Undefined ("parameter",loc,p))
      end
   | _ -> sz
        

@@ -1,10 +1,6 @@
 COMPILER
 
-- move Undefined exc defn and catch from guests to host
-- replace `Guest.Types.print_full_types` by an optional arg to `pp_typ`
-- make `abbrev` arg to `pp_typ` optional (check whether it is really useful)
 - code cleanup
-- Add a "org" field to ident's (to keep track of name before substitution) (?)
 - Fix substitution of array parameters or simply restrict parameters to scalar (?)
   (see Note `src/lib/guests/simple/syntax.ml/subst_expr` and `examples/simple/single/fir`)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)

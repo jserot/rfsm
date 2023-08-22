@@ -5,6 +5,9 @@ type t = {
     id: string
     }
 
+exception Undefined of string * Location.t * t (** What, where, identifier *) 
+exception Duplicate of string * Location.t * t (** What, where, identifier *) 
+
 val mk: ?scope:scope -> string -> t
 
 val mk_global: t -> t

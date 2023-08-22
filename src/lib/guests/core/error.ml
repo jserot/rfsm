@@ -12,10 +12,6 @@ let handle e =
   | Types.Type_conflict (loc,ty,ty') ->
       eprintf "%aTyping error: cannot unify types %a and %a\n"
         pp_loc loc (Types.pp_typ ~abbrev:false) ty (Types.pp_typ ~abbrev:false) ty'; exit 2
-  | Typing.Undefined (what,loc,s) -> 
-      eprintf "%aUndefined %s: %a\n" pp_loc loc what Rfsm.Ident.pp s; exit 2
-  | Typing.Duplicate (what,loc,x) -> 
-      eprintf "%aDuplicate %s: %a\n" pp_loc loc what Rfsm.Ident.pp x; exit 2
   | Eval.Uninitialized loc -> 
       eprintf "%aUninitialized value\n" pp_loc loc; exit 2
   | Value.Unsupported_vcd v ->
