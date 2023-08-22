@@ -31,7 +31,9 @@ let lookup_var ~loc v env =
 let lookup_ctor ~loc v env =
   lookup ~exc:(Undefined ("value constructor",loc,v)) v env.te_ctors
 
-let add_var env (v,ty) = { env with te_vars = Env.add v (Types.generalize ty) env.te_vars }
+let add_var ?(global=false) env (v,ty) =
+  let ts = if global then Types.generalize ty else Types.trivial_scheme ty in
+  { env with te_vars = Env.add v ts env.te_vars }
 let add_param env _ = env (* No parameter in the [core] guest language *)
 
 let pp_env fmt e = 

@@ -362,11 +362,12 @@ struct
 
   let dump_cst_decl fmt { Annot.desc = c; _ } = (* Idem CTask *)
     let open Static.Syntax in
-    G.pp_cst_decl fmt c.cc_name c.cc_typ  (* Cannot do more due to the idiosyncrasies of C type declarations.. *)
+    Format.fprintf fmt "extern %a;\n" G.pp_typed_symbol (c.cc_name,c.cc_typ) 
 
   let dump_cst_impl fmt { Annot.desc = c; _ } =
     let open Static.Syntax in
-    G.pp_cst_impl fmt c.cc_name c.cc_typ c.cc_val  (* Cannot do more due to the idiosyncrasies of C type declarations.. *)
+    Format.fprintf fmt "%a = %a;\n" G.pp_typed_symbol (c.cc_name,c.cc_typ) G.pp_expr c.cc_val
+    (* G.pp_cst_impl fmt c.cc_name c.cc_typ c.cc_val  (\* Cannot do more due to the idiosyncrasies of C type declarations.. *\) *)
 
   let dump_type_impl fmt td =
     G.pp_type_impl fmt td 
@@ -381,7 +382,7 @@ struct
     List.iter (fun td -> Format.fprintf ocf "%a\n" G.pp_type_decl td) s.types;
     List.iter (dump_fun_decl ocf) s.fns;
     List.iter (dump_cst_decl ocf) s.csts;
-    fprintf ocf "#endif@.";
+    fprintf ocf "#endif\n";
     Misc.close_file (oc,ocf);
     output_files := fname :: !output_files
 

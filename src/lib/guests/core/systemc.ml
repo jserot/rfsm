@@ -66,11 +66,11 @@ let pp_value fmt v =
 let pp_typed_symbol fmt (name,t) =
   fprintf fmt "%a %a" pp_typ t.Syntax.Annot.typ Rfsm.Ident.pp name 
 
-let pp_cst_decl fmt name t = ()
-  (* There's no constant declaration for the Core guest language *)
-
-let pp_cst_impl fmt name t v = ()
-  (* There's no constant declaration for the Core guest language *)
+(* let pp_cst_decl fmt name t = ()
+ *   (\* There's no constant declaration for the Core guest language *\)
+ * 
+ * let pp_cst_impl fmt name t v = ()
+ *   (\* There's no constant declaration for the Core guest language *\) *)
 
 let pp_type_decl fmt td = ()
   (* There's no type declaration for the Core guest language *)
