@@ -1,6 +1,6 @@
 .PHONY: doc tests
 
-all: host guests doc
+all: host guests # doc
 
 host:
 	dune build src/lib/host/rfsm.cma
