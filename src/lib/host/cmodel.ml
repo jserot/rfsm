@@ -27,16 +27,13 @@ module type CMODEL = sig
       c_name: Ident.t;  (* Instance name *)
       c_states: c_state list;
       c_params: (Ident.t * type_expr) list;
-      (* c_consts: (Ident.t * (type_expr * Static.Value.t)) list; *)
       c_inps: (Ident.t * type_expr) list;
       c_outps: (Ident.t * type_expr) list;
       c_inouts: (Ident.t * type_expr) list;
       c_vars: (Ident.t * type_expr) list;  
       c_init: Static.Syntax.itransition_desc;
       c_body: c_state_case list;
-      (* c_body = [case_1;...;case_n]
-       means
-        "while ( 1 ) { switch ( [state] ) { [case_1]; ...; [case_n] } }" *)
+      (* c_body = [case_1;...;case_n] means "while ( 1 ) { switch ( [state] ) { [case_1]; ...; [case_n] } }" *)
       c_ddepth: int  (* depth in the static dependency graph induced by shared variables *)
     }
 
@@ -58,7 +55,7 @@ module type CMODEL = sig
 end
 
 module Make (Static: Static.T)
-       : CMODEL with module Static = Static and type typ = Static.Syntax.typ (*and type value = Static.Value.t*) =
+       : CMODEL with module Static = Static and type typ = Static.Syntax.typ =
 struct
 
   module Static = Static
@@ -83,14 +80,13 @@ struct
       c_name: Ident.t; 
       c_states: c_state list;
       c_params: (Ident.t * type_expr) list;
-      (* c_consts: (Ident.t * (type_expr * Static.Value.t)) list; *)
       c_inps: (Ident.t * type_expr) list;
       c_outps: (Ident.t * type_expr) list;
       c_inouts: (Ident.t * type_expr) list;
       c_vars: (Ident.t * type_expr) list;  
       c_init: Static.Syntax.itransition_desc;
       c_body: c_state_case list;
-      c_ddepth: int  (* depth in the dependency graph *)
+      c_ddepth: int 
     } [@@deriving show {with_path=false}]
 
   and c_state = Ident.t * (Ident.t * expr) list  [@@deriving show {with_path=false}]
@@ -139,37 +135,5 @@ struct
     let open Static in
     let m = f.model.Annot.desc in 
     of_model ~dep_order:(List.assoc f.name s.dep_order ) ~mname:m.name ~name:f.name m
-
-  (* let of_fsm_model { Annot.desc = m; _ } =
-   *   { c_mname = m.name;
-   *     c_name = m.name;
-   *     c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
-   *     c_params = m.params;
-   *     (\* c_consts = []; *\)
-   *     c_inps = m.inps;
-   *     c_outps = m.outps;
-   *     c_inouts = m.inouts;
-   *     c_vars = m.vars;
-   *     c_init = m.itrans.Annot.desc;
-   *     c_body = List.map (mk_state_case m) m.states;
-   *     c_ddepth = 0; (\* Not applicable to models, only to instances *\)
-   *   } *)
-
-  (* let of_fsm_inst s f = 
-   *   let open Static in 
-   *   let m = f.model.Annot.desc in 
-   *   { c_mname = m.name;
-   *     c_name = f.name;
-   *     c_states = List.map (fun { Annot.desc=d; _ } -> d) m.states;
-   *     c_params = []; (\* TOFIX : is this not c_consts ? *\)
-   *     (\* c_consts = List.map2 (fun (id,ty) (_,v) -> (id,(ty,v))) m.params (Env.bindings f.params); *\)
-   *     c_inps = m.inps;
-   *     c_outps = m.outps;
-   *     c_inouts = m.inouts;
-   *     c_vars = m.vars; 
-   *     c_init = m.itrans.Annot.desc;
-   *     c_body = List.map (mk_state_case m) m.states;
-   *     c_ddepth = List.assoc f.name s.dep_order 
-   *   } *)
 
 end

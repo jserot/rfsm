@@ -174,7 +174,7 @@ let rec pp_value fmt (v,ty) =
   | Value.Val_char f, _ -> pp_char fmt f
   | Value.Val_bool b, _ -> pp_bool fmt b
   | Value.Val_enum s, _ -> fprintf fmt "%s%s" Rfsm.Vhdl_types.cfg.vhdl_enum_prefix s
-  | Value.Val_fn _, _ -> Rfsm.Misc.not_implemented "Full.VHDL: translation of function value"
+  | Value.Val_fn _, _ -> Rfsm.Misc.not_implemented "Guest.VHDL: translation of function value"
   | Value.Val_unknown, _ -> fprintf fmt "<unknown>"
   | Value.Val_array vs, Array (n,t') ->
      let pp_value' fmt v = pp_value fmt (v,t') in
@@ -184,7 +184,7 @@ let rec pp_value fmt (v,ty) =
      fprintf fmt "(%a)"
        (Rfsm.Misc.pp_list_h ~sep:"," pp_value') (List.map2 (fun (_,v) (_,t) -> v,t) fs ts)
   | _, _ ->
-     Rfsm.Misc.fatal_error "Full.Vhdl.pp_value"
+     Rfsm.Misc.fatal_error "Guest.Vhdl.pp_value"
 
 let pp_enum_type_defn fmt (name,ctors) = 
   let pp_ctor fmt c = fprintf fmt "%s%s" Rfsm.Vhdl_types.cfg.vhdl_enum_prefix c in

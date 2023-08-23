@@ -43,8 +43,6 @@ let pp_expr fmt e =
     match id.scope with
     | Global -> fprintf fmt "%s.read()" id.id
     | Local -> fprintf fmt "%s" id.id
-    (* if List.mem id inps then fprintf fmt "%a.read()" pp_ident id
-     * else fprintf fmt "%a" pp_ident id *)
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
@@ -65,12 +63,6 @@ let pp_value fmt v =
 
 let pp_typed_symbol fmt (name,t) =
   fprintf fmt "%a %a" pp_typ t.Syntax.Annot.typ Rfsm.Ident.pp name 
-
-(* let pp_cst_decl fmt name t = ()
- *   (\* There's no constant declaration for the Core guest language *\)
- * 
- * let pp_cst_impl fmt name t v = ()
- *   (\* There's no constant declaration for the Core guest language *\) *)
 
 let pp_type_decl fmt td = ()
   (* There's no type declaration for the Core guest language *)

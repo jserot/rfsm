@@ -49,19 +49,19 @@ let encode_int n =
 let decode_int = function
   | Value.Val_int (n,_) -> n
   | Val_unknown -> raise Unknown_value
-  | _ -> Rfsm.Misc.fatal_error "Full.Builtins.decode_int" (* Should not occur after TC *)
+  | _ -> Rfsm.Misc.fatal_error "Guest.Builtins.decode_int" (* Should not occur after TC *)
 let encode_bool b =
     Value.Val_bool b
 let decode_bool = function
   | Value.Val_bool b -> b
   | Value.Val_unknown -> raise Unknown_value
-  | _ -> Rfsm.Misc.fatal_error "Full.Builtins.decode_bool" (* Should not occur after TC *)
+  | _ -> Rfsm.Misc.fatal_error "Guest.Builtins.decode_bool" (* Should not occur after TC *)
 let encode_float n =
     Value.Val_float n
 let decode_float = function
   | Value.Val_float n -> n
   | Value.Val_unknown -> raise Unknown_value
-  | _ -> Rfsm.Misc.fatal_error "Full.Builtins.decode_float" (* Should not occur after TC *)
+  | _ -> Rfsm.Misc.fatal_error "Guest.Builtins.decode_float" (* Should not occur after TC *)
 
 let prim2 encode op decode =
   function
@@ -70,7 +70,7 @@ let prim2 encode op decode =
         try encode (op (decode v1) (decode v2))
         with Unknown_value -> Value.Val_unknown
       end
-   | _ -> Rfsm.Misc.fatal_error "Full3.Builtins.prim2"
+   | _ -> Rfsm.Misc.fatal_error "Guest.Builtins.prim2"
 
 let prim1 encode op decode =
   function
@@ -79,7 +79,7 @@ let prim1 encode op decode =
         try encode (op (decode v))
         with Unknown_value -> Value.Val_unknown
       end
-   | _ -> Rfsm.Misc.fatal_error "Full3.Builtins.prim1"
+   | _ -> Rfsm.Misc.fatal_error "Guest.Builtins.prim1"
 
 let tprim2 n op =
   let decode v = match v with
@@ -93,7 +93,7 @@ let tprim2 n op =
           encode_bool (op (decode v1) (decode v2))
         with Unknown_value -> Val_unknown
       end
-   | _ -> Rfsm.Misc.fatal_error "Full3.Builtins.tprim2"
+   | _ -> Rfsm.Misc.fatal_error "Guest.Builtins.tprim2"
 
 type prim = Value.t list -> Value.t
           
@@ -155,4 +155,4 @@ let eval_env = List.map (fun (id, desc) -> mk_ident id, snd desc) env
 
 let lookup id env =
   try List.assoc id env
-  with Not_found -> Rfsm.Misc.fatal_error "Full3.Builtins.lookup" (* Should not occur after TC *)
+  with Not_found -> Rfsm.Misc.fatal_error "Guest.Builtins.lookup" (* Should not occur after TC *)

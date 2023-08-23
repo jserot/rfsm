@@ -17,9 +17,6 @@ let mk_env () =
     te_ctors = Env.init Builtins.typing_env.ctors;
     te_rfields = Env.empty; }
 
-let localize_env env =  env
-(* let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars } *)
-
 exception Illegal_cast of Syntax.expr
 exception Illegal_expr of Location.t * string
 
@@ -79,10 +76,9 @@ let rec type_expression env e =
     | Syntax.ECon0 c -> lookup_ctor ~loc:e.Annot.loc c env
     | Syntax.EIndexed (a,i) ->
        let r = type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *) in
-       (* Format.printf "Full2.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
        r
     | Syntax.ERanged (a,i1,i2) -> type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lhs *)
-    | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty array" (* should not happen *)
+    | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Guest.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 
        let ty_e1 = type_expression env e1 in
        List.iter (function e -> Types.unify ~loc ty_e1 (type_expression env e)) es;
@@ -113,13 +109,13 @@ let rec type_expression env e =
           raise (Illegal_expr (e.Annot.loc, "not a record"))
      end 
   | Syntax.ERecordExt [] -> 
-     Rfsm.Misc.fatal_error "Full.Typing.type_expression: empty record extension" (* should not happen *)
+     Rfsm.Misc.fatal_error "Guest.Typing.type_expression: empty record extension" (* should not happen *)
   | Syntax.ERecordExt ((f,_)::_ as fs) -> 
      let f' = Rfsm.Ident.(mk ~scope:Global f) in
      let _, ty_r = lookup_rfield ~loc:e.Annot.loc f' env in
      let name = match ty_r with
        | TyRecord(name, _) -> name
-       | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_expression" in
+       | _ -> Rfsm.Misc.fatal_error "Guest.Typing.type_expression" in
      let ty_fs = List.map (fun (n,e) -> n, type_expression env e) fs in
      Types.TyRecord (name, ty_fs)
   in
@@ -206,7 +202,7 @@ let type_lhs env l =
             try List.assoc f fs 
             with Not_found -> raise (Rfsm.Ident.Undefined ("record field",l.Annot.loc,Syntax.mk_global_ident f))
           end
-       | _ -> Rfsm.Misc.fatal_error "Full.Typing.type_lhs"
+       | _ -> Rfsm.Misc.fatal_error "Guest.Typing.type_lhs"
        end
   in
   l.Annot.typ <- ty;

@@ -101,9 +101,9 @@ and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc
 type lhs = (lhs_desc,Types.typ) Annot.t
 and lhs_desc = 
   | LhsVar of ident
-  | LhsIndex of ident * expr (* a[i] *)
+  | LhsIndex of ident * expr         (* a[i] *)
   | LhsRange of ident * expr * expr  (* v[hi:lo] := ... when v is an int *)
-  | LhsRField of ident * string             (* v.field_name when v has a record type *)
+  | LhsRField of ident * string      (* v.field_name when v has a record type *)
 
 let rec pp_lhs_desc ~pp_ident fmt l = match l with
   | LhsVar v -> Format.fprintf fmt "%a" pp_ident v
@@ -200,7 +200,7 @@ let rec subst_expr phi e =
   | EVar v -> if List.mem_assoc v phi then List.assoc v phi else e
   | EInt _ | EBool _ | EFloat _ | EChar _ | ECon0 _ -> e
   | EBinop (op,e1,e2) -> subst e (EBinop (op, subst_expr phi e1, subst_expr phi e2))
-  | EIndexed (a,i) -> (* TO FIX ! *)
+  | EIndexed (a,i) -> 
      (* Note. In the current system, we can apply a substitution like ["a"->{1,2,1}] to an expression like [a[i]],
         only when [i] is a litteral constant. For ex
           subst_expr ["a"->{1,2,1}] "a[1]" = "2"
@@ -263,12 +263,11 @@ let ppr_expr env e =
     (* Since pre-processing is carried out _before_ typing, the only type-related available information
        is given by the type expressions assigned to identifiers in the enclosing model *)
     try List.assoc v env
-    with Not_found -> Rfsm.Misc.fatal_error "Full.Syntax.ppr_expr" in
+    with Not_found -> Rfsm.Misc.fatal_error "Guest.Syntax.ppr_expr" in
   let has_bool_type v = is_bool_type (type_of v) in
   match e.Annot.desc with
   | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e'') when List.mem op.Rfsm.Ident.id ["="; "!="] && has_bool_type v  ->  
        let e''' = { e with Annot.desc = EBinop (op, e', mk_bool_expr (type_of v) e'') } in
-       (* Format.printf "Full.Syntax.ppr_expr: %a(%a) -> %a\n" pp_expr e pp_type_expr (type_of v) pp_expr e'''; *)
        e'''
   | _ -> e
 

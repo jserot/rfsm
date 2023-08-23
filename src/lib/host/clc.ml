@@ -68,9 +68,6 @@ struct
        let fs = Dot.output_static ~dir:!Options.target_dir ~name:!Options.main_prefix s in
        List.iter Logfile.write fs
     | Some Options.CTask ->
-       (* let cms = List.map Cmodel.c_model_of_fsm_model s.Static.models in
-        * List.iter (fun m -> Format.printf "%a@." Cmodel.pp m) cms *)
-       (* Ctask.check_allowed s; *)
        Misc.check_dir !Options.target_dir;
        let fs = Ctask.output ~dir:!Options.target_dir s in
        List.iter Logfile.write fs
@@ -82,17 +79,6 @@ struct
        Misc.check_dir !Options.target_dir;
        let fs = Vhdl.output ~dir:!Options.target_dir ~pfx:!Options.main_prefix s in
        List.iter Logfile.write fs
-       (* Misc.check_dir !Options.target_dir;
-        * Vhdl.check_allowed_system s;
-        * if Vhdl.need_globals s then Vhdl.dump_globals ~dir:!Options.target_dir s;
-        * if has_testbench then begin
-        *     List.iter (Vhdl.dump_fsm_inst ~dir:!Options.target_dir s) s.Static.m_fsms;
-        *     Vhdl.dump_toplevel ~name:name ~dir:!Options.target_dir s;
-        *     Vhdl.dump_testbench ~name:name ~dir:!Options.target_dir s;
-        *     Vhdl.dump_makefile ~name:name ~dir:!Options.target_dir s
-        *   end
-        * else
-        *   List.iter (Vhdl.dump_fsm_model ~dir:!Options.target_dir) s.Static.m_models *)
     | Some Options.Sim ->
        if s.fsms <> [] then
          let vcd_file = !Options.target_dir ^ "/" ^ !Options.main_prefix ^ ".vcd" in
@@ -156,12 +142,6 @@ struct
        eprintf "%aSystemC backend; cannot assign non-scalar output %s\n" pp_location loc id; exit 2
     | L.Vhdl.Invalid_output_assign (id,loc) ->
        eprintf "%aVHDL backend; cannot assign non-scalar output %s\n" pp_location loc id; exit 2
-    (* | L.Vhdl.No_event_input m ->
-     *    eprintf "VHDL backend; no event input (and hence no possible clock) for model %a\n" Ident.pp m; exit 2 *)
-    (* | L.Vhdl.Invalid_shared_type (id,ty) ->
-     *    eprintf "Shared variable %a has type %a, which is not supported by the VHDL backend\n" Ident.pp id pp_typ ty; exit 2
-     * | L.Vhdl.Multiple_writers id ->
-     *    eprintf "Shared variable %a has multiple writers, which is not supported by the VHDL backend\n" Ident.pp id; exit 2 *)
     | Misc.Not_implemented msg ->
        eprintf "Not implemented: %s.\n" msg; flush stderr; exit 22
     | Misc.Fatal_error msg ->

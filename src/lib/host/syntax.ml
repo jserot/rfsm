@@ -305,7 +305,6 @@ struct
   let subst_param_cond phi c = match c.Annot.desc with 
     | (ev,guards) ->
        let c' = { c with desc = ev, List.map (Guest.subst_expr phi) guards } in
-       (* Format.printf "Syntax.subst_param_cond(%a) : %a -> %a\n" (Subst.pp pp_expr) phi pp_cond c pp_cond c'; *)
        c'
   
   let subst_param_iov phi (id,ty) = id, Guest.subst_type_expr phi ty
@@ -332,7 +331,6 @@ struct
       itrans = subst_param_itransition phi m.itrans })
     (Fun.id)
     m
-
 
   (* Moore-Mealy conversion *)
 

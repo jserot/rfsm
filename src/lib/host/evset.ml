@@ -3,10 +3,8 @@
 module type T = sig
   
   module Event: Event.T
-  (* module Evset: Set.S with type elt = Event.t *)
 
   type date = int 
-  (* type t = date * Evset.t *)
   type t
 
   exception Union of t * t

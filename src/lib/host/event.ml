@@ -14,7 +14,7 @@ end
 
 module Make
          (GS: Guest.SYNTAX)
-         (GV: Guest.VALUE (*with type typ = GS.Types.typ*))
+         (GV: Guest.VALUE)
        : T with module Syntax = GS
             and module Value = GV =
 struct

@@ -13,7 +13,7 @@ made bound checking not always tractable.
 because they "ground" values are _integers_ and not _types_ (one could use the classical
 type-encoded values trick - e.g. `type _sz8; ...; int<8> = _sz8 int` - but this is really a
 hack
-- in the current version, one cannot do _computations_ on int sizes (e.g. `int<n+1>`)
+- it is not possible to do _computations_ on int sizes (e.g. `int<n+1>`)
 - the same mechanism is applied to array sizes
 
 More formally :

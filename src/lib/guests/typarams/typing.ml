@@ -80,7 +80,6 @@ and size_of_size_expr env ~loc c se =
   let size_val_of s = match s with
   | Syntax.SzConst c -> Types.SzConst c
   | Syntax.SzParam i -> 
-     (* SzConst (lookup ~exc:(Rfsm.Misc.Undefined ("type size parameter",loc,p)) p env.te_params) in *)
      if Env.mem i env.te_params
      then Types.SzConst (Env.find i env.te_params)   (* When typing FSM instances, resolve type parameters *)
      else Types.SzParam i in                         (* When typing FSM models *)
@@ -102,20 +101,14 @@ let rec type_expression env e =
     | Syntax.EChar _ -> Types.type_char ()
     | Syntax.EBinop (op,e1,e2) ->
        let ty_fn = lookup_var ~loc:e.Annot.loc op env in
-       (* Format.printf "Guest.type_expression: typing %a with type(<)=%a gives %a@."
-        *   Syntax.pp_expr e
-        *   Types.pp_typ_scheme (Env.find (Rfsm.Ident.mk ~scope:Global "<") env.te_prims)
-        *   (Types.pp_typ ~abbrev:false) ty_fn; *)
        let ty_args = List.map (type_expression env) [e1;e2] in
        type_application ~loc:e.Annot.loc env ty_fn ty_args
     | Syntax.ECon0 c -> lookup_ctor ~loc:e.Annot.loc c env
     | Syntax.EIndexed (a,i) ->
        let r = type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *) in
-       (* Format.printf "Guest.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
        r
     | Syntax.ERanged (a,i1,i2) ->
        let r = type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lhs *) in
-       (* Format.printf "Guest.Typing: %a -> %a\n" Syntax.pp_expr e (Types.pp_typ ~abbrev:false)  r; *)
        r
     | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Guest.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 

@@ -23,7 +23,7 @@ let lookup ~loc x env =
   | Val_unknown -> raise (Uninitialized (Rfsm.Ident.to_string x,loc))
   | v -> v
   | exception Not_found ->
-     raise (Rfsm.Misc.Fatal_error "Full.Eval.lookup") (* Should not occur after TC *)
+     raise (Rfsm.Misc.Fatal_error "Guest.Eval.lookup") (* Should not occur after TC *)
 
 let rec eval_expr env e = match e.Annot.desc with
   | Syntax.EVar v -> lookup ~loc:e.Annot.loc v env
@@ -44,7 +44,7 @@ let rec eval_expr env e = match e.Annot.desc with
         let bounds = eval_bounds sz in
         let i = eval_expr_index a ~bounds env idx in  
         Val_int (Rfsm.Bits.get_bits ~hi:i ~lo:i x, [1])
-     | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: EIndexed" (* Should not occur after TC *)
+     | _ -> Rfsm.Misc.fatal_error "Guest.Eval.eval_expr: EIndexed" (* Should not occur after TC *)
      end
   | Syntax.ERanged (a,idx1,idx2) ->
      begin
@@ -56,14 +56,14 @@ let rec eval_expr env e = match e.Annot.desc with
           (* Val_int (Rfsm.Bits.get_bits ~hi ~lo x, [hi-lo+1]) *)
           Val_int (Rfsm.Bits.get_bits ~hi ~lo x, sz)
        | _ ->
-          Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERanged" (* Should not occur after TC *)
+          Rfsm.Misc.fatal_error "Guest.Eval.eval_expr: ERanged" (* Should not occur after TC *)
      end
   | Syntax.EArrExt es -> Val_array (Array.of_list (List.map (eval_expr env) es))
   | Syntax.ECond (e1, e2, e3) ->
      begin match eval_expr env e1 with
        | Val_bool true -> eval_expr env e2
        | Val_bool false -> eval_expr env e3
-       | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr.ECond"
+       | _ -> Rfsm.Misc.fatal_error "Guest.Eval.eval_expr.ECond"
      end
   | Syntax.ECast (e,te) ->
      let v = eval_expr env e in
@@ -84,10 +84,10 @@ let rec eval_expr env e = match e.Annot.desc with
          | Val_record vs -> 
             begin
               try List.assoc f vs
-              with Not_found -> Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERrecord"
+              with Not_found -> Rfsm.Misc.fatal_error "Guest.Eval.eval_expr: ERrecord"
             end
          | v ->
-            Rfsm.Misc.fatal_error "Full.Eval.eval_expr: ERrecord"
+            Rfsm.Misc.fatal_error "Guest.Eval.eval_expr: ERrecord"
        end
     | Syntax.ERecordExt fs ->
        Val_record (List.map (fun (n,e) -> n, eval_expr env e) fs)
@@ -101,7 +101,7 @@ and eval_expr_index a ~bounds:(lo,hi) env idx =
   | Val_int (i,_) ->
      if i >= lo && i <= hi then i
      else raise (Out_of_bound (idx.Annot.loc, i, lo, hi))
-  | _ -> raise (Rfsm.Misc.fatal_error "Full.Eval.eval_array_index") (* Should not occur after TC *)
+  | _ -> raise (Rfsm.Misc.fatal_error "Guest.Eval.eval_array_index") (* Should not occur after TC *)
 
 and eval_bounds sz = 
   match sz with 
@@ -126,7 +126,7 @@ and eval_cast ~loc ty v =
 let eval_bool env e = 
   match eval_expr env e with
   | Val_bool b -> b
-  | _ -> Rfsm.Misc.fatal_error "Full.Eval.eval_bool" (* Should not occur after TC *)
+  | _ -> Rfsm.Misc.fatal_error "Guest.Eval.eval_bool" (* Should not occur after TC *)
 
 let upd_env lhs v env = 
   (* Note: bound checking (for arrays, ranged and sized integers) should take place here.
@@ -147,7 +147,7 @@ let upd_env lhs v env =
         let bounds = eval_bounds sz in
         let i = eval_expr_index x ~bounds env idx in
         Env.upd x (Val_int (Rfsm.Bits.set_bits ~hi:i ~lo:i ~dst v', sz)) env
-     | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
+     | _ -> Rfsm.Misc.fatal_error "Guest.Eval.upd_env"
      end
   | Syntax.LhsRange (x,idx1,idx2) ->
      begin
@@ -157,13 +157,13 @@ let upd_env lhs v env =
           let hi = eval_expr_index x ~bounds env idx1 in
           let lo = eval_expr_index x ~bounds env idx2 in
           Env.upd x (Val_int (Rfsm.Bits.set_bits ~hi ~lo ~dst v',sz)) env
-       | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
+       | _ -> Rfsm.Misc.fatal_error "Guest.Eval.upd_env"
      end
   | Syntax.LhsRField (r,f) ->
      begin match lookup ~loc:lhs.Annot.loc r env with
      | Val_record fs ->
         Env.upd r (Val_record (Rfsm.Misc.replace_assoc f v fs)) env
-     | _ -> Rfsm.Misc.fatal_error "Full.Eval.upd_env"
+     | _ -> Rfsm.Misc.fatal_error "Guest.Eval.upd_env"
      end
     in
     env'

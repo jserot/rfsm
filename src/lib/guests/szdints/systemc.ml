@@ -115,15 +115,6 @@ let pp_typed_symbol fmt (name,t) =
   | Types.TyConstr ("array", [t'], [sz]) -> fprintf fmt "%a %a[%d]" pp_typ t' pp_ident name sz
   | t -> fprintf fmt "%a %a" pp_typ t pp_ident name 
 
-(* let pp_cst_decl fmt name t = 
- *   let open Types in 
- *   match t.Syntax.Annot.typ with
- *   | TyConstr ("array",_,_) -> fprintf fmt "extern %a" pp_typed_symbol (name,t)
- *   | _ -> fprintf fmt "%a" pp_typed_symbol (name,t)
- * 
- * let pp_cst_impl fmt name t v = 
- *   fprintf fmt "%a = %a" pp_typed_symbol (name,t) pp_expr v *)
-
 let pp_record_type_defn fmt (name,fields) = 
   let pp_typed_name fmt (n,t) = fprintf fmt "%a" pp_typed_symbol (Rfsm.Ident.mk n,t) in
   let pp_rfield fmt (n,t) = fprintf fmt "%a;" pp_typed_symbol (Rfsm.Ident.mk n,t) in

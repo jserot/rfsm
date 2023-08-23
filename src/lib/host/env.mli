@@ -28,8 +28,6 @@ val iter : (Ident.t -> 'a -> unit) -> 'a t -> unit
 
 val map : ('a -> 'b) -> 'a t -> 'b t
 
-(* val localize: 'a t -> 'a t (\* Turn all keys to _local_ identifiers - TO FIX *\) *)
-
 val pp: ?sep:string -> ?vlayout:bool -> ?qual:bool -> (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 
 val pp_dom: pp_ident:(Format.formatter -> Ident.t -> unit) -> Format.formatter -> 'a t -> unit

@@ -9,15 +9,11 @@ let mk ~loc:l x = Annot.{ desc=x; typ=Types.no_type; loc=mk_location l }
 (** Type declarations *)
                 
 type type_decl_desc = unit (* No type declaration in the Core language *)
-  (* | TD_Enum of string * string list (\* Name, constructors *\) *)
 and type_decl = (type_decl_desc,Types.typ) Annot.t
 
 let mk_alias_type_decl _ = Rfsm.Misc.not_implemented "type declarations for the Core language"
 
 let rec pp_type_decl_desc fmt td = () (* No type declaration in the Core language *)
-(*   let open Format in
- *   match td with
- *   | TD_Enum (name,ctors) -> fprintf fmt "(\"%s\", enum { %a })" name (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors *)
 and pp_type_decl fmt td = Format.fprintf fmt "%a" pp_type_decl_desc td.Annot.desc
 
 (** Type expressions *)
@@ -71,7 +67,7 @@ let is_simple_lhs l = true (* Always, for the Core language *)
 
 let mk_simple_lhs v = Annot.{ desc=LhsVar v; typ=Types.no_type; loc=Location.no_location }
 
-let lhs_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's *)
+let lhs_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's ? *)
   let mk d = { l with Annot.desc = d } in
   let p s = pfx ^ "." ^ s in
   match l.Annot.desc with

@@ -18,7 +18,7 @@ let rec default_value ty = match ty with
      (* The initial value of an array is not "undefined" but an _array_ of undefined value *)
        Val_array (Array.make sz (default_value t'))
   | Types.TyConstr ("array", _, _) ->
-     Rfsm.Misc.fatal_error "Full.Value.default_value: cannot initialize unsized array"
+     Rfsm.Misc.fatal_error "Guest.Value.default_value: cannot initialize unsized array"
   | Types.TyRecord (_, fs) ->
      (* The initial value of a record is not "undefined" but a _record_ of undefined value *)
      Val_record (List.map (fun (f,ty) -> f, default_value ty) fs)

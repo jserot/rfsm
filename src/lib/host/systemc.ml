@@ -11,8 +11,6 @@
 
 (* SystemC backend *)
 
-(* exception Error of string * string  (\* where, msg *\) *)
-
 type sc_config = {
   mutable sc_lib_name: string;
   mutable sc_lib_dir: string;
@@ -54,7 +52,6 @@ module type SYSTEMC = sig
   module Static: Static.T
   module G: Guest.SYSTEMC
 
-  (* exception Error of string * string  (\* where, msg *\) *)
   exception Invalid_output_assign of string * Location.t
 
   val output: dir:string -> ?pfx:string -> Static.t -> string list 
@@ -79,7 +76,7 @@ struct
   let need_globals m = m.Static.types <> [] || m.Static.fns <> [] || m.Static.csts <> [] (* Idem CTask **)
 
   let scope modname id =
-    Ident.{ id with id = modname ^ "::" ^ id.id }  (* TODO: use implicit scoping in Ident *)
+    Ident.{ id with id = modname ^ "::" ^ id.id } 
 
   let pp_action tab m fmt a =
     let open Static in
@@ -115,7 +112,6 @@ struct
          tab
          (if is_first then "" else "else ")
          (Misc.pp_list_h ~sep:" && " G.pp_expr) guards;
-         (* (Misc.pp_list_h ~sep:" && " (G.pp_expr ~inps:(List.map fst m.c_inps))) guards; *)
        List.iter (pp_action (tab^"  ") m fmt) acts;
        if q' <> src then fprintf fmt "%s  %s = %a;\n" tab cfg.sc_state_var Ident.pp q';
        fprintf fmt "%s  }\n" tab
@@ -173,10 +169,6 @@ struct
     fprintf ocf "#include \"%s.h\"\n" cfg.sc_lib_name;
     if with_globals then fprintf ocf "#include \"%s.h\"\n" cfg.sc_globals_name;
     fprintf ocf "\n";
-    (* List.iter
-     *   (fun (id,(ty,v)) ->
-     *     fprintf ocf "const %a = %a;\n" (G.pp_typed_symbol) (scope modname id,ty) G.pp_value v)
-     *   m.Cmodel.c_consts; *)
     fprintf ocf "\n";
     if m.c_params <> [] then 
       fprintf ocf "template <%a>\n" (Misc.pp_list_h ~sep:"," G.pp_typed_symbol) m.c_params;
@@ -211,7 +203,6 @@ struct
     fprintf ocf "SC_MODULE(%s)\n" modname;
     fprintf ocf "{\n";
     fprintf ocf "  // Types\n";
-    (* if List.length m.c_states > 1 then *)
     fprintf ocf "  typedef enum { %a } t_%s;\n"
       (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst m.c_states)
       cfg.sc_state_var;
@@ -221,8 +212,6 @@ struct
     List.iter (pp_io "sc_out") m.c_outps;
     List.iter (pp_io "sc_inout") m.c_inouts;
     if cfg.sc_trace then fprintf ocf "  sc_out<int> %s;\n" cfg.sc_trace_state_var;
-    (* fprintf ocf "  // Constants\n";
-     * List.iter (fun (id,(ty,_)) -> fprintf ocf "  static const %a;\n" G.pp_typed_symbol (id,ty)) m.c_consts; *)
     fprintf ocf "  // Local variables\n";
     fprintf ocf "  t_%s %s;\n" cfg.sc_state_var cfg.sc_state_var;
     List.iter (fun (id,ty) -> fprintf ocf "  %a;\n" G.pp_typed_symbol (id,ty)) m.c_vars;
@@ -367,7 +356,6 @@ struct
   let dump_cst_impl fmt { Annot.desc = c; _ } =
     let open Static.Syntax in
     Format.fprintf fmt "%a = %a;\n" G.pp_typed_symbol (c.cc_name,c.cc_typ) G.pp_expr c.cc_val
-    (* G.pp_cst_impl fmt c.cc_name c.cc_typ c.cc_val  (\* Cannot do more due to the idiosyncrasies of C type declarations.. *\) *)
 
   let dump_type_impl fmt td =
     G.pp_type_impl fmt td 
@@ -494,7 +482,6 @@ struct
         let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ Ident.to_string id ^ suff in
         let open Static in
         let globals suffix = if need_globals m then cfg.sc_globals_name ^ suffix else "" in
-        (* fprintf ocf "%s.o: %s.h %s.cpp\n" cfg.sc_lib_name cfg.sc_lib_name cfg.sc_lib_name; *)
         List.iter
           (function f ->
              fprintf ocf "%a.o: %a.h %a.cpp %s\n"
@@ -527,12 +514,6 @@ struct
       end
     else
       Misc.warning (Printf.sprintf "No file %s. No Makefile generated." templ_fname)
-
-  (* let dump_fsm_model ?(prefix="") ?(dir="./systemc") fm =
-   *   let f = Cmodel.of_fsm_model fm in
-   *   let prefix = match prefix with "" -> Ident.to_string f.c_name | p -> p in
-   *   dump_module_intf false (dir ^ "/" ^ prefix ^ ".h") f;
-   *   dump_module_impl false (dir ^ "/" ^ prefix ^ ".cpp") f *)
 
   let dump_fsm_inst ?(dir="./systemc") m fi =
     let f = Cmodel.of_fsm_inst m fi in

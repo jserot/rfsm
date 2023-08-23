@@ -67,19 +67,18 @@ module type T = sig
   type fsm = {
       name: Ident.t;
       model: Syntax.model;    (* Normalized, type-refined model *)
-      (* params: Value.t Env.t; *)
       q: Ident.t;
       vars: Value.t Env.t;
     }
   
   type ctx_comp = {
     ct_typ: Syntax.typ;
-    ct_stim: Syntax.stimulus_desc option;  (* For inputs only *)
-    ct_rds: Ident.t list; (* Readers, for inputs and shareds *)
-    ct_wrs: Ident.t list; (* Writers, for outputs and shareds *)
+    ct_stim: Syntax.stimulus_desc option;  (** For inputs only *)
+    ct_rds: Ident.t list; (** Readers, for inputs and shareds *)
+    ct_wrs: Ident.t list; (** Writers, for outputs and shareds *)
     }
 
-  type ctx = {  (* TODO : update formal semantics accordingly *)
+  type ctx = { 
     inputs: (Ident.t * ctx_comp) list;
     outputs: (Ident.t * ctx_comp) list;
     shared: (Ident.t * ctx_comp) list;
@@ -122,7 +121,6 @@ struct
   type fsm = {
       name: Ident.t;
       model: Syntax.model;
-      (* params: Value.t Env.t; *)
       q: Ident.t;
       vars: Value.t Env.t;
     } [@@deriving show {with_path=false}]
@@ -138,11 +136,9 @@ struct
          Ident.pp f.q
          (Env.pp Value.pp) f.vars
     | _ -> (* Full *)
-       (* fprintf fmt "@[<v>{@,name=%a@,model=%a@,params=%a@,q=%a@,vars=%a}@]" *)
        fprintf fmt "@[<v>{@,name=%a@,model=%a@,q=%a@,vars=%a}@]"
          Ident.pp f.name
          Syntax.pp_model f.model
-         (* (Env.pp Value.pp) f.params *)
          Ident.pp f.q
          (Env.pp Value.pp) f.vars
 
@@ -153,7 +149,7 @@ struct
     ct_wrs: Ident.t list; (* Writers, for outputs and shareds *)
     } [@@deriving show {with_path=false}]
 
-  type ctx = {  (* TODO : update formal semantics accordingly *)
+  type ctx = {  
     inputs: (Ident.t * ctx_comp) list;
     outputs: (Ident.t * ctx_comp) list;
     shared: (Ident.t * ctx_comp) list;
@@ -226,7 +222,6 @@ struct
     let wrs = collect [Syntax.Out; Syntax.InOut] in
     let f = {
         name = name;
-        (* params = Env.empty; (\* No more parameters in static representations ! TODO: remove! *\) *)
         model = mm';
         q = fst m'.itrans.Annot.desc;
         vars =
@@ -244,11 +239,6 @@ struct
     
   let r_globals gls = List.fold_left r_global Env.empty gls
                 
-  (* let r_model env m =
-   *   Env.add m.Annot.desc.Syntax.name m env
-   *   
-   * let r_models models = List.fold_left r_model Env.empty models *)
-
   let build_ctx rws senv_i =  (* \mathcal{L} *)
     let open Syntax in
     let type_of te = te.Annot.typ in
@@ -277,7 +267,6 @@ struct
       shared = extract Shared [] senv_i; }
 
   let r_program tp p =
-    (* let senv_m = r_models p.Syntax.models in *)
     let senv_i = r_globals p.Syntax.globals in
     let m, rws = List.split @@ r_insts tp senv_i p.Syntax.insts in
     let c = build_ctx rws senv_i in

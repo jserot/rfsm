@@ -3,6 +3,9 @@ Host vs. guest languages
 
 - Motivations
 - Inplementation using functors, issues (interface delimitation)
+  - modular impl (a la Leroy)
+  - allow easy, non intrusive experimentations with new guest lgs (esp with type system)
+  - allow addition of user-defined guests
 
 
 Polymorphism, types, type variables and type schemes

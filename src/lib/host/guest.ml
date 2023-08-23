@@ -10,9 +10,6 @@ end
 module type TYPES = sig 
   type typ
   val no_type: typ
-  (* val mk_type_constr0: string -> typ
-   * val is_type_constr0: string -> typ -> bool *)
-  (* val copy: typ -> typ *)
   val is_event_type: typ -> bool
   val is_bool_type: typ -> bool
   val mk_type_fun: typ list -> typ -> typ
@@ -72,13 +69,11 @@ module type TYPING = sig
   module Types : TYPES
   type env
   val mk_env: unit -> env
-  val localize_env: env -> env
   val lookup_var: loc:Location.t -> Ident.t -> env -> Types.typ
   val add_var: ?global:bool -> env -> Ident.t * Types.typ -> env
     (* If the added type contains variables, these variables will be generalized if global is true.
-       By default, global=false. *)
+       By default, global=false. TODO: replace this by a non-opt [scope] argument  *)
   val add_param: env -> Ident.t * Syntax.expr -> env
-  (* TODO : add_prim, add_constr, ... *)
   val pp_env: Format.formatter -> env -> unit
   (** Low-level interface to the the type-checking engine *)
   val type_check: loc:Location.t -> Types.typ -> Types.typ -> unit
@@ -87,8 +82,6 @@ module type TYPING = sig
   val type_expression: env -> Syntax.expr -> Types.typ
   val type_of_type_expr: env -> Syntax.type_expr -> Types.typ
   val type_lhs: env -> Syntax.lhs -> Types.typ
-  (** Static evaluation of type parameters *)
-  (* val eval_param: Syntax.expr -> int *)
 end
   
 (** Values *)
@@ -139,9 +132,7 @@ module type CTASK = sig
   val pp_typed_symbol: Format.formatter -> Ident.t * Syntax.type_expr -> unit
   val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
-  val pp_cst_decl: Format.formatter -> Ident.t -> Syntax.type_expr -> unit
   val pp_expr: Format.formatter -> Syntax.expr -> unit
-  val pp_cst_impl: Format.formatter -> Ident.t -> Syntax.type_expr -> Syntax.expr -> unit
 end
                   
 (** SystemC interface *)
@@ -154,11 +145,9 @@ module type SYSTEMC = sig
   val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
   val pp_typ: Format.formatter -> Syntax.Types.typ -> unit
-  (* val pp_cst_decl: Format.formatter -> Ident.t * Syntax.type_expr -> unit *)
   val pp_lhs: Format.formatter -> Syntax.lhs -> unit
   val pp_expr: Format.formatter -> Syntax.expr -> unit
   val pp_value: Format.formatter -> value -> unit
-  (* val pp_cst_impl: Format.formatter -> Ident.t -> Syntax.type_expr -> Syntax.expr -> unit *)
   val pp_type_impl: Format.formatter -> Syntax.type_decl -> unit
 end
 
@@ -168,19 +157,14 @@ module type VHDL = sig
   module Syntax: SYNTAX
   module Static: STATIC
   type value
-  (* val pp_typed_symbol: Format.formatter -> Ident.t * Syntax.type_expr -> unit *)
   val pp_type_expr: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.type_expr -> unit
   val pp_typ: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.Types.typ -> unit
-  (* val pp_cst_decl: Format.formatter -> Ident.t -> Syntax.type_expr -> unit *)
   val pp_lhs: Format.formatter -> Syntax.lhs -> unit
   val pp_expr: Format.formatter -> Syntax.expr -> unit
   val pp_value: Format.formatter -> value * Vhdl_types.t -> unit
-  (* val pp_cst_impl: Format.formatter -> Ident.t -> Syntax.type_expr -> Syntax.expr -> unit *)
-  (* val pp_type_impl: Format.formatter -> Syntax.type_decl -> unit *)
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
   val pp_type_fns_intf: Format.formatter -> Syntax.type_decl -> unit (** Auxilliary fns attached to a user-defined type *)
   val pp_type_fns_impl: Format.formatter -> Syntax.type_decl -> unit (** Auxilliary fns attached to a user-defined type *)
-  (* val pp_array_type_decl: Format.formatter -> Syntax.type_expr -> unit *)
   val vhdl_type_of: Syntax.Types.typ -> Vhdl_types.t
   val allowed_shared_type: Syntax.Types.typ -> bool  (** Used for checking model translatability *)
 end

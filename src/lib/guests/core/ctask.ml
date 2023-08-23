@@ -38,6 +38,3 @@ let pp_expr fmt e =
 let pp_typed_symbol fmt (name,t) =
   fprintf fmt "%a %a" pp_simple_type t.Syntax.Annot.typ Rfsm.Ident.pp name 
 
-let pp_cst_decl fmt name t = () (* No constant declarations for the Core language *)
-let pp_cst_impl fmt name t v = () (* No constant declarations for the Core language *)
-

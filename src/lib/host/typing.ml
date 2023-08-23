@@ -1,24 +1,11 @@
-(* The type checker for the host language. *)
+(** The type checker for the host language. *)
 
 module type TYPING = sig
   module HostSyntax: Syntax.SYNTAX
   type env
-  (* type typed_inst = {
-   *     name: Ident.t; 
-   *     params: (Ident.t * HostSyntax.typ * HostSyntax.Guest.expr) list;
-   *     args: (Ident.t * HostSyntax.typ) list;
-   *     model: HostSyntax.model_desc;  (\* Typed model *\)
-   *     }
-   * type typed_program = {
-   *     type_decls: HostSyntax.type_decl list;  
-   *     fun_decls: HostSyntax.fun_decl list;
-   *     cst_decls: HostSyntax.cst_decl list;
-   *     globals: HostSyntax.global list;
-   *     insts: typed_inst list;
-   *     } *)
   type typed_program = {
-      tp_models: HostSyntax.model list;  (* Un-instanciated models *)
-      tp_insts: (Ident.t * HostSyntax.model) list;  (* Model instances *)
+      tp_models: HostSyntax.model list;  (** Uninstanciated models *)
+      tp_insts: (Ident.t * HostSyntax.model) list;  (** Model instances *)
       } [@@deriving show {with_path=false}]
 
   val mk_env: unit -> env
@@ -46,13 +33,6 @@ struct
 
   type env = GuestTyping.env
 
-  (* type typed_inst = {
-   *     name: Ident.t; 
-   *     params: (Ident.t * HostSyntax.typ * HostSyntax.Guest.expr) list;
-   *     args: (Ident.t * HostSyntax.typ) list;
-   *     model: HostSyntax.model_desc;  (\* Typed model *\)
-   *     } [@@deriving show {with_path=false}] *)
-  
   type typed_program = {
       tp_models: HostSyntax.model list;  
       tp_insts: (Ident.t * HostSyntax.model) list;  
@@ -78,10 +58,6 @@ struct
          let t = GuestTyping.lookup_var ~loc s env in
          if GuestTyping.Types.is_event_type t then t 
          else raise (Type_mismatch (loc,"event",t))
-         (* let t = GuestTyping.Types.mk_type_constr0 "event" in 
-          * let t' = GuestTyping.lookup_var ~loc:act.A.loc s env in
-          * GuestTyping.type_check ~loc t t';
-          * t *)
       | HostSyntax.Assign (lhs,expr) -> 
          let t = GuestTyping.type_lhs env lhs in
          let t' = GuestTyping.type_expression env expr in
@@ -147,17 +123,6 @@ struct
     check_dupl states;
     List.iter (type_fsm_state env m) states
 
-  (* let types_of_fsm_model env A.{ desc = m; loc = loc; _ } = 
-   *   (\* Computes the "local" typing environment associated to an FSM model, containing
-   *      the types of parameters, inputs, outputs and local variables *\)
-   *   List.fold_left
-   *     (fun acc (id,te) ->
-   *       if List.mem_assoc id acc
-   *       then raise (Duplicate_symbol (loc, id)) 
-   *       else (id, GuestTyping.type_of_type_expr env te) :: acc)
-   *     []
-   *     (m.HostSyntax.params @ m.HostSyntax.inps @ m.HostSyntax.outps @ m.HostSyntax.inouts @  m.HostSyntax.vars) *)
-
   let type_fsm_ios env A.{ desc = m; loc = loc; _ } =
     (* Check that there's exactly one input with type event *)
     let is_event_type (_,te) = GuestTyping.Types.is_event_type te.A.typ in
@@ -189,9 +154,6 @@ struct
 
   let type_fsm_inst env p A.{ desc=name,model,params,args; loc=loc; _ } =
     let open HostSyntax in
-    (* let pp_typed_param fmt e = Format.fprintf fmt "%a:%a" GuestTyping.Syntax.pp_expr e (GuestTyping.Types.pp_typ ~abbrev:false) e.Annot.typ in
-     * Format.printf "** type_fsm_int: name=%a params=[%a]\n"
-     *   Ident.pp name (Misc.pp_list_h pp_typed_param) params; *)
     let lookup_model name =
       try List.find (fun { A.desc = m; _ } -> m.name = name) p.models
       with Not_found -> raise (Ident.Undefined ("symbol",loc,name)) in
@@ -213,7 +175,6 @@ struct
       let ty = GuestTyping.type_of_type_expr env te in
       let ty' = GuestTyping.type_expression env e in
       GuestTyping.type_check ~loc:loc ty ty';
-      (* let v = GuestTyping.eval_param e in *)
       (id,e) in
     let ty_params =
       try List.map2 bind_param m.params params
@@ -234,10 +195,6 @@ struct
       try List.map2 bind_arg (m_inps @ m_outps @ m_inouts) args;
       with Invalid_argument _ -> raise (Illegal_inst loc) in
     (name, mm)
-    (* { name = name;
-     *   params = i_params;
-     *   args = i_args;
-     *   model = m } *)
 
   (* Typing globals *)
                              
@@ -295,13 +252,7 @@ struct
     let env2 = List.fold_left type_fun_decl env1 p.fun_decls in
     let env = List.fold_left type_cst_decl env2 p.cst_decls in
     List.iter (type_global env) p.globals;
-    let lenv = GuestTyping.localize_env env in  (* TO FIX ! Remove local/global scope in Ident ? *)
-    { tp_models = List.map (type_fsm_model lenv) p.models;
-      tp_insts =  List.map (type_fsm_inst lenv p) p.insts }
-    (* { type_decls = p.type_decls; 
-     *   fun_decls = p.fun_decls;
-     *   cst_decls = p.cst_decls;
-     *   globals = p.globals;
-     *   insts = List.map (type_fsm_inst env p) p.insts } *)
+    { tp_models = List.map (type_fsm_model env) p.models;
+      tp_insts =  List.map (type_fsm_inst env p) p.insts }
 
 end

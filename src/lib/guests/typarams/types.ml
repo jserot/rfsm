@@ -303,17 +303,6 @@ let rec pp_typ ~abbrev fmt t =
 
 and pp_rfield ~abbrev fmt (n,ty) = Format.fprintf fmt "%s: %a" n (pp_typ ~abbrev) ty
 
-(* and pp_sizes c fmt szs = 
- *   match c, szs with
- *   | _, [] -> if !print_full_types then Format.fprintf fmt "<none>" else ()
- *   | "array", [sz] -> Format.fprintf fmt "[%a]" pp_size sz
- *   | "int", [sz] -> Format.fprintf fmt "<%a>" pp_size sz
- *   | _, [sz] -> Format.fprintf fmt "<%a>" pp_size sz
- *   | "int", [lo;hi] -> Format.fprintf fmt "<%a:%a>" pp_size lo pp_size hi
- *   | "array", [lo;hi] -> Format.fprintf fmt "[%a,%a]" pp_size lo pp_size hi
- *   | _, [lo;hi] -> Format.fprintf fmt "<%a,%a>" pp_size lo pp_size hi
- *   | _, _ -> Format.fprintf fmt "<???>" *)
-
 and pp_size c fmt sz = 
   let pp_siz_var fmt v = Format.fprintf fmt "_%d" v.stamp in (* TO FIX ? *) 
   let pp_siz_val fmt v = match v with

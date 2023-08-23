@@ -17,9 +17,6 @@ let mk_env () =
     te_ctors = Env.init Builtins.typing_env.ctors;
     te_rfields = Env.empty; }
 
-(* let localize_env env = { env with te_vars = Rfsm.Env.localize env.te_vars } *)
-let localize_env env =  env
-
 exception Illegal_cast of Syntax.expr
 exception Illegal_expr of Location.t * string
 

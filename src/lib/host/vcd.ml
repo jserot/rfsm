@@ -94,7 +94,6 @@ struct
              | [_] -> [ev]  (* "Simple" case *)
              | nvs -> List.map (fun (n,v) -> Event.Upd (Event.Syntax.mk_simple_lhs n, v)) nvs (* "Complex" case *)
            end in
-           (* Format.printf "**Normalize_event %a (%s) -> [%a]\n" Event.pp e base_name (Misc.pp_list_h ~sep:"," Event.pp) es; *)
            es
         | _ -> [e]  in
     let normalize_evset (evs: EvSeq.Evset.t) = 
@@ -109,8 +108,6 @@ struct
     let rs' = normalize_seq rs in
     let oc = open_out fname in
     let signals = List.fold_left register_signals [] rs' in
-    (* Format.printf "rs'=%a\n" EvSeq.pp rs'; *)
-    (* Format.printf "signals=%a\n" (Misc.pp_list_v Vcd_types.pp_vcd_signal) signals; *)
     fprintf oc "$date\n";
     fprintf oc "   %s\n" "today";
     fprintf oc "$end\n";

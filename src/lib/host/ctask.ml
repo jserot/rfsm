@@ -9,9 +9,9 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Format 
-
 (* CTask backend *)
+
+open Format 
 
 type cfg = {
     state_var_name: string;
@@ -188,11 +188,11 @@ struct
 
   let dump_cst_decl fmt { Annot.desc = c; _ } =
     let open Static.Syntax in
-    G.pp_cst_decl fmt c.cc_name c.cc_typ  (* Cannot do more due to the idiosyncrasies of C type declarations.. *)
+    Format.fprintf fmt "extern %a;\n" G.pp_typed_symbol (c.cc_name,c.cc_typ) 
 
   let dump_cst_impl fmt { Annot.desc = c; _ } =
     let open Static.Syntax in
-    G.pp_cst_impl fmt c.cc_name c.cc_typ c.cc_val  (* Cannot do more due to the idiosyncrasies of C type declarations.. *)
+    Format.fprintf fmt "%a = %a;\n" G.pp_typed_symbol (c.cc_name,c.cc_typ) G.pp_expr c.cc_val
 
   let dump_globals_intf dir prefix s =
     let open Static in
