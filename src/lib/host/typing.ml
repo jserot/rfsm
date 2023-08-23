@@ -132,19 +132,19 @@ struct
          
   let type_fsm_model env (A.{ desc = md; _ } as m) =
     type_fsm_states env m;
-    let add_sym ~global (env,syms) (id,te) =
+    let add_sym ~scope (env,syms) (id,te) =
       if List.mem id syms then
         raise (Duplicate_symbol (m.A.loc, id)) 
       else 
         let ty = GuestTyping.type_of_type_expr env te in
-        GuestTyping.add_var ~global env (id,ty), id::syms in
+        GuestTyping.add_var ~scope env (id,ty), id::syms in
     let env', _ = 
          (env,[])
-      |> Misc.fold_left (add_sym ~global:false) md.HostSyntax.inps 
-      |> Misc.fold_left (add_sym ~global:false) md.HostSyntax.outps 
-      |> Misc.fold_left (add_sym ~global:false) md.HostSyntax.inouts 
-      |> Misc.fold_left (add_sym ~global:false) md.HostSyntax.vars 
-      |> Misc.fold_left (add_sym ~global:true) md.HostSyntax.params in 
+      |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.inps 
+      |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.outps 
+      |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.inouts 
+      |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.vars 
+      |> Misc.fold_left (add_sym ~scope:Global) md.HostSyntax.params in 
     type_fsm_ios env' m;
     List.iter (type_fsm_transition env' m) md.trans;
     type_fsm_itransition env' m md.itrans;
@@ -224,13 +224,13 @@ struct
       List.map
         (function (id,te) -> id, GuestTyping.type_of_type_expr env te)
         fd.ff_args in
-    let env' = List.fold_left GuestTyping.add_var env ty_args in
+    let env' = List.fold_left (GuestTyping.add_var ~scope:Local) env ty_args in
     let ty_body = GuestTyping.type_expression env' fd.ff_body  in
     let ty_result = GuestTyping.type_of_type_expr env fd.ff_res in
     GuestTyping.type_check ~loc:loc ty_body ty_result;
     let ty = GuestTyping.Types.mk_type_fun (List.map snd ty_args) ty_result in
     f.A.typ <- ty;
-    GuestTyping.add_var ~global:true env (fd.ff_name, ty)  (* Global (generalisable) type here *) 
+    GuestTyping.add_var ~scope:Global env (fd.ff_name, ty) 
 
   (* Typing constant declarations *)
 
@@ -240,7 +240,7 @@ struct
     let ty' = GuestTyping.type_expression env cd.cc_val in
     GuestTyping.type_check ~loc:loc ty ty';
     c.A.typ <- ty;
-    GuestTyping.add_var ~global:true env (cd.cc_name, ty) (* Global (generalisable) type here *)
+    GuestTyping.add_var ~scope:Global env (cd.cc_name, ty) 
 
   let pp_env fmt env = GuestTyping.pp_env fmt env
 

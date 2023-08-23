@@ -1,6 +1,5 @@
 COMPILER
 
-- add explicit `scope` arg to `Guest.Typing.add_var` (instead of optional arg `?global`)
 - Fix substitution of array parameters or simply restrict parameters to scalar (?)
   (see Note `src/lib/guests/simple/syntax.ml/subst_expr` and `examples/simple/single/fir`)
 - move VCD fns in guest language from Syntax module to a separate Vcd module

@@ -70,9 +70,10 @@ module type TYPING = sig
   type env
   val mk_env: unit -> env
   val lookup_var: loc:Location.t -> Ident.t -> env -> Types.typ
-  val add_var: ?global:bool -> env -> Ident.t * Types.typ -> env
-    (* If the added type contains variables, these variables will be generalized if global is true.
-       By default, global=false. TODO: replace this by a non-opt [scope] argument  *)
+  val add_var: scope:Ident.scope -> env -> Ident.t * Types.typ -> env
+  (* Note: the [scope] parameter is a hint to the Guest type inference system.
+     Typically, it will be used to determine, if the added type contains type variables, whether
+    these variables will be generalized or not ([scope=Local] -> no, [scope=Global] -> yes) *)
   val add_param: env -> Ident.t * Syntax.expr -> env
   val pp_env: Format.formatter -> env -> unit
   (** Low-level interface to the the type-checking engine *)

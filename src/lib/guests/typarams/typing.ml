@@ -55,8 +55,10 @@ let lookup_ctor ~loc v env =
 let lookup_rfield ~loc v env =
   lookup ~exc:(Rfsm.Ident.Undefined ("record field",loc,v)) v env.te_rfields
 
-let add_var ?(global=false) env (v,ty) =
-  let ts = if global then Types.generalize ty else Types.trivial_scheme ty in
+let add_var ~scope env (v,ty) =
+  let ts = match scope with
+    | Rfsm.Ident.Global -> Types.generalize ty
+    | Rfsm.Ident.Local -> Types.trivial_scheme ty in
   { env with te_vars = Env.add v ts env.te_vars }
 let add_param env (p,e) =
   let v = eval_param e in
