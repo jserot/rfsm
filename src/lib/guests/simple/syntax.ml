@@ -199,15 +199,14 @@ let rec subst_expr phi e =
         only when [i] is a litteral constant. For ex
           subst_expr ["a"->{1,2,1}] "a[1]" = "2"
         But this does not work when [i] is a variable or a more complex expression. 
-        There are two solns
-        - one would be to extend to syntax of indexed expression to accept litterals as LHS. I.e.
+        A solution would be to extend to syntax of indexed expression to accept litterals as LHS. I.e.
           type expr = 
             ...
             | EIndexed (ilhs, expr)
           and ilhs = 
             | EVar ...
             | EArrLit ...
-        - another would be to simply fordid arrays as parameters (!) *)
+        In the this version, we simply restrict parameters to have scalar values (see ../../../bin/simple/guest_rules.mly *)
      if List.mem_assoc a phi then 
       begin match i.Annot.desc, List.assoc a phi with
         | EInt j, { Annot.desc = EArrExt vs; _ } when j >=0 && j < List.length vs -> Array.get (Array.of_list vs) j

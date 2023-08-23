@@ -1,8 +1,5 @@
 COMPILER
 
-- Fix substitution of array parameters or simply restrict parameters to scalar (?)
-  (see Note `src/lib/guests/simple/syntax.ml/subst_expr` and `examples/simple/single/fir`)
-- move VCD fns in guest language from Syntax module to a separate Vcd module
 - regression testing (so that examples in full<i-n> still compiles under full<i>)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - rename "LHS" as "pattern" ? 

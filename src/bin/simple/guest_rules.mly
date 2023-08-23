@@ -67,7 +67,6 @@ lhs:
 
 param_value:
   | v = scalar_const { v }
-  | v = array_const { v }
   | v = LID { mk ~loc:($symbolstartofs,$endofs) (EVar (mk_ident v)) }
 
 scalar_const:

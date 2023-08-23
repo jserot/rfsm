@@ -16,9 +16,10 @@ fsm model fir1<a0:int, a1:int, a2:int>(
   | -> Run with zx:=0,zzx:=0;
 }
 
--- Second version, with arrays for coeffs and buffering
+-- Second version, with arrays for buffering
+-- Note: in the current version, one cannot pass arrays as parameter values
 
-fsm model fir2<a:int array[3]>(
+fsm model fir2<a0:int, a1:int, a2:int>(
   in h: event,
   in x: int,
   out y: int)
@@ -26,7 +27,7 @@ fsm model fir2<a:int array[3]>(
   states: Run;
   vars: z: int array[2];
   trans:
-  | Run -> Run on h with y:=a[0]*x+a[1]*z[0]+a[2]*z[1], z[1]:=z[0], z[0]:=x;
+  | Run -> Run on h with y:=a0*x+a1*z[0]+a2*z[1], z[1]:=z[0], z[0]:=x;
   itrans:
   | -> Run with z[0]:=0,z[1]:=0;
 }
