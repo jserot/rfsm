@@ -1,6 +1,5 @@
 COMPILER
 
-- regression testing (so that examples in full<i-n> still compiles under full<i>)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - rename "LHS" as "pattern" ? 
 - document lib/host/guest.ml

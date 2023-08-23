@@ -14,7 +14,7 @@ Usage: do_tests [options] kind subdir
 where
 options: [defaults in brackets after descriptions]
   --compiler path         path to the rfsmc compiler [default: $RFSMC]
-  # --show                  launch DOT or VCD viewer after running the test [default: no]
+  --show                  launch DOT or VCD viewer after running the test [default: no]
   --help                  print this message
 kind=makefile|dot.run|dot|sim|ctask|systemc.code|systemc.run|systemc|systemc.sim|vhdl.code|vhdl.run|vhdl|vhdl.sim
 subdir=core|simple|...|all

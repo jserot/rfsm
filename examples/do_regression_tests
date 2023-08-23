@@ -1,0 +1,31 @@
+#!/bin/bash
+
+for target in dot.run sim.run ctask systemc.run vhdl.run
+do
+    ./do_tests $target core
+    for i in simple szdints szvars typarams
+    do
+         ./do_tests --compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/bin/$i/rfsmc.bc $target core
+    done
+
+    ./do_tests $target simple
+    for i in szdints szvars typarams
+    do
+         ./do_tests --compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/bin/$i/rfsmc.bc $target core
+    done
+
+    ./do_tests $target szdint
+    for i in szvars typarams
+    do
+         ./do_tests --compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/bin/$i/rfsmc.bc $target core
+    done
+
+    ./do_tests $target szvars
+    for i in typarams
+    do
+         ./do_tests --compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/bin/$i/rfsmc.bc $target core
+    done
+
+    ./do_tests $target typarams
+
+done

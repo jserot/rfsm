@@ -8,6 +8,7 @@ RFSMBIN=/Users/jserot/Dev/ml/rfsm/_build/default/src/bin
 IFS="/" read -ra PARTS <<< "$2"
 GUEST="${PARTS[0]}"
 RFSMC=$RFSMBIN/$GUEST/rfsmc.bc # Default version
+CUSTOM_RFSMC=no
 # SHOW=no
 
 try_make ()
@@ -84,9 +85,23 @@ make_all ()
     fi
 }
 
+make_makefile ()
+{
+    echo -n "Making Makefile in $1... "
+    (cd $1; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
+    grep "Wrote Makefile" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
+    grep "OK" $TMP >/dev/null && exit 1
+}
+
 make_target ()
 {
-    echo -n "Testing $1 in $2... "
+    if [ $CUSTOM_RFSMC == "yes" ];
+    then
+        echo -n "Testing $1 in $2 with RFSMC=$RFSMC... "
+        (cd $2; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
+    else
+        echo -n "Testing $1 in $2... "
+    fi
     (cd $2; if [ -e Makefile ]; then make clobber > $TMP 2>&1; fi)
     (cd $2; try_make $1 && make clean) > $TMP 2>&1
     grep "OK" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
@@ -125,27 +140,26 @@ make_target ()
 # #    rm -rf $2/$1.pre
 # }
 
-make_makefile ()
-{
-    echo -n "Making Makefile in $1... "
-    (cd $1; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
-    grep "Wrote Makefile" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
-    grep "OK" $TMP >/dev/null && exit 1
-    exit 0
-}
-
 while : ; do
   case "$1" in
     "") break;;
     --compiler)
-        RFSMC=$2; shift;;
+        if [ -e $2 ]; then
+            RFSMC=$2;
+            CUSTOM_RFSMC=yes;
+            shift
+        else
+            echo "Non existent file: $2"
+            exit 1
+        fi
+        ;;
     -help|--help)
         cat <<EOF
 Usage: do_test [options] kind subdir
 where
 options: [defaults in brackets after descriptions]
   --compiler path         path to the rfsmc compiler [default: $RFSMC]
-  # --show                  launch DOT or VCD viewer after running the test [default: no]
+  --show                  launch DOT or VCD viewer after running the test [default: no]
   --help                  print this message
 kind=makefile|dot.run|dot|sim|ctask|systemc.code|systemc.run|systemc|systemc.sim|vhdl.code|vhdl.run|vhdl|vhdl.sim
 subdir=core|full|...
