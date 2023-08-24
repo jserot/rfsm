@@ -1,3 +1,14 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (** Static elaboration *)
 
 (** This step takes a typed program consisting of 
@@ -66,7 +77,7 @@ module type T = sig
   (** FSM instances *)
   type fsm = {
       name: Ident.t;
-      model: Syntax.model;    (* Normalized, type-refined model *)
+      model: Syntax.model;    (** Normalized, type-refined model *)
       q: Ident.t;
       vars: Value.t Env.t;
     }

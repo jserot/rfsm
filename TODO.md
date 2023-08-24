@@ -1,9 +1,7 @@
 COMPILER
 
-- banner
-- support for synchronous actions (and allow examples/full/single/pgcd:sim)
-- rename "LHS" as "pattern" ? 
 - document lib/host/guest.ml
+- support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - dual error reporting mechanism (CLC / RfsmLight)
 - check that .sav/.gtkw files are saved in GH repo
 - support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??

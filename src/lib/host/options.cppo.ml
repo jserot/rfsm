@@ -9,6 +9,8 @@
 (*                                                                    *)
 (**********************************************************************)
 
+(** Compiler options *)
+
 type target = Dot | Sim | CTask | SystemC | Vhdl 
 let main_prefix = ref "main"
 let target = ref None

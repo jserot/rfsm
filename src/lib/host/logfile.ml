@@ -9,6 +9,8 @@
 (*                                                                    *)
 (**********************************************************************)
 
+(** Compiler log files *)
+
 let fname = "rfsm.output"
 let channel = ref None
 

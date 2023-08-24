@@ -1,4 +1,17 @@
-(** Dynamic semantics *)
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
+(** Dynamic semantics. Used for simulating programs *)
+
+(* This is a direct translation of the formal semantics described in the reference manual *)
 
 type cfg = {
     mutable act_semantics: Misc.act_semantics;

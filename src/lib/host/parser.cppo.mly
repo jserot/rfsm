@@ -1,3 +1,18 @@
+/**********************************************************************/
+/*                                                                    */
+/*              This file is part of the RFSM package                 */
+/*                                                                    */
+/*  Copyright (c/ 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+/*                                                                    */
+/*  This source code is licensed under the license found in the       */
+/*  LICENSE file in the root directory of this source tree.           */
+/*                                                                    */
+/**********************************************************************/
+
+/* Parser for the host language */
+
+/* This file will be pre-processed to generate the parser for the guest language */
+
 %token FSM
 %token MODEL
 %token IN

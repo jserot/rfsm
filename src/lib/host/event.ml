@@ -1,11 +1,24 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
+(** Events *)
+
 module type T = sig
   module Syntax: Guest.SYNTAX
   module Value: Guest.VALUE
 
   type t =
-    | Ev of Ident.t (* pure event *)
+    | Ev of Ident.t                 (* pure event *)
     | Upd of Syntax.lhs * Value.t   (* lhs <- v *)
-    | StateMove of string * string     (* name, value *)
+    | StateMove of string * string  (* name, value *)
   val is_pure_event: t -> bool
   val compare: t -> t -> int
   val pp: Format.formatter -> t -> unit
