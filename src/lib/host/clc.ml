@@ -32,8 +32,8 @@ struct
 
   let print_banner () = 
     Printf.printf "---------------------------------------------------------------------------\n";
-    Printf.printf "Reactive Finite State Machine compiler and simulator, version %s-%s/%s\n"
-      L.Guest.Info.name L.Guest.Info.version Version.version;
+    Printf.printf "Reactive Finite State Machine compiler and simulator, version %s/%s-%s\n"
+      Version.version L.Guest.Info.name L.Guest.Info.version ;
     Printf.printf "For information: github.com/jserot/rfsm\n"; 
     Printf.printf "---------------------------------------------------------------------------\n";
     flush stdout
