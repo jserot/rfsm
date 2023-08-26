@@ -1,14 +1,13 @@
 COMPILER
 
-- document lib/host/guest.ml
-- support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - dual error reporting mechanism (CLC / RfsmLight)
+- support for synchronous actions (and allow examples/full/single/pgcd:sim)
+- document lib/host/guest.ml
 - check that .sav/.gtkw files are saved in GH repo
-- support shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
+- allow shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
+- allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)
 - display enums as string in SystemC generated VCDs (currently not supported by SystemC 2.3) 
 - rewrite parsers with $sloc+%inline (cf OCaml 4.08 srcs)
-- allow _unsized_ arrays as parameters (ex: `fsm model m <t: int array[], sz: int> (...)`)
-- check for coherency in reaction responses (see src/lib/simul.ml)
 - clarify mechanism for delta-waits insertion in SystemC backend
 - VHDL implementation of models with multiple input events
 - VHDL implementation of event and variable synchronized models
@@ -27,7 +26,4 @@ DIST
 
 DOC
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
-- man page for rfsmc
-- parameterize the formal semantics on that of the guest language (ex: the concrete `int`, `bool`
-  types and values should not show any longer in the description of "host" semantics)
 - add a section describing how to build a new language by providing a guest lib+bin
