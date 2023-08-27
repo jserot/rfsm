@@ -22,6 +22,8 @@ let pp_ident = Rfsm.Ident.pp
 let mk_ident = Rfsm.Ident.mk
 let mk_global_ident = Rfsm.Ident.mk ~scope:Global
 
+let print_bool_as_int = ref true
+
 (** Type expressions *)
 
 type type_expr = (type_expr_desc,Types.typ) Annot.t
@@ -101,7 +103,7 @@ let rec pp_expr_desc fmt e =
   match e with
   | EVar v -> fprintf fmt "%a" pp_ident v
   | EInt i -> fprintf fmt "%d" i
-  | EBool b -> fprintf fmt "%b" b
+  | EBool b -> if !print_bool_as_int then fprintf fmt "%d" (Rfsm.Misc.int_of_bool b) else fprintf fmt "%b" b
   | EFloat f -> fprintf fmt "%f" f
   | EChar c -> fprintf fmt "%c" c
   | EBinop (op,e1,e2) -> fprintf fmt "%a%a%a" pp_expr e1 pp_ident op pp_expr e2

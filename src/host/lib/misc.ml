@@ -127,3 +127,5 @@ let fold_left f l acc = List.fold_left f acc l
 let clone (type t) (x : t) : t = 
   let buf = Marshal.(to_bytes x [No_sharing; Closures]) in
   Marshal.from_bytes buf 0
+
+let int_of_bool b = match b with true -> 1 | false -> 0
