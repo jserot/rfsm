@@ -27,7 +27,7 @@ EOF
   shift
 done
 
-echo "RUN_TEST=$RUN_TEST 1=$1 2=$2"
+#echo "RUN_TEST=$RUN_TEST 1=$1 2=$2"
 
 run ()
 {

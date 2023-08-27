@@ -50,7 +50,10 @@ let eval_param e = (** Static evaluation of type size parameters *)
   (* Note: this cannot go into [Static], as expected, because this will create a dependency loop btw modules :( *)
   (* TODO: extend this to allow, for instances, arithmetic expressions (such as [n+1] where [n] is a parameter) *)
   match e.Annot.desc with
-  | Syntax.EInt v -> v
+  | Syntax.EInt v -> Value.Val_int (v,[])
+  | Syntax.EBool v -> Value.Val_bool v
+  | Syntax.EFloat v -> Value.Val_float v
+  | Syntax.EChar v -> Value.Val_char v
   | _ -> raise (Illegal_parameter_value e)
 
 let lookup ~exc v env = 
@@ -72,8 +75,9 @@ let add_var ~scope env (v,ty) =
     | Rfsm.Ident.Local -> Types.trivial_scheme ty in
   { env with te_vars = Env.add v ts env.te_vars }
 let add_param env (p,e) =
-  let v = eval_param e in
-  { env with te_params = Env.add p v env.te_params }
+  match eval_param e with
+  | Value.Val_int (v,_) -> { env with te_params = Env.add p v env.te_params }
+  | _ -> env  (* Non-int parameters are handled by the static substitution process *)
 
 let add_env exc env (k,v)  =
   if not (Env.mem k env) then Env.add k v env  
