@@ -27,7 +27,7 @@ clean:
 gen_tex_option = \
 	awk -F ";" '{ printf("%s & %s\\\\\n", $$3, $$6) }' < $(1) | sed 's/_/\\_/g' > $(2)
 
-rfsmc-options.tex: ../src/bin/options_spec.txt
+rfsmc-options.tex: ../src/host/lib/options_spec.txt
 	$(call gen_tex_option,$<,$@)
 
 grammar.tex: ../src/bin/main_parser.mly

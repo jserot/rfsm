@@ -1,205 +1,674 @@
 \chapter{Syntax}
-\label{chap:syntax}
+\label{cha:syntax}
 
-This section is a brief, informal, presentation of the syntax used to write RFSM programs. A
-precise description, in BNF, can be found in Appendix~A.
+This section is more thorough presentation of the RFSM language, focusing on its syntax.
+Semantics issues are discussed in chapter~\ref{cha:semantics}.
+A formal description of the syntax, in BNF, is given in Appendix A.
 
-\bigskip
-An RSFM program comprises three sections, containing, respectively~:
+\section{Programs}
+\label{sec:programs}
+
+A RSFM program contains declarations of six kinds~: 
 \begin{itemize}
-\item declarations of \textbf{FSM models},
-\item declarations of \textbf{global objects},
-\item declarations of \textbf{FSM instanciations}.
+\item \textbf{types},
+\item \textbf{constants},
+\item \textbf{functions},
+\item \textbf{FSM models},
+\item \textbf{global objects},
+\item \textbf{FSM instanciations}.
 \end{itemize}
+
+These declarations may appear in any order in a given program but an object used in a given section must
+have been declared before. 
 
 \section{FSM models}
 \label{sec:fsm-models}
 
-An \textbf{FSM model} describe the interface and behavior of a \emph{reactive finite state
-  machine}. This description can be \emph{generic} in the sense that it can depend on a set of
-parameters whose value will only be specified when the model will be instanciated.
+% The general form of an FSM model is given in listing.~\ref{lst:fsm-model-gen}.
+% \begin{lstlisting}[language=Rfsm,frame=single,caption=Overall syntax for FSM models,label=lst:fsm-model-gen]
+% fsm model <@\emph{parameter declarations}@> @\emph{name}@ (
+%      @\emph{io declaration}@
+%   {
+%   states: @\emph{state declaration}@;
+%   vars: @\emph{variable declaration}@;
+%   trans: @\emph{transition descriptions}@;
+%   itrans: @\emph{initial transition description}@;
+%   }
+% \end{lstlisting}
+% where
+% \begin{itemize}
+% \item \emph{name} is the name of the defined model,
+% \item \emph{parameter declarations} is an optional list of generic parameters,
+% \item \emph{io declarations} list the inputs and outputs of the FSM,
+% \item \emph{state declarations} list the states of the FSM,
+% \item \emph{variable declarations} is an optional list of internal variables,
+% \item \emph{transition descriptions} describe all the transitions of the FSM,
+% \item \emph{initial transition description} describes the initial transition of the FSM.
+% \end{itemize}
 
-The general form of an FSM model is given in listing.~\ref{lst:fsm-model-gen}.
+An FSM model, introduced by the \verb|fsm model| keywords, describes the interface and behavior of a
+\emph{reactive finite state machine}. A reactive finite state machine is a finite state machine
+whose transitions can only be caused by the occurrence of \emph{events}.
 
-\begin{lstlisting}[language=Rfsm,frame=single,caption=Overall syntax for FSM models,label=lst:fsm-model-gen]
-fsm model <@\emph{parameter declarations}@> @\emph{name}@ (
-     @\emph{io declaration}@
-  {
-  states: @\emph{state declaration}@;
-  vars: @\emph{variable declaration}@;
-  trans: @\emph{transition descriptions}@;
-  itrans: @\emph{initial transition description}@;
-  }
-\end{lstlisting}
+\begin{center}
+\framebox{\lstinline[language=Rfsm]|fsm model <interface> { <body> }|}
+\end{center}
+
+\medskip The \textbf{interface} of the model gives its name, a list of parameters (which can be
+empty) and a list of inputs and outputs. All parameters and IOs are typed (see
+Sec.~\ref{sec:types}). Inputs and outputs are explicitely tagged. An IO tagged \verb|inout| acts
+both as input and output (it can be read and written by the model). Inputs and outputs are listed
+between \verb|(...)|. Parameters, if present are given between \verb|<...>| and allow the
+definition of \emph{generic} models. Examples :
+
+\begin{center}
+\example{\lstinline[language=Rfsm]|fsm model cntmod8 (in h: event, out s: int<0..7>) \{ ... \}|}
+\end{center}
+
+\begin{center}
+\example{\lstinline[language=Rfsm]|fsm model gensig<n:int> (in h: event, in  e: bit, out s: bit) \{ ... \}|}
+\end{center}
+
+\begin{center}
+\example{\lstinline[language=Rfsm]|fsm model update (in top: event, inout  lock: bool) \{ ... \}|}
+\end{center}
+
+\medskip
+The model \textbf{body}, written between \verb|{...}|, generally comprises four sections :
+\begin{itemize}
+\item a section giving the list of \emph{states},
+\item a section introducing local (internal) \emph{variables},
+\item a section giving the list of \emph{transition},
+\item a section specifying the \emph{initial transition}.
+\end{itemize}
+
+Each section starts with the corresponding keyword (\verb|states:|, \verb|vars:|, \verb|trans:| and
+\verb|itrans:| resp.) and ends with a semi-colon.
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]| fsm model ... ( ... ) \{ states: ...; vars: ...; trans: ...; itrans: ...; \}|}
+\end{center}
+
+\subsection*{States}
+\label{sec:states}
+
+The \verb|states:| section gives the set of internal states, as a comma-separated list of
+identifiers (each starting with a uppercase letter). Example :
+
+\begin{center}
+\example{\lstinline[language=Rfsm]|states: Idle, Wait1, Wait2, Done;|}
+\end{center}
+
+Values for outputs can be attached to states using the \verb|where| keyword. When several
+assignements are attached to the same state, they are separated using the \verb|and| keyword.
+
+\begin{center}
+\example{\lstinline[language=Rfsm]|states: Idle, Wait1 where s1=0, Wait2 where s1=1 and s2=0, Done;|}
+\end{center}
+
+\subsection*{Variables}
+\label{sec:variables}
+
+The \verb|vars:| section gives the set of internal variables, each with its type. Example :
+
+\begin{center}
+\example{\lstinline[language=Rfsm]|vars: cnt: int, stop: bool;|}
+\end{center}
+
+The type of a variable may depend on parameters listed in the model interface. Example
+
+\begin{center}
+\example{\lstinline[language=Rfsm]|fsm gensig<n: int> (...) \{ ... vars: k: int<0..n>; ... \}|}
+\end{center}
+
+The \verb|vars:| section may be omitted.
+
+\subsection*{Transitions}
+\label{sec:transitions}
+
+The \verb|trans:| section gives the set of transitions between states. Each transition is denoted
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{| src_state -> dst_state on ev when guards with actions}}
+\end{center}
 
 where
 \begin{itemize}
-\item \emph{name} is the name of the defined model,
-\item \emph{parameter declarations} is an optional list of generic parameters,
-\item \emph{io declarations} list the inputs and outputs of the FSM,
-\item \emph{state declarations} list the states of the FSM,
-\item \emph{variable declarations} is an optional list of internal variables,
-\item \emph{transition descriptions} describe all the transitions of the FSM,
-\item \emph{initial transition description} describes the initial transition of the FSM.
+\item \emph{src\_state} and \emph{dst\_state} respectively designates the source state and destination state,
+\item \emph{ev} is event trigerring the transition,
+\item \emph{guards} is a set a enabling conditions,
+\item \emph{actions} is a set of actions performed when then transition is enabled.
 \end{itemize}
 
-\medskip
-\noindent
-Within FSM models, \textbf{transitions} are denoted 
-
-\begin{verbatim}
-                           src -- cond | acts -> dst
-\end{verbatim}
-
-where
-\begin{itemize}
-\item \texttt{src} is the source state,
-\item \texttt{dst} is the destination state,
-\item \texttt{cond} is the condition trigerring the transition,
-\item \texttt{acts} is a list of actions performed when then transition is enabled.
-\end{itemize}
+\medskip The semantics is that the transition is enabled whenever the FSM is in the source state,
+the triggering event occurs and all conditions evaluate to true. The associated actions are then
+performed and the FSM moves to the destination state.
 
 \medskip
-A \textbf{condition} involves exactly one \emph{triggering event} and, possibly, a conjunction of boolean
-conditions called \emph{guards}. The triggering event must be listed in the inputs. The guards may
-involve inputs and/or internal variables.
+The triggering event must be listed in the inputs.
 
 \medskip
-The \texttt{actions} associated to a transition may involve outputs and/or internal variables.
+Each condition listed in \emph{guards} must evaluate to a boolean value. The guard is true if
+\emph{all} conditions evaluate to true (conjonctive semantics).
+The guards may involve inputs and/or internal variables.
+
+\medskip
+The guard can be empty. In this case, the transition is denoted
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{| src_state -> dst_state on ev with actions}}
+\end{center}
+
+\medskip The \textbf{actions} associated to a transition consists in modifications of the outputs
+and/or internal variables or emissions of events. Modifications of outputs and internal variables
+are denoted
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{id := expr}}
+\end{center}
+
+where \emph{id} is the name of the output (resp. variable) and \emph{expr} an expression involving
+inputs, outputs and variables and operations allowed on the corresponding types. The set of allowed
+operations is given in Table~\ref{tab:type-ops}.
+
+\begin{table}
+\begin{minipage}[c]{1.0\linewidth}
+\small
+\begin{center}
+\begin{tabular}{|l|l|} \hline
+{\tt int}       & {\tt + - * / mod = != > < >= <=} \\  \hline
+{\tt bool}      & {\tt = !=} \\ \hline 
+{\tt enumeration}     & {\tt = !=} \\  \hline
+\end{tabular}
+\caption{Operations on types}
+\label{tab:type-ops}
+\end{center}
+\end{minipage}
+\end{table}
+
+\medskip
+The action of emitting of an event  is simply denoted by the name of this event.
+
+\medskip
+Examples :
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'S0 -> S1 on top '}
+\end{center}
+
+In the above example, the enclosing FSM switches from state \verb|S0| to state \verb|S1| when the
+event \verb|top| occurs. 
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'Idle -> Wait on Clic with ctr:=0, received'}
+\end{center}
+
+In the above example, the enclosing FSM switches from state \verb|Idle| to state \verb|Wait|, resetting the internal variable
+  \verb|ctr| to 0 and emitting event \verb|received| whenever an event occurs on its \verb|Clic| input.
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'Wait -> Wait on Top when ctr<8 with ctr:=ctr+1'}
+\end{center}
+
+In the above example, the enclosing FSM stays in state \verb|Wait| but increments the internal
+variable \verb|ctr| whenever an event \verb|Top| occurs and that, \emph{at this instant}, the
+value of variable \verb|ctr| is smaller than 8. 
+
+\medskip
+Expressions may also involve the C-like ternary conditional operator \verb|?:|.
+For example, in the example below, the enclosing FSM stays in state \verb|S0| but updates the variable \verb|k|
+at each occurrence of event \verb|H| so that is incremented if its current value is less than 8 or
+reset to 0 otherwise.
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'S0 -> S0 on H with k:=k<8?k+1:0'}
+\end{center}
+
+\medskip
 The set of actions may be empty. In this case, the transition is denoted :
 
-\begin{verbatim}
-                           src -- cond -> dst
-\end{verbatim}
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{src_state -> dst_state on ev when guard}}
+\end{center}
 
+\subsection*{Initial transition}
+\label{sec:initial-transition}
+
+The \verb|itrans:| section specifies the initial transition of the FSM. This transition is denoted~:
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{| -> init_state with actions}}
+\end{center}
+
+where \emph{init\_state} is the initial state and \emph{actions} a list of actions to be performed
+when initializing the FSM. The latter can be empty. in this case the initial transition is simply
+denoted~:
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{| -> init_state}}
+\end{center}
 
 \medskip
-The semantics is that the transition is enabled whenever
-the FSM is in the source state, the triggering event occurs and all the guards evaluate to
-true. The associated actions are then performed and the FSM moves to the destination state.
+\textbf{Note}. Output values can be set by either attaching them to states or by updating them on
+transitions. For a given output \texttt{o}, attaching a value \texttt{v} to a state \texttt{S}, by writing
 
-\medskip The listing in Fig.~\ref{fig:fsm-model-ex} gives an example of a FSM model declaration. The
-declared model is that of a simplified mouse controler. It has two inputs, \verb|Top| and
-\verb|Clic|, and two outputs, \verb|SimpleClic| and \verb|DoubleClic|. All inputs an and outputs are
-of type \verb|event|. Input \verb|Top| is here supposed to be periodic and hence provide an time
-base. Whenever an event occurs on the input \verb|Clic|, an event is emitted either on
-\verb|DoubleClic| or \verb|SimpleClic| depending on whether the \verb|Clic| event is followed by
-another before \verb|D| events occur on the \verb|Top| input, where \verb|D| is a parameter of the
-model. The description of the behavior employs two states, named \verb|Idle| and \verb|Wait|, an
-internal variable, \verb|ctr|, and four transitions rules, listed in the \verb|trans:| section.  The
-first rules says that a transition from state \verb|Idle| to state \verb|Wait| happens whenever and
-event occurs on input \verb|Clic| and that the internal variable \verb|ctr| is then reset to 0. The
-second rule says that a transition from state \verb|Wait| to state \verb|Idle| happens whenever and
-event occurs on input \verb|Clic| and that an event is then emitted on output \verb|DoubleClic|. The
-third rule says that a transition from state \verb|Wait| to itself happens whenever and event occurs
-on input \verb|Top| provided that, at this instant, the value of variable \verb|ctr| is less than
-\verb|D-1|. The variable \verb|ctr| is then incremented. The fourth and last rule says that a
-transition from state \verb|Wait| to state \verb|Idle| happens, emitting an event on output
-\verb|SimpleClic|, whenever and event occurs on input \verb|Top| and that, at this instant, the
-value of variable \verb|ctr| is equal to \verb|D-1|. Finally, the initial transition, given after
-the keyword \verb|itrans:| designates the state \verb|Idle| as the initial state (with no associated
-action here). 
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{states: S where o=v, ...}}
+\end{center}
 
-A graphical representation of this FSM is given on the right in Fig.~\ref{fig:fsm-model-ex} (this
-diagram has been automatically generated by the RFSM compiler, as explained in
-Chap.~\ref{chap:using}). 
+is equivalent to adding the action
 
-\begin{figure}[t]
-  \begin{minipage}[b]{0.6\linewidth}
-   \centering
-\begin{lstlisting}[language=Rfsm,frame=single,basicstyle=\small]
-fsm model ctlr<D:int> (
-  in Top: event,
-  in Clic: event,
-  out SimpleClic: event,
-  out DoubleClic: event)
-  {
-  states:  Idle, Wait;
-  vars:  ctr: int<0..D>;
-  trans:
-    Idle -- Clic | ctr:=0 -> Wait,
-    Wait -- Clic | DoubleClic -> Idle,
-    Wait -- Top.ctr<D-1 | ctr:=ctr+1 -> Wait,
-    Wait -- Top.ctr=D-1 | SimpleClic -> Idle;
-  itrans: -> Idle;
-  }
-\end{lstlisting}
-  \end{minipage}
-  \begin{minipage}[b]{0.4\linewidth}
-   \includegraphics[height=5cm]{figs/mousectlr-dot}
-   \centering
-  \end{minipage}
-\hfill
-  \caption{Example of an FSM model description (with its graphical representation)}
-  \label{fig:fsm-model-ex}
-\end{figure}
+\begin{center}
+\framebox{\lstinline[language=Rfsm]{o:=v}}
+\end{center}
+
+to each transition ending at state \texttt{S}.
+
+The compiler rejects models for which the value of an output is specified both with the former and
+latter formulation. Stricly speaking, models for which the values specified by each formulation are
+equivalent could be accepted, but this condition is statically undecidable in general (because
+values assigned to outputs in transitions may depend of inputs).
 
 
+\section{Inputs and outputs}
+\label{sec:inputs-outputs}
 
-\section{Globals}
-\label{sec:globals}
+Interface to the external world are represented by \verb|input| and \verb|output| objects.
 
-There are three types of global values : inputs, outputs and shared objects. Global inputs and
-outputs represent the interface of the system to the external world and shared objects are used as
-communication and synchronisation media between the FSMs composing this system.
+\step For outputs the declaration simply gives a name and a type~:
 
-For global outputs and shared objects, the declaration simply gives a name and a type. For example :
+\begin{center}
+\framebox{\lstinline[language=Rfsm]'output name : typ'}
+\end{center}
 
-\begin{lstlisting}[language=Rfsm,frame=single,basicstyle=\small]
-output SimpleClic: event
-shared C0: bool
-\end{lstlisting}
+\step For inputs, the declaration also specifies the \textbf{stimuli} which are attached to the
+corresponding input for simulating the system.
+\begin{center}
+\framebox{\lstinline[language=Rfsm]'input name : typ = stimuli'}
+\end{center}
 
-For global inputs, the declaration also specifies the \textbf{stimuli} which are attached to the
-corresponding input for simulating the system. There are three types of stimuli : periodic and
+There are three types of stimuli~:
+periodic and
 sporadic stimuli for inputs of type \verb|event| and value changes for scalar inputs.
-Periodic stimuli are specified with a period, a starting time and an ending time. Sporadic stimuli
-are simply a list of dates at which the corresponding input event occurs. Value changes are given as
+
+\medskip
+Periodic stimuli are specified with a period, a starting time and an ending time.
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]'periodic(period,t0,t1)'}
+\end{center}
+
+Sporadic stimuli
+are simply a list of dates at which the corresponding input event occurs.
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]'sporadic(t1,...,tn)'}
+\end{center}
+
+Value changes are given as
 list of pairs \verb|t:v|, where \verb|t| is a date and \verb|v| the value assigned to the
 corresponding input at this date. 
 
+\begin{center}
+\framebox{\lstinline[language=Rfsm]'value_changes(t1:v1,...,tn:vn)'}
+\end{center}
+
+\medskip
 Examples:
 
-\begin{lstlisting}[language=Rfsm,frame=single,basicstyle=\small]
-input Top: event = periodic(10,10,120)
-input Clic: event = sporadic(25,75,95)
-input Enable : bool = value_changes (0:0, 25:1, 35:0)
-\end{lstlisting}
+\begin{center}
+\example{\lstinline[language=Rfsm]'input Clk: event = periodic(10,10,120)'}
+\end{center}
+
+The previous declaration declares \verb|Clk| as a global input producing periodic events with period 10, starting
+  at t=10 and ending at t=100\footnote{Note that, at this level, there's no need for an absolute
+    unit for time.}.
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'input Clic: event = sporadic(25,75,95)'}
+\end{center}
+
+The previous declaration declares \verb|Clic| as a global input producing events at t=25, t=75 and
+  t=95.
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'input E : bool = value_changes (0:false, 25:true, 35:false)'}
+\end{center}
+
+The previous declaration declares \verb|E| as a global boolean input taking value \texttt{false} at
+t=0, \texttt{true} at t=25 and \texttt{false} again at t=35.
+
+\section{Shared objects}
+\label{sec:shared}
+
+Shared objects are used to represent interconnexions between FSM instances. This situation only
+occurs when the system model involves several FSM instances and when the input of a given instance
+is provided by the output of another one.
+
+\step For shared objects the declaration simply gives a name and a type~:
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]'shared name : typ'}
+\end{center}
+
+\medskip
+Examples:
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'shared done: event'}
+
+\example{\lstinline[language=Rfsm]'shared ctr: int'}
+\end{center}
+
+The previous declarations declare \verb|done| as a shared event and \texttt{ctr} as a shared
+variable of type \texttt{int}.
 
 \section{FSM instances}
 \label{sec:fsm-instances}
 
-Systems are described by \emph{instanciating} -- and, possibly, inter-connecting -- FSM
-models. Instanciating a model creates a ``copy'' of the corresponding FSM for which
+The description of the system is carried out by instanciating
+%-- and, possibly, inter-connecting --
+previously defined FSM models.
+
+\medskip
+Instanciating a model creates a ``copy'' of the corresponding FSM for which
 \begin{itemize}
-\item the value of the declared generic parameter (ex: \verb|D| in the model of
-  listing~\ref{fig:fsm-model-ex}), is fixed,
-\item the declared inputs and outputs are actually connected to global inputs, outputs or shared
+\item the parameters of the model are bound to their actual value,
+\item the declared inputs and outputs are connected to global inputs, outputs or shared
   objects.
 \end{itemize}
 
-The syntax for model instanciation is as follows
+\medskip
+The syntax for declaring a model instance is as follows~:
 
-\begin{lstlisting}[language=Rfsm,frame=single,caption=Overall syntax for FSM models]
-fsm @\emph{instance name}@ = @\emph{model name}@ <@\emph{parameter values}@> (@\emph{actual inputs
-and outputs})
-\end{lstlisting}
+\begin{center}
+\framebox{\lstinline[language=Rfsm]'fsm inst_name = model_name<param_values>(actual_ios)'} 
+\end{center}
 
-Of course, the type of the declared and actual IOs and parameters must match.
+where
+\begin{itemize}
+\item \emph{inst\_name} is the name of the created instance,
+\item \emph{model\_name} is the name of the instanciated model,
+\item \emph{param\_values} is a comma-separated list of values to be assigned to the formal
+  (generic) parameters,
+\item \emph{actual\_ios} is a comma-separated list of global inputs, outputs or shared objects to be
+  connected to the instanciated model.
+\end{itemize}
+
+Binding of parameter values and IOs is done by position. Of course the number and respective types
+of the formal and actual parameters (resp. IOs) must match.
 
 \medskip
-For example, provided that globals \verb|Top|, \verb|Clic|, \verb|SimpleClic| and \verb|DoubleClic|
-have been previously declared with the correct type,  writing
+For example, the last line of the program given in Listing~\ref{lst:rfsm-gensig}
 
-\begin{lstlisting}[language=Rfsm,frame=single,basicstyle=\small]
-fsm c1 = ctlr<5>(Top,Clic,SimpleClic,DoubleClic)
+\begin{center}
+\example{\lstinline[language=Rfsm]'fsm g = gensig<4>(H,E,S)'}
+\end{center}
+
+creates an instance of model \verb|gensig| for which \verb|n=4| and whose inputs (resp. output) are
+connected to the global inputs (resp. output) \texttt{H} and \texttt{E} (resp. \texttt{S}).
+
+% For example, provided that globals \verb|Top|, \verb|Clic|, \verb|SimpleClic| and \verb|DoubleClic|
+% have been previously declared with the correct type,  writing
+
+% \begin{lstlisting}[language=Rfsm,frame=single,basicstyle=\small]
+% fsm c1 = ctlr<5>(Top,Clic,SimpleClic,DoubleClic)
+% \end{lstlisting}
+
+% will create an instance of the FSM model described in
+% Fig.~\pageref{fig:fsm-model-ex} named \verb|c1| and for which \verb|D=5|.
+
+\section{Constants}
+\label{sec:constants}
+
+Global constants can be defined using the following syntax~:  
+
+\begin{center}
+\framebox{\lstinline[language=Rfsm]|constant name : <type> = <value>|}
+\end{center}
+
+\noindent
+where
+\begin{itemize}
+\item \lstinline[language=Rfsm]|<type>| is the type of the defined constant (currently limited to
+  \verb|int|, \verb|float| and arrays of \verb|int|s or \verb|float|s,
+\item \lstinline[language=Rfsm]|<value>| is the value of the constant (which must be an \verb|int|
+  or \verb|float| literal or an array of such literals).
+\end{itemize}
+
+Global constants have a global scope and hence can be used in any FSM model or instance.
+
+\section{Functions}
+\label{sec:functions}
+
+Conditions and actions associated to FSM transitions can use globally defined functions. An example
+is given in listing~\ref{lst:rfsm-heron}\footnote{This example can be found in directory
+  \texttt{examples/heron/v2} in the distribution.}. The FSM described here computes an approximation
+of its input \verb|u| using Heron's classical algorithm. Successive approximations are computed in
+state \verb|Iter| and the end of computation is detected when the square of the current
+approximation \verb|x| differs from the argument (\verb|a|) from less than a given threshold
+\verb|eps|. For this, the model uses the global function \verb|f_abs| defined at the beginning of
+the program. This function computes the absolute value of its argument and is used twice in the
+definition of the FSM model \verb|heron|, for defining the condition associated to the two
+transitions going out of state \verb|Iter|.
+
+\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=An RFSM program using a global
+  function definition,label={lst:rfsm-heron},float]
+function f_abs(x: float) : float { return x < 0.0 ? -.x : x }
+
+fsm model Heron<eps: float>(
+  in h: event,
+  in start: bool,
+  in u: float,
+  out rdy: bool,
+  out niter: int,
+  out r: float)
+{
+  states: Idle, Iter;
+  vars: a: float, x: float, n: int;
+  trans:
+  | Idle -> Iter on h when start=1 with a:=u, x:=u, rdy:=0, n:=0
+  | Iter -> Iter on h when f_abs(x*.x-.a)>=eps with x:=(x+.a/.x)/.2.,
+                                                    n:=n+1
+  | Iter -> Idle on h when f_abs(x*.x-.a)<eps with r:=x, niter:=n, rdy:=1;
+  itrans:
+  | -> Idle with rdy:=1;
+}
+
+input H : event = periodic (10,10,200)
+input U : float = value_changes (5:2.0)
+input Start : bool = value_changes (0:0, 25:1, 35:0)
+output Rdy : bool
+output R : float
+output niter : int
+
+fsm heron = Heron<0.00000001> (H,Start,U,Rdy,niter,R)
 \end{lstlisting}
 
-will create an instance of the FSM model described in
-Fig.~\pageref{fig:fsm-model-ex} named \verb|c1| and for which \verb|D=5|.
+\medskip
+\step The general form for a function definition is 
 
+\begin{center}
+\framebox{\lstinline[language=Rfsm]| function name (<arg\_1>:<type\_1>, ..., <arg\_n>:<type\_n>)\ :\ <type\_r> \{ return <expr> \}|}
+\end{center}
+
+\noindent
+where
+\begin{itemize}
+\item \lstinline[language=Rfsm]|<arg_i>| (resp. \lstinline[language=Rfsm]|<type_i>|) is the name
+  (resp. type) of the i$^{th}$ argument,
+\item \lstinline[language=Rfsm]|<type_r>| is the type of value returned by the function,
+\item \lstinline[language=Rfsm]|<expr>| is the expression defining the function value.
+\end{itemize}
+
+\medskip
+\step Functions can only return one result and cannot use local variables. There are therefore more
+like \emph{macros} in the C language than full-fledged functions and are typically used to
+improve readability of the programs.
+
+\section{Types and type declarations}
+\label{sec:types}
+
+Types present in RFSM programs belong to two categories~: builtin types and user defined types.
+
+\medskip
+\textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float}, \texttt{char}, \texttt{event} and
+\texttt{array}s.
+
+\step Objects of type \texttt{bool} can have only two values : \texttt{0} (false) and \texttt{1} (true).
+
+\step Values of type \texttt{char} are
+denoted using single quotes. For example, for a variable \verb|c| having type \verb|char| :
+\begin{center}
+  \example{\lstinline[language=Rfsm]|c := 'A'|}
+\end{center}
+They can be converted from/to they internal representation as integers using the "\verb|::|" \emph{cast}
+operator. For example, if \verb|c| has type \verb|char| and \verb|n| type \verb|int|, then 
+\begin{center}
+  \example{\lstinline[language=Rfsm]|n := 'A'::int; c:=(n+1)::char|}
+\end{center}
+assigns value 65 to \verb|n| (ASCII code) and, then, value \verb|'B'| to \verb|c|.
+
+
+\step The type \texttt{int} can be refined using a \emph{size} or a \emph{range annotation}. The
+type \verb|int<sz>|, where \verb|sz| is an integer, is the type of integers which can be encoded using
+\verb|n| bits. The type \verb|int<min:max>|, where both \verb|min| and \verb|max| are integers, is
+the type of integers whose value ranges from \verb|min| to \verb|max|. The size and range limits,
+can be constants or expressions whose value can be computed as compile time
+(expressions involving parameter values, as exemplified line 9 in Listing~\ref{lst:rfsm-gensig}).
+
+\step Supported operations on values of type \texttt{int} are described in Table~\ref{tab:int-ops}.
+If \verb|n| is an integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]|
+designates the value represented by the bits \verb|hi|...\verb|lo| in the binary representation of
+\verb|n|. Bit ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The
+syntax \verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|. The \emph{cast}
+operator (\verb|::|) can be used to combine integers with different sizes (for example, if \verb|n|
+has type \verb|int<16>| and \verb|m| has type \verb|int<8>|, writing \verb|n:=n+m| is not allowed
+and mus be written, instead, \verb|n:=n+m::int<16>|. Note that the
+logical ``or'' operator is denoted ``\verb+||+'' because the single ``\verb+|+'' is already used in
+the syntax.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|} \hline
+\verb|+|, \verb|-|, \verb|*|, \verb|/|, \verb|%| (modulo) & arithmetic operations \\ \hline 
+\verb|>>|, \verb|<<| & (logical) shift right and left \\ \hline 
+\verb|&|, \verb+||+, \verb|^| & bitwise and, or and xor \\ \hline 
+\verb|[.:.]| & bit range extraction (ex: \verb|n:=m[5:3]|) \\ \hline 
+\verb|[.]| & single bit extraction (ex: \verb|b:=m[4]|) \\ \hline 
+\verb|::| & resize (ex: \verb|n::8|) \\ \hline 
+\end{tabular}
+\caption{\label{tab:int-ops}Builtin operations on integers}
+\end{center}
+\end{table}
+
+\step The operations on values of type \texttt{float} are : "\verb|+.|", "\verb|-.|", "\verb|*.|" and
+"\verb|/.|" (the dot suffix is required to distinguish them from the corresponding operations on
+\texttt{int}s).
+
+
+\step Arrays are 1D, fixed-size collections of \verb|int|s, \verb|bool|s or \verb|float|s. Indices
+range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
+ \verb|int array[4]| is the type describing arrays of four integers. If \verb|t| is an object
+  with an array type, its cell with index $i$ is denoted \verb|t[i]|.
+
+
+\medskip
+\textbf{User defined types} are either \emph{type abbreviations}, \emph{enumerations} or
+\emph{records}.
+
+\step Type abbreviations are introduced with the following declaration
+\begin{center}
+  \framebox{\lstinline[language=Rfsm]{type typename = type_expression}}
+\end{center}
+Each occurrence of the defined type in the program is actually substituted by the corresponding type
+expression.
+% Type expressions in type abbreviations are currently limited to builtin types.
+
+\medskip
+\step Enumerated types  are introduced with the following declaration
+\begin{center}
+  \framebox{\lstinline[language=Rfsm]|type typename = enum \{ C1, ..., Cn \}|}
+\end{center}
+where \verb|C1|, \ldots, \verb|Cn| are the enumerated values, each being denoted by an identifier
+starting with an uppercase letter. For example : 
+\begin{center}
+  \example{\lstinline[language=Rfsm]|type color = \{ Red, Green, Orange \}|}
+\end{center}
+
+\medskip
+\step Record types are introduced with the following declaration
+\begin{center}
+  \framebox{\lstinline[language=Rfsm]|type typename = record \{ fid1: ty1, ..., fidn: tyn \}|}
+\end{center}
+where \verb|fid1|, \ldots, \verb|fidn| and \verb|ty1|, \ldots, \verb|tyn| are respectively the name
+and type of each record field For example : 
+\begin{center}
+  \example{\lstinline[language=Rfsm]|type coord = record \{ x: int, y: int\}|}
+\end{center}
+
+Individual fields of a value with a record type can be accessed using the classical ``dot''
+notation. For example, with a variable \verb|c| having type \verb|record| as defined above :
+\begin{center}
+  \example{\lstinline[language=Rfsm]|c.x := c.x+1|}
+\end{center}
+
+% \medskip The listing in Fig.~\ref{fig:fsm-model-ex} gives an example of a FSM model declaration. The
+% declared model is that of a simplified mouse controler. It has two inputs, \verb|Top| and
+% \verb|Clic|, and two outputs, \verb|SimpleClic| and \verb|DoubleClic|. All inputs an and outputs are
+% of type \verb|event|. Input \verb|Top| is here supposed to be periodic and hence provide an time
+% base. Whenever an event occurs on the input \verb|Clic|, an event is emitted either on
+% \verb|DoubleClic| or \verb|SimpleClic| depending on whether the \verb|Clic| event is followed by
+% another before \verb|D| events occur on the \verb|Top| input, where \verb|D| is a parameter of the
+% model. The description of the behavior employs two states, named \verb|Idle| and \verb|Wait|, an
+% internal variable, \verb|ctr|, and four transitions rules, listed in the \verb|trans:| section.  The
+% first rules says that a transition from state \verb|Idle| to state \verb|Wait| happens whenever and
+% event occurs on input \verb|Clic| and that the internal variable \verb|ctr| is then reset to 0. The
+% second rule says that a transition from state \verb|Wait| to state \verb|Idle| happens whenever and
+% event occurs on input \verb|Clic| and that an event is then emitted on output \verb|DoubleClic|. The
+% third rule says that a transition from state \verb|Wait| to itself happens whenever and event occurs
+% on input \verb|Top| provided that, at this instant, the value of variable \verb|ctr| is less than
+% \verb|D-1|. The variable \verb|ctr| is then incremented. The fourth and last rule says that a
+% transition from state \verb|Wait| to state \verb|Idle| happens, emitting an event on output
+% \verb|SimpleClic|, whenever and event occurs on input \verb|Top| and that, at this instant, the
+% value of variable \verb|ctr| is equal to \verb|D-1|. Finally, the initial transition, given after
+% the keyword \verb|itrans:| designates the state \verb|Idle| as the initial state (with no associated
+% action here). 
+
+% A graphical representation of this FSM is given on the right in Fig.~\ref{fig:fsm-model-ex} (this
+% diagram has been automatically generated by the RFSM compiler, as explained in
+% Chap.~\ref{chap:using}). 
+
+% \begin{figure}[t]
+%   \begin{minipage}[b]{0.6\linewidth}
+%    \centering
+% \begin{lstlisting}[language=Rfsm,frame=single,basicstyle=\small]
+% fsm model ctlr<D:int> (
+%   in Top: event,
+%   in Clic: event,
+%   out SimpleClic: event,
+%   out DoubleClic: event)
+%   {
+%   states:  Idle, Wait;
+%   vars:  ctr: int<0..D>;
+%   trans:
+%     Idle -- Clic | ctr:=0 -> Wait,
+%     Wait -- Clic | DoubleClic -> Idle,
+%     Wait -- Top.ctr<D-1 | ctr:=ctr+1 -> Wait,
+%     Wait -- Top.ctr=D-1 | SimpleClic -> Idle;
+%   itrans: -> Idle;
+%   }
+% \end{lstlisting}
+%   \end{minipage}
+%   \begin{minipage}[b]{0.4\linewidth}
+%    \includegraphics[height=5cm]{figs/mousectlr-dot}
+%    \centering
+%   \end{minipage}
+% \hfill
+%   \caption{Example of an FSM model description (with its graphical representation)}
+%   \label{fig:fsm-model-ex}
+% \end{figure}
 
 %%% Local Variables: 
 %%% mode: latex
-%%% TeX-master: rfsm
+%%% TeX-master: "rfsm"
 %%% End: 

@@ -3,6 +3,7 @@
 \usepackage{amsmath,amssymb,stmaryrd,latexsym}
 \usepackage{titlepic}
 \usepackage{syntax}
+\usepackage{multicol}
 \usepackage{alltt}
 \usepackage{graphicx}   % Including Graphics
 %\usepackage{verbatim} 
@@ -57,7 +58,7 @@
 %\Newcommand{\docdate}{\today} %%%!!!!
 \newcommand{\step}{\medskip$\blacktriangleright$\xspace}
 
-\newcommand{\version}{1.7}
+\newcommand{\version}{2.0}
 
 \newcommand{\ie}{\emph{i.e.}\xspace}
 \newcommand{\txt}[1]{\hbox{#1}}
@@ -91,11 +92,11 @@
 
 \input{introduction}
 \input{overview}   
-\input{language}   
+\input{syntax}   
+\input{semantics}   
 \input{rfsmc}
 \input{bnf}
 \input{options}
-\input{gui}
 \input{ex1-c}
 \input{ex1-systemc}
 \input{ex1-vhdl}
