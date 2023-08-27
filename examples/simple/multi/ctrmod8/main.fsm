@@ -1,9 +1,0 @@
-input H: event = periodic(10,10,100)
-output S0, S1, S2: bool
-output R2: event
-
-shared R0, R1: event
-
-fsm C0 = cntmod2(H,S0,R0) 
-fsm C1 = cntmod2(R0,S1,R1) 
-fsm C2 = cntmod2(R1,S2,R2) 

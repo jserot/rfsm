@@ -1,6 +1,7 @@
-input clk:event = periodic(10,10,550)
+--input clk:event = periodic(10,10,550)
+input clk:event = periodic(10,10,380)
 input din:int<8> = value_changes(10:69)  -- 0x45
 input wr:bool = value_changes(0:0, 15:1, 25:0)
-output sout:bit
+output sout:int<1>
 
-fsm txd = Txd<4>(clk,din,wr,sout)
+fsm t = Txd<4>(clk,din,wr,sout)

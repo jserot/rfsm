@@ -2,7 +2,7 @@
 
 fsm model cntmod2(
   in h: event,
-  out s: bool,
+  out s: int<0:1>,
   out r: event)
 {
   states: E0 where s=0, E1 where s=1;

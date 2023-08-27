@@ -1,0 +1,7 @@
+input clk:event = periodic(10,10,550)
+input sin:bit = value_changes(0:1, 105:0, 145:1, 185:0, 225:1, 265:0, 305:0, 345:0, 385:1, 425:0, 465:1, 505:1) -- 0x45,P=1
+--                                 START     B0     B1     B2     B3     B4     B5     B6     B7      P   STOP
+output dout: int<8>
+output err: bit
+
+fsm rxd = Rxd<4>(clk,sin,dout,err)

@@ -1,0 +1,117 @@
+#!/bin/bash
+
+# A script for running examples / tests
+
+RFSMMAKE=/Users/jserot/Dev/ml/rfsm/etc/bin/rfsmmake
+RFSMLIB=/Users/jserot/Dev/ml/rfsm/etc
+BUILD_MAKEF=no
+SHOW=no
+
+try_make ()
+{
+case $1 in
+dot) if [ $SHOW == "yes" ]; then make dot; else make dot.run; fi;;
+sim) if [ $SHOW == "yes" ]; then make sim; else make sim.run; fi;;
+ctask) make ctask;;
+systemc.code) make systemc.code;;
+systemc.sim) make systemc.sim;;  # For comparing with simulation results
+systemc) if [ $SHOW == "yes" ]; then make systemc; else make systemc.run; fi;;
+vhdl.code) make vhdl.code;;
+vhdl.sim) make vhdl.sim;;# For comparing with simulation results
+vhdl) if [ $SHOW == "yes" ]; then make vhdl; else make vhdl.run; fi;;
+all) for i in dot sim systemc vhdl;
+     do
+        if [ $SHOW == "yes" ]; then make $i; else make $i.run; fi
+     done;;
+*) false;;
+esac
+case $? in
+0) echo "OK";;
+*) echo "FAILED";;
+esac
+}
+
+function run
+{
+echo -n "  -> making $2 in $1 ... "
+(cd $1; make $2) > /dev/null 2>&1
+case $? in
+0) echo -e "\033[32mOK\033[0m";;
+*) failed=true; echo -e "\033[31mFAILED\033[0m"; (cd $1; make $2.clobber) > /dev/null 2>&1;;
+esac
+}
+
+function make_test 
+{
+    failed=false
+    (cd $1; make clobber) > $TMP 2>&1
+    run $1 dot 
+    run $1 sim
+    (cd $1; make clobber) > $TMP 2>&1
+}
+
+TMP=/tmp/run_test.out
+
+make_all ()
+{
+    shift
+    echo "** Testing all in $1... "
+    make_test $1 2>&1
+    if $failed ; then
+        exit 0
+    else
+        exit 1
+    fi
+}
+
+make_makefile ()
+{
+    echo -n "Making Makefile in $1... "
+    (cd $1; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
+    grep "Wrote Makefile" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
+    grep "OK" $TMP >/dev/null && exit 1
+}
+
+make_target ()
+{
+    echo -n "Making $1 in $2... "
+    (cd $2; if [ -e Makefile ]; then make clobber > $TMP 2>&1; fi)
+    (cd $2; try_make $1) > $TMP 2>&1
+    grep "OK" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
+    grep "FAILED" $TMP >/dev/null && echo -e "\033[31mFAILED\033[0m"
+    grep "OK" $TMP >/dev/null && exit 1
+    (cd $2; make clean) > $TMP 2>&1
+    exit 0
+}
+
+while : ; do
+  case "$1" in
+    "") break;;
+    -makefile) BUILD_MAKEF=yes; shift;;
+    -show) SHOW=yes; shift;;
+    -help|--help)
+        cat <<EOF
+Usage: run_test [options] kind subdir
+where
+options: [defaults in brackets after descriptions]
+  -makefile              (re)build Makefile in test directory [default: no]
+  -show                  launch DOT or VCD viewer after running the test [default: no]
+  -help                  print this message
+kind=dot.run|dot|sim|ctask|systemc|vhdl|systemc.code|systemc.sim|vhdl.code|vhdl.sim
+subdir=core|full
+EOF
+	exit 0;;
+    *) break;;
+  esac
+done
+
+IFS="/" read -ra PARTS <<< "$2"
+GUEST="${PARTS[0]}"
+RFSMC=/Users/jserot/Dev/ml/rfsm/_build/default/src/guests/stable/$GUEST/bin/rfsmc.bc # Default version
+
+#echo "C=$RFSMC 1=$1 2=$2"
+
+case $1 in
+*) if [ $BUILD_MAKEF == "yes" ]; then make_makefile $2; fi
+   make_target $1 $2;;
+esac

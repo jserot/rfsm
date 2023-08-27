@@ -1,8 +1,6 @@
 input H:event = periodic(10,10,110)
 input X: int = value_changes(0:0, 10:2, 20:4, 30:6, 40:-8, 50:-6, 60:4, 70:-2, 80:0)
-output Y1, Y2, Y3, Y4: int
+output Y1, Y2: int
 
-fsm c1 = fir<[1,0,0]>(H,X,Y1)
-fsm c2 = fir<[0,1,0]>(H,X,Y2)
-fsm c3 = fir<[0,0,1]>(H,X,Y3)
-fsm c4 = fir<[2,1,1]>(H,X,Y4)
+fsm c1 = fir1<1,2,1>(H,X,Y1)
+fsm c2 = fir2<1,2,1>(H,X,Y2)

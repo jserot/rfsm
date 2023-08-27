@@ -1,0 +1,53 @@
+#!/bin/bash
+
+RUN_TEST="./run_test"
+SUBDIRS="core full"
+
+while : ; do
+  case "$1" in
+    "") break;;
+    -makefile)
+        RUN_TEST="$RUN_TEST -makefile";;
+    -show)
+        RUN_TEST="$RUN_TEST -show";;
+    -help|--help)
+        cat <<EOF
+Usage: run_tests [options] kind subdir
+where
+options: [defaults in brackets after descriptions]
+  -makefile              (re)build makefile in test directories [default: no]
+  -show                  launch DOT or VCD viewer after running the test [default: no]
+  -help                  print this message
+kind=dot.run|dot|sim|ctask|systemc|vhdl|systemc.code|vhdl.code|systemc.sim|vhdl.sim
+subdir=core|full|all
+EOF
+	exit 0;;
+    *) break;;
+  esac
+  shift
+done
+
+echo "RUN_TEST=$RUN_TEST 1=$1 2=$2"
+
+run ()
+{
+nt=0
+ns=0
+for i in $2/{single,multi}/[a-z]*
+do
+  (( nt = nt + 1 ))
+  $RUN_TEST $1 $i
+  (( ns = ns + $? ))
+done
+echo "***" $ns"/"$nt "test(s) OK"
+}
+
+case $2 in
+    all) 
+        for i in $SUBDIRS
+        do
+            run $1 $i
+        done;;
+    *)
+        run $1 $2;;
+esac

@@ -18,7 +18,7 @@ fsm model mult(
     i: int<0:8>,
   acc: int<16>;
   trans:
-  | Idle -> Comp on h when start=1 with a:=n1::int<16>, b:=n2, acc:=0::int<16>, i:=0
+  | Idle -> Comp on h when start=1 with a:=n1::int<16>, b:=n2, acc:=0, i:=0
   | Comp -> Comp on h when (i<8).(b[0]=1) with acc:=acc+a, a:=a<<1, b:=b>>1, i:=i+1
   | Comp -> Comp on h when (i<8).(b[0]=0) with a:=a<<1, b:=b>>1, i:=i+1
   | Comp -> Idle on h when i=8 with r:=acc;

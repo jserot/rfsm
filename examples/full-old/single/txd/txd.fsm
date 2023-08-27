@@ -17,9 +17,9 @@ fsm model Txd<n: int>( -- n gives the bit duration (in clk periods)
   | Idle -> Idle on clk when wr=0
   | Idle -> Start on clk when wr=1 with r:=din, sout:=0, k:=0
   | Start -> Start on clk when k<n-1 with k:=k+1, p:=0
-  | Start -> Tx on clk when k=n-1 with k:=0, i:=1, sout:=r[0]::bit, p:=r[1]
+  | Start -> Tx on clk when k=n-1 with k:=0, i:=1, sout:=r[0], p:=r[0]
   | Tx -> Tx on clk when k<n-1 with k:=k+1
-  | Tx -> Tx on clk when (k=n-1).(i<8) with sout:=r[i]::bit, p:=p^r[i], i:=i+1, k:=0
+  | Tx -> Tx on clk when (k=n-1).(i<8) with sout:=r[i], p:=p^r[i], i:=i+1, k:=0
   | Tx -> Parity on clk when (k=n-1).(i=8) with sout:=p, k:=0
   | Parity -> Parity on clk when k<n-1 with k:=k+1
   | Parity -> Stop on clk when k=n-1 with sout:=1, k:=0
