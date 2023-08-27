@@ -127,8 +127,8 @@ let pp_size_val fmt sv =
 
 let pp_typed_symbol fmt (name,t) =
   match t.Syntax.Annot.typ with
-  | Types.TyConstr ("array", [t'], Types.SzVal1 sz) -> fprintf fmt "%a %a%a" pp_typ t' pp_ident name pp_size_val sz
-  | Types.TyConstr ("array", [t'], Types.SzVal2 (sz1,sz2)) -> fprintf fmt "%a %a%a%a" pp_typ t' pp_ident name pp_size_val sz1 pp_size_val sz2
+  | Types.TyConstr ("array", [t'], Types.SzVal1 sz) -> fprintf fmt "%a %a[%a]" pp_typ t' pp_ident name pp_size_val sz
+  | Types.TyConstr ("array", [t'], Types.SzVal2 (sz1,sz2)) -> fprintf fmt "%a %a[%a][%a]" pp_typ t' pp_ident name pp_size_val sz1 pp_size_val sz2
   | t -> fprintf fmt "%a %a" pp_typ t pp_ident name 
 
 let pp_record_type_defn fmt (name,fields) = 

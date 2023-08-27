@@ -1,5 +1,6 @@
 COMPILER
 
+- create src/host/bin
 - dual error reporting mechanism (CLC / RfsmLight)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - document lib/host/guest.ml
