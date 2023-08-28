@@ -1,87 +1,124 @@
 \chapter*{Appendix C3 - Example of generated VHDL code}  
 \label{cha:ex1-vhdl}
 
-This is the code generated from program given in Listing~\ref{lst:rfsm-gensig} 
+This is the code generated from program given in Listing~\ref{lst:rfsm-gensig} by the VHDL backend.
 
 \begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File g.vhd]
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+use work.rfsm.all;
 
-entity g is
-  port(
-        h: in std_logic;
-        e: in std_logic;
-        s: out std_logic;
+entity G is
+  port( H: in std_logic;
+        E: in std_logic;
+        S: out std_logic;
         rst: in std_logic
         );
 end entity;
 
-architecture RTL of g is
+architecture RTL of G is
   type t_state is ( E0, E1 );
   signal state: t_state;
 begin
-  process(rst, h)
-    variable k: unsigned(2 downto 0);
+  process(rst, H)
+  variable k: integer;
   begin
     if ( rst='1' ) then
       state <= E0;
-    elsif rising_edge(h) then 
+      S <= '0';
+    elsif rising_edge(H) then 
       case state is
-      when E1 =>
-        if ( k<to_unsigned(4,3) ) then
-          k := k+to_unsigned(1,3);
-        elsif  ( k = to_unsigned(4,3) ) then
-          state <= E0;
-        end if;
       when E0 =>
-        if ( e = '1' ) then
-          k := to_unsigned(1,3);
+        if ( E = '1' ) then
+          k := 1;
+          S <= '1';
           state <= E1;
+        end if;
+      when E1 =>
+        if ( k = 3 ) then
+          S <= '0';
+          state <= E0;
+        elsif  ( k<3 ) then
+          k := k+1;
         end if;
     end case;
     end if;
   end process;
-  process(state)
-  begin
-    case state is
-    when E0 =>
-      s <= '0';
-    when E1 =>
-      s <= '1';
-    end case;
-  end process;
 end architecture;
+
 \end{lstlisting}
 
-\begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File tb.vhd]
+\begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File main_top.vhd]
 library ieee;
 use ieee.std_logic_1164.all;	   
-use ieee.numeric_std.all;
-library rfsm;
-use rfsm.core.all;
 
-entity tb is
-end tb;
-
-architecture Bench of tb is
-
-component g 
+entity main_top is
   port(
-        h: in std_logic;
-        e: in std_logic;
-        s: out std_logic;
+        H: in std_logic;
+        E: in std_logic;
+        S: out std_logic;
+        rst: in std_logic        );
+end entity;
+
+architecture struct of main_top is
+
+component G 
+  port(
+        H: in std_logic;
+        E: in std_logic;
+        S: out std_logic;
         rst: in std_logic
         );
 end component;
 
-signal E: std_logic;
+
+begin
+  G0: G port map(H,E,S,rst);
+end architecture;
+\end{lstlisting}
+
+\begin{lstlisting}[language=VHDL,frame=single,numbers=none,basicstyle=\small,caption=File main_tb.vhd]
+library ieee;
+use ieee.std_logic_1164.all;	   
+
+use work.rfsm.all;
+entity main_tb is
+end entity;
+
+architecture struct of main_tb is
+
+component main_top is
+  port(
+        H: in std_logic;
+        E: in std_logic;
+        S: out std_logic;
+        rst: in std_logic        );
+end component;
+
 signal H: std_logic;
+signal E: std_logic;
 signal S: std_logic;
 signal rst: std_logic;
 
 begin
 
+  inp_H: process
+    type t_periodic is record period: time; t1: time; t2: time; end record;
+    constant periodic : t_periodic := ( 10 ns, 10 ns, 80 ns );
+    variable t : time := 0 ns;
+    begin
+      H <= '0';
+      wait for periodic.t1;
+      t := t + periodic.t1;
+      while ( t < periodic.t2 ) loop
+        H <= '1';
+        wait for periodic.period/2;
+        H <= '0';
+        wait for periodic.period/2;
+        t := t + periodic.period;
+      end loop;
+      wait;
+  end process;
   inp_E: process
     type t_vc is record date: time; val: std_logic; end record;
     type t_vcs is array ( 0 to 2 ) of t_vc;
@@ -96,35 +133,19 @@ begin
       end loop;
       wait;
   end process;
-  inp_H: process
-    type t_periodic is record period: time; t1: time; t2: time; end record;
-    constant periodic : t_periodic := ( 9 ns, 0 ns, 80 ns );
-    variable t : time := 0 ns;
-    begin
-      H <= '0';
-      wait for periodic.t1;
-      notify_ev(H,1 ns);
-      while ( t < periodic.t2 ) loop
-        wait for periodic.period;
-        notify_ev(H,1 ns);
-        t := t + periodic.period;
-      end loop;
-      wait;
-  end process;
-
-  U0: G port map(H,E,S,rst);
-
-  process
-
+  reset: process
   begin
     rst <= '1';
     wait for 1 ns;
     rst <= '0';
     wait for 100 ns;
     wait;
-
   end process;
-end Bench;
+
+  Top: main_top port map(H,E,S,rst);
+
+end architecture;
+
 \end{lstlisting}
 
 %%% Local Variables: 

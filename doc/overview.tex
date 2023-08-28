@@ -6,7 +6,7 @@ FSM-based systems.
 
 \medskip
 Listing~\ref{lst:rfsm-gensig} is an example of a simple RFSM program\footnote{This program is
-  provided in the distribution, under directory \texttt{examples/single/gensig/v2}.}. This program is
+  provided in the distribution, under directory \texttt{examples/full/single/gensig}.}. This program is
 used to describe and simulate the model of a calibrated pulse generator. Given an input clock
 \verb|H|, with period $T_H$, it generates a pulse of duration $n \times T_H$ whenever input
 \texttt{E} is set when event $H$ occurs.
@@ -18,22 +18,21 @@ used to describe and simulate the model of a calibrated pulse generator. Given a
   in e: bool,
   out s: bool)
 {
-@\label{gensig-1}@  states: E0 where s=0, E1 where s=1;
-  states: E0, E1;
-@\label{gensig-3}@  vars: k: int<0:n>;
+@\label{gensig-1}@  states: E0, E1;
+@\label{gensig-3}@  vars: k: int<1:n>;
   trans:
-  | E0 -> E1 on h when e=1 with k:=1
+  | E0 -> E1 on h when e=1 with k:=1, s:=1
 @\label{gensig-4}@  | E1 -> E1 on h when k<n with k:=k+1
-@\label{gensig-5}@  | E1 -> E0 on h when k=n;
+@\label{gensig-5}@  | E1 -> E0 on h when k=n with s:=0;
   itrans:
-  | -> E0;
+  | -> E0 with s:=0;
 @\label{gensig-1b}@}
 
 @\label{gensig-2a}@input H : event = periodic (10,0,80)
 input E : bool = value_changes (0:0, 25:1, 35:0)
 @\label{gensig-2b}@output S : bool 
 
-@\label{gensig-6}@fsm g = gensig<4>(H,E,S)
+@\label{gensig-6}@fsm g = gensig<3>(H,E,S)
 \end{lstlisting}
 
 \medskip
@@ -60,19 +59,17 @@ whenever the FSM is in the source state, the event \emph{ev} occurs and all the 
 guard are true. The associated actions
 are then performed and the FSM moves to the destination state. For example, the first transition is
 enabled whenever an event occurs on input \verb|h| and, at this instant, the value of input \verb|e|
-is 1. The FSM then goes from state \verb|E0| to state \verb|E1| and sets its internal variable 
-\verb|k|.
+is 1. The FSM then goes from state \verb|E0| to state \verb|E1|, sets its internal variable 
+\verb|k| to 1 and its output \verb|s| to 1\footnote{Boolean values \texttt{true} and \texttt{false} can
+  be denoted 1 and 0 respectively in programs.}.
    
+\medskip
 The \emph{initial transition} of the FSM is given 
 after the \verb|itrans:| keyword in the form :
 \begin{center}
   \framebox{\lstinline[language=Rfsm]{| -> initial_state with actions}}
 \end{center}
-Here the FSM is initially in state \verb|E0|.
-
-The value of the \texttt{s} output here is attached to states using
-the \lstinline[language=Rfsm]{where} keyword~: this value is 0 when the
-system is in state \texttt{E0} and 1 when the system is in state \texttt{E1}.
+Here the FSM is initially in state \verb|E0| and the output \verb|s| is set to 0.
 
 \medskip
 \textbf{Note}. In the transitions, the \lstinline[language=Rfsm]{when guard} and
@@ -80,11 +77,11 @@ system is in state \texttt{E0} and 1 when the system is in state \texttt{E1}.
 
 \medskip
 A graphical representation of the \verb|gensig| model is given in
-Fig.~\ref{fig:rfsm-gensig-model} (this representation was actually automatically generated from the
+Fig.~\ref{fig:rfsm-gensig-model} (this representation was automatically generated from the
 program in Listing~\ref{lst:rfsm-gensig}, as explained in Chap.~\ref{cha:rfsmc}). 
 
 \begin{figure}[!h]
-   \includegraphics[height=8cm]{figs/gensig-model}
+   \includegraphics[height=9cm]{figs/gensig-model}
    \centering
   \caption{A graphical representation of FSM model defined in Listing~\ref{lst:rfsm-gensig}}
   \label{fig:rfsm-gensig-model}
@@ -114,17 +111,17 @@ The third and last part of the program (line~\ref{gensig-6}) consists in buildin
 \emph{instanciating} the FSM model(s).
 Instanciating a model creates a ``copy'' of this model for which
 \begin{itemize}
-\item the generic parameters (\verb|n| here) are now bound to actual values (4 here),
+\item the generic parameters (\verb|n| here) are now bound to actual values (3 here),
 \item the inputs and outputs are connected to the global inputs or outputs. 
 \end{itemize}
 
 \medskip
 A graphical representation of the system described in Listing~\ref{lst:rfsm-gensig} is given in
 Fig.~\ref{fig:rfsm-gensig-top}\footnote{Again, this representation was actually automatically generated from the
-program in Listing~\ref{lst:rfsm-gensig}, as explained in Chap.~\ref{cha:rfsmc}}. 
+program in Listing~\ref{lst:rfsm-gensig}, as explained in Chap.~\ref{cha:rfsmc}.}. 
 
 \begin{figure}[!h]
-   \includegraphics[height=8cm]{figs/gensig-top}
+   \includegraphics[height=7cm]{figs/gensig-top}
    \centering
   \caption{A graphical representation of system described in Listing~\ref{lst:rfsm-gensig}}
   \label{fig:rfsm-gensig-top}
@@ -134,10 +131,10 @@ program in Listing~\ref{lst:rfsm-gensig}, as explained in Chap.~\ref{cha:rfsmc}}
 \label{sec:simulating-1}
 
 Simulating the program means computing the reaction of the system to the input stimuli. Simulation
-can be performed the RFSM command-line compiler as described in chapter~\ref{cha:rfsmc}.
+can be performed by the RFSM command-line compiler as described in chapter~\ref{cha:rfsmc}.
 It produces a set of
 \emph{traces} in VCD (Value Change Dump) format which can visualized using \emph{waveform viewers}
-such as \texttt{gtkwave}. The simulation results for the program in Listing~\ref{lst:rfsm-gensig}
+such as \texttt{gtkwave}. Some simulation results for the program in Listing~\ref{lst:rfsm-gensig}
 are showed in Fig.~\ref{fig:rfsm-gensig-chrono}.
 
 \begin{figure}[!h]
@@ -168,7 +165,7 @@ Currently, three backends are provided :
 The target language for the C backend is a C-like language augmented with
 \begin{itemize}
 \item a \verb|task| keyword for naming generated behaviors,
-\item \verb|in|, \verb|out| and \verb|iinout| keywords for identifying inputs and outputs,
+\item \verb|in|, \verb|out| and \verb|inout| keywords for identifying inputs and outputs,
 \item a builtin \verb|event| type,
 \item primitives for handling events : \verb|wait_ev()|, \verb|wait_evs()| and
   \verb|notify_ev()|. 
@@ -179,7 +176,7 @@ system by providing actual implementations of the corresponding constructs and p
 \medskip
 For the SystemC and VHDL backends, the generated code can actually be compiled and executed for
 simulation purpose and. The FSM implementations generated by the VHDL backend can also be
-synthetized to be implemented hardware using hardware-specific tools\footnote{We use the
+synthetized to be implemented on hardware using hardware-specific tools\footnote{We use the
   \textsc{quartus} toolchain from Intel/Altera.}. 
 
 \medskip
@@ -190,23 +187,20 @@ Listing~\ref{lst:rfsm-gensig}.
 \label{sec:variant-formulation}
 
 In the automata described in Fig.~\ref{fig:rfsm-gensig-model} and Listing~\ref{lst:rfsm-gensig}, the
-\texttt{s} output is defined by attaching its value to states.
-This is typical of a so-called \emph{Moore}-style description.
-Iy is also possible to specify these values by indicating how they are \emph{modified} when some
-transitions are taken. A equivalent description of that given in Listing~\ref{lst:rfsm-gensig} is
-obtained, for example, by specifying that
-\texttt{s} is set to 0 on the initial transition and on the transition from \texttt{E1} to
-\texttt{E0}, and set to 1 on the transition from \texttt{E0} to \texttt{E1}. 
-This style of description, often called \emph{Mealy}-style, is illustrated in
-Fig.~\ref{fig:rfsm-gensig-mealy}. Note the absence of the \texttt{where} clause in the
-declarations of states and, conversely, the presence of the action
-\lstinline[language=Rfsm]{s:=0} and \lstinline[language=Rfsm]{s:=1} in the first and third
-transitions respectively.
+value of the \texttt{s} output is specified by indicating how it changes when transitions are taken
+(including its initialisation). This is typical of a so-called \emph{Mealy}-style description.  In
+some cases, it is possible -- and maybe simpler -- to indicate which value this output takes for
+each state. A equivalent description of that given
+in Listing~\ref{lst:rfsm-gensig} is obtained, for example, by specifying that \texttt{s} is 0
+whenever the FSM is in state \texttt{E0} and 1 whenever it is in state \texttt{E1}.
+This style of description, often called
+\emph{Moore}-style, is illustrated in Fig.~\ref{fig:rfsm-gensig-moore}. The value of the \texttt{s}
+output is here attached to states using the \texttt{where} clause in the declarations of states.
 
 \begin{figure}[htbp]
   \centering
   \begin{tabular}[c]{cc}
-\includegraphics[width=0.4\textwidth]{figs/gensig-model-mealy} &
+\includegraphics[width=0.4\textwidth]{figs/gensig-model-moore} &
 \begin{minipage}[b]{0.6\textwidth}
 \begin{lstlisting}[language=Rfsm]
 fsm model gensig <n: int> (
@@ -214,12 +208,12 @@ fsm model gensig <n: int> (
   in e: bool,
   out s: bool)
 {
-  states: E0, E1;
-  vars: k: int<0:n>;
+  states: E0 where s=0, E1 where s=1;
+  vars: k: int<1:n>;
   trans:
-  | E0 -> E1 on h when e=1 with k:=1, s:=1
+  | E0 -> E1 on h when e=1 with k:=1
   | E1 -> E1 on h when k<n with k:=k+1
-  | E1 -> E0 on h when k=n, s:=0
+  | E1 -> E0 on h when k=n
   itrans:
  | -> E0 with s:=0
 }
@@ -227,12 +221,12 @@ fsm model gensig <n: int> (
 \end{minipage}
   \end{tabular}
   \caption{A reformulation of the model given in Listing~\ref{lst:rfsm-gensig} and
-    Fig.~\ref{fig:rfsm-gensig-model} using Mealy-style}
-  \label{fig:rfsm-gensig-mealy}
+    Fig.~\ref{fig:rfsm-gensig-model} using Moore-style}
+  \label{fig:rfsm-gensig-moore}
 \end{figure}
 
-\medskip \textbf{Note}. An option of the \texttt{rfsmc} compiler (\verb|-normalize|) allows to
-automatically transform a Moore-style description into a Mealy-style one.
+\medskip \textbf{Note}. The \texttt{rfsmc} compiler automatically transforms models using
+Moore-style descriptions models using only Mealy-style ones.
 
 % This option is
 % automatically inserted when simulating a system\footnote{\emph{I.e.} simulation is always performed
@@ -246,7 +240,7 @@ It is of course possible to describe systems composed of several FSM instances.
 \medskip
 A first example is given in Listing~\ref{lst:rfsm-cntmod8} and Fig.~\ref{fig:rfsm-cntmod8}. The system is a simple modulo 8 counter, here
 described as a combination of three event-synchronized modulo 2 counters\footnote{This program is
-  provided in the distribution, under directory \texttt{examples/multi/ctrmod8}.}.
+  provided in the distribution, under directory \texttt{examples/full/multi/ctrmod8}.}.
 
 Here a single FSM model (\texttt{cntmod2}) is instanciated thrice, as \texttt{C0}, \texttt{C1} and
 \texttt{C2}. These instances are synchronized using two \textbf{shared events}, \texttt{R0} and \texttt{R1}. 
@@ -269,21 +263,20 @@ described in Fig.~\ref{fig:rfsm-cntmod8}, for example, the transition of \texttt
   label={lst:rfsm-cntmod8}]
 fsm model cntmod2(
   in h: event,
-  out s: int<0:1>,
+  out s: bool,
   out r: event)
 {
-  states: E0, E1;
+  states: E0 where s=0, E1 where s=1;
   trans:
-  | E0 -> E1 on h with s:=1
-  | E1 -> E0 on h with r, s:=0;
+  | E0 -> E1 on h
+  | E1 -> E0 on h with r;
   itrans:
-  | -> E0 with s:=0;
+  | -> E0;
 }
 
 input H: event = periodic(10,10,100)
-output S0, S1, S2: int<0:1>
+output S0, S1, S2: bool
 output R2: event
-
 shared R0, R1: event
 
 fsm C0 = cntmod2(H,S0,R0) 

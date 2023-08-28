@@ -11,7 +11,7 @@
 
 module Location = Rfsm.Location
 
-let print_full_types = ref true (* for debug only *)
+let print_full_types = ref false (* for debug only *)
 
 let set_print_full_types, reset_print_full_types =
  let st = ref false in

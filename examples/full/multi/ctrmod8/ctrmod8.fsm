@@ -1,4 +1,5 @@
 -- A mod 8 counter described as a combination of three event-synchronized mod 2 counters
+-- This example is used in Chap 2 of the User Manual
 
 fsm model cntmod2(
   in h: event,

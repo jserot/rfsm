@@ -25,7 +25,7 @@ fsm model gensig2 <n: int> (
   out s: bool)
 {
   states: E0 where s=0, E1 where s=1;
-  vars: k: int;
+  vars: k: int<1:n>;
   trans:
   | E0 -> E1 on h when e=1 with k:=1
   | E1 -> E1 on h when k<n with k:=k+1
@@ -42,7 +42,7 @@ fsm model gensig3 <n: int> (
   out s: bool)
 {
   states: E0, E1;
-  vars: k: int;
+  vars: k: int<1:n>;
   trans:
   | E0 -> E1 on h when e=1 with k:=1,s:=1
   | E1 -> E1 on h when k<n with k:=k+1

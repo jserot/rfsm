@@ -1,4 +1,4 @@
-\chapter{Formal semantics}
+\chapter*{Appendix D -Formal semantics}
 \label{cha:semantics}
 
 \newcommand{\truev}{\mathsf{T}}
@@ -217,7 +217,7 @@ assigned values cannot depend on inputs or local variables.
 % \end{itemize}
 
 \medskip \textbf{Example}. The model of the automaton depicted below\footnote{This model, a
-  calibrated pulse generator has been introduced in Fig.~\ref{fig:genimp-xxx} (Chap.~\ref{cha:}).}
+  calibrated pulse generator has been introduced in Chap.~\ref{cha:overview}).}
 can be formally described as $\mathcal{M}=\ttttttuple{Q}{I}{O}{V}{T}{\tau_0}$ where~:
 
 \begin{tabular}[c]{cc}
@@ -352,7 +352,13 @@ The $\mathcal{I}$ function builds an environment from a set of names, initializi
 \label{sec:dynamic-semantics}
 
 The dynamic semantics of a \textsc{Core Rfsm} program will be given in terms of (instantaneous)
-\textbf{reactions}
+\textbf{reactions}.
+% TO BE INSERTED LATER ?
+% It is similar to that of so-called \emph{synchronous languages} like
+% \textsc{Esterel} or \textsc{Lustre}. Each reaction takes place at a given \emph{instant}. An instant
+% is defined by the occurrence of an event (or of several simultaneous events). There's no reference
+% to a notion of duration and time is only defined by the succession of instants (and hence of
+% events). At each instant, each FSM composing the program takes at most one transition. 
 
 \begin{eqnarray*}
   \mathcal{C} \vdash\ M,\ \env \xrightarrow[\rho]{\sigma} M',\ \env' 

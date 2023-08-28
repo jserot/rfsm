@@ -1,0 +1,37 @@
+-- Synchronisation of two FSMs using a shared variable
+--
+-- FSM [a1] repeatedly writes the shared variable [c] at each event [h] so that it takes values 1, 2, 3, 4, 1, 2, ...
+-- FSM [a2] observes this variable also at each event [h] and simply goes from state S1 to state S2 (resp. S2 to S1)
+-- when the observed value is 4 (resp. 1).
+--
+-- This example is used in Chap 2 of the User Manual
+
+fsm model A1(
+  in h: event,
+  inout v: int)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h with v:=1
+  | S2 -> S2 on h when v<4 with v:=v+1
+  | S2 -> S1 on h when v=4;
+  itrans:
+  | -> S1 with v:=0;
+}
+
+fsm model A2(
+  in h: event,
+  in v: int)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h when v=4
+  | S2 -> S1 on h when v=1;
+  itrans:
+  | -> S1 ;
+}
+
+input h : event = periodic(10,10,100)
+shared c : int
+fsm a1 = A1(h,c)
+fsm a2 = A2(h,c)

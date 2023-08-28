@@ -1,0 +1,32 @@
+-- Synchronisation using a shared variable
+-- This example illustrates the notion of instantaneous broadcast
+-- It is used in Chap 2 of the User Manual
+
+fsm model A1(
+  in h: event,
+  out v: bool)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h with v:=1
+  | S2 -> S1 on h with v:=0;
+  itrans:
+  | -> S1 with v:=0;
+}
+fsm model A2(
+  in h: event,
+  in v: bool)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h when v=1
+  | S2 -> S1 on h; 
+  itrans:
+  | -> S1 ;
+}
+
+input H : event = sporadic(10, 20, 30, 40)
+shared V : bool
+
+fsm a1 = A1(H,V)
+fsm a2 = A2(H,V)

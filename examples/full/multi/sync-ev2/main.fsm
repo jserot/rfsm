@@ -1,0 +1,34 @@
+-- Synchronisation using a shared event
+-- This example, used in the user manual, shows the ephemeral nature of this kind of synchronisation
+
+fsm model A1(
+  in h: event,
+  out e: event)
+{
+  states: A, B, C;
+  trans:
+  | A -> B on h with e
+  | B -> C on h
+  | C -> A on h;
+  itrans:
+  | -> A ;
+}
+
+fsm model A2(
+  in h: event,
+  in e: event)
+{
+  states: A, B, C;
+  trans:
+  | A -> B on h
+  | B -> C on e
+  | C -> A on h;
+  itrans:
+  | -> A ;
+}
+
+input H : event = sporadic(10, 20, 30, 40, 50)
+shared e : event
+
+fsm a1 = A1(H,e)
+fsm a2 = A2(H,e)
