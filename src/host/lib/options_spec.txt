@@ -14,6 +14,7 @@ noide;dot;-dot_qual_ids;Arg.Unit;set_dot_qual_ids;print qualified identifiers in
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
 ide;dot;-dot_short_trans;Arg.Unit;set_dot_short_trans;Print single-line transition labels (default is multi-lines)
 ide;dot;-dot_abbrev_types;Arg.Unit;set_dot_abbrev_types;Print abbreviated types (default is to print definitions)
+ide;dot;-dot_boxed;Arg.Unit;set_dot_boxed;Draw FSM instances in boxes
 noide;sim;-sim_trace;Arg.Int;set_sim_trace;set trace level for simulation (default: 0)
 ide;sim;-vcd_int_size;Arg.Int;set_vcd_default_int_size;set default int size for VCD traces (default: 8)
 ide;general;-synchronous_actions;Arg.Unit;set_synchronous_actions;interpret actions synchronously

@@ -27,6 +27,7 @@ type cfg = {
     mutable abbrev_types: bool;
     mutable show_models: bool;
     mutable show_captions: bool;
+    mutable boxed: bool;
   }
              
 let cfg = {
@@ -40,6 +41,7 @@ let cfg = {
     abbrev_types = false;
     show_models = false;
     show_captions = true;
+    boxed = false;
   }
 
 module Make(S: Static.T) : DOT with module Static = S =
@@ -134,7 +136,11 @@ struct
       let id = node_of q in
       let id' = node_of q' in
       fprintf ocf "%s -> %s [label = \"%a\"];\n" id id' pp_cond_acts (c,a) in
-    fprintf ocf "%s %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" kind (Ident.to_string m.name) cfg.layout cfg.rankdir cfg.mindist;
+    let nm = Ident.to_string name in 
+    if cfg.boxed then 
+      fprintf ocf "%s cluster_%s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"%s\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" kind nm cfg.layout cfg.rankdir nm cfg.mindist
+    else
+      fprintf ocf "%s %s {\nlayout = %s;\nrankdir = %s;\nsize = \"8.5,11\";\nlabel = \"%s\"\n center = 1;\n nodesep = \"0.350000\"\n ranksep = \"0.400000\"\n fontsize = 14;\nmindist=\"%1.1f\"\n" kind nm cfg.layout cfg.rankdir nm cfg.mindist;
     fprintf ocf "%s [shape=point; label=\"\"; style = invis]\n" ini_id;
     List.iter dump_state m.states;
     dump_itransition m.itrans;

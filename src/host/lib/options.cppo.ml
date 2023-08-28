@@ -58,6 +58,7 @@ let set_show_models () =
   Ctask.cfg.show_models <- true
 let set_dot_abbrev_types () =  Dot.cfg.Dot.abbrev_types <- true
 let set_dot_qual_ids () = Dot.cfg.Dot.qual_ids <- true
+let set_dot_boxed () = Dot.cfg.Dot.boxed <- true
 
 let set_vcd_default_int_size s = Vcd.cfg.Vcd.default_int_size <- s
 
