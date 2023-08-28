@@ -78,15 +78,15 @@ struct
     Misc.pp_list_h ~sep:(if cfg.trans_vlayout then "\n" else ";") pp_action fmt acts
 
   let pp_cond_acts fmt (cond,acts) =
+    let s1 = Misc.to_string pp_cond cond in
+    let s2 = Misc.to_string pp_actions acts in
     match acts, cfg.trans_vlayout with
     | [], _ -> Format.fprintf fmt "%a" pp_cond cond;
     | _, true ->
-      let s1 = Misc.to_string pp_cond cond in
-      let s2 = Misc.to_string pp_actions acts in
       let l = String.make (max (Misc.string_length_nl s1) (Misc.string_length_nl s2)) '_' in
       Format.fprintf fmt "%s\n%s\n%s" s1 l s2
     | _, _ ->
-         Format.fprintf fmt "%a / %a" pp_cond cond pp_actions acts
+      Format.fprintf fmt "%s / %s" s1 s2
 
   let pp_list_r pp fmt l = 
     match l with 
@@ -131,7 +131,10 @@ struct
         let l = String.make (Misc.string_length_nl s) '_' in
         fprintf ocf "%s -> %s [label=\"%s\n%s\"];\n" ini_id id l s
       else 
-        fprintf ocf "%s -> %s [label=\"/ %a\"];\n" ini_id id pp_actions a in
+        if a <> [] then 
+          fprintf ocf "%s -> %s [label=\"/ %a\"];\n" ini_id id pp_actions a
+        else
+          fprintf ocf "%s -> %s [label=\"\"];\n" ini_id id in
     let dump_transition { Annot.desc=(q,c,a,q',_); _ } =
       let id = node_of q in
       let id' = node_of q' in
@@ -203,7 +206,8 @@ struct
          List.iter (pp_io ~with_stim:false "input" ocf)  ctx.inputs; 
          List.iter (pp_io ~with_stim:false "output" ocf) ctx.outputs; 
          List.iter (pp_io ~with_stim:false "shared" ocf) ctx.shared in
-       fprintf ocf "%s_ios [label=\"%a\", shape=rect, style=rounded]\n" name pp_ios sd.Static.ctx;
+       if cfg.show_captions then 
+         fprintf ocf "%s_ios [label=\"%a\", shape=rect, style=rounded]\n" name pp_ios sd.Static.ctx;
        fprintf ocf "}\n";
        close_out oc;
        fname :: fnames
