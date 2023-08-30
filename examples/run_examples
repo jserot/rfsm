@@ -1,7 +1,9 @@
 #!/bin/bash
 
-RUN_TEST="./run_test"
-SUBDIRS="core full"
+# A script for automatically running examples
+
+RUN_TEST="../etc/bin/run_test"
+SUBDIRS="full"
 
 while : ; do
   case "$1" in
@@ -12,14 +14,13 @@ while : ; do
         RUN_TEST="$RUN_TEST -show";;
     -help|--help)
         cat <<EOF
-Usage: run_tests [options] kind subdir
+Usage: run_tests [options] kind
 where
 options: [defaults in brackets after descriptions]
   -makefile              (re)build makefile in test directories [default: no]
   -show                  launch DOT or VCD viewer after running the test [default: no]
   -help                  print this message
-kind=dot|sim|ctask|systemc|vhdl|systemc.code|vhdl.code|systemc.sim|vhdl.sim
-subdir=core|full|all
+kind=dot|sim|ctask|systemc|vhdl|systemc.sim|vhdl.sim
 EOF
 	exit 0;;
     *) break;;
@@ -27,7 +28,7 @@ EOF
   shift
 done
 
-#echo "RUN_TEST=$RUN_TEST 1=$1 2=$2"
+echo "RUN_EXAMPLES: RUN_TEST=$RUN_TEST 1=$1"
 
 run ()
 {
@@ -42,12 +43,7 @@ done
 echo "***" $ns"/"$nt "test(s) OK"
 }
 
-case $2 in
-    all) 
-        for i in $SUBDIRS
-        do
-            run $1 $i
-        done;;
-    *)
-        run $1 $2;;
-esac
+for i in $SUBDIRS
+do
+    run $1 $i
+done

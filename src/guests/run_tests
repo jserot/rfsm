@@ -1,17 +1,17 @@
 #!/bin/bash
 
-DO_TEST="./do_test"
+RUN_TEST="../../etc/bin/run_test"
 
 while : ; do
   case "$1" in
     "") break;;
     -makefile)
-        DO_TEST="$DO_TEST -makefile";;
+        RUN_TEST="$RUN_TEST -makefile";;
     -compiler)
-        DO_TEST="$DO_TEST -compiler $2"; shift;;
+        RUN_TEST="$RUN_TEST -compiler $2"; shift;;
     -help)
         cat <<EOF
-Usage: do_tests [options] kind subdir
+Usage: run_tests [options] kind subdir
 where
 options: [defaults in brackets after descriptions]
   -makefile              (re)build makefile in test directories [default: no]
@@ -27,7 +27,7 @@ EOF
   shift
 done
 
-#echo "DO_TEST=$DO_TEST 1=$1 2=$2"
+#echo "RUN_TESTS: RUN_TEST=$RUN_TEST 1=$1 2=$2"
 
 run ()
 {
@@ -37,7 +37,7 @@ for i in $2/tests/{single,multi}/[a-z]*
 do
     if [ -e $i ]; then
         (( nt = nt + 1 ))
-        $DO_TEST $1 $i
+        $RUN_TEST $1 $i
         (( ns = ns + $? ));
     fi
 done
