@@ -35,6 +35,7 @@ Options: [defaults in brackets after descriptions]
   -o FILE                set name of the generated Makefile [default: 'Makefile']
   -with-test-targets     generated test targets [default: no]
   -no-confirm            do not ask confirmation before overwriting existing Makefile [default is to ask]
+  -compiler              set path to the rfsmc compiler
   -help                  print this message
 EOF
 	exit 0;;
