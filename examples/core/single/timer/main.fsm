@@ -1,7 +1,0 @@
-input h: event = periodic(1, 0, 25)
-input start: event = sporadic(5)
-output done: event
-shared t: int
-
-fsm timer = timer(h, start, done, t)
-

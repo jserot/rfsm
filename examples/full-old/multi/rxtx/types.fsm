@@ -1,1 +1,0 @@
-type bit = int<1>

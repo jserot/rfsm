@@ -1,9 +1,0 @@
-input H : event = periodic (10,10,200)
-input U : float = value_changes (5:2.0)
-input Start : bool = value_changes (0:0, 25:1, 35:0)
-output Rdy1, Rdy2 : bool
-output R1, R2 : float
-output Niter : int
-
-fsm h1 = heron1<8> (H,Start,U,Rdy1,R1)
-fsm h2 = heron2<0.00000001> (H,Start,U,Rdy2,Niter,R2)

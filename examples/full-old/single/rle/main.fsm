@@ -1,5 +1,0 @@
-input h : event = periodic (10,10,120)
-input inp : char = value_changes(5:'A', 15:'A', 25:'A', 35:'B', 45:'B', 55:'+', 65:'C', 75:'C', 85:'C', 95:'z')
-output outp: rle
-
-fsm f = rle(h,inp,outp)

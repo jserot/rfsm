@@ -1,8 +1,0 @@
-input H : event = periodic (10,10,80)
-input e : bool = value_changes (0:0, 25:1, 35:0)
-output s1, s2 : bool 
-
-fsm g1 = gensig1(H,e,s1)
-fsm g2 = gensig2(H,e,s2)
-
-

@@ -1,11 +1,9 @@
 #!/bin/bash
 
-# A script for running examples / tests
+# A script for automated testing 
 
 RFSMMAKE=/Users/jserot/Dev/ml/rfsm/etc/bin/rfsmmake
 RFSMLIB=/Users/jserot/Dev/ml/rfsm/etc
-BUILD_MAKEF=no
-SHOW=no
 
 try_make ()
 {
@@ -41,16 +39,29 @@ case $? in
 esac
 }
 
+# function check_results
+# {
+# echo -n "  -> checking $1 results ... "
+# (cd $1; make $2.check) > /dev/null 2>&1
+# case $? in
+# 0)
+#   echo -e "\033[32mOK\033[0m";;
+# *)
+#  failed=true; echo -e "\033[31m** Checking of $2 results FAILED in $1\033[0m";;
+# esac
+# }
+
 function make_test 
 {
     failed=false
     (cd $1; make clobber) > $TMP 2>&1
     run $1 dot 
     run $1 sim
+#    check_results $1 sim
     (cd $1; make clobber) > $TMP 2>&1
 }
 
-TMP=/tmp/run_test.out
+TMP=/tmp/do_test.out
 
 make_all ()
 {
@@ -74,44 +85,69 @@ make_makefile ()
 
 make_target ()
 {
-    echo -n "Making $1 in $2... "
+    if [ $CUSTOM_RFSMC == "yes" ];
+    then
+        echo -n "Testing $1 in $2 with RFSMC=$RFSMC... "
+        (cd $2; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
+    else
+        echo -n "Testing $1 in $2... "
+    fi
     (cd $2; if [ -e Makefile ]; then make clobber > $TMP 2>&1; fi)
     (cd $2; try_make $1) > $TMP 2>&1
     grep "OK" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
     grep "FAILED" $TMP >/dev/null && echo -e "\033[31mFAILED\033[0m"
     grep "OK" $TMP >/dev/null && exit 1
-    (cd $2; make clean) > $TMP 2>&1
     exit 0
 }
+
+CUSTOM_RFSMC=no
+SHOW=no
+BUILD_MAKEF=no
 
 while : ; do
   case "$1" in
     "") break;;
-    -makefile) BUILD_MAKEF=yes; shift;;
-    -show) SHOW=yes; shift;;
-    -help|--help)
+    -makefile) BUILD_MAKEF=yes;;
+    -show) SHOW=yes;;
+    -compiler)
+        if [ -e $2 ]; then
+            RFSMC=$2;
+            CUSTOM_RFSMC=yes;
+            shift
+        else
+            echo "Non existent file: $2"
+            exit 1
+        fi
+        ;;
+    -help)
         cat <<EOF
-Usage: run_test [options] kind subdir
+Usage: do_test [options] kind subdir
 where
 options: [defaults in brackets after descriptions]
   -makefile              (re)build Makefile in test directory [default: no]
+  -compiler path         path to the rfsmc compiler [default: $RFSMC]
   -show                  launch DOT or VCD viewer after running the test [default: no]
   -help                  print this message
-kind=dot.run|dot|sim|ctask|systemc|vhdl|systemc.code|systemc.sim|vhdl.code|vhdl.sim
-subdir=core|full
+kind=makefile|dot.run|dot|sim|ctask|systemc.code|systemc.run|systemc|systemc.sim|vhdl.code|vhdl.run|vhdl|vhdl.sim
+subdir=core|full|...
 EOF
 	exit 0;;
     *) break;;
   esac
+  shift
 done
 
 IFS="/" read -ra PARTS <<< "$2"
 GUEST="${PARTS[0]}"
-RFSMC=/Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$GUEST/bin/rfsmc.bc # Default version
-
-#echo "C=$RFSMC 1=$1 2=$2"
-
-case $1 in
-*) if [ $BUILD_MAKEF == "yes" ]; then make_makefile $2; fi
-   make_target $1 $2;;
+case $GUEST in
+full) ;;
+*) GUEST="${PARTS[0]}/${PARTS[1]}"
 esac
+if [ $CUSTOM_RFSMC == "no" ]; then
+    RFSMC=/Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$GUEST/bin/rfsmc.bc; # Default version
+fi
+
+#echo "C=$RFSMC BUILD_MAKEF=$BUILD_MAKEF SHOW=$SHOW 1=$1 2=$2"
+
+if [ $BUILD_MAKEF == "yes" ]; then make_makefile $2; fi
+make_target $1 $2

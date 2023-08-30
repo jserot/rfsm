@@ -1,6 +1,6 @@
 COMPILER
 
-- reorganize src and examples dirs in full / others
+- unify `examples/run_test{s}`  and `src/guests/do_test{s}`
 - dual error reporting mechanism (CLC / RfsmLight)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
 - document lib/host/guest.ml

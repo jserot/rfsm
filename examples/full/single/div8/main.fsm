@@ -1,0 +1,52 @@
+fsm model div8_1 ( -- Naive model, using successive substractions
+  in h: event, 
+  in start: bool,
+  in n1: int<8>,
+  in n2: int<8>,
+  out rdy: bool,
+  out r: int<8>)
+ {
+  states: Idle where rdy=1, Compute where rdy=0;
+  vars: a:int<8>, b:int<8>, q:int<8>;
+  trans:
+  | Idle -> Compute on h when start=1 with a:=n1, b:=n2, q:=0
+  | Compute -> Compute on h when a>=b with a:=a-b, q:=q+1
+  | Compute -> Idle on h when a<b with r:=q;
+  itrans:
+  | -> Idle;
+  }
+
+fsm model div8_2 (  -- Optimized divider operation, giving results in a constant nbr of iterations
+  in h: event, 
+  in start: bool,
+  in n1: int<8>,
+  in n2: int<8>,
+  out rdy: bool,
+  out r: int<8>)
+ {
+  states: Idle where rdy=1, Compute where rdy=0;
+  vars:
+    a:int<16>,
+    b:int<16>,
+    c:int<8>,
+    i:int<0:8>;
+  trans:
+  | Idle -> Compute on h when start=1 with a:=n1::int<16>, b:=n2::int<16>*128, c:=0, i:=0
+  | Compute -> Compute on h when (i<8).(a>=b) with a:=a-b, c:=c*2+1, i:=i+1, b:=b/2
+  | Compute -> Compute on h when (i<8).(a<b) with c:=c*2, i:=i+1, b:=b/2
+  | Compute -> Idle on h when i=8 with r:=c;
+  itrans:
+ | -> Idle;
+  }
+
+input H : event = periodic (10,10,200)
+input N1 : int<8> = value_changes (5:150, 45:0)
+input N2 : int<8> = value_changes (5:25, 45:0)
+input Start : bool = value_changes (0:0, 25:1, 35:0)
+
+output Rdy : bool
+output R1 : int<8>  
+output R2 : int<8>  
+
+fsm d1 = div8_1 (H,Start,N1,N2,Rdy,R1)
+fsm d2 = div8_2 (H,Start,N1,N2,Rdy,R2)

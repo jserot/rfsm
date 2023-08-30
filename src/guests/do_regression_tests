@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#for target in dot sim ctask systemc vhdl
+for target in systemc vhdl
+do
+    # ./do_tests $target others/core
+    # for compiler in simple szdints szvars
+    # do
+    #      ./do_tests -compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/guests/others/$compiler/bin/rfsmc.bc $target others/core
+    # done
+
+    ./do_tests $target others/simple
+    for compiler in others/szdints others/szvars full
+    do
+         ./do_tests -compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$compiler/bin/rfsmc.bc $target others/simple
+ 
+    done
+
+    ./do_tests $target others/szdints
+    for compiler in others/szvars full
+    do
+         ./do_tests -compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$compiler/bin/rfsmc.bc $target others/simple
+    done
+
+    ./do_tests $target others/szvars
+    for compiler in full
+    do
+         ./do_tests -compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$compiler/bin/rfsmc.bc $target others/simple
+    done
+
+done

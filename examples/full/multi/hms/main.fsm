@@ -1,0 +1,24 @@
+-- Model of an Hour-Minute-Second clock
+
+fsm model hms<nh: int, nm: int, ns: int>(
+  in top: event,
+  inout h: int<0:nh>,  -- Note: this should really be [int<0:nh-1>] but computation on type parameters in not supported
+  inout m: int<0:nm>,  -- Note: this should really be [int<0:nm-1>] but computation on type parameters in not supported
+  inout s: int<0:ns>)  -- Note: this should really be [int<0:ns-1>] but computation on type parameters in not supported
+{
+  states: S0;
+  trans:
+  | S0 -> S0 on top when s<ns-1 with s:=s+1
+  | S0 -> S0 on top when (s=ns-1).(m<nm-1) with s:=0, m:=m+1
+  | S0 -> S0 on top when (s=ns-1).(m=nm-1).(h<nh-1) with s:=0, m:=0, h:=h+1
+  | S0 -> S0 on top when (s=ns-1).(m=nm-1).(h=nh-1) with s:=0, m:=0, h:=0;
+  itrans:
+  | -> S0 with s:=0,m:=0,h:=0;
+}
+
+input sec : event = periodic(10, 10, 100)
+shared H : int<0:3>
+shared M : int<0:3>
+shared S : int<0:3>
+
+fsm hms = hms<3,3,3>(sec,H,M,S)  -- Days have only 3 hours, hours only 3 minutes and minutes only 3 seconds here ;-)

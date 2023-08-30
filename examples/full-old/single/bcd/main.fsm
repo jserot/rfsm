@@ -1,7 +1,0 @@
-input h : event = periodic (10,10,160)
-input n : int<8> = value_changes (5:243)
-input start : bool = value_changes (0:0, 25:1, 35:0)
-output rdy : bool
-output r: bcd3
-
-fsm conv = convert(h,start,n,rdy,r)

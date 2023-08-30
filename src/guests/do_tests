@@ -1,25 +1,25 @@
 #!/bin/bash
 
-RUN_TEST="./run_test"
-SUBDIRS="core full"
+DO_TEST="./do_test"
 
 while : ; do
   case "$1" in
     "") break;;
     -makefile)
-        RUN_TEST="$RUN_TEST -makefile";;
-    -show)
-        RUN_TEST="$RUN_TEST -show";;
-    -help|--help)
+        DO_TEST="$DO_TEST -makefile";;
+    -compiler)
+        DO_TEST="$DO_TEST -compiler $2"; shift;;
+    -help)
         cat <<EOF
-Usage: run_tests [options] kind subdir
+Usage: do_tests [options] kind subdir
 where
 options: [defaults in brackets after descriptions]
   -makefile              (re)build makefile in test directories [default: no]
+  -compiler path         path to the rfsmc compiler [default: $RFSMC]
   -show                  launch DOT or VCD viewer after running the test [default: no]
   -help                  print this message
 kind=dot|sim|ctask|systemc|vhdl|systemc.code|vhdl.code|systemc.sim|vhdl.sim
-subdir=core|full|all
+subdir=full|others/core|...
 EOF
 	exit 0;;
     *) break;;
@@ -27,20 +27,24 @@ EOF
   shift
 done
 
-#echo "RUN_TEST=$RUN_TEST 1=$1 2=$2"
+#echo "DO_TEST=$DO_TEST 1=$1 2=$2"
 
 run ()
 {
 nt=0
 ns=0
-for i in $2/{single,multi}/[a-z]*
+for i in $2/tests/{single,multi}/[a-z]*
 do
-  (( nt = nt + 1 ))
-  $RUN_TEST $1 $i
-  (( ns = ns + $? ))
+    if [ -e $i ]; then
+        (( nt = nt + 1 ))
+        $DO_TEST $1 $i
+        (( ns = ns + $? ));
+    fi
 done
 echo "***" $ns"/"$nt "test(s) OK"
 }
+
+SUBDIRS="others/core others/simple others/szdints others/szvars full"
 
 case $2 in
     all) 
