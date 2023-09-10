@@ -1,4 +1,4 @@
-SRCS=ctrmod8.fsm main.fsm
+SRCS=main.fsm
 DOT_OPTS=-dot_boxed
 SIM_OPTS=
 SYSTEMC_OPTS=-sc_time_unit "SC_NS"
