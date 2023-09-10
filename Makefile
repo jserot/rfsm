@@ -3,25 +3,15 @@
 all: host guests # doc
 
 host:
-	dune build src/lib/host/rfsm.cma
-#	dune build src/lib/host/rfsm.cmxa
+	(cd src/host; make)
 
-guests: core simple szdints szvars typarams
+guests: full others
 
-core:
-	dune build src/bin/core/rfsmc.bc
+full:
+	(cd src/guests/full; make)
 
-simple:
-	dune build src/bin/simple/rfsmc.bc
-
-szdints:
-	dune build src/bin/szdints/rfsmc.bc
-
-szvars:
-	dune build src/bin/szvars/rfsmc.bc
-
-typarams:
-	dune build src/bin/typarams/rfsmc.bc
+others:
+	for i in src/guests/others/{core,simple,szdints,szvars}; do (cd $$i; make); done
 
 install:
 	dune build @install
@@ -38,17 +28,9 @@ doc:
 	cp -r _build/default/_doc/_html/* ./docs
 	cp doc/rfsm.pdf ./docs
 
-
 html: README.md
 	pandoc -t html -o README.html README.md
 	pandoc -t html -o CHANGES.html CHANGES.md
-
-toplevel:
-	dune exec ./src/bin/rfsmtop.exe
-
-tests:
-	(cd examples; ./do_tests dot)
-	(cd examples; ./do_tests sim)
 
 clean:
 	dune clean

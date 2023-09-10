@@ -1,4 +1,4 @@
-clean:
+SUBDIRS=lib
 
-clobber: clean
-	\rm -f *~
+clean:
+	for i in $(SUBDIRS); do (cd $$i; make clean); done
