@@ -55,7 +55,8 @@ let set_dot_no_captions () = Dot.cfg.show_captions <- false
 let set_dot_short_trans () =  Dot.cfg.Dot.trans_vlayout <- false
 let set_show_models () =
   Dot.cfg.show_models <- true;
-  Ctask.cfg.show_models <- true
+  Ctask.cfg.show_models <- true;
+  Systemc.cfg.show_models <- true
 let set_dot_abbrev_types () =  Dot.cfg.Dot.abbrev_types <- true
 let set_dot_qual_ids () = Dot.cfg.Dot.qual_ids <- true
 let set_dot_boxed () = Dot.cfg.Dot.boxed <- true

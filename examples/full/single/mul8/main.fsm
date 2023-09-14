@@ -1,7 +1,7 @@
 input H: event = periodic (10,10,140)
 input Start: bool = value_changes(0:0, 15:1, 35:0)
-input N1: int<8> = value_changes(20:6::int<8>)
-input N2: int<8> = value_changes(20:5::int<8>)
+input N1: int<8> = value_changes(20:6)
+input N2: int<8> = value_changes(20:5)
 output R: int<16>
 output Rdy: bool
 

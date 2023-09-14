@@ -27,6 +27,7 @@ type sc_config = {
   mutable sc_trace_state_var: string;
   mutable sc_double_float: bool;
   mutable sc_act_semantics: Misc.act_semantics;
+  mutable show_models: bool;
   }
 
 let cfg = {
@@ -45,6 +46,7 @@ let cfg = {
   sc_trace_state_var = "st";
   sc_double_float = false;
   sc_act_semantics = Misc.Sequential;
+  show_models = false;
   }
 
 module type SYSTEMC = sig
@@ -520,6 +522,12 @@ struct
     dump_module_intf (need_globals m) (dir ^ "/" ^ Ident.to_string fi.name ^ ".h") f;
     dump_module_impl (need_globals m) (dir ^ "/" ^ Ident.to_string fi.name ^ ".cpp") f
 
+  let dump_fsm_model ?(dir="./systemc") fm =
+    let f = Cmodel.of_fsm_model fm in
+    let name = fm.Annot.desc.name in
+    dump_module_intf false (dir ^ "/" ^ Ident.to_string name ^ ".h") f;
+    dump_module_impl false (dir ^ "/" ^ Ident.to_string name ^ ".cpp") f
+
   let dump_input ?(prefix="") ?(dir="./systemc") m ((id,_) as inp) =
     let prefix = match prefix with "" -> cfg.sc_inpmod_prefix ^ Ident.to_string id | p -> p in
     dump_inp_module_intf (need_globals m) (dir ^ "/" ^ prefix ^ ".h") inp;
@@ -531,6 +539,8 @@ struct
 
   let output ~dir ?(pfx="") s =
     output_files := [];
+    if cfg.show_models then 
+      List.iter (dump_fsm_model ~dir) s.Static.models;
     List.iter (dump_input ~dir s) s.Static.ctx.inputs;
     if need_globals s then dump_globals ~dir s;
     List.iter (dump_fsm_inst ~dir s) s.Static.fsms;
