@@ -149,6 +149,9 @@ struct
       else 
         let ty = GuestTyping.type_of_type_expr env te in
         GuestTyping.add_var ~scope env (id,ty), id::syms in
+    List.iter (* TO FIX : typing the mixed [ios] list and the sorted [inps],[outps] and [inouts] lists is clearly redundant *)
+      (fun (id,(_,te)) -> let _ = GuestTyping.type_of_type_expr env te in ())
+      md.HostSyntax.ios;
     let env', _ = 
          (env,[])
       |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.inps 
@@ -171,10 +174,9 @@ struct
     let lookup_io name =
       try List.find (fun { A.desc = (id,_,_,_); _ } -> id = name) p.globals
       with Not_found -> raise (Ident.Undefined ("symbol",loc,name)) in
-    let unify_cat cat cat' = match cat, cat' with
-      (* Check that an Input (resp. Output) is not plugged on an Output (resp. Input) *)
-      | Input, Output -> raise (Illegal_inst loc)
-      | Output, Input -> raise (Illegal_inst loc)
+    let unify_cat io_cat gl_cat = match io_cat, gl_cat with
+      | In, Output -> raise (Illegal_inst loc)
+      | Out, Input -> raise (Illegal_inst loc)
       | _, _ -> () in
     (* Get associated model *)
     let mm = Misc.clone @@ lookup_model model in
@@ -194,16 +196,14 @@ struct
     let env' = List.fold_left GuestTyping.add_param env ty_params in
     (* Type the instanciated model *)
     let _ = type_fsm_model env' mm in
-    let m_inps = List.map (fun (id,te) -> id, Input, te.A.typ) m.inps in
-    let m_outps = List.map (fun (id,te) -> id, Output, te.A.typ) m.outps in
-    let m_inouts = List.map (fun (id,te) -> id, Shared, te.A.typ) m.inouts in
-    let bind_arg (id,cat,ty) id' =
+    let bind_arg (id,(cat,te)) id' =
       let _,cat',te',_ = (lookup_io id').A.desc in
+      let ty = te.A.typ in
       unify_cat cat cat';
       GuestTyping.type_check ~loc ty te'.A.typ;
       (id',ty) in
     let _ = 
-      try List.map2 bind_arg (m_inps @ m_outps @ m_inouts) args;
+      try List.map2 bind_arg m.ios args;
       with Invalid_argument _ -> raise (Illegal_inst loc) in
     (name, mm)
 
