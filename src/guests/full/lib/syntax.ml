@@ -190,6 +190,7 @@ let vars_of_lhs l = match l.Annot.desc with
 (** Substitutions *)
 
 exception Invalid_parameter of Rfsm.Location.t * Rfsm.Ident.t
+exception Undefined_symbol of Rfsm.Location.t * Rfsm.Ident.t
               
 let subst_var phi v = 
   try Rfsm.Subst.apply phi v
@@ -279,7 +280,7 @@ let ppr_expr env e =
     (* Since pre-processing is carried out _before_ typing, the only type-related available information
        is given by the type expressions assigned to identifiers in the enclosing model *)
     try List.assoc v env
-    with Not_found -> Rfsm.Misc.fatal_error "Guest.Syntax.ppr_expr" in
+    with Not_found -> raise (Rfsm.Ident.Undefined ("symbol", e.Annot.loc, v)) in
   let has_bool_type v = is_bool_type (type_of v) in
   match e.Annot.desc with
   | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e'') when List.mem op.Rfsm.Ident.id ["="; "!="] && has_bool_type v  ->  

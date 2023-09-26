@@ -18,7 +18,7 @@ let handle e =
   let pp_loc = Location.pp_location in
   match e with
   | Builtins.Unknown_value -> 
-      eprintf "Cannot operate o undefined values\n"; exit 2
+      eprintf "Cannot operate on undefined values\n"; exit 2
   | Types.Type_circularity (loc,ty,ty')
   | Types.Type_conflict (loc,ty,ty') ->
       eprintf "%aTyping error: cannot unify types %a and %a\n"
