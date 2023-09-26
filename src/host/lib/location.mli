@@ -27,3 +27,4 @@ val input_lexbuf : Lexing.lexbuf ref
 val pp_location: Format.formatter -> t -> unit
 val pp_input_name: Format.formatter -> unit
 val string_of_location: t -> string
+val text_of_location: t -> string

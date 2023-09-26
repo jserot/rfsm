@@ -25,6 +25,7 @@ let dump_static = ref false
 let dot_abbrev_types = ref false
 let normalize = ref false
 let dump_backtrace = ref true
+let gui = ref false
 
 let set_main_prefix p = main_prefix := p
 let set_old_syntax () = use_old_syntax := true
@@ -40,6 +41,7 @@ let set_dump_static () = dump_static := true
 let set_target_dir name = target_dir := name
 let set_main_name name = main_name := name
 let set_normalize () = normalize := true
+let set_gui () = gui := true
 
 let set_synchronous_actions () =
   Dynamic.cfg.act_semantics <- Misc.Synchronous;

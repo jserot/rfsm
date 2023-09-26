@@ -1,9 +1,7 @@
 COMPILER
 
-- fix bug on IO order (see src/guests/full/tests/single/io_order) !
-- dual error reporting mechanism (CLC / RfsmLight)
 - support for synchronous actions (and allow examples/full/single/pgcd:sim)
-- document lib/host/guest.mlfu
+- document lib/host/guest.ml
 - check that .sav/.gtkw files are saved in GH repo
 - allow shared signals with multiple writers in VHDL (see examples/multi/sync_vp/ex{2,3,4}) ??
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)

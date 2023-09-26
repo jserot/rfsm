@@ -179,3 +179,17 @@ let pp_input_name fmt =
   Format.fprintf fmt "File \"%s\", line 1:\n" !input_name
 
 let string_of_location (Loc (f,c1,c2)) = Format.sprintf "%s:%d-%d" f c1 c2
+
+let text_of_location (Loc (f,c1,c2)) = 
+  let ic = open_in f in
+  try 
+    seek_in ic c1;
+    let s = really_input_string ic (c2-c1+1) in
+    close_in ic;
+    s
+  with
+    Invalid_argument _ ->
+    close_in ic;
+    ""
+
+  
