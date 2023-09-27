@@ -24,7 +24,7 @@ let dump_typed = ref false
 let dump_static = ref false
 let dot_abbrev_types = ref false
 let normalize = ref false
-let dump_backtrace = ref true
+let dump_backtrace = ref false
 let gui = ref false
 
 let set_main_prefix p = main_prefix := p
