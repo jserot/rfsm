@@ -12,10 +12,14 @@
 (** Handling of guest specific errors *)
 
 module Location = Rfsm.Location
+
+let pp_loc fmt loc = 
+    if !Rfsm.Options.gui then Format.fprintf fmt "* Where: \"%s\"\n* Reason: " (Location.text_of_location loc)
+    else Location.pp_location fmt loc
+
                 
 let handle e =
   let open Format in
-  let pp_loc = Location.pp_location in
   match e with
   | Builtins.Unknown_value -> 
       eprintf "Cannot operate on undefined values\n"; exit 2
