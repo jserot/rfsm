@@ -117,11 +117,13 @@ module type SYNTAX = sig
   val pp_typ: Format.formatter -> typ -> unit
   val pp_expr: Format.formatter -> expr -> unit
   val pp_type_expr: Format.formatter -> type_expr -> unit
-  val pp_cond: Format.formatter -> cond -> unit
   val pp_cond_desc: Format.formatter -> cond_desc -> unit
+  val pp_cond: Format.formatter -> cond -> unit (* Abstract syntax *)
+  val ppf_cond: Format.formatter -> cond -> unit (* Concrete syntax *)
   val pp_action: Format.formatter -> action -> unit
   val pp_action_desc: Format.formatter -> action_desc -> unit
-  val pp_transition: Format.formatter -> transition -> unit
+  val pp_transition: Format.formatter -> transition -> unit (* Abstract syntax *)
+  val ppf_transition: Format.formatter -> transition -> unit (* Concrete syntax *)
   val pp_transition_desc: Format.formatter -> transition_desc -> unit
   val pp_itransition: Format.formatter -> itransition -> unit
   val pp_itransition_desc: Format.formatter -> itransition_desc -> unit
@@ -136,6 +138,7 @@ module type SYNTAX = sig
   val pp_cst_decl: Format.formatter -> cst_decl -> unit
   val pp_fun_decl: Format.formatter -> fun_decl -> unit
   val pp_program: Format.formatter -> program -> unit
+
 end
 
 module Make(G: Guest.SYNTAX) : SYNTAX with module Guest=G =
@@ -179,6 +182,10 @@ struct
   type cond_desc = Ident.t * expr list [@@deriving show {with_path=false}]
   type cond = (cond_desc,typ) Annot.t
   let pp_cond fmt i = pp_cond_desc fmt i.Annot.desc
+  let ppf_cond fmt { Annot.desc = (ev,guards); _ } = 
+    match guards with
+    | [] -> Format.fprintf fmt "on %a" Ident.pp ev
+    | _ -> Format.fprintf fmt "on %a when %a" Ident.pp ev (Misc.pp_list_h ~sep:"." Guest.pp_expr) guards
 
   type action_desc =
     Emit of Ident.t
@@ -190,6 +197,9 @@ struct
   type transition = (transition_desc,typ) Annot.t 
   let pp_transition fmt t = pp_transition_desc fmt t.Annot.desc
 
+  let ppf_transition fmt { Annot.desc = (src,cond,acts,dst,_); _ } = 
+   Format.fprintf fmt "%a -> %a %a" Ident.pp src Ident.pp dst ppf_cond cond
+                                                                   
   type itransition_desc = Ident.t * action list [@@deriving show {with_path=false}]
   type itransition = (itransition_desc,typ) Annot.t
   let pp_itransition fmt t = pp_itransition_desc fmt t.Annot.desc
@@ -510,4 +520,5 @@ struct
       (Misc.pp_list_v pp_model) p.models
       (Misc.pp_list_v pp_global) p.globals
       (Misc.pp_list_v pp_inst) p.insts
+
 end

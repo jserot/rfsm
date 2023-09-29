@@ -157,7 +157,8 @@ struct
        exit 2
     | L.Dynamic.Non_deterministic_transition (f, t, ts) ->
        eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d: %a\n" 
-         f t (Misc.pp_list_v L.Syntax.pp_transition) ts
+         f t (Misc.pp_list_v L.Syntax.ppf_transition) ts;
+       exit 2
     | L.Guest.Value.Unsupported_vcd v ->
        eprintf "No VCD conversion for value %a\n" L.Guest.Value.pp v;
        exit 2
