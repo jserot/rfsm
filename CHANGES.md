@@ -1,10 +1,11 @@
 # Changes
 
-# 2.0 (Jun XX, 2023)
+# 2.0 (Sep 30, 2023)
 
-* Entirely recrafted (modular) implementation
-* No longer depends on `Lascar` package
+* Entirely recrafted modular implementation (host+guests languages)
 * Formal semantics 
+* Used by `rfsm-light` 1.3.0
+* No longer depends on `Lascar` package
 
 # 1.7 (Mar 30, 2021)
 
