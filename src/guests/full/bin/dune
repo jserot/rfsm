@@ -1,5 +1,5 @@
 (executable
-  (modes byte)
+  (modes byte native)
   (flags (:standard -annot) (:standard -w -26-27-37))
   (preprocess (pps ppx_deriving.show ppx_deriving.make))
   (libraries rfsm full)
@@ -14,7 +14,7 @@
 (rule
  (target lexer.mll)
  (deps (:first-dep ../../../host/bin/lexer.cppo.mll) guest_kw.mll guest_tokens.mll)
- (action (run cppo -I . -I ../../../host/bin %{first-dep} -o %{target})))
+ (action (run cppo -n -I . -I ../../../host/bin %{first-dep} -o %{target})))
 
 (rule
  (target parser.mly)

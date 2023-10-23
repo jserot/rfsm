@@ -14,7 +14,7 @@
 (rule
  (target lexer.mll)
  (deps (:first-dep ../../../../host/bin/lexer.cppo.mll) guest_kw.mll guest_tokens.mll)
- (action (run cppo -I . -I ../../../../host/bin %{first-dep} -o %{target})))
+ (action (run cppo -n -I . -I ../../../../host/bin %{first-dep} -o %{target})))
 
 (rule
  (target parser.mly)

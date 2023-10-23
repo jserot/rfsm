@@ -8,6 +8,7 @@ generated_file='Makefile'
 options="$*"
 confirm='yes'
 rfsmc='rfsmc'
+cwd=`pwd`
 
 # Parse command-line arguments
 
@@ -71,6 +72,6 @@ if [[ $go = "yes" ]]; then
         echo "" >> $generated_file
         cat $libdir/templates/Makefile.test.templ >> $generated_file
     fi
-    echo "Wrote $generated_file"
+    echo "Wrote $generated_file in $cwd"
 fi
 

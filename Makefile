@@ -35,7 +35,6 @@ html: README.md
 clean:
 	dune clean
 	(cd examples; make clean)
-	\rm -f README.html CHANGES.html
 
 clobber: clean
-	\rm -f *~
+	rm -f *~

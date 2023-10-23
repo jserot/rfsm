@@ -4,7 +4,9 @@
   (libraries ocamlgraph str)
   (name rfsm))
 
-(rule
- (target options.ml)
- (deps   options_spec.txt options.cppo.ml)
- (action (run ./build_options_spec %{deps} %{target})))
+; The following rule fails when building under Windows with "Error: CreateProcess(): Exec format error"
+; As a workaround, the [options.ml] is built at the Makefile level
+; (rule
+;  (target options.ml)
+;  (deps   options_spec.txt options.cppo.ml)
+;  (action (run ./build_options_spec %{deps} %{target})))
