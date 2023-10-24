@@ -1,6 +1,0 @@
-(library
-  (name rfsm1)
-  (synopsis "A library for describing and simulating StateChart-like state diagrams")
-  (flags (:standard -annot) (:standard -w -9-27-32-34-50))
-  (libraries ocamlgraph lascar str))
-
