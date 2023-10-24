@@ -197,7 +197,7 @@ struct
   type transition = (transition_desc,typ) Annot.t 
   let pp_transition fmt t = pp_transition_desc fmt t.Annot.desc
 
-  let ppf_transition fmt { Annot.desc = (src,cond,acts,dst,_); _ } = 
+  let ppf_transition fmt { Annot.desc = (src,cond,_,dst,_); _ } = 
    Format.fprintf fmt "%a -> %a %a" Ident.pp src Ident.pp dst ppf_cond cond
                                                                    
   type itransition_desc = Ident.t * action list [@@deriving show {with_path=false}]
@@ -331,7 +331,7 @@ struct
   let subst_param_iov phi (id,ty) = id, Guest.subst_type_expr phi ty
                                   
   let subst_param_action phi act = match act.Annot.desc with
-    | Emit ev -> act
+    | Emit _ -> act
     | Assign (lhs,expr) -> { act with desc = Assign (lhs, Guest.subst_expr phi expr) }
                         
   let subst_param_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =

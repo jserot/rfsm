@@ -24,7 +24,7 @@ type t =
     Loc of string  (* Filename *)
          * int     (* Position of the first character *)
          * int     (* Position of the next character following the last one *)
-    [@@deriving show {with_path=false}]
+    (* [@@deriving show {with_path=false}] *)
 
 let no_location = Loc("",0,0)
 

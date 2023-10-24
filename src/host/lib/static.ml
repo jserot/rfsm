@@ -134,7 +134,7 @@ struct
       model: Syntax.model;
       q: Ident.t;
       vars: Value.t Env.t;
-    } [@@deriving show {with_path=false}]
+    } 
 
   let pp_fsm ~verbose_level fmt f  = 
     let open Format in

@@ -22,7 +22,7 @@ module type T = sig
   val is_pure_event: t -> bool
   val compare: t -> t -> int
   val pp: Format.formatter -> t -> unit
-  val vcd_register: Syntax.lhs -> Value.t -> Vcd_types.vcd_signal list -> Vcd_types.vcd_signal list
+  (* val vcd_register: Syntax.lhs -> Value.t -> Vcd_types.vcd_signal list -> Vcd_types.vcd_signal list *)
 end
 
 module Make
@@ -43,7 +43,7 @@ struct
 
   let compare = Stdlib.compare
               
-  let vcd_register lhs v acc = acc
+  (* let vcd_register lhs v acc = acc *)
 
   let pp fmt s =
     let open Format in

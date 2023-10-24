@@ -1,5 +1,5 @@
 (library
-  (flags (:standard -annot) (:standard -w -27-32-37))
+  (flags (:standard -annot) (:standard -w -27-32))
   (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_deriving.map))
   (libraries ocamlgraph str)
   (name rfsm))

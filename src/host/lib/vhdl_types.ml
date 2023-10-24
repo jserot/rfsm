@@ -46,9 +46,9 @@ let rec pp ?(type_mark=TM_Full) fmt t =
     | Std_logic, _ -> fprintf fmt "std_logic"
     (* | Unsigned 1, _ -> fprintf fmt "std_logic"
      * | Signed 1, _ -> fprintf fmt "std_logic" *)
-    | Unsigned n, TM_None -> fprintf fmt "unsigned"
+    | Unsigned _, TM_None -> fprintf fmt "unsigned"
     | Unsigned n, _ -> fprintf fmt "unsigned(%d downto 0)" (n-1)
-    | Signed n, TM_None -> fprintf fmt "signed"
+    | Signed _, TM_None -> fprintf fmt "signed"
     | Signed n, _ -> fprintf fmt "signed(%d downto 0)" (n-1)
     | Integer (Some (lo,hi)), TM_Full -> fprintf fmt "integer range %d to %d" lo hi
     | Integer _, _ -> fprintf fmt "integer"

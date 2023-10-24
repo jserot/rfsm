@@ -66,14 +66,13 @@ struct
   type expr = Syntax.Guest.expr
   type type_expr = Syntax.type_expr
      
-  let pp_typ = Types.pp_typ ~abbrev:true
+  (* let pp_typ = Types.pp_typ ~abbrev:true *)
   let pp_expr = Static.Syntax.pp_expr
   let pp_type_expr = Static.Syntax.pp_type_expr
-  let pp_value = Static.Value.pp
+  (* let pp_value = Static.Value.pp *)
              
   type c_type_defn = 
     CTyEnum of string list
-    [@@deriving show {with_path=false}]
 
   type t = {
       c_mname: Ident.t; 

@@ -2,7 +2,7 @@ let global_qualifier = "$"
 let print_scope = ref false (* For debug only *)
 
 type scope = Local | Global
-   [@@deriving show {with_path=false}]
+   (* [@@deriving show {with_path=false}] *)
                    
 type t = {
     scope: scope;

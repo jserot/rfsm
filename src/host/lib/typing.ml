@@ -17,7 +17,7 @@ module type TYPING = sig
   type typed_program = {
       tp_models: HostSyntax.model list;  (** Uninstanciated models *)
       tp_insts: (Ident.t * HostSyntax.model) list;  (** Model instances *)
-      } [@@deriving show {with_path=false}]
+    } (* [@@deriving show {with_path=false}] *)
 
   val mk_env: unit -> env
   val type_program: env -> HostSyntax.program -> typed_program

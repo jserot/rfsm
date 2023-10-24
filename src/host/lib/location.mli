@@ -16,8 +16,6 @@ type t =
          * int     (* Position of the first character *)
          * int     (* Position of the next character following the last one *)
 
-val no_location: t
-  
 val get_current_location : unit -> t
 val no_location : t
 val input_name : string ref

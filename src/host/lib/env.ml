@@ -27,7 +27,7 @@ let pp ?(sep="=") ?(vlayout=false) ?(qual=false) pp_v fmt e =
   match bindings e with
   | [] -> fprintf fmt "[]"
   | [b] -> fprintf fmt "@[[%a]@]" pp_binding b
-  | bs ->
+  | _ ->
      if vlayout then fprintf fmt "@[<v>[@,%a@,]@]" (Misc.pp_list_v pp_binding) (bindings e)
      else fprintf fmt "@[<h>[@,%a@,]@]" (Misc.pp_list_h ~sep:"," pp_binding) (bindings e)
 
