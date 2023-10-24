@@ -1,0 +1,26 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Sat Jul 22 15:28:55 2023
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/examples/full/single/rpcalc/vhdl/main_tb.ghw"
+[dumpfile_mtime] "Sat Jul 22 15:27:51 2023"
+[dumpfile_size] 823
+[savefile] "/Users/jserot/Dev/ml/rfsm/examples/full/single/rpcalc/vhdl/main_tb.gtkw"
+[timestart] 0
+[size] 1000 293
+[pos] 13 388
+*-25.101971 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.main_tb.
+[sst_width] 198
+[signals_width] 78
+[sst_expanded] 1
+[sst_vpaned_height] 60
+@28
+top.main_tb.h
+top.main_tb.inp.tag
+top.main_tb.inp.val
+top.main_tb.wr
+top.main_tb.outp
+[pattern_trace] 1
+[pattern_trace] 0

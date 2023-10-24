@@ -1,0 +1,61 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Wed Aug 30 14:18:00 2023
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/examples/full/multi/hms/vhdl/main_tb.vcd"
+[dumpfile_mtime] "Wed Aug 30 14:17:18 2023"
+[dumpfile_size] 1071
+[savefile] "/Users/jserot/Dev/ml/rfsm/examples/full/multi/hms/vhdl/main_tb.sav"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-24.856426 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 193
+[signals_width] 90
+[sst_expanded] 1
+[sst_vpaned_height] 168
+@28
+top.sec
+@24
+top.s[31:0]
+@c00024
+top.m[31:0]
+@28
+(0)top.m[31:0]
+(1)top.m[31:0]
+(2)top.m[31:0]
+(3)top.m[31:0]
+(4)top.m[31:0]
+(5)top.m[31:0]
+(6)top.m[31:0]
+(7)top.m[31:0]
+(8)top.m[31:0]
+(9)top.m[31:0]
+(10)top.m[31:0]
+(11)top.m[31:0]
+(12)top.m[31:0]
+(13)top.m[31:0]
+(14)top.m[31:0]
+(15)top.m[31:0]
+(16)top.m[31:0]
+(17)top.m[31:0]
+(18)top.m[31:0]
+(19)top.m[31:0]
+(20)top.m[31:0]
+(21)top.m[31:0]
+(22)top.m[31:0]
+(23)top.m[31:0]
+(24)top.m[31:0]
+(25)top.m[31:0]
+(26)top.m[31:0]
+(27)top.m[31:0]
+(28)top.m[31:0]
+(29)top.m[31:0]
+(30)top.m[31:0]
+(31)top.m[31:0]
+@1401204
+-group_end
+@24
+top.h[31:0]
+[pattern_trace] 1
+[pattern_trace] 0
