@@ -54,10 +54,7 @@ let neg f x = not (f x)
 let list_cart_prod2 l1 l2 =
   List.map (fun x1 -> List.map (fun x2 -> x1,x2) l2) l1 |> List.flatten
 
-let to_string pp x = 
-  let open Format in
-  fprintf str_formatter "%a" pp x;
-  flush_str_formatter ()
+let to_string pp x = Format.asprintf "%a" pp x
 
 let check_dir path = 
   if not (Sys.is_directory path) then raise (Sys_error ("file " ^ " is not a directory"))
