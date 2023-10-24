@@ -18,13 +18,14 @@ view: run
 clean:
 	\rm -f work*.cf
 	\rm -f *.o
-	\rm -f rfsm.vhd
 	\rm -f %%MAIN%%
 	\rm -f %%MAIN%%.vcd
 	\rm -f %%MAIN%%.ghw
 
 clobber: clean
+	\rm -f *.vhd
 	\rm -f *~
+	\rm -f Makefile  # Generated
 	\rm -rf html
 
 rfsm.vhd: $(LIBDIR)/lib/vhdl/rfsm.vhd

@@ -97,14 +97,14 @@ view3:
 clean:
 	\rm -f dot/*
 	\rm -f ctask/*
-	\rm -f systemc/{*.o,tb,main_tb,core,*.vcd,*.ghw}
-	\rm -f vhdl/{work*.cf,*.o,tb,main_tb,*.vcd,*.ghw}
 	\rm -f sim/*.vcd
+	if [ -f ./systemc/Makefile ]; then (cd ./systemc; make clean); else rm -f ./systemc/{*.o,tb,main_tb,main,core,*.vcd,*.ghw}; fi
+	if [ -f ./vhdl/Makefile ]; then (cd ./vhdl; make clean); else rm -f ./vhdl/{work*.cf,*.o,tb,main_tb,*.vcd,*.ghw}; fi
 	\rm -f *_deps.dot
 	\rm -f *.output *.vcd
 	\rm -rf *.pre
 
 clobber: clean
-	\rm -f systemc/{*.cpp,*.h,Makefile,*~}
-	\rm -f vhdl/{*.vhd,Makefile,*~}
+	if [ -f ./systemc/Makefile ]; then (cd ./systemc; make clobber); else rm -f ./systemc/{*.cpp,*.h,Makefile,*~}; fi
+	if [ -f ./vhdl/Makefile ]; then (cd ./vhdl; make clobber); else rm -f ./vhdl/{*.vhd,Makefile,*~}; fi
 	\rm -f *~

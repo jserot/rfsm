@@ -23,11 +23,10 @@ view: %%MAIN%%.vcd
 clean:
 	-rm -f *.o *~ %%MAIN%%
 	-rm -f core
-	-rm -f *.vcd
+	-rm -f *.vcd *ghw
 
 clobber: clean
 	-rm -f *.cpp *.h
-	-rm -f *.gtkw *.vcd
 	-rm -f Makefile  # Generated
 
 rfsm.cpp: $(LIBDIR)/lib/systemc/rfsm.cpp
