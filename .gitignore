@@ -48,3 +48,4 @@ lib/ml/
 *.vcd
 *.merlin
 HOWTO-PUBLISH
+src/host/lib/options.ml
