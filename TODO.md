@@ -19,11 +19,11 @@ COMPILER
 EXAMPLES
 
 DIST
-- check banners to src files
-
 - KNOWN-BUGS -> Issues
 
 DOC
+- update README !
 - decide what to put in HTML doc
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
 - add a section describing how to build a new language by providing a guest lib+bin
+- integrate Notes.md to documentation

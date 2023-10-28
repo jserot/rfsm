@@ -2,7 +2,8 @@
   (flags (:standard -annot) (:standard -w -27-32))
   (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_deriving.map))
   (libraries ocamlgraph str)
-  (name rfsm))
+  (public_name rfsm))
+
 
 ; The following rule fails when building under Windows with "Error: CreateProcess(): Exec format error"
 ; As a workaround, the [options.ml] is built at the Makefile level
