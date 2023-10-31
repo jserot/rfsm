@@ -75,12 +75,12 @@ Invoking the `rfmsc` compiler with the `-sim` option produces `.vcd` file, which
 be viewed with the [Gtkwave](http://gtkwave.sourceforge.net) trace viewer for example, as shown
 below
 
-![](https://github.com/jserot/rfsm/tree/master/docs/figs/gensig-chrono.png "")
+![](https://github.com/jserot/rfsm/blob/master/docs/figs/gensig-chrono.png "")
 
 Invoking the `rfmsc` compiler with the `-ctask`, `-systemc` and `-vhdl` option can generate C,
 SystemC and VHDL code for the model (and the testbench). Here's for example the VHDL code generated
 for the `gensig` model. All the generated code can  can be viewed
-[here](https://github.com/jserot/rfsm/tree/master/docs/code/gensig).
+[here](https://github.com/jserot/rfsm/blob/master/docs/code/gensig).
 
 RFSM can also be used to describe multi-FSM models. Here's a description of a simple modulo-8
 counter as three concurrent modulo-2 counters :
@@ -116,11 +116,12 @@ internal, shared events named `R0` and `R1`.
 A graphical view of global model (obtained by invoking the `rfsmc` compiler with the `-dot` option) is
 given below
 
-![](https://github.com/jserot/rfsm/tree/master/docs/figs/ctrmod8-top.png "")
+![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-top.png "")
 
 Simulation of this model produces the following trace :
 
-![](https://github.com/jserot/rfsm/tree/master/docs/figs/ctrmod8-chrono.png "")
+![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-chrono.png "")
+
 
 ## WHAT'S IN THE BOX
 
@@ -173,7 +174,6 @@ The package includes
 - a program `rfsmmake` generating Makefiles for compiling RFSM programs and viewing and compiling
   results
 - dedicated `SystemC` and `VHDL` libraries to be used with generated code
-
 
 ### Compiling and running examples
 
