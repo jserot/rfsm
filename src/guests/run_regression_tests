@@ -4,10 +4,10 @@
 
 for target in dot sim ctask systemc vhdl
 do
-    ./do_tests $target others/core
+    ./do_tests $target core
     for compiler in others/simple others/szdints others/szvars full
     do
-         ./do_tests -compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$compiler/bin/rfsmc.bc $target others/core
+         ./do_tests -compiler /Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$compiler/bin/rfsmc.bc $target core
     done
 
     ./do_tests $target others/simple

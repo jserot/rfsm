@@ -19,7 +19,7 @@ options: [defaults in brackets after descriptions]
   -show                  launch DOT or VCD viewer after running the test [default: no]
   -help                  print this message
 kind=dot|sim|ctask|systemc|vhdl|systemc.code|vhdl.code|systemc.sim|vhdl.sim
-subdir=full|others/core|...
+subdir=full|core|others/...
 EOF
 	exit 0;;
     *) break;;
@@ -27,7 +27,7 @@ EOF
   shift
 done
 
-#echo "RUN_TESTS: RUN_TEST=$RUN_TEST 1=$1 2=$2"
+echo "RUN_TESTS: RUN_TEST=$RUN_TEST 1=$1 2=$2"
 
 run ()
 {
@@ -44,7 +44,8 @@ done
 echo "***" $ns"/"$nt "test(s) OK"
 }
 
-SUBDIRS="others/core others/simple others/szdints others/szvars full"
+#SUBDIRS="others/core others/simple others/szdints others/szvars full"
+SUBDIRS="core full"
 
 case $2 in
     all) 
