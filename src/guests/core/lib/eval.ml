@@ -20,6 +20,8 @@ open Value
 
 type env = Value.t Env.t
 
+exception Illegal_expr of Syntax.expr
+
 let mk_env () = Env.empty 
 
 let upd_env lhs v env = 
@@ -50,7 +52,7 @@ and eval_arg env e = match eval_expr env e with
 let eval_bool env e = 
   match eval_expr env e with
   | Val_bool b -> b
-  | _ -> Rfsm.Misc.fatal_error "Eval.eval_bool" (* Should not occur after TC *)
+  | _ -> raise (Illegal_expr e) (* Should not occur after TC *)
 
 let pp_env fmt env = 
   Format.fprintf fmt "%a\n" (Env.pp ~sep:"=" Value.pp) env

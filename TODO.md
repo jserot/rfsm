@@ -23,7 +23,8 @@ DIST
 - KNOWN-BUGS -> Issues
 
 DOC
-- decide what to put in HTML doc
+- document Rfsm modules which referenced in `guest.ml` or used in `core` or `full` implementations
+  (ex: `Env`)
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
 - add a section describing how to build a new language by providing a guest lib+bin
 - integrate Notes.md to documentation

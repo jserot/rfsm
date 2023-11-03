@@ -11,7 +11,7 @@
 
 (** Interface between the host and guest languages *)
 
-(**{1 Guest Language description }*)
+(**{1 Language description }*)
 
 module type INFO = sig
   val name: string (** Name of the guest language *)
@@ -226,103 +226,227 @@ end
 (**{1  Values} *)
 
 module type VALUE = sig 
+
   type t
+  (** The type of guest-level values *)
+
   type typ
+  (** The type of guest-level types *)
+
   val default_value: typ -> t 
-  (** VCD interface *)
+  (** [default_value t] should return a default value for type [t] *)
+    
+  (**{2 VCD interface} *)
+
   exception Unsupported_vcd of t
+
   val vcd_type: t -> Vcd_types.vcd_typ
+  (** [vcd_type v] should return the VCD type corresponding to value [v].
+      For example, if [v] denotes an boolean value, [vcd_type v] should return [Rfsm.Vcd_types.TyBool].
+      This function should raise {!exception:Unsupported_vcd} in case of failure (if there's no corresponding VCD type) *)
+
   val vcd_value: t -> Vcd_types.vcd_value
+  (** [vcd_value v] should return the VCD encoding of value [v].
+      For example, if [v] denotes the boolean value [b], [vcd_value v] should return [Rfsm.Vcd_types.Val_bool b].
+      This function should raise {!exception:Unsupported_vcd} in case of failure (if there's no corresponding VCD value) *)
+
   val flatten: base:Ident.t -> t -> (Ident.t * t) list
-    (** Decomposes a structured value into a list of qualified scalar values for VCD dumping.
-        For example, if [v] is a record [{x=1;y=2}], then [flatten ~base:"a" v] is [[("a.x",1);("a.y",2)]].
-        If [v] is a scalar value, then [flatten ~base:"a" v] is just [["a",v]] *)
-  (** Printing *)
+  (** [flatten base:b v] should decompose a structured value [v] into a list of qualified {e scalar} values for VCD dumping.
+      For example, if [v] is a record [{x=1;y=2}], then [flatten ~base:"a" v] should be [[("a.x",1);("a.y",2)]].
+      If [v] is a scalar value, then [flatten ~base:"a" v] is just [["a",v]] *)
+
+  (**{2 Printing} *)
+
   val pp: Format.formatter -> t -> unit
+  (** [pp fmt v] prints value [v] on formatter [fmt]. *)
+
 end
 
 (**{1  Static program representation} *)
 
 module type STATIC = sig
+
   type expr
+  (** The type of guest-level expressions *)
+
   type value
+  (** The type of guest-level values *)
+
   exception Non_static_value of expr
-  val eval_fn: string list -> expr -> value (* Args, body *)
-  val eval: expr -> value  (* Static evaluation of constant expressions *)
+
+  (**{2 Static evaluators} *)
+
+  val eval_fn: string list -> expr -> value
+  (** [eval_fn args body] should return the value representing a function taking a list of arguments [args] and returning the value
+      denoted by expression [body]. For guest languages not supporting functions (such as the [core] one, for example), the return
+      value is undefined. *)
+
+  val eval: expr -> value
+      (** [eval e] should return the value corresponding to the {e static} evaluation of expression [e]. This should function
+      should raise {!exception:Non_static_value} is [e] cannot be evaluated statically (typically, if is not a litteral constant). *)
+
 end
 
-(**{1  Evaluator} *)
+(**{1  Dynamic semantics} *)
 
 module type EVAL = sig 
+
   module Syntax : SYNTAX
+
   module Value : VALUE
+
   type env = Value.t Env.t
+  (** The type of dynamic environments, mapping identifiers to values. *)
+
   val mk_env: unit -> env
+  (** [mk_env ()] should return a new, empty dynamic environment *)
+    
   val upd_env: Syntax.lhs -> Value.t -> env -> env
-  val pp_env: Format.formatter -> env -> unit
+  (** [upd_env l v env] should return the environment obtained by adding the binding [(l,v)] to [env].
+      If [l] is already bound in [env], the associated value is updated. *)
+
+  (**{2 Evaluators} *)
+
+  exception Illegal_expr of Syntax.expr
+                          
   val eval_expr: env -> Syntax.expr -> Value.t
+  (** [eval_expr env e] should return the value obtained by evaluating expression [e] in environment [env].
+      Should raise {!exception:Illegal_expr} in case of failure. *)
+    
   val eval_bool: env -> Syntax.expr -> bool
+  (** [eval_bool env e] should return the boolean value obtained by evaluating expression [e] in environment [env].
+      Should raise {!exception:Illegal_expr} if [e] does not denote a boolean value or in case of failure. *)
+
+  (**{2 Printing} *)
+
+  val pp_env: Format.formatter -> env -> unit
+  (** [pp_env fmt env] should print a readable representation of environment [env] on formatter [fmt]. *)
+
 end
 
-(**{1  CTask interface} *)
+(**{1 CTask interface} *)
 
 module type CTASK = sig
+
   module Syntax: SYNTAX
+
   val pp_typed_symbol: Format.formatter -> Ident.t * Syntax.type_expr -> unit
+  (** [pp_typed_symbol fmt (id,ty)] should print, on formatter [fmt], the C declaration of symbol [id] with type [ty].
+      For example, for an [int] named ["x"], this should be ["int x"], and for an array of 8 [int]s named ["a"],
+      this should be ["int a[8]"]. *)
+
   val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
+  (** [pp_type_expr fmt te] should print, on formatter [fmt], the C type corresponding to type expression [te]. *)
+
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
+  (** [pp_type_decl fmt td] should print, on formatter [fmt], the C statement corresponding to type declaration [td]. *)
+
   val pp_expr: Format.formatter -> Syntax.expr -> unit
+  (** [pp_expr fmt e] should print, on formatter [fmt], the C expression corresponding to expression [e]. *)
+
 end
                   
 (**{1  SystemC interface} *)
 
 module type SYSTEMC = sig
-  module Syntax: SYNTAX
+
   module Static: STATIC
+
+  module Syntax: SYNTAX
+
   type value
+
   val pp_typed_symbol: Format.formatter -> Ident.t * Syntax.type_expr -> unit
+  (** [pp_typed_symbol fmt (id,ty)] should print, on formatter [fmt], the SystemC declaration of symbol [id] with type [ty]. *)
+
   val pp_type_expr: Format.formatter -> Syntax.type_expr -> unit
+  (** [pp_type_expr fmt te] should print, on formatter [fmt], the SystemC type corresponding to type expression [te]. *)
+
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
-  val pp_typ: Format.formatter -> Syntax.Types.typ -> unit
-  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
-  val pp_expr: Format.formatter -> Syntax.expr -> unit
-  val pp_value: Format.formatter -> value -> unit
   val pp_type_impl: Format.formatter -> Syntax.type_decl -> unit
+  (** [pp_type_decl fmt td] (resp. [pp_type_impl fmt td]) should print, on formatter [fmt], the SystemC declaration and
+      implementation (in the [.h] and [.cpp] file resp.) corresponding to type declaration [td]. *)
+
+  val pp_expr: Format.formatter -> Syntax.expr -> unit
+  (** [pp_expr fmt e] should print, on formatter [fmt], the SystemC expression corresponding to expression [e]. *)
+
+  val pp_typ: Format.formatter -> Syntax.Types.typ -> unit
+  (** [pp_typ fmt ty] should print, on formatter [fmt], the SystemC type corresponding to type [ty]. *)
+
+  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
+  (** [pp_lhs fmt l] should print, on formatter [fmt], the SystemC representation of LHS [l]. *)
+
+  val pp_value: Format.formatter -> value -> unit
+  (** [pp_value fmt v] should print, on formatter [fmt], the SystemC value corresponding to value [v]. *)
+
 end
 
-(**{1  VHDL interface} *)
+(**{1 VHDL interface} *)
 
 module type VHDL = sig
+
   module Syntax: SYNTAX
+
   module Static: STATIC
+
   type value
-  val pp_type_expr: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.type_expr -> unit
-  val pp_typ: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.Types.typ -> unit
-  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
-  val pp_expr: Format.formatter -> Syntax.expr -> unit
-  val pp_value: Format.formatter -> value * Vhdl_types.t -> unit
-  val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
-  val pp_type_fns_intf: Format.formatter -> Syntax.type_decl -> unit (** Auxilliary fns attached to a user-defined type *)
-  val pp_type_fns_impl: Format.formatter -> Syntax.type_decl -> unit (** Auxilliary fns attached to a user-defined type *)
+
   val vhdl_type_of: Syntax.Types.typ -> Vhdl_types.t
-  val allowed_shared_type: Syntax.Types.typ -> bool  (** Used for checking model translatability *)
+  (** [vhdl_type_of ty] should return the VHDL type corresponding to type [ty]. *)
+
+  val allowed_shared_type: Syntax.Types.typ -> bool
+  (** [allowed_shared_type ty] should indicate whether type [ty] can be attributed to a VHDL shared variable. *)
+
+  val pp_type_expr: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.type_expr -> unit
+  (** [pp_type_expr fmt mark te] should print, on formatter [fmt], the VHDL type corresponding to type expression [te].
+      The [mark] argument controls the details of the printed type (see {!val:Vhdl_types.pp}). *)
+
+  val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
+  (** [pp_type_decl fmt td] should print, on formatter [fmt], the VHDL translation of type declaration [td]. *)
+
+  val pp_expr: Format.formatter -> Syntax.expr -> unit
+  (** [pp_expr fmt e] should print, on formatter [fmt], the VHDL expression corresponding to expression [e]. *)
+
+  val pp_typ: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.Types.typ -> unit
+  (** [pp_typ fmt mark te] should print, on formatter [fmt], the VHDL type corresponding to type [ty].
+      As for {!val:pp_type_expr}, the [mark] argument controls the details of the printed type. *)
+
+  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
+  (** [pp_lhs fmt l] should print, on formatter [fmt], the VHDL representation of LHS [l]. *)
+
+  val pp_value: Format.formatter -> value * Vhdl_types.t -> unit
+  (** [pp_value fmt (v,t)] should print, on formatter [fmt], the VHDL value corresponding to value [v], with type [t]. *)
+
+  val pp_type_fns_intf: Format.formatter -> Syntax.type_decl -> unit
+  val pp_type_fns_impl: Format.formatter -> Syntax.type_decl -> unit
+  (** [pp_type_fns_intf td] (resp. [pp_type_fns_impl fmt td]) should print, on formatter [fmt], the VHDL declaration and
+      implementation (in the [entity] and [architecture] definition resp.) corresponding to type declaration [td]. *)
+
 end
                   
-(**{1  Error handling} *)
+(**{1 Error handling} *)
 
 module type ERROR = sig
+
   val handle: exn -> unit
+    (** This function will be called to handle guest-level exceptions, {e i.e.} exceptions raised by guest specific
+    functions and not handled by the host language. *)
+
 end
 
-(**{1  Guest specific error handling} *)
+(**{1 Compiler options} *)
 
 module type OPTIONS = sig
+
    val specs: (string * Arg.spec * string) list
+     (** [specs] should list all guest-specific compiler options.
+      These options will be added to those related to the host language. *)
+
 end
 
-(**{1  Guest language global signature} *)
+(**{1 language global signature} *)
 
-(** Each guest language must provide a set of modules conforming to the following signatures *)
+(** Each guest language must provide a set of modules conforming to module signature {!module-type:T}. *)
 
 module type T = sig
   module Info : INFO

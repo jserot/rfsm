@@ -20,6 +20,8 @@ open Value
 
 type env = Value.t Env.t
 
+exception Illegal_expr of Syntax.expr
+
 let mk_env () = Env.empty 
 
 let pp_env fmt env = 
@@ -131,7 +133,7 @@ and eval_cast ~loc ty v =
 let eval_bool env e = 
   match eval_expr env e with
   | Val_bool b -> b
-  | _ -> Rfsm.Misc.fatal_error "Guest.Eval.eval_bool" (* Should not occur after TC *)
+  | _ -> raise (Illegal_expr e) (* Should not occur after TC *)
 
 let upd_env lhs v env = 
   (* Note: bound checking (for arrays, ranged and sized integers) should take place here.
