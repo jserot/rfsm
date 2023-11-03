@@ -14,7 +14,7 @@ while : ; do
         RUN_TEST="$RUN_TEST -show";;
     -help|--help)
         cat <<EOF
-Usage: run_tests [options] kind
+Usage: run_examples [option] kind
 where
 options: [defaults in brackets after descriptions]
   -makefile              (re)build makefile in test directories [default: no]

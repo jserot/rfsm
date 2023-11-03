@@ -155,21 +155,18 @@ module type SYNTAX = sig
 
   (**{2 Pre-processing} *)
     
-  (** Pre-processing takes place at the syntax level, before typing. Type information is provided explicitely in
-      the environment [env], mapping identifiers to type expressions. *)
+  type ppr_env = type_expr Env.t
+  (** Since pre-processing takes place at the syntax level, before typing, type information has to be
+      provided explicitely by mapping identifiers to type expressions. *)
 
-  val ppr_expr: (Ident.t * type_expr) list -> expr -> expr
-  (** [ppr_expr env e] should return the result of pre-processing expression [e]. *)
+  val ppr_expr: ppr_env -> ?expected_type:type_expr option -> expr -> expr
+  (** [ppr_expr env e] should return the result of pre-processing expression [e] in env [env].
+      The optional argument [expected_type] can be used to perform type-dependent transformations.
+      A typical usage is to rewrite [0] (resp [1]) as [false] (resp. [true]). See [guests/core/lib/syntax.ml] for example *)
 
-  val ppr_lhs: (Ident.t * type_expr) list -> lhs -> lhs
-  (** [ppr_lhs env e] should return the result of pre-processing LHS [e]. *)
+  val ppr_lhs: ppr_env -> lhs -> lhs
+  (** [ppr_lhs env e] should return the result of pre-processing LHS [e] in env [env]. *)
   
-  val mk_bool_expr: type_expr -> expr -> expr
-  (** [mk_bool_expr te e] should convert, when appropriate, an expression [e], with type designated by type expression [te]
-      to a boolean expression. This function is typically used to convert integer values [0] and [1] to boolean values [false]
-      and [true] resp. so that, for example, tests like as [e=true] or assignations like [x:=false] can be written [e=1] and
-      [x:=0] resp. [mk_bool_expr] should return its argument expression [e] when there's no sensible conversion. *)
-
 end
   
 (**{1 Typing} *)

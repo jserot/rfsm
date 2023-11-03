@@ -388,12 +388,12 @@ struct
   let type_of ~loc env v =
       (* Since pre-processing is carried out _before_ typing, the only type-related available information
          is given by the type expressions assigned to identifiers in the enclosing model *)
-      try List.assoc v env
+      try Env.find v env
       with Not_found -> raise (Ident.Undefined ("symbol",loc,v)) 
 
   let rec ppr_model m = { m with Annot.desc = ppr_model_desc m.Annot.desc }
   and ppr_model_desc m =
-    let env = m.inps @ m.outps @ m.inouts @ m.vars in
+    let env = Env.init (m.inps @ m.outps @ m.inouts @ m.vars) in
     { m with states = List.map (ppr_state env) m.states;
              trans = List.map (ppr_transition env) m.trans;
              itrans = ppr_itransition env m.itrans }
@@ -404,7 +404,7 @@ struct
   and ppr_ov ~loc env (o,expr) = 
     let typ = type_of ~loc env o in
     if Guest.is_bool_type typ 
-    then (o, Guest.mk_bool_expr typ expr)
+    then (o, Guest.ppr_expr env ~expected_type:(Some typ) expr)
     else (o, expr)
 
   and ppr_transition env t = { t with Annot.desc = ppr_trans_desc env t.Annot.desc }
@@ -424,7 +424,7 @@ struct
        let typ = type_of ~loc:lhs.Annot.loc env (Guest.lhs_base_name lhs) in
        let expr' = Guest.ppr_expr env expr in
        if Guest.is_bool_type typ 
-       then Assign (lhs, Guest.mk_bool_expr typ expr')
+       then Assign (lhs, Guest.ppr_expr env ~expected_type:(Some typ) expr')
        else Assign (Guest.ppr_lhs env lhs, expr') (* In case pre-processing should be carried out _inside_ LHS sub-exprs *)
 
   let rec ppr_global gl = { gl with Annot.desc = ppr_global_desc gl.Annot.desc }
@@ -436,7 +436,7 @@ struct
   and ppr_stim te st = { st with Annot.desc = ppr_stim_desc te st.Annot.desc }
   and ppr_stim_desc te st = 
     match st with 
-    | Value_change vcs -> Value_change (List.map (function (t,expr) -> t, Guest.mk_bool_expr te expr) vcs)
+    | Value_change vcs -> Value_change (List.map (function (t,expr) -> t, Guest.ppr_expr Env.empty ~expected_type:(Some te) expr) vcs)
     | _ -> st
 
   let ppr_program p =

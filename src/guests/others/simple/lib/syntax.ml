@@ -28,6 +28,16 @@ type type_expr = (type_expr_desc,Types.typ) Annot.t
 and type_expr_desc = 
   | TeConstr of ident * type_expr list * int option (* name, args, size (for arrays) *)
 
+let is_con_type c (t: type_expr) =
+  match t.Annot.desc with
+  | TeConstr (c',_,_) when c'.Rfsm.Ident.id = c -> true
+  | _ -> false
+
+let is_bool_type (t: type_expr) = is_con_type "bool" t
+let is_int_type (t: type_expr) = is_con_type "int" t
+let is_event_type (t: type_expr) = is_con_type "event" t
+let is_array_type (t: type_expr) = is_con_type "array" t
+
 let rec pp_type_expr_desc fmt te = 
   let open Format in
   match te with
@@ -240,41 +250,36 @@ and subst_type_expr phi te =
 
 (** Pre-processing *)
 
-let is_con_type c (t: type_expr) =
-  match t.Annot.desc with
-  | TeConstr (c',_,_) when c'.Rfsm.Ident.id = c -> true
-  | _ -> false
-
-let is_bool_type (t: type_expr) = is_con_type "bool" t
-let is_int_type (t: type_expr) = is_con_type "int" t
-let is_event_type (t: type_expr) = is_con_type "event" t
-let is_array_type (t: type_expr) = is_con_type "array" t
-
-let mk_bool_expr te e = match e.Annot.desc with
-  | EInt 0 when is_bool_type te -> { e with Annot.desc = EBool false }
-  | EInt 1 when is_bool_type te -> { e with Annot.desc = EBool true }
-  | _ -> e 
-
 let mkuminus name e =
   match name, e.Annot.desc with
   | "-", EInt n -> { e with Annot.desc = EInt (-n) }
   | ("-."|"-"), EFloat n -> { e with Annot.desc = EFloat (-.n) }
   | _ -> { e with Annot.desc = EFapp (mk_global_ident ("~"^name), [e]) }
 
-let ppr_expr env e =
-  (* Replace all bool expr [e op 0/1], where [e:bool] and [op] is [=] or [!=] by [e op false/true] *)
-  (* Replace all exprs [e[i]] where [e:int] by [e[i:i]] *)
+type ppr_env = type_expr Rfsm.Env.t
+
+let mk_bool_expr e = match e.Annot.desc with
+  | EInt 0 -> { e with Annot.desc = EBool false }
+  | EInt 1 -> { e with Annot.desc = EBool true }
+  | _ -> e 
+
+let ppr_expr env ?(expected_type=None) e =
   let type_of v =
-    (* Since pre-processing is carried out _before_ typing, the only type-related available information
-       is given by the type expressions assigned to identifiers in the enclosing model *)
-    try List.assoc v env
+    try Rfsm.Env.find v env
     with Not_found -> Rfsm.Misc.fatal_error "Syntax.ppr_expr" in
   let has_bool_type v = is_bool_type (type_of v) in
   let has_int_type v = is_int_type (type_of v) in
-  match e.Annot.desc with
-  | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e'') when List.mem op.Rfsm.Ident.id ["="; "!="] && has_bool_type v  ->  
-       { e with Annot.desc = EBinop (op, e', mk_bool_expr (type_of v) e'') }
-  | EIndexed (a,i) when has_int_type a ->
+  match e.Annot.desc, expected_type with
+  | EBinop (op, ({ Annot.desc = EVar v; _ } as e'), e''), _ when List.mem op.Rfsm.Ident.id ["="; "!="] && has_bool_type v  ->  
+     (* Replace all bool expr [v {=|!=} {0|1}], where [v:bool] by [v {=|!=} {false | true}] *)
+     (* TODO: extend this to [e op {0|1}] *)
+     { e with Annot.desc = EBinop (op, e', mk_bool_expr e'') }
+  | EInt 0, Some t when is_bool_type t -> { e with Annot.desc = EBool false }
+  | EInt 1, Some t when is_bool_type t -> { e with Annot.desc = EBool true }
+     (* Replace expr [0] (resp. [1]) by [false] (resp. [true]) when the expected type is [bool].
+        Tests like as [e=true] or assignations like [x:=false] can be then written [e=1] and [x:=0] resp. *)
+  | EIndexed (a,i), _ when has_int_type a ->
+     (* Replace [a[i]] when [a:int] with [a[i:i]] *)
        { e with Annot.desc = ERanged (a,i,i) }
   | _ -> e
 
