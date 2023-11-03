@@ -1,4 +1,4 @@
-.PHONY: doc tests
+.PHONY: doc.html doc.pdf tests
 
 all: host guest_full guest_core # doc
 
@@ -24,12 +24,14 @@ INSTALL_DOCDIR=`opam var doc`
 doc.view:
 	open -a Safari _build/default/_doc/_html/index.html
 
-doc:
+doc.html:
 	dune build @doc
+
+doc.pdf:
 	(cd ./doc; make)
-	rm -rf ./docs/*
-	cp -r _build/default/_doc/_html/* ./docs
-	cp doc/rfsm.pdf ./docs
+#	rm -rf ./docs/*
+#	cp -r _build/default/_doc/_html/* ./docs
+#	cp doc/rfsm.pdf ./docs
 
 html: README.md
 	pandoc -t html -o README.html README.md
