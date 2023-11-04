@@ -258,6 +258,7 @@ described in Fig.~\ref{fig:rfsm-cntmod8}, for example, the transition of \texttt
   \label{fig:rfsm-cntmod8}
 \end{figure}
 
+\begin{minipage}[c]{0.95\textwidth}
 \begin{lstlisting}[frame=single,language=Rfsm,
   caption={A program involving three FSM instances synchronized by a shared event},
   label={lst:rfsm-cntmod8}]
@@ -283,7 +284,9 @@ fsm C0 = cntmod2(H,S0,R0)
 fsm C1 = cntmod2(R0,S1,R1) 
 fsm C2 = cntmod2(R1,S2,R2) 
 \end{lstlisting}
+\end{minipage}
 
+\pagebreak
 Simulation results for this program are given in Fig.~\ref{fig:rfsm-cntmod8-vcd}.
 
 \begin{figure}
@@ -303,9 +306,7 @@ observed value is 4 (resp. 1).
 
 \begin{lstlisting}[frame=single,language=Rfsm,caption={A program involving two FSM instances and a
     shared variable},label={lst:rfsm-shvar}]
-fsm model A1(
-  in h: event,
-  inout v: int)
+fsm model A1( in h: event, inout v: int)
 {
   states: S1, S2;
   trans:
@@ -316,9 +317,7 @@ fsm model A1(
   | -> S1 with v:=0;
 }
 
-fsm model A2(
-  in h: event,
-  in v: int)
+fsm model A2( in h: event, in v: int)
 {
   states: S1, S2;
   trans:
@@ -344,7 +343,7 @@ fsm a2 = A2(h,c)
 Simulation results for this program are given in Fig.~\ref{fig:rfsm-shvar-vcd}.
 
 \begin{figure}
-   \includegraphics[width=0.75\textwidth]{figs/shvar-chrono}
+   \includegraphics[width=0.95\textwidth]{figs/shvar-chrono}
    \centering
   \caption{Simulation results for the program in Listing~\ref{fig:rfsm-shvar}}
   \label{fig:rfsm-shvar-vcd}

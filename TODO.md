@@ -1,5 +1,6 @@
 COMPILER
 
+- move parser and lexer .cppo files from host/bin to host/lib. Remove host/bin
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)
@@ -23,5 +24,6 @@ DIST
 
 DOC
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
+- fix automatic numbering of Appendices
 - add a section describing how to build a new language by providing a guest lib+bin
 - integrate Notes.md to documentation

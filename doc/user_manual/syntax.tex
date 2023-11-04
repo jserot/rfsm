@@ -1,7 +1,7 @@
 \chapter{Syntax}
 \label{cha:syntax}
 
-This section is more thorough presentation of the RFSM language, focusing on its syntax.
+This section is more thorough presentation of the \emph{full} RFSM language, focusing on its syntax.
 A formal description of the syntax, in BNF, is given in Appendix A.
 Some semantic issues, related to concurrency and determinism, are also discussed informally. A
 formal semantics is given in Appendix D.
@@ -458,7 +458,7 @@ variable of type \texttt{int}.
 
 \medskip
 Shared objects are typically used to perform some kind synchronisation between FSMs. The precise semantics
-of this synchronisation depends on the shared object. It is described formally in Appendix D. An
+of this synchronisation depends on the shared object. It is described formally in Appendix D.
 
 \subsubsection*{Synchronisation using a shared event}
 \label{sec:synchr-using-shar}
@@ -567,7 +567,7 @@ shared e : event
 fsm a1 = A1(H,e)
 fsm a2 = A2(H,e)
 \end{lstlisting}
-\includegraphics[width=0.5\textwidth]{figs/sync-ev2-model}
+\includegraphics[width=0.5\textwidth]{figs/sync-ev2-model}\\
 \includegraphics[width=0.7\textwidth]{figs/sync-ev2-chrono}
   \end{minipage}
 \end{tabular}
