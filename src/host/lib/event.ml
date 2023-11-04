@@ -9,20 +9,19 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Events *)
+(**{1 Events} *)
 
 module type T = sig
   module Syntax: Guest.SYNTAX
   module Value: Guest.VALUE
 
   type t =
-    | Ev of Ident.t                 (* pure event *)
-    | Upd of Syntax.lhs * Value.t   (* lhs <- v *)
-    | StateMove of string * string  (* name, value *)
+    | Ev of Ident.t                 (** pure event *)
+    | Upd of Syntax.lhs * Value.t   (** assignation ([lhs <- v]) *)
+    | StateMove of string * string  (** state move ([src],[dst]) *)
   val is_pure_event: t -> bool
   val compare: t -> t -> int
   val pp: Format.formatter -> t -> unit
-  (* val vcd_register: Syntax.lhs -> Value.t -> Vcd_types.vcd_signal list -> Vcd_types.vcd_signal list *)
 end
 
 module Make

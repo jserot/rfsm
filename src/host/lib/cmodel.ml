@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Target-independent C-oriented model *)
+(**{1 Target-independent C-oriented model} *)
 
 module type CMODEL = sig
 

@@ -9,8 +9,6 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Environments, i.e. maps from identifiers to values *)
-
 include Map.Make(Ident)
 
 let dom e = List.map fst (bindings e)

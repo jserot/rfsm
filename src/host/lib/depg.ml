@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Dependency graphs *)
+(**{1 Dependency graphs} *)
 
 module G = Graph.Imperative.Digraph.Abstract(Ident)
   (** Graphs for which vertices are simple names *)

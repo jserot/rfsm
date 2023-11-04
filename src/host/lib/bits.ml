@@ -1,5 +1,3 @@
-(** Bit manipulation operations on integers *)
-
 (**********************************************************************)
 (*                                                                    *)
 (*              This file is part of the RFSM package                 *)
@@ -10,6 +8,8 @@
 (*  LICENSE file in the root directory of this source tree.           *)
 (*                                                                    *)
 (**********************************************************************)
+
+(**{1 Bit-level manipulation of integers} *)
 
 let of_uint s n = 
   let b = Bytes.make s '0' in

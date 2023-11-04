@@ -9,12 +9,14 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Building the command-line compiler *)
+(**{1 The command-line compiler} *)
 
+(** Output signature of the functor {!Compiler.Make} *)
 module type T = sig
   val main: unit -> unit
 end
 
+(** Signature for the [Parser] input to the functor {!Compiler.Make} *)
 module type PARSER = sig
   type token 
   type program
@@ -22,6 +24,7 @@ module type PARSER = sig
   val program: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> program
 end
 
+(** Signature for the [Lexer] input to the functor {!Compiler.Make} *)
 module type LEXER = sig
   type token
   type lexical_error = Illegal_character
@@ -29,6 +32,7 @@ module type LEXER = sig
   val main: Lexing.lexbuf -> token
 end
 
+(** Functor building the compiler structure given a language definition, a lexer and a parser implementation *)
 module Make
          (L: Host.T)
          (Lexer: LEXER)

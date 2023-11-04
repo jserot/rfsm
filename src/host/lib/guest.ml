@@ -9,23 +9,21 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Interface between the host and guest languages *)
+(**{1 Required signatures for the guest language} *)
 
-(**{1 Language description }*)
-
+(**{2 Language description }*)
 module type INFO = sig
   val name: string (** Name of the guest language *)
 
   val version: string (** Version *)
 end
 
-(**{1 Types }*)
-
+(**{2 Types }*)
 module type TYPES = sig 
   type typ
   (** Guest-level types *)
 
-  (**{2 Constructors} *)
+  (**{3 Constructors} *)
 
   val no_type: typ
   (** Special value denoting an undefined type *)
@@ -34,14 +32,14 @@ module type TYPES = sig
   (** [mk_type_fun [t1;...;tn] t] should return the type of a {e function} taking [n] arguments with type [t1], ..., [tn] and
       returning a result with type [t]. *)
 
-  (**{2 Inspectors} *)
+  (**{3 Inspectors} *)
 
   val is_event_type: typ -> bool
   val is_bool_type: typ -> bool
   (** [is_event_type t] (resp. [is_bool_type t]) should return [true] iff type [t] is the {e event} (resp. {e boolean}) type.
       Returns [false] if the guest language has no such type. *)
     
-  (**{2 Printing} *)
+  (**{3 Printing} *)
 
   val pp_typ: abbrev:bool -> Format.formatter -> typ -> unit
   (** [pp_type abbrev fmt t] should print a readable representation of type [t] on formatter [fmt]. The [abbrev] argument
@@ -50,13 +48,12 @@ module type TYPES = sig
 
 end
                  
-(**{1 Syntax} *)
-
+(**{2 Syntax} *)
 module type SYNTAX = sig 
 
   module Types : TYPES
 
-  (**{2 Type expressions} *)
+  (**{3 Type expressions} *)
 
   type type_expr = (type_expr_desc,Types.typ) Annot.t
   and type_expr_desc
@@ -71,7 +68,7 @@ module type SYNTAX = sig
   val pp_type_expr: Format.formatter -> type_expr -> unit
   (** [pp_type_expr fmt te] prints type expression [te] on formatter [fmt]. *)
 
-  (**{2 Type declarations} *)
+  (**{3 Type declarations} *)
 
   type type_decl = (type_decl_desc,Types.typ) Annot.t
   and type_decl_desc 
@@ -84,7 +81,7 @@ module type SYNTAX = sig
   val pp_type_decl: Format.formatter -> type_decl -> unit
   (** [pp_type_decl fmt td] prints type declaration [td] on formatter [fmt]. *)
 
-  (**{2 Expressions} *)
+  (**{3 Expressions} *)
 
   type expr = (expr_desc,Types.typ) Annot.t
   and expr_desc
@@ -96,7 +93,7 @@ module type SYNTAX = sig
   val pp_expr: Format.formatter -> expr -> unit
   (** [pp_expr fmt e] prints expression [e] on formatter [fmt]. *)
 
-  (**{2 LHS} *)
+  (**{3 LHS} *)
 
   type lhs_desc
   and lhs = (lhs_desc,Types.typ) Annot.t
@@ -135,7 +132,7 @@ module type SYNTAX = sig
   val pp_qual_lhs: Format.formatter -> lhs -> unit
   (** Same as [pp_lhs] but with an indication of the {!type:Ident.scope} of the LHS *)
     
-  (**{2 Substitutions} *)
+  (**{3 Substitutions} *)
 
   val subst_id: Ident.t Subst.t -> expr -> expr
     (** [subst_id phi e] applies substitution [phi] to expression [e], substituting each occurrence of identifier
@@ -153,7 +150,7 @@ module type SYNTAX = sig
   (** [subst_type_expr phi te] applies substitution [phi] to type_expression [te], replacing all occurences of parameter
       name [id] in type expression [te] by [phi id]. *)
 
-  (**{2 Pre-processing} *)
+  (**{3 Pre-processing} *)
     
   type ppr_env = type_expr Env.t
   (** Since pre-processing takes place at the syntax level, before typing, type information has to be
@@ -169,15 +166,14 @@ module type SYNTAX = sig
   
 end
   
-(**{1 Typing} *)
-
+(**{2 Typing} *)
 module type TYPING = sig 
 
   module Syntax : SYNTAX
 
   module Types : TYPES
 
-  (**{2 Typing environment} *)
+  (**{3 Typing environment} *)
 
   type env 
 
@@ -203,12 +199,12 @@ module type TYPING = sig
   val pp_env: Format.formatter -> env -> unit
   (** [pp_env fmt env] should print a readable representation of typing environment [env] on formatter [fmt]. *)
 
-  (**{2  Low-level interface to the the type-checking engine} *)
+  (**{3 Low-level interface to the the type-checking engine} *)
 
   val type_check: loc:Location.t -> Types.typ -> Types.typ -> unit
   (** [type_check loc t t'] should be called whenever types [t] and [t'] have to be unified at program location [loc]. *)
     
-  (**{2  High-level interface to the type-checking engine} *)
+  (**{3 High-level interface to the type-checking engine} *)
 
   val type_type_decl: env -> Syntax.type_decl -> env
   (** [type_type_decl env td] should return the typing environment obtained by type checking the type declaration [td] in environment [env]. *)
@@ -223,8 +219,7 @@ module type TYPING = sig
   (** [type_lhs env l] should return the type of LHS [l] in environment [env]. *)
 end
   
-(**{1  Values} *)
-
+(**{2 Values} *)
 module type VALUE = sig 
 
   type t
@@ -236,7 +231,7 @@ module type VALUE = sig
   val default_value: typ -> t 
   (** [default_value t] should return a default value for type [t] *)
     
-  (**{2 VCD interface} *)
+  (**{3 VCD interface} *)
 
   exception Unsupported_vcd of t
 
@@ -255,15 +250,14 @@ module type VALUE = sig
       For example, if [v] is a record [{x=1;y=2}], then [flatten ~base:"a" v] should be [[("a.x",1);("a.y",2)]].
       If [v] is a scalar value, then [flatten ~base:"a" v] is just [["a",v]] *)
 
-  (**{2 Printing} *)
+  (**{3 Printing} *)
 
   val pp: Format.formatter -> t -> unit
   (** [pp fmt v] prints value [v] on formatter [fmt]. *)
 
 end
 
-(**{1  Static program representation} *)
-
+(**{2 Static program representation} *)
 module type STATIC = sig
 
   type expr
@@ -274,7 +268,7 @@ module type STATIC = sig
 
   exception Non_static_value of expr
 
-  (**{2 Static evaluators} *)
+  (**{3 Static evaluators} *)
 
   val eval_fn: string list -> expr -> value
   (** [eval_fn args body] should return the value representing a function taking a list of arguments [args] and returning the value
@@ -287,8 +281,7 @@ module type STATIC = sig
 
 end
 
-(**{1  Dynamic semantics} *)
-
+(**{2 Dynamic semantics} *)
 module type EVAL = sig 
 
   module Syntax : SYNTAX
@@ -305,7 +298,7 @@ module type EVAL = sig
   (** [upd_env l v env] should return the environment obtained by adding the binding [(l,v)] to [env].
       If [l] is already bound in [env], the associated value is updated. *)
 
-  (**{2 Evaluators} *)
+  (**{3 Evaluators} *)
 
   exception Illegal_expr of Syntax.expr
                           
@@ -317,15 +310,14 @@ module type EVAL = sig
   (** [eval_bool env e] should return the boolean value obtained by evaluating expression [e] in environment [env].
       Should raise {!exception:Illegal_expr} if [e] does not denote a boolean value or in case of failure. *)
 
-  (**{2 Printing} *)
+  (**{3 Printing} *)
 
   val pp_env: Format.formatter -> env -> unit
   (** [pp_env fmt env] should print a readable representation of environment [env] on formatter [fmt]. *)
 
 end
 
-(**{1 CTask interface} *)
-
+(**{2 CTask backend} *)
 module type CTASK = sig
 
   module Syntax: SYNTAX
@@ -346,8 +338,7 @@ module type CTASK = sig
 
 end
                   
-(**{1  SystemC interface} *)
-
+(**{2 SystemC backend} *)
 module type SYSTEMC = sig
 
   module Static: STATIC
@@ -381,8 +372,7 @@ module type SYSTEMC = sig
 
 end
 
-(**{1 VHDL interface} *)
-
+(**{2 VHDL backend} *)
 module type VHDL = sig
 
   module Syntax: SYNTAX
@@ -424,8 +414,7 @@ module type VHDL = sig
 
 end
                   
-(**{1 Error handling} *)
-
+(**{2 Error handling} *)
 module type ERROR = sig
 
   val handle: exn -> unit
@@ -434,8 +423,7 @@ module type ERROR = sig
 
 end
 
-(**{1 Compiler options} *)
-
+(**{2 Compiler options} *)
 module type OPTIONS = sig
 
    val specs: (string * Arg.spec * string) list

@@ -9,22 +9,25 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Identifiers *)
+(**{1 Identifiers} *)
 
-type scope = Local | Global
                    
 type t = {
     scope: scope;
     id: string
     }
 
+and scope = Local | Global
+
 exception Undefined of string * Location.t * t (** What, where, identifier *) 
+
 exception Duplicate of string * Location.t * t (** What, where, identifier *) 
 
 val mk: ?scope:scope -> string -> t
 
 val mk_global: t -> t
   (** [mk_global i] is [{id = i.id; scope=Global}] *)
+
 val mk_local: t -> t
   (** [mk_local i] is [{id = i.id; scope=Local}] *)
 
@@ -33,6 +36,7 @@ val upd_id: (string -> string) -> t -> t
 
 val pp: Format.formatter -> t -> unit
   (** [pp fmt i] prints identifier [i] using formatter [fmt] *)
+
 val pp_qual: Format.formatter -> t -> unit
   (** For identifiers with a local scope, [pp_qual fmt i] is [pp fmt i].
       For identifiers with a global scope, a leading "$" is prepended to the name. *) 

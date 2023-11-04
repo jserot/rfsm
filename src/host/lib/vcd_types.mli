@@ -9,26 +9,26 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** VCD Interface *)
-
-(* The [Guest.Value] module must provide functions to convert types (resp. values) to [vcd_typ] and [vcd_value] *)
+(**{1 VCD Interface} *)
 
 type vcd_typ =
-  | TyInt of int option
+  | TyInt of int option (** with optional size in bits *)
   | TyBool
   | TyFloat
   | TyEvent
   | TyString
   | TyChar
 [@@deriving show]
+(** The possible types for VCD values *)
 
-type vcd_value =
+and vcd_value =
   | Val_int of int
   | Val_bool of bool
   | Val_float of float
   | Val_char of char
   | Val_string of string
 [@@deriving show]
+(** The possible VCD values *)
 
 type vcd_signal = Ident.t * (char * vcd_typ)
 

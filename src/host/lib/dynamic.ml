@@ -9,9 +9,9 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Dynamic semantics. Used for simulating programs *)
+(**{1 Dynamic semantics. Used for simulating programs} *)
 
-(* This is a direct translation of the formal semantics described in the reference manual *)
+(** This is a direct translation of the formal semantics described in the reference manual *)
 
 type cfg = {
     mutable act_semantics: Misc.act_semantics;

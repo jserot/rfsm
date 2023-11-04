@@ -9,7 +9,9 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** An [Evset] is a set of events all occuring at the same instant (date) *)
+(**{1 Event sets} *)
+
+(** An {e event set} is a set of events all occuring at the same instant *)
 
 module type T = sig
   

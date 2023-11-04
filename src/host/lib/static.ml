@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Static elaboration *)
+(**{1 Static elaboration} *)
 
 (** This step takes a typed program consisting of 
     - types, functions and constant declarations

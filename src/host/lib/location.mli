@@ -9,12 +9,11 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Printing a location in the source program *)
+(**{1 Source program locations} *)
 
 type t =
-    Loc of string  (* Filename *)
-         * int     (* Position of the first character *)
-         * int     (* Position of the next character following the last one *)
+  Loc of string * int * int
+     (** Filename, position of the first character, position of the next character following the last one *)
 
 val get_current_location : unit -> t
 val no_location : t

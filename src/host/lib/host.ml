@@ -9,8 +9,10 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** The host language *)
+(**{1 Host language definition} *)
 
+
+(** Output signature of the functor {!Host.Make} *)
 module type T = sig
   module Guest: Guest.T
   module Syntax: Syntax.SYNTAX 
@@ -29,6 +31,7 @@ module type T = sig
   val pp_tenv: Format.formatter -> Typing.env -> unit
 end
 
+(** Functor building the host language implementation given a guest language implementation *)
 module Make (G: Guest.T)
        : T with module Guest = G
             and module Syntax = Syntax.Make(G.Syntax) =

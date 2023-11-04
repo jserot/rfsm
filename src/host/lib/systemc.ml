@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(* SystemC backend *)
+(**{1 SystemC backend} *)
 
 type sc_config = {
   mutable sc_lib_name: string;

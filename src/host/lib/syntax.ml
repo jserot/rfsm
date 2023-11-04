@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(* The abstract syntax of the host language. *)
+(**{1 Abstract syntax of the host language} *)
 
 module type SYNTAX = sig
 
@@ -51,7 +51,7 @@ module type SYNTAX = sig
   and state_desc = Ident.t * (Ident.t * expr) list (* Name, output valuations *)
 
   and cond = (cond_desc,typ) Annot.t
-  and cond_desc = Ident.t * expr list (** event, guards *)
+  and cond_desc = Ident.t * expr list (* event, guards *)
   
   and action = (action_desc,typ) Annot.t
   and action_desc =
@@ -59,10 +59,10 @@ module type SYNTAX = sig
   | Assign of lhs * expr
             
   and transition = (transition_desc,typ) Annot.t
-  and transition_desc = Ident.t * cond * action list * Ident.t * int  (** source state, condition, actions, destination state, priority *)
+  and transition_desc = Ident.t * cond * action list * Ident.t * int  (* source state, condition, actions, destination state, priority *)
 
   and itransition = (itransition_desc,typ) Annot.t
-  and itransition_desc = Ident.t * action list  (** state, actions *)
+  and itransition_desc = Ident.t * action list  (* state, actions *)
                  
   and global = (global_desc,typ) Annot.t
   and global_desc = Ident.t * global_cat * type_expr * stimulus option
@@ -71,16 +71,16 @@ module type SYNTAX = sig
                               
   and stimulus = (stimulus_desc,typ) Annot.t
   and stimulus_desc = 
-    | Periodic of int * int * int (** Period, start date, end date *)
-    | Sporadic of int list (** Dates *)
-    | Value_change of (int * expr) list  (** Changes *)
+    | Periodic of int * int * int (* Period, start date, end date *)
+    | Sporadic of int list (* Dates *)
+    | Value_change of (int * expr) list  (* Changes *)
 
   and inst = (inst_desc,typ) Annot.t
   and inst_desc =
-      Ident.t  (** Name *)
-    * Ident.t  (** Model *)
-    * expr list (** Actual parameters *)
-    * Ident.t list (** Args *)
+      Ident.t  (* Name *)
+    * Ident.t  (* Model *)
+    * expr list (* Actual parameters *)
+    * Ident.t list (* Args *)
 
   and fun_decl = (fun_decl_desc,typ) Annot.t
   and fun_decl_desc = {
@@ -100,11 +100,11 @@ module type SYNTAX = sig
   val empty_program: program
   val add_program: program -> program -> program
 
-  val subst_model_io: phi:Ident.t Subst.t -> model -> model (** IO substitution *)
-  val subst_model_param: phi:expr Subst.t -> model -> model (** Parameter substitution *)
+  val subst_model_io: phi:Ident.t Subst.t -> model -> model (* IO substitution *)
+  val subst_model_param: phi:expr Subst.t -> model -> model (* Parameter substitution *)
     
   val state_ios: model -> Ident.t -> Ident.t list * Ident.t list * Ident.t list * Ident.t list
-    (** [state_ios m q] is [l1,l2,l3,l4] where
+    (* [state_ios m q] is [l1,l2,l3,l4] where
         - [l1] is the list of events triggering an exit from state [q] 
         - [l2] is the list of variables occuring in guards when exiting from state [q] 
         - [l3] is the list of events possibly emitted by [m] when exiting state [q]
@@ -168,9 +168,9 @@ struct
   type global_cat = Input | Output | Shared [@@deriving show {with_path=false}]
 
   type stimulus_desc = 
-    | Periodic of int * int * int (** Period, start date, end date *)
-    | Sporadic of int list (** Dates *)
-    | Value_change of (int * expr) list  (** Changes *)
+    | Periodic of int * int * int (* Period, start date, end date *)
+    | Sporadic of int list (* Dates *)
+    | Value_change of (int * expr) list  (* Changes *)
     [@@deriving show {with_path=false}]
   type stimulus = (stimulus_desc,typ) Annot.t
   let pp_stimulus fmt s = pp_stimulus_desc fmt s.Annot.desc

@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** VCD output *)
+(**{1 VCD output} *)
 
 type cfg = {
     mutable default_int_size: int;

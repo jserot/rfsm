@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Environments *)
+(**{1 Environments} *)
 
 type 'a t
    (** The type of environments, mapping identifiers, of type [Ident.t] to values of type ['a] *)

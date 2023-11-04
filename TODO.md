@@ -1,7 +1,6 @@
 COMPILER
 
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
-- document `lib/host/guest.ml`
 - allow shared signals with multiple writers in VHDL
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)
 - display enums as string in SystemC generated VCDs (currently not supported by SystemC 2.3) 
@@ -23,8 +22,6 @@ DIST
 - KNOWN-BUGS -> Issues
 
 DOC
-- document Rfsm modules which referenced in `guest.ml` or used in `core` or `full` implementations
-  (ex: `Env`)
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
 - add a section describing how to build a new language by providing a guest lib+bin
 - integrate Notes.md to documentation

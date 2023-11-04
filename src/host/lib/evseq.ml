@@ -9,8 +9,10 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** [EvSeq]s are sequences of dated event sets. Ex: [[{H,x<-1}@10; {H}@20, ...]].
-    [EvSeq]s are used to describe both _stimuli_ and _responses_. *)
+(**{1 Event sequences} *)
+
+(** An {e event sequence} is a sequence of dated event sets. Ex: [[{H,x<-1}@t=10; {H}@t=20, ...]].
+    Event sequences are to describe both {e stimuli} and {e responses}. *)
 
 module type EVSEQ = sig
   
@@ -21,6 +23,7 @@ module type EVSEQ = sig
 
   val merge: t -> t -> t
   val (@@) : t -> t -> t  (** [@@] is the infix notation for [merge] *)
+
   val merge_all: t list -> t 
   
   val mk_periodic: Ident.t -> int -> int -> int -> t

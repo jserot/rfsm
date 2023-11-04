@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** VHDL interface *)
+(**{1 VHDL interface} *)
 
 type cfg = {
   mutable vhdl_bool_as_bool: bool;

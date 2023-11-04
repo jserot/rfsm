@@ -9,10 +9,10 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** Substitutions *)
+(**{1 Substitutions} *)
 
 type 'a t = (Ident.t * 'a) list
-  (** The type of substitution, subtituting identifiers by values of type ['a] *)
+  (** The type of substitution, substituting identifiers by values of type ['a] *)
 
 val apply: 'a t -> Ident.t -> 'a
   (** [apply s i] is [s(i)]. Raises [Not_found] if [i] is not bound in [s]. *)

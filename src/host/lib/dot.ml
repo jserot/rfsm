@@ -9,7 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(** DOT backend *)
+(**{1 DOT backend} *)
 
 module type DOT = sig
   module Static: Static.T
