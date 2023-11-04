@@ -27,11 +27,11 @@ examples/*/*/*/Makefile
 examples/*/*/rfsm.output
 examples/*/*/*/rfsm.output
 !examples/full/{multi,single}/*/{sim,systemc,vhdl}/*.{gtkw,sav}
+!examples/core/{multi,single}/*/{sim,systemc,vhdl}/*.{gtkw,sav}
 tests/
 *.dot
 *.o
 *.vcd
 *.merlin
 HOWTO-PUBLISH
-src/old
 src/host/lib/options.ml

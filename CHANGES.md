@@ -1,6 +1,6 @@
 # Changes
 
-# 2.0 (Sep 30, 2023)
+# 2.0 (Nov XX, 2023)
 
 * Entirely recrafted modular implementation (host+guests languages)
 * Formal semantics 
