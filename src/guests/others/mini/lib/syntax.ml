@@ -76,16 +76,16 @@ let subst phi v =
   try List.assoc v phi
   with Not_found -> v
 
-let subst_id phi e =
+let subst_expr phi e =
   match e.Annot.desc with
   | EVar v -> { e with Annot.desc = EVar (subst phi v) }
   | _ -> e
 
 let subst_lhs phi l = { l with Annot.desc = subst phi l.Annot.desc }
 
-let subst_expr phi e = e (* No parameters in this guest language *)
+let subst_param_expr phi e = e (* No parameters in this guest language *)
 
-let subst_type_expr phi te =  te (* No parameters in this guest language *)
+let subst_param_type_expr phi te =  te (* No parameters in this guest language *)
 
 (* Pre-processing *)
 

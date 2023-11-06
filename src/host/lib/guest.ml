@@ -134,21 +134,22 @@ module type SYNTAX = sig
     
   (**{3 Substitutions} *)
 
-  val subst_id: Ident.t Subst.t -> expr -> expr
+  val subst_expr: Ident.t Subst.t -> expr -> expr
     (** [subst_id phi e] applies substitution [phi] to expression [e], substituting each occurrence of identifier
         [id] by identifier [phi id] *)
 
-  val subst_expr: expr Subst.t -> expr -> expr
-    (** [subst_expr phi e] applies substitution [phi] to expression [e], substituting each occurrence of identifier
-        [id] by expression [phi id] *)
-
   val subst_lhs: Ident.t Subst.t -> lhs -> lhs
-    (** [subst_expr phi l] applies substitution [phi] to LHS [l], substituting each occurrence of identifier
+    (** [subst_lhs phi l] applies substitution [phi] to LHS [l], substituting each occurrence of identifier
         [id] by identifier [phi id] *)
 
-  val subst_type_expr: expr Subst.t -> type_expr -> type_expr
-  (** [subst_type_expr phi te] applies substitution [phi] to type_expression [te], replacing all occurences of parameter
-      name [id] in type expression [te] by [phi id]. *)
+  val subst_param_type_expr: expr Subst.t -> type_expr -> type_expr
+  (** [subst_type_expr phi te] applies substitution [phi] to type_expression [te], replacing all occurences of
+      {e parameter} name [id] in type expression [te] by [phi id]. *)
+
+  val subst_param_expr: expr Subst.t -> expr -> expr
+    (** [subst_expr phi e] applies substitution [phi] to expression [e], substituting each occurrence of {e parameter}
+        name [id] by expression [phi id] *)
+
 
   (**{3 Pre-processing} *)
     

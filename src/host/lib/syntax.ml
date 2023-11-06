@@ -280,13 +280,13 @@ struct
   let local_prefix x = "l_" ^ x
 
   let subst_io_cond phi c = match c.Annot.desc with 
-    | (ev,guards) -> { c with desc = subst_var phi ev, List.map (Guest.subst_id phi) guards }
+    | (ev,guards) -> { c with desc = subst_var phi ev, List.map (Guest.subst_expr phi) guards }
 
   let subst_io_iov phi (id,ty) = subst_var phi id, ty
                                   
   let subst_io_action phi act = match act.Annot.desc with
     | Emit ev -> { act with desc = Emit (subst_var phi ev) }
-    | Assign (lhs,expr) -> { act with desc = Assign (Guest.subst_lhs phi lhs, Guest.subst_id phi expr) }
+    | Assign (lhs,expr) -> { act with desc = Assign (Guest.subst_lhs phi lhs, Guest.subst_expr phi expr) }
                         
   let subst_io_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
    { t with desc = (q, subst_io_cond phi cond, List.map (subst_io_action phi) acts, q', p) }
@@ -325,14 +325,14 @@ struct
 
   let subst_param_cond phi c = match c.Annot.desc with 
     | (ev,guards) ->
-       let c' = { c with desc = ev, List.map (Guest.subst_expr phi) guards } in
+       let c' = { c with desc = ev, List.map (Guest.subst_param_expr phi) guards } in
        c'
   
-  let subst_param_iov phi (id,ty) = id, Guest.subst_type_expr phi ty
+  let subst_param_iov phi (id,ty) = id, Guest.subst_param_type_expr phi ty
                                   
   let subst_param_action phi act = match act.Annot.desc with
     | Emit _ -> act
-    | Assign (lhs,expr) -> { act with desc = Assign (lhs, Guest.subst_expr phi expr) }
+    | Assign (lhs,expr) -> { act with desc = Assign (lhs, Guest.subst_param_expr phi expr) }
                         
   let subst_param_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
    { t with desc = (q, subst_param_cond phi cond, List.map (subst_param_action phi) acts, q', p) }
