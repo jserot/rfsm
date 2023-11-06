@@ -1,6 +1,12 @@
 /* Parser rules for the guest language */
 /* These rules will be added to the parser of the host language in file ../../../../src/host/lib/parser.cpp.mly */
 
+/* AST nodes should be built using the [mk] function defined in ../lib/syntax.ml, which take an extra parameter
+ * for storing the location of the corresponding concrete synatx fragment in the source code.
+ * For ex (taken from ../../core/bin/guest_rules.mly) :
+ * expr:
+    | v = LID { mk ~loc:$sloc (EVar (mk_ident v)) } */
+
 type_decl:
   /* TO BE COMPLETED */
   /* Define here the syntax for type declarations.
