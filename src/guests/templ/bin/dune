@@ -1,0 +1,22 @@
+(executable
+  (modes byte)
+  (flags (:standard -annot) (:standard -w -26-27-37))
+  (preprocess (pps ppx_deriving.show ppx_deriving.make))
+  (libraries rfsm myguest)
+  (name rfsmc))
+
+(ocamllex
+  (modules lexer))
+
+(menhir
+  (modules parser))
+
+(rule
+ (target lexer.mll)
+ (deps (:first-dep ../../../host/bin/lexer.cppo.mll) guest_kw.mll guest_tokens.mll)
+ (action (run cppo -n -I . -I ../../../host/bin %{first-dep} -o %{target})))
+
+(rule
+ (target parser.mly)
+ (deps (:first-dep ../../../host/bin/parser.cppo.mly) guest_tokens.mly guest_open.mly guest_rules.mly)
+ (action (run cppo -n -I . -I ../../../host/bin %{first-dep} -o %{target})))
