@@ -1,6 +1,5 @@
 COMPILER
 
-- remove abbrev arg to Guest.Types.pp_typ (or make it optional)
 - Use macro to build located syntax nodes in parsers (esp. for _guest_ parsers, which should really 
   not have to write things like `mk ~loc:($symbolstartofs,$endofs) ... }`)
 - remove `pp_xxx` fns from `Guest.vhdl`: `vhdl_type_of` should be enough (?)

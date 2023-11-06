@@ -296,7 +296,7 @@ let pp_var ~pfx fmt v = Format.fprintf fmt "%s%d" pfx v.stamp (* TODO: print as 
 let pp_tvar = pp_var ~pfx:"_"
 let pp_svar = pp_var ~pfx:"#"
 
-let rec pp_typ ~abbrev fmt t =
+let rec pp_typ ?(abbrev=false) fmt t =
   let open Format in
   match real_type t with
   | TyVar v -> fprintf fmt "_%d" v.stamp

@@ -11,7 +11,7 @@ let is_event_type t = match t with TyEvent -> true | _ -> false
 let is_bool_type t =  match t with TyBool -> true | _ -> false
 let mk_type_fun ty_args ty_res = TyUnknown  (* NOT USED *)
 
-let pp_typ ~abbrev fmt t =
+let pp_typ ?(abbrev=false) fmt t =
   let open Format in
   match t with
   | TyEvent -> fprintf fmt "event"

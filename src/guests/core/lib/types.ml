@@ -161,7 +161,7 @@ let type_instance ts =
 
 (* Printing *)
 
-let rec pp_typ ~abbrev fmt t =
+let rec pp_typ ?(abbrev=false) fmt t =
   let open Format in
   match real_type t with
   | TyConstr (c,[]) -> fprintf fmt "%s" c

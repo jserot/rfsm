@@ -193,7 +193,7 @@ and occur_check ~loc var ty =
 
 (* Printing *)
 
-let rec pp_typ ~abbrev fmt t =
+let rec pp_typ ?(abbrev=false) fmt t =
   let open Format in
   match real_type t with
   | TyVar v -> fprintf fmt "_%d" v.stamp

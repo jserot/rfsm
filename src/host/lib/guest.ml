@@ -41,8 +41,8 @@ module type TYPES = sig
     
   (**{3 Printing} *)
 
-  val pp_typ: abbrev:bool -> Format.formatter -> typ -> unit
-  (** [pp_type abbrev fmt t] should print a readable representation of type [t] on formatter [fmt]. The [abbrev] argument
+  val pp_typ: ?abbrev:bool -> Format.formatter -> typ -> unit
+  (** [pp_type abbrev fmt t] should print a readable representation of type [t] on formatter [fmt]. The optional [abbrev] argument
       can be used to require an abbreviated form (for example, for a record, to print only the name of the record, without
       the description of the fields. *)
 

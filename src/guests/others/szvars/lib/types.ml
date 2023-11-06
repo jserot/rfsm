@@ -270,7 +270,7 @@ and occur_check_size ~loc (ty1,ty2) var sz =
 
 let pp_var fmt v = Format.fprintf fmt "_%d" v.stamp (* TO FIX *) 
 
-let rec pp_typ ~abbrev fmt t =
+let rec pp_typ ?(abbrev=false) fmt t =
   let open Format in
   match real_type t with
   | TyVar v -> fprintf fmt "_%d" v.stamp
