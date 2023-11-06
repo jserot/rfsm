@@ -14,7 +14,7 @@ module Types = Types
 module Location = Rfsm.Location
 module Annot = Rfsm.Annot
 
-let mk ~loc:l x = Annot.{ desc=x; typ=Types.no_type; loc=Location.mk l }
+let mk ~loc x = Annot.mk ~loc ~typ:Types.no_type x
              
 (** Type declarations *)
                 

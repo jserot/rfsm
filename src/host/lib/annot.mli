@@ -18,10 +18,17 @@ type ('a,'b) t = {
    mutable typ: 'b;  (** Type annotation (type ['b] will be bound to the guest language type) *)
 
    loc: Location.t [@default Location.no_location] (** Location in source code *)
-      } [@@deriving map]
+      } 
    (** The type [('a,'b) t] is used to attach type and location annotations to values of type ['a].  *)
 
-let mk ~loc:l ~typ:t x = { desc=x; typ=t; loc=Location.mk l }
+val mk : 
+  loc:(Stdlib.Lexing.position * Stdlib.Lexing.position) ->
+  typ:'b ->
+  'a ->
+  ('a, 'b) t
+  (** [mk ~loc ~ty x] returns value [x] annotated with type [ty] and location [loc] *)
 
-
+val map : ('a -> 'c) -> ('b -> 'd) -> ('a, 'b) t -> ('c, 'd) t
+  (** [map f g v] returns the annotated value obtained by applying [f] and [g] to the [desc] and [typ]
+      fields of [v] resp., without changing the [loc] field. *)
 

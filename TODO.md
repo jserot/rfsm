@@ -1,6 +1,5 @@
 COMPILER
 
-- move `mk` AST building function from Guest.syntax to Host.Annot
 - remove `pp_xxx` fns from `Guest.vhdl`: `vhdl_type_of` should be enough (?)
 - rename `subst_expr` and `subst_type_expr` in `Guest.Syntax` to make explicit they deal with _parameters_
 - separate src/host/lib/misc.ml in misc+utils
