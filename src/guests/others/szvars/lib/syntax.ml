@@ -14,8 +14,7 @@ module Types = Types
 module Location = Rfsm.Location
 module Annot = Rfsm.Annot
              
-let mk_location (p1,p2) = Location.Loc (!Location.input_name, p1, p2)
-let mk ~loc:l x = Annot.{ desc=x; typ=Types.no_type; loc=mk_location l }
+let mk ~loc:l x = Annot.{ desc=x; typ=Types.no_type; loc=Location.mk l }
 
 type ident = Rfsm.Ident.t
 let pp_ident = Rfsm.Ident.pp

@@ -26,6 +26,8 @@ type t =
          * int     (* Position of the next character following the last one *)
     (* [@@deriving show {with_path=false}] *)
 
+let mk (l1,l2) = Loc (!input_name, l1.Lexing.pos_cnum, l2.Lexing.pos_cnum)
+
 let no_location = Loc("",0,0)
 
 let get_current_location () =

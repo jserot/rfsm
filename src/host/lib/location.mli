@@ -15,6 +15,8 @@ type t =
   Loc of string * int * int
      (** Filename, position of the first character, position of the next character following the last one *)
 
+val mk: Lexing.position * Lexing.position -> t 
+
 val get_current_location : unit -> t
 val no_location : t
 val input_name : string ref
