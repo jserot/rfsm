@@ -35,6 +35,7 @@ let keyword_table = [
   "constant", CONSTANT;
   "function", FUNCTION;
   "return", RETURN;
+  "type", TYPE;
 #include "guest_kw.mll"
 ]
 

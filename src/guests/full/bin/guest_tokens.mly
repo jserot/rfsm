@@ -6,9 +6,7 @@
 %token LAND LOR LXOR
 %token SHR SHL
 %token NOTEQUAL
-%token RPAREN LPAREN
 %token LBRACKET RBRACKET
-%token TYPE
 %token ENUM
 %token RECORD
 %token QMARK

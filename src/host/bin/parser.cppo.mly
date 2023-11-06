@@ -52,6 +52,8 @@
 %token EOF
 %token WHERE
 %token AND
+%token RPAREN LPAREN
+%token TYPE
 #include "guest_tokens.mly"
 
 %type <Lang.L.Syntax.program> program

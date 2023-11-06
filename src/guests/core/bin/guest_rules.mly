@@ -1,7 +1,5 @@
 type_decl:
  | TYPE /* Not used. There's no type declaration in the Core guest language */ { mk ~loc:($symbolstartofs,$endofs) () }
-/* TYPE id = LID EQUAL ENUM LBRACE ctors=separated_nonempty_list(COMMA,ctor) RBRACE */
-/*      { mk ~loc:($symbolstartofs,$endofs) (TD_Enum (id,ctors)) } */
 
 type_expr:
   | tc = LID { mk ~loc:($symbolstartofs,$endofs) (TeConstr tc) }

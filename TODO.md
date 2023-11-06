@@ -1,13 +1,11 @@
 COMPILER
 
-- move NOTUSED, RPAREN and LPAREN tokens from guests to host
 - remove abbrev arg to Guest.Types.pp_typ (or make it optional)
 - Use macro to build located syntax nodes in parsers (esp. for _guest_ parsers, which should really 
   not have to write things like `mk ~loc:($symbolstartofs,$endofs) ... }`)
 - remove `pp_xxx` fns from `Guest.vhdl`: `vhdl_type_of` should be enough (?)
 - rename `subst_expr` and `subst_type_expr` in `Guest.Syntax` to make explicit they deal with _parameters_
 - separate src/host/lib/misc.ml in misc+utils
-- move parser and lexer .cppo files from host/bin to host/lib. Remove host/bin
 - true modular parsing in Menhir ?
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL

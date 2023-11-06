@@ -4,12 +4,10 @@
 type_decl:
   /* TO BE COMPLETED */
   /* Define here the syntax for type declarations.
-    Simply write "| { }" if the guest language does not use type declarations */
 
 param_value:
   /* TO BE COMPLETED */
   /* Define here the syntax for instance parameter values.
-    Simply write "| { }" if the guest language does not use model parameters */
 
 type_expr:
   /* TO BE COMPLETED */

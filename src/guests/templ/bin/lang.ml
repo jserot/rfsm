@@ -14,5 +14,5 @@
 (* Note: this functor application has to be put in a separate module to be referenced by the parser
    without creating a dependency cycle... *)
 
-module L = Rfsm.Host.Make(Core.Top)
+module L = Rfsm.Host.Make(Myguest.Top)
 
