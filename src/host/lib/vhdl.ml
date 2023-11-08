@@ -148,7 +148,8 @@ struct
     Format.fprintf fmt "    when %a =>\n" Ident.pp s;
     List.iter (pp_output_valuation fmt) ovs
 
-  let pp_abbr_type fmt t = G.pp_typ ~type_mark:Vhdl_types.TM_Abbr fmt t
+  let pp_type fmt ~type_mark t = Vhdl_types.pp ~type_mark fmt (vhdl_type_of t)
+  let pp_abbr_type fmt t = pp_type fmt ~type_mark:Vhdl_types.TM_Abbr t
   let pp_abbr_type_expr fmt te = pp_abbr_type fmt te.Annot.typ
 
   let pp_typed_symbol fmt (id,t) =
@@ -442,7 +443,7 @@ struct
   let dump_fun_decl ?(for_impl=false) ocf fd = 
     let open Static.Syntax in
     let f = fd.Annot.desc in
-    let pp_typ fmt t = G.pp_type_expr ~type_mark:Vhdl_types.TM_None fmt t in (* No type marks in function args and result *)
+    let pp_typ fmt t = pp_type ~type_mark:Vhdl_types.TM_None fmt t.Annot.typ in (* No type marks in function args and result *)
     let pp_farg fmt (n,t) = fprintf fmt "%a: %a" pp_ident n pp_typ t in
     fprintf ocf "  function %a(%a) return %a%s\n"
          pp_ident f.ff_name

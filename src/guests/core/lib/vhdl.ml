@@ -41,14 +41,6 @@ let pp_op fmt op =
 
 let pp_ident = Rfsm.Ident.pp 
 
-let pp_typ fmt ~type_mark t = Rfsm.Vhdl_types.pp ~type_mark fmt (vhdl_type_of t)
-let pp_abbr_typ fmt t = pp_typ fmt ~type_mark:Rfsm.Vhdl_types.TM_Abbr t
-let pp_full_typ fmt t = pp_typ fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
-
-let pp_type_expr fmt ~type_mark te = pp_typ fmt ~type_mark te.Rfsm.Annot.typ
-let pp_abbr_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Abbr t
-let pp_full_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
-
 let rec pp_expr fmt e = 
   let open Rfsm.Vhdl_types in
   let open Format in

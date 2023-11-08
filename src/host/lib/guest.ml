@@ -388,19 +388,11 @@ module type VHDL = sig
   val allowed_shared_type: Syntax.Types.typ -> bool
   (** [allowed_shared_type ty] should indicate whether type [ty] can be attributed to a VHDL shared variable. *)
 
-  val pp_type_expr: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.type_expr -> unit
-  (** [pp_type_expr fmt mark te] should print, on formatter [fmt], the VHDL type corresponding to type expression [te].
-      The [mark] argument controls the details of the printed type (see {!val:Vhdl_types.pp}). *)
-
   val pp_type_decl: Format.formatter -> Syntax.type_decl -> unit
   (** [pp_type_decl fmt td] should print, on formatter [fmt], the VHDL translation of type declaration [td]. *)
 
   val pp_expr: Format.formatter -> Syntax.expr -> unit
   (** [pp_expr fmt e] should print, on formatter [fmt], the VHDL expression corresponding to expression [e]. *)
-
-  val pp_typ: Format.formatter -> type_mark:Vhdl_types.type_mark -> Syntax.Types.typ -> unit
-  (** [pp_typ fmt mark te] should print, on formatter [fmt], the VHDL type corresponding to type [ty].
-      As for {!val:pp_type_expr}, the [mark] argument controls the details of the printed type. *)
 
   val pp_lhs: Format.formatter -> Syntax.lhs -> unit
   (** [pp_lhs fmt l] should print, on formatter [fmt], the VHDL representation of LHS [l]. *)

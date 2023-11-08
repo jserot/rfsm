@@ -51,14 +51,6 @@ let pp_op fmt op =
 
 let pp_ident = Rfsm.Ident.pp 
 
-let pp_typ fmt ~type_mark t = Rfsm.Vhdl_types.pp ~type_mark fmt (vhdl_type_of t)
-let pp_abbr_typ fmt t = pp_typ fmt ~type_mark:Rfsm.Vhdl_types.TM_Abbr t
-let pp_full_typ fmt t = pp_typ fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
-
-let pp_type_expr fmt ~type_mark te = pp_typ fmt ~type_mark te.Rfsm.Annot.typ
-let pp_abbr_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Abbr t
-let pp_full_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
-
 let rec pp_expr fmt e = 
   let open Rfsm.Vhdl_types in
   let open Format in
@@ -157,6 +149,10 @@ let rec pp_value fmt (v,ty) =
        (Rfsm.Misc.pp_list_h ~sep:"," pp_value') (List.map2 (fun (_,v) (_,t) -> v,t) fs ts)
   | _, _ ->
      Rfsm.Misc.fatal_error "Vhdl.pp_value"
+
+let pp_typ fmt ~type_mark t = Rfsm.Vhdl_types.pp ~type_mark fmt (vhdl_type_of t)
+let pp_type_expr fmt ~type_mark te = pp_typ fmt ~type_mark te.Rfsm.Annot.typ
+let pp_full_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Full t
 
 let pp_enum_type_defn fmt (name,ctors) = 
   let pp_ctor fmt c = fprintf fmt "%s%s" Rfsm.Vhdl_types.cfg.vhdl_enum_prefix c in

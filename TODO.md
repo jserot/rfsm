@@ -1,6 +1,5 @@
 COMPILER
 
-- remove `pp_xxx` fns from `Guest.vhdl`: `vhdl_type_of` should be enough (?)
 - separate src/host/lib/misc.ml in misc+utils
 - true modular parsing in Menhir ?
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
