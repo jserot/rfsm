@@ -73,7 +73,7 @@ struct
   let dump_evseq oc signals s =
     let lookup name = 
       try List.assoc name signals
-      with Not_found -> Misc.fatal_error ("Vcd.dump_evseq: unknown signal: " ^ Misc.to_string Ident.pp name) in
+      with Not_found -> Misc.fatal_error ("Vcd.dump_evseq: unknown signal: " ^ Ext.Format.to_string Ident.pp name) in
     let dump_stimulus s = match s with
       | Event.Ev name ->
          let id, _  = lookup name in 

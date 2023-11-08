@@ -113,14 +113,14 @@ struct
        fprintf fmt "%s%sif ( %a ) {\n"
          tab
          (if is_first then "" else "else ")
-         (Misc.pp_list_h ~sep:" && " G.pp_expr) guards;
+         (Ext.List.pp_h ~sep:" && " G.pp_expr) guards;
        List.iter (pp_action (tab^"  ") m fmt) acts;
        if q' <> src then fprintf fmt "%s  %s = %a;\n" tab cfg.sc_state_var Ident.pp q';
        fprintf fmt "%s  }\n" tab
   
   let pp_ev_transition tab is_first src m fmt (ev,ts) = 
     fprintf fmt "%s%sif ( %a.read() ) {\n" tab (if is_first then "" else "else ") Ident.pp ev;
-    Misc.list_iter_fst (fun is_first t -> pp_transition (tab^"  ") is_first src m fmt t) ts;
+    Ext.List.iter_fst (fun is_first t -> pp_transition (tab^"  ") is_first src m fmt t) ts;
     fprintf fmt "%s  }\n" tab
   
   let pp_sysc_ev fmt e = Format.fprintf fmt "%a.posedge_event()" Ident.pp e
@@ -139,10 +139,10 @@ struct
        for _=0 to m.c_ddepth-1 do 
          fprintf fmt "%swait(SC_ZERO_TIME);\n" tab
        done;
-       Misc.list_iter_fst (fun is_first t -> pp_transition tab is_first src m fmt t) ts
+       Ext.List.iter_fst (fun is_first t -> pp_transition tab is_first src m fmt t) ts
     | _ ->
-       fprintf fmt "%swait(%a);\n" tab (Misc.pp_list_h ~sep:" | " pp_sysc_ev) evs;
-       Misc.list_iter_fst (fun is_first t -> pp_ev_transition tab is_first src m fmt t) tss
+       fprintf fmt "%swait(%a);\n" tab (Ext.List.pp_h ~sep:" | " pp_sysc_ev) evs;
+       Ext.List.iter_fst (fun is_first t -> pp_ev_transition tab is_first src m fmt t) tss
     end;
     fprintf fmt "%swait(SC_ZERO_TIME);\n" tab;
     (* Waiting at least one delta cycle so that 
@@ -165,7 +165,7 @@ struct
   
   let dump_module_impl with_globals fname m =
     let open Cmodel in
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     let modname = String.capitalize_ascii (Ident.to_string m.Cmodel.c_name) in
     fprintf ocf "#include \"%a.h\"\n" Ident.pp m.c_name;
     fprintf ocf "#include \"%s.h\"\n" cfg.sc_lib_name;
@@ -173,7 +173,7 @@ struct
     fprintf ocf "\n";
     fprintf ocf "\n";
     if m.c_params <> [] then 
-      fprintf ocf "template <%a>\n" (Misc.pp_list_h ~sep:"," G.pp_typed_symbol) m.c_params;
+      fprintf ocf "template <%a>\n" (Ext.List.pp_h ~sep:"," G.pp_typed_symbol) m.c_params;
     fprintf ocf "void %s::%s()\n" modname cfg.sc_proc_name;
     fprintf ocf "{\n";
     fprintf ocf "  %s = %a;\n" cfg.sc_state_var Ident.pp (fst m.c_init);
@@ -190,23 +190,23 @@ struct
     end;
     fprintf ocf "  }\n";
     fprintf ocf "};\n";
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
   
   let dump_module_intf with_globals fname m = 
     let open Cmodel in
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     let modname = String.capitalize_ascii (Ident.to_string m.c_name) in
     fprintf ocf "#include \"systemc.h\"\n";
     if with_globals then fprintf ocf "#include \"%s.h\"\n" cfg.sc_globals_name;
     fprintf ocf "\n";
     if m.c_params <> [] then 
-      fprintf ocf "template <%a>\n" (Misc.pp_list_h ~sep:"," G.pp_typed_symbol) m.c_params;
+      fprintf ocf "template <%a>\n" (Ext.List.pp_h ~sep:"," G.pp_typed_symbol) m.c_params;
     fprintf ocf "SC_MODULE(%s)\n" modname;
     fprintf ocf "{\n";
     fprintf ocf "  // Types\n";
     fprintf ocf "  typedef enum { %a } t_%s;\n"
-      (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst m.c_states)
+      (Ext.List.pp_h ~sep:"," Ident.pp) (List.map fst m.c_states)
       cfg.sc_state_var;
     fprintf ocf "  // IOs\n";
     let pp_io kind (id,te) = fprintf ocf "  %s<%a> %a;\n" kind G.pp_typ te.Annot.typ Ident.pp id in
@@ -224,11 +224,11 @@ struct
     fprintf ocf "    SC_THREAD(%s);\n" cfg.sc_proc_name;
     fprintf ocf "    }\n";
     fprintf ocf "};\n";
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
   
   let dump_inp_module_impl fname (id,cc) = 
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     let name = cfg.sc_inpmod_prefix ^ Ident.to_string id in
     let modname = String.capitalize_ascii name in
     fprintf ocf "#include \"%s.h\"\n" name;
@@ -240,7 +240,7 @@ struct
     let pp_vc ocf (t,v) = fprintf ocf "{%d,%a}"  t pp_expr v in
     begin match cc.Static.ct_stim with
     | Some (Syntax.Sporadic ts) ->
-       fprintf ocf "static int _dates[%d] = { %a };\n" (List.length ts) (Misc.pp_list_h ~sep:", " pp_date) ts; 
+       fprintf ocf "static int _dates[%d] = { %a };\n" (List.length ts) (Ext.List.pp_h ~sep:", " pp_date) ts; 
     | Some (Syntax.Periodic (p,t1,t2)) ->
        fprintf ocf "typedef struct { int period; int t1; int t2; } _periodic_t;\n\n";
        fprintf ocf "static _periodic_t _clk = { %d, %d, %d };\n" p t1 t2
@@ -248,7 +248,7 @@ struct
        ()
     | Some (Syntax.Value_change vcs) ->
        fprintf ocf "typedef struct { int date; %a val; } _vc_t;\n" G.pp_typ cc.Static.ct_typ;
-       fprintf ocf "static _vc_t _vcs[%d] = { %a };\n" (List.length vcs) (Misc.pp_list_h ~sep:", " pp_vc) vcs
+       fprintf ocf "static _vc_t _vcs[%d] = { %a };\n" (List.length vcs) (Ext.List.pp_h ~sep:", " pp_vc) vcs
     | None ->
        () (* TODO: emit warning ? *)
     end;
@@ -302,11 +302,11 @@ struct
     | None ->
        () (* TODO: emit warning ? *)
     end;
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
 
   let dump_inp_module_intf with_globals fname (id,cc) = 
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     let modname = String.capitalize_ascii (cfg.sc_inpmod_prefix ^ Ident.to_string id) in
     fprintf ocf "#include \"systemc.h\"\n";
     if with_globals then fprintf ocf "#include \"%s.h\"\n" cfg.sc_globals_name;
@@ -328,7 +328,7 @@ struct
     fprintf ocf "    SC_THREAD(%s);\n" cfg.sc_inp_proc_name;
     fprintf ocf "    }\n";
     fprintf ocf "};\n";
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
 
   (* Dumping global type declarations, functions and constants *)
@@ -339,7 +339,7 @@ struct
     Format.fprintf fmt "%a %a(%a);\n" 
       G.pp_type_expr f.ff_res 
       Ident.pp f.ff_name
-      (Misc.pp_list_h ~sep:"," pp_f_arg) f.ff_args
+      (Ext.List.pp_h ~sep:"," pp_f_arg) f.ff_args
 
   let dump_fun_impl fmt { Annot.desc = f; _ } = (* Idem CTask *)
     let open Static.Syntax in
@@ -348,7 +348,7 @@ struct
     Format.fprintf fmt "%a %a(%a) { return %a; }\n" 
       G.pp_type_expr f.ff_res 
       Ident.pp f.ff_name
-      (Misc.pp_list_h ~sep:"," pp_f_arg) f.ff_args
+      (Ext.List.pp_h ~sep:"," pp_f_arg) f.ff_args
       pp_expr f.ff_body
 
   let dump_cst_decl fmt { Annot.desc = c; _ } = (* Idem CTask *)
@@ -365,7 +365,7 @@ struct
   let dump_globals_intf dir prefix s =
     let open Static in
     let fname = dir ^ "/" ^ prefix ^ ".h" in
-    let oc, ocf = Misc.open_file fname in
+    let oc, ocf = Ext.File.open_file fname in
     fprintf ocf "#ifndef _%s_h\n" cfg.sc_globals_name;
     fprintf ocf "#define _%s_h\n\n" cfg.sc_globals_name;
     fprintf ocf "#include \"systemc.h\"\n\n";
@@ -373,17 +373,17 @@ struct
     List.iter (dump_fun_decl ocf) s.fns;
     List.iter (dump_cst_decl ocf) s.csts;
     fprintf ocf "#endif\n";
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
 
   let dump_globals_impl dir prefix s = 
     let fname = dir ^ "/" ^ prefix ^ ".cpp" in
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     fprintf ocf "#include \"%s.h\"\n\n" prefix;
     List.iter (dump_fun_impl ocf) s.Static.fns;
     List.iter (dump_cst_impl ocf) s.Static.csts;
     List.iter (dump_type_impl ocf) s.Static.types;
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
 
   let dump_globals ?(name="") ?(dir="./systemc") m =
@@ -400,7 +400,7 @@ struct
     | Some v' -> fprintf ocf "  %s = %a;\n" id pp_expr v'
 
   let dump_testbench_impl tb_name fname m = 
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     let open Static in
     let modname n = String.capitalize_ascii (Ident.to_string n) in
     fprintf ocf "#include \"systemc.h\"\n";
@@ -453,7 +453,7 @@ struct
          fprintf ocf "  %s %a(\"%a\");\n" (modname f.name) Ident.pp f.name Ident.pp f.name;
          fprintf ocf "  %a(%a%s);\n"
            Ident.pp f.name
-           (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst (m.c_inps @ m.c_outps @ m.c_inouts))
+           (Ext.List.pp_h ~sep:"," Ident.pp) (List.map fst (m.c_inps @ m.c_outps @ m.c_inouts))
            (if cfg.sc_trace then "," ^ Ident.to_string f.name ^ "_state" else ""))
       m.fsms;
     fprintf ocf "\n";
@@ -464,7 +464,7 @@ struct
     fprintf ocf "\n";
     fprintf ocf "  return EXIT_SUCCESS;\n";
     fprintf ocf "}\n";
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
 
   (* Dumping Makefile *)
@@ -474,11 +474,11 @@ struct
     if Sys.file_exists templ_fname then begin
         let tb_name = match name with "" -> cfg.sc_tb_name | p -> p in
         let fname = dir ^ "/" ^ "Makefile" in
-        let oc,ocf = Misc.open_file fname in
+        let oc,ocf = Ext.File.open_file fname in
         Printf.fprintf oc "LIBDIR=%s\n\n" cfg.sc_lib_dir;
         Printf.fprintf oc "\n";
         let ic = open_in templ_fname in
-        Misc.copy_with_subst ["%%MAIN%%", tb_name] ic oc;
+        Ext.File.copy_with_subst ["%%MAIN%%", tb_name] ic oc;
         close_in ic;
         let modname suff f = Ident.to_string f.Static.name ^ suff in
         let imodname suff (id,_) = cfg.sc_inpmod_prefix ^ Ident.to_string id ^ suff in
@@ -499,19 +499,19 @@ struct
         let pp_imod suff ocf f = fprintf ocf "%s" (imodname suff f) in 
         fprintf ocf "%s.o: %a %a %s.cpp\n"
           tb_name
-          (Misc.pp_list_h ~sep:" " (pp_mod ".h")) m.fsms
-          (Misc.pp_list_h ~sep:" " (pp_imod ".h")) m.ctx.inputs
+          (Ext.List.pp_h ~sep:" " (pp_mod ".h")) m.fsms
+          (Ext.List.pp_h ~sep:" " (pp_imod ".h")) m.ctx.inputs
           tb_name;
         let pp_objs ocf () =
           fprintf ocf "%s.o %s %a %a %s.o"
             cfg.sc_lib_name
             (globals ".o")
-            (Misc.pp_list_h ~sep:" " (pp_mod ".o")) m.fsms
-            (Misc.pp_list_h ~sep:" " (pp_imod ".o")) m.ctx.inputs
+            (Ext.List.pp_h ~sep:" " (pp_mod ".o")) m.fsms
+            (Ext.List.pp_h ~sep:" " (pp_imod ".o")) m.ctx.inputs
             tb_name in
         fprintf ocf "%s: %a\n" tb_name pp_objs ();
         fprintf ocf "\t$(LD) $(LDFLAGS) -o %s %a -lsystemc  2>&1 | c++filt\n" tb_name pp_objs ();
-        Misc.close_file (oc,ocf);
+        Ext.File.close_file (oc,ocf);
         output_files := fname :: !output_files
       end
     else

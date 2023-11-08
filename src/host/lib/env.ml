@@ -26,8 +26,8 @@ let pp ?(sep="=") ?(vlayout=false) ?(qual=false) pp_v fmt e =
   | [] -> fprintf fmt "[]"
   | [b] -> fprintf fmt "@[[%a]@]" pp_binding b
   | _ ->
-     if vlayout then fprintf fmt "@[<v>[@,%a@,]@]" (Misc.pp_list_v pp_binding) (bindings e)
-     else fprintf fmt "@[<h>[@,%a@,]@]" (Misc.pp_list_h ~sep:"," pp_binding) (bindings e)
+     if vlayout then fprintf fmt "@[<v>[@,%a@,]@]" (Ext.List.pp_v pp_binding) (bindings e)
+     else fprintf fmt "@[<h>[@,%a@,]@]" (Ext.List.pp_h ~sep:"," pp_binding) (bindings e)
 
 let pp_dom ~pp_ident fmt e =
-  Format.fprintf fmt "@[<h>[@,%a@,]@]" (Misc.pp_list_h ~sep:"," pp_ident ) (dom e)
+  Format.fprintf fmt "@[<h>[@,%a@,]@]" (Ext.List.pp_h ~sep:"," pp_ident ) (dom e)

@@ -21,7 +21,7 @@ let of_uint s n =
   h n (s-1);
   Bytes.to_string b
 
-let cpl2 n x = Misc.pow2 n - x
+let cpl2 n x = Ext.Base.pow2 n - x
 
 let of_int s v = 
   if v < 0 

@@ -166,9 +166,9 @@ let rec pp_typ ?(abbrev=false) fmt t =
   match real_type t with
   | TyConstr (c,[]) -> fprintf fmt "%s" c
   | TyConstr (c,[t']) -> fprintf fmt "%a %s" (pp_typ ~abbrev) t' c 
-  | TyConstr (c,ts) -> fprintf fmt " %a %s" (Rfsm.Misc.pp_list_h (pp_typ ~abbrev)) ts c
+  | TyConstr (c,ts) -> fprintf fmt " %a %s" (Rfsm.Ext.List.pp_h (pp_typ ~abbrev)) ts c
   | TyProduct [t] -> (pp_typ ~abbrev) fmt t
-  | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" (pp_typ ~abbrev) fmt ts
+  | TyProduct ts -> Rfsm.Ext.List.pp_h ~sep:"*" (pp_typ ~abbrev) fmt ts
   | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" (pp_typ ~abbrev) t1 (pp_typ ~abbrev) t2 
   | TyVar v -> fprintf fmt "_%d" v.stamp
 
@@ -180,4 +180,4 @@ let pp_typ_scheme fmt t =
   | [] ->
      fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_params (pp_typ ~abbrev:false) t.ts_body
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Ext.List.pp_h ~sep:"," pp_var) t.ts_params (pp_typ ~abbrev:false) t.ts_body

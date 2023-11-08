@@ -117,7 +117,7 @@ struct
        fprintf fmt "%s%s ( %a ) then\n"
          tab
          (if is_first then "if" else "elsif ")
-         (Misc.pp_list_h ~sep:" and " G.pp_expr) guards;
+         (Ext.List.pp_h ~sep:" and " G.pp_expr) guards;
        List.iter (pp_action fmt (tab^"  ") m) acts;
        if q' <> src then fprintf fmt "%s  %s <= %a;\n" tab cfg.vhdl_state_var Ident.pp q';
        (false,true)
@@ -166,7 +166,7 @@ struct
       | [h,_] -> Ident.to_string h
       | _ -> Misc.not_implemented (Ident.to_string m.c_name ^ ": translation to VHDL of FSM with more than one input events") in
     fprintf ocf "architecture RTL of %s is\n" modname;
-    fprintf ocf "  type t_%s is ( %a );\n" cfg.vhdl_state_var (Misc.pp_list_h ~sep:", " pp_state_id) m.c_states;
+    fprintf ocf "  type t_%s is ( %a );\n" cfg.vhdl_state_var (Ext.List.pp_h ~sep:", " pp_state_id) m.c_states;
     fprintf ocf "  signal %s: t_state;\n" cfg.vhdl_state_var;
     if cfg.vhdl_act_semantics = Misc.Synchronous then 
       List.iter
@@ -205,7 +205,7 @@ struct
         let pp_state_int fmt (q,i) = Format.fprintf fmt "%d when %s = %a" i cfg.vhdl_state_var pp_ident q in
         fprintf ocf "  %s <= %a;\n"
           cfg.vhdl_trace_state_var
-          (Misc.pp_list_h ~sep:" else " pp_state_int) (List.mapi (fun i (s,_) -> s,i) m.Cmodel.c_states)
+          (Ext.List.pp_h ~sep:" else " pp_state_int) (List.mapi (fun i (s,_) -> s,i) m.Cmodel.c_states)
       end;
     fprintf ocf "end architecture;\n"
 
@@ -228,7 +228,7 @@ struct
   
   let dump_sporadic_inp_process ocf id ts =
     fprintf ocf "    type t_dates is array ( 0 to %d ) of time;\n" (List.length ts-1);
-    fprintf ocf "    constant dates : t_dates := ( %a );\n" (Misc.pp_list_h ~sep:", " pp_time) ts;
+    fprintf ocf "    constant dates : t_dates := ( %a );\n" (Ext.List.pp_h ~sep:", " pp_time) ts;
     fprintf ocf "    variable i : natural := 0;\n";
     fprintf ocf "    variable t : time := 0 %s;\n" cfg.vhdl_time_unit;
     fprintf ocf "    begin\n";
@@ -263,7 +263,7 @@ struct
     fprintf ocf "    type t_vcs is array ( 0 to %d ) of t_vc;\n" (List.length vcs-1);
     fprintf ocf "    constant vcs : t_vcs := ( %s%a );\n"
       (if List.length vcs = 1 then "others => " else "")  (* GHDL complains when initializing a 1-array *)
-      (Misc.pp_list_h ~sep:", " pp_vc) vcs;
+      (Ext.List.pp_h ~sep:", " pp_vc) vcs;
     fprintf ocf "    variable i : natural := 0;\n";
     fprintf ocf "    variable t : time := 0 %s;\n" cfg.vhdl_time_unit;
     fprintf ocf "    begin\n";
@@ -315,7 +315,7 @@ struct
     fprintf ocf "\n"
     
   let dump_toplevel_impl prefix fname s =
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     let top_name = prefix ^ "_top" in
     let open Static in
     let modname n = String.capitalize_ascii (Ident.to_string n) in
@@ -343,12 +343,12 @@ struct
            (modname f.name)
           i
            (modname f.name)
-           (Misc.pp_list_h ~sep:"," Ident.pp) (List.map fst (m.c_inps @ m.c_outps @ m.c_inouts))
+           (Ext.List.pp_h ~sep:"," Ident.pp) (List.map fst (m.c_inps @ m.c_outps @ m.c_inouts))
            cfg.vhdl_reset_sig
            (if cfg.vhdl_trace then "," ^ Ident.to_string f.name ^ "_state" else ""))
       s.fsms;
     fprintf ocf "end architecture;\n";
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
   
   let dump_toplevel ?(name="") ?(dir="./vhdl") s =
@@ -358,7 +358,7 @@ struct
    (* Dumping the testbench *)
   
   let dump_testbench_impl prefix fname s =
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     let tb_name = prefix ^ "_tb" in
     let top_name = prefix ^ "_top" in
     let open Static in
@@ -397,17 +397,17 @@ struct
     fprintf ocf "\n";
     let pp_trace ocf fs = 
       let pp_state ocf f = fprintf ocf "%a_state" pp_ident f.name in
-      if cfg.vhdl_trace then fprintf ocf ",%a" (Misc.pp_list_h ~sep:"," pp_state) fs
+      if cfg.vhdl_trace then fprintf ocf ",%a" (Ext.List.pp_h ~sep:"," pp_state) fs
       else fprintf ocf "" in
     (* Toplevel instanciation  *)
     fprintf ocf "  Top: %s port map(%a%a,%s);\n"
       top_name
-      (Misc.pp_list_h ~sep:"," pp_ident) (List.map fst (s.ctx.inputs @  s.ctx.outputs))
+      (Ext.List.pp_h ~sep:"," pp_ident) (List.map fst (s.ctx.inputs @  s.ctx.outputs))
       pp_trace s.fsms
       cfg.vhdl_reset_sig;
     fprintf ocf "\n";
     fprintf ocf "end architecture;\n";
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
   
   let dump_testbench ?(name="") ?(dir="./vhdl") m =
@@ -419,7 +419,7 @@ struct
   let dump_fsm ?(dir="./vhdl") need_globals m =
     let prefix = Ident.to_string m.Cmodel.c_name in
     let fname = dir ^ "/" ^ prefix ^ ".vhd" in
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     fprintf ocf "library ieee;\n";
     fprintf ocf "use ieee.std_logic_1164.all;\n";
     if Vhdl_types.cfg.vhdl_use_numeric_std then fprintf ocf "use ieee.numeric_std.all;\n";
@@ -429,7 +429,7 @@ struct
     dump_module_intf "entity" ocf m;
     fprintf ocf "\n";
     dump_module_arch ocf m;
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
   
   let dump_fsm_model ?(dir="./vhdl") s fm =
@@ -447,7 +447,7 @@ struct
     let pp_farg fmt (n,t) = fprintf fmt "%a: %a" pp_ident n pp_typ t in
     fprintf ocf "  function %a(%a) return %a%s\n"
          pp_ident f.ff_name
-         (Misc.pp_list_h ~sep:"; " pp_farg) f.ff_args
+         (Ext.List.pp_h ~sep:"; " pp_farg) f.ff_args
          pp_typ f.ff_res
          (if for_impl then " is" else ";")
 
@@ -482,7 +482,7 @@ struct
   let dump_globals ?(name="") ?(dir="./vhdl") s =
     let prefix = match name with "" -> cfg.vhdl_globals_name | p -> p in
     let fname = dir ^ "/" ^ prefix ^ ".vhd" in
-    let oc,ocf = Misc.open_file fname in
+    let oc,ocf = Ext.File.open_file fname in
     fprintf ocf "library ieee;\n";
     fprintf ocf "use ieee.std_logic_1164.all;\n";
     if Vhdl_types.cfg.vhdl_use_numeric_std then fprintf ocf "use ieee.numeric_std.all;\n";
@@ -490,7 +490,7 @@ struct
     dump_globals_intf ocf prefix s; 
     fprintf ocf "\n";
     dump_globals_impl ocf prefix s;
-    Misc.close_file (oc,ocf);
+    Ext.File.close_file (oc,ocf);
     output_files := fname :: !output_files
 
   (* Dumping Makefile *)
@@ -502,7 +502,7 @@ struct
         let tb_name = prefix ^ "_tb" in
         let top_name = prefix ^ "_top" in
         let fname = dir ^ "/" ^ "Makefile" in
-        let oc,ocf = Misc.open_file fname in
+        let oc,ocf = Ext.File.open_file fname in
         Printf.fprintf oc "LIBDIR=%s\n\n" cfg.vhdl_lib_dir;
         Printf.fprintf oc "\n";
         let ic = open_in templ_fname in
@@ -511,7 +511,7 @@ struct
           | Vcd -> "--vcd", "vcd"
           | Ghw -> "--wave", "ghw"
           end in
-        Misc.copy_with_subst ["%%MAIN%%", tb_name; "%%DUMPOPT%%", dump_opt; "%%DUMPFMT%%", dump_fmt] ic oc;
+        Ext.File.copy_with_subst ["%%MAIN%%", tb_name; "%%DUMPOPT%%", dump_opt; "%%DUMPFMT%%", dump_fmt] ic oc;
         close_in ic;
         fprintf ocf "\n";
         let pp_modname suff fmt f = fprintf fmt "%a.%s" pp_ident f.Static.name suff in
@@ -520,7 +520,7 @@ struct
           tb_name
           (cfg.vhdl_lib_name ^ ".vhd")
           (if need_globals m then cfg.vhdl_globals_name ^ ".vhd" else "")
-          (Misc.pp_list_h ~sep:" " (pp_modname "vhd")) m.fsms
+          (Ext.List.pp_h ~sep:" " (pp_modname "vhd")) m.fsms
           tb_name;
         fprintf ocf "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" cfg.vhdl_lib_name;
         if need_globals m then 
@@ -531,7 +531,7 @@ struct
         fprintf ocf "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" top_name;
         fprintf ocf "\t$(GHDL) -a $(GHDLOPTS) %s.vhd\n" tb_name;
         fprintf ocf "\t$(GHDL) -e $(GHDLOPTS) %s\n" tb_name;
-        Misc.close_file (oc,ocf);
+        Ext.File.close_file (oc,ocf);
         output_files := fname :: !output_files
       end
     else
@@ -559,11 +559,11 @@ struct
     let valid_shared (id,cc) = 
       if not (G.allowed_shared_type cc.ct_typ) then begin
         let pp fmt (id,ty) = Format.fprintf fmt "VHDL: shared variable %a with type %a" pp_ident id pp_abbr_type cc.ct_typ in
-        Misc.not_implemented (Misc.to_string pp (id,cc.ct_typ))
+        Misc.not_implemented (Ext.Format.to_string pp (id,cc.ct_typ))
         end;
       if List.length cc.ct_wrs > 1 then  begin
         let pp fmt id = Format.fprintf fmt "VHDL: shared variable %a with multiple writer" pp_ident id in
-        Misc.not_implemented (Misc.to_string pp id)
+        Misc.not_implemented (Ext.Format.to_string pp id)
         end in
     List.iter valid_shared s.ctx.shared;
     List.iter check_allowed_fsm_inst s.fsms
@@ -606,9 +606,9 @@ struct
        been declared as type aliases. *)
     let res =
          TypeExprSet.empty
-      |> Misc.fold_left collect_array_types_in_fn s.Static.fns 
-      |> Misc.fold_left collect_array_types_in_cst s.Static.csts
-      |> Misc.fold_left collect_array_types_in_fsm s.Static.fsms in
+      |> Ext.List.fold_leftr collect_array_types_in_fn s.Static.fns 
+      |> Ext.List.fold_leftr collect_array_types_in_cst s.Static.csts
+      |> Ext.List.fold_leftr collect_array_types_in_fsm s.Static.fsms in
     TypeExprSet.elements res
 
   let output ~dir ?(pfx="") s =
@@ -618,7 +618,7 @@ struct
       begin
         let array_type_decls =
           List.map
-            (fun t -> Static.Syntax.Guest.mk_alias_type_decl (Ident.mk ~scope:Global @@ Misc.to_string pp_abbr_type_expr t) t)
+            (fun t -> Static.Syntax.Guest.mk_alias_type_decl (Ident.mk ~scope:Global @@ Ext.Format.to_string pp_abbr_type_expr t) t)
             (collect_array_types s) in 
         let s' = { s with types = s.types @ array_type_decls } in
         if need_globals s' then dump_globals ~dir s';

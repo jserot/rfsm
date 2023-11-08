@@ -66,15 +66,15 @@ let rec pp fmt v =
   let open Format in
   let pp_rfield fmt (f,v) = fprintf fmt "%s=%a" f pp v in
   let pp_int_size fmt sz =
-    if !print_int_size then fprintf fmt "<%a>" (Rfsm.Misc.pp_list_h ~sep:"," Format.pp_print_int) sz in
+    if !print_int_size then fprintf fmt "<%a>" (Rfsm.Ext.List.pp_h ~sep:"," Format.pp_print_int) sz in
   match v with
   | Val_int (v,sz) -> fprintf fmt "%d%a" v pp_int_size sz
   | Val_bool v -> fprintf fmt "%b" v
   | Val_float v -> fprintf fmt "%.8f" v
   | Val_char c -> fprintf fmt "'%c'" c
-  | Val_array vs -> fprintf fmt "[%a]" (Rfsm.Misc.pp_list_h ~sep:"," pp) (Array.to_list vs)
+  | Val_array vs -> fprintf fmt "[%a]" (Rfsm.Ext.List.pp_h ~sep:"," pp) (Array.to_list vs)
   | Val_enum c -> fprintf fmt "%s" c
   | Val_fn _ -> fprintf fmt "<fun>"
-  | Val_record fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:";" pp_rfield) fs
+  | Val_record fs -> fprintf fmt "{%a}" (Rfsm.Ext.List.pp_h ~sep:";" pp_rfield) fs
   | Val_unknown -> fprintf fmt "?"
 

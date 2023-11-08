@@ -85,7 +85,7 @@ struct
   let choose_transition (f,t,trs) = (* Function CHOICE *)
     match
       trs 
-      |> Misc.list_scatter (function { Annot.desc = _,_,_,_,p; _ } -> p) (* Transitions, scattered by priority levels ... *)
+      |> Ext.List.scatter (function { Annot.desc = _,_,_,_,p; _ } -> p) (* Transitions, scattered by priority levels ... *)
       |> List.sort (fun (p1,_) (p2,_) -> Stdlib.compare p1 p2) (* ... then sorted by descending order of priority level ...*)
       |> List.hd |> snd (* ... gives all transitions with the highest priority level *)
     with 
@@ -214,7 +214,7 @@ struct
   let r_react_ev sd (m,env) s_e = (* Rule ReactEv *)
     (* M, \Gamma -- \sigma_e | \rho --> M', \Gamma' *)
     let ms = dep_sort m in 
-    dump1 2 ">> >> REACT_EV: using order: %a\n" (Misc.pp_list_h ~sep:"; " (Static.pp_fsm ~verbose_level:0)) ms;
+    dump1 2 ">> >> REACT_EV: using order: %a\n" (Ext.List.pp_h ~sep:"; " (Static.pp_fsm ~verbose_level:0)) ms;
     Trace.add s_e trace; 
     let (env',_,rho), ms' =
       List.fold_left_map
@@ -227,7 +227,7 @@ struct
   
   let r_react sd (m,env) st =  (* Rule REACT *) 
     let pp_env = Env.pp Eval.Value.pp in
-    let pp_fsms = Misc.pp_list_v (Static.pp_fsm ~verbose_level:1) in
+    let pp_fsms = Ext.List.pp_v (Static.pp_fsm ~verbose_level:1) in
     let t = Evset.date st in
     (* M, \Gamma -- \sigma | \rho_e --> M', \Gamma' *)
     dump4 1 ">> REACT t=%a@.   M=%a@.   G=%a@,  -- %a --> ...@."

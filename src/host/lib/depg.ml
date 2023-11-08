@@ -68,7 +68,7 @@ struct
         if nm <> nm' && N.depends_on ctx n n' then
           (* Add an edge nm->nm' in the graph iff n' depends on n. Omit self-dependencies *)
           G.add_edge g (M.find nm vs) (M.find nm' vs))
-      (Misc.list_cart_prod2 nodes nodes)
+      (Ext.List.cart_prod nodes nodes)
 
    let topo_sort g fs = 
      TS.fold (fun v acc -> M.find (G.V.label v) fs :: acc) g []

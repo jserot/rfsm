@@ -76,7 +76,7 @@ let rec pp_expr fmt e =
     | Syntax.EFloat c, _ -> pp_float fmt c
     | Syntax.EChar c, _ -> pp_char fmt c
     | Syntax.EFapp (op,[e]), _ when List.mem op.Rfsm.Ident.id ["~-";"~-."]-> fprintf fmt "-%a" (pp (level+1)) e
-    | Syntax.EFapp (f,es), _ -> fprintf fmt "%a(%a)" pp_ident f (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) es
+    | Syntax.EFapp (f,es), _ -> fprintf fmt "%a(%a)" pp_ident f (Rfsm.Ext.List.pp_h ~sep:"," (pp level)) es
     | Syntax.EBinop (Rfsm.Ident.{id=">>";_},e1,e2), _ ->
        fprintf fmt "shift_right(%a,%a)" (pp (level+1)) e1 pp_int_expr e2
     | Syntax.EBinop (Rfsm.Ident.{id="<<";_},e1,e2), _ -> 
@@ -96,9 +96,9 @@ let rec pp_expr fmt e =
          should have [std_logic] in this case... *)
     | Syntax.ERanged (a,hi,lo), _ -> fprintf fmt "%a(%a)" pp_ident a pp_range (hi,lo)
     | Syntax.ECond (e1,e2,e3), _ -> fprintf fmt "cond(%a,%a,%a)" (pp (level+1)) e1 (pp (level+1)) e2 (pp (level+1)) e3
-    | Syntax.EArrExt vs, _ -> fprintf fmt "(%a)" (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) vs
+    | Syntax.EArrExt vs, _ -> fprintf fmt "(%a)" (Rfsm.Ext.List.pp_h ~sep:"," (pp level)) vs
     | Syntax.ERecord (r,f), _ -> fprintf fmt "%a.%s" pp_ident r f 
-    | Syntax.ERecordExt vs, _ -> fprintf fmt "(%a)" (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) (List.map snd vs)
+    | Syntax.ERecordExt vs, _ -> fprintf fmt "(%a)" (Rfsm.Ext.List.pp_h ~sep:"," (pp level)) (List.map snd vs)
     | Syntax.ECast (e,te), _ -> pp_cast fmt (e,te)
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
@@ -181,11 +181,11 @@ let rec pp_value fmt (v,ty) =
   | Value.Val_unknown, _ -> fprintf fmt "<unknown>"
   | Value.Val_array vs, Array (n,t') ->
      let pp_value' fmt v = pp_value fmt (v,t') in
-     fprintf fmt "(%a)" (Rfsm.Misc.pp_list_h ~sep:"," pp_value') (Array.to_list vs)
+     fprintf fmt "(%a)" (Rfsm.Ext.List.pp_h ~sep:"," pp_value') (Array.to_list vs)
   | Value.Val_record fs, Record (_,ts) ->
      let pp_value' fmt (v,t) = pp_value fmt (v,t) in
      fprintf fmt "(%a)"
-       (Rfsm.Misc.pp_list_h ~sep:"," pp_value') (List.map2 (fun (_,v) (_,t) -> v,t) fs ts)
+       (Rfsm.Ext.List.pp_h ~sep:"," pp_value') (List.map2 (fun (_,v) (_,t) -> v,t) fs ts)
   | _, _ ->
      Rfsm.Misc.fatal_error "Guest.Vhdl.pp_value"
 
@@ -195,7 +195,7 @@ let pp_full_type_expr fmt t = pp_type_expr fmt ~type_mark:Rfsm.Vhdl_types.TM_Ful
 
 let pp_enum_type_defn fmt (name,ctors) = 
   let pp_ctor fmt c = fprintf fmt "%s%s" Rfsm.Vhdl_types.cfg.vhdl_enum_prefix c in
-  fprintf fmt "  type %a is (%a);\n" pp_ident name (Rfsm.Misc.pp_list_h ~sep:"," pp_ctor) ctors
+  fprintf fmt "  type %a is (%a);\n" pp_ident name (Rfsm.Ext.List.pp_h ~sep:"," pp_ctor) ctors
 
 let pp_record_type_defn fmt (name,fields) = 
   fprintf fmt "  type %a is record\n" pp_ident name;

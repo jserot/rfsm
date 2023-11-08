@@ -57,11 +57,17 @@ struct
   let pp_lhs fmt l =
     if cfg.qual_ids then Syntax.Guest.pp_qual_lhs fmt l else Syntax.Guest.pp_lhs fmt l
 
+  let string_length_nl s = 
+      List.fold_left
+        (fun acc s -> max acc (String.length s))
+        0
+        (String.split_on_char '\n' s)
+
   let pp_cond fmt { Annot.desc=e,gs; _ } =  
     let open Format in
     let pp_guards fmt gs =
       let pp_guard' fmt g = fprintf fmt "(%a)" Syntax.Guest.pp_expr g in
-      let pp_guard_list fmt gs = Misc.pp_list_h ~sep:"." pp_guard' fmt gs in
+      let pp_guard_list fmt gs = Ext.List.pp_h ~sep:"." pp_guard' fmt gs in
       match gs with
       | [] -> pp_print_text fmt ""
       | gs  -> fprintf fmt ".%a" pp_guard_list gs in
@@ -75,15 +81,15 @@ struct
        fprintf fmt "%a:=%a" pp_lhs lhs Syntax.Guest.pp_expr expr
 
   let pp_actions fmt acts =
-    Misc.pp_list_h ~sep:(if cfg.trans_vlayout then "\n" else ";") pp_action fmt acts
+    Ext.List.pp_h ~sep:(if cfg.trans_vlayout then "\n" else ";") pp_action fmt acts
 
   let pp_cond_acts fmt (cond,acts) =
-    let s1 = Misc.to_string pp_cond cond in
-    let s2 = Misc.to_string pp_actions acts in
+    let s1 = Ext.Format.to_string pp_cond cond in
+    let s2 = Ext.Format.to_string pp_actions acts in
     match acts, cfg.trans_vlayout with
     | [], _ -> Format.fprintf fmt "%a" pp_cond cond;
     | _, true ->
-      let l = String.make (max (Misc.string_length_nl s1) (Misc.string_length_nl s2)) '_' in
+      let l = String.make (max (string_length_nl s1) (string_length_nl s2)) '_' in
       Format.fprintf fmt "%s\n%s\n%s" s1 l s2
     | _, _ ->
       Format.fprintf fmt "%s / %s" s1 s2
@@ -127,8 +133,8 @@ struct
     let dump_itransition { Annot.desc=(q,a); _ } =
       let id = node_of q in
       if cfg.trans_vlayout then 
-        let s = Misc.to_string pp_actions a in
-        let l = String.make (Misc.string_length_nl s) '_' in
+        let s = Ext.Format.to_string pp_actions a in
+        let l = String.make (string_length_nl s) '_' in
         fprintf ocf "%s -> %s [label=\"%s\n%s\"];\n" ini_id id l s
       else 
         if a <> [] then 
@@ -197,7 +203,7 @@ struct
              kind
              pp_ident id
              (Types.pp_typ ~abbrev:cfg.abbrev_types) cc.ct_typ
-             (Misc.pp_opt Syntax.pp_stimulus_desc) cc.ct_stim
+             (Ext.Option.pp Syntax.pp_stimulus_desc) cc.ct_stim
          else
            fprintf ocf "%s %a: %a\\r"
              kind

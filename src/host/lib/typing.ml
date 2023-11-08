@@ -154,11 +154,11 @@ struct
       md.HostSyntax.ios;
     let env', _ = 
          (env,[])
-      |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.inps 
-      |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.outps 
-      |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.inouts 
-      |> Misc.fold_left (add_sym ~scope:Local) md.HostSyntax.vars 
-      |> Misc.fold_left (add_sym ~scope:Global) md.HostSyntax.params in 
+      |> Ext.List.fold_leftr (add_sym ~scope:Local) md.HostSyntax.inps 
+      |> Ext.List.fold_leftr (add_sym ~scope:Local) md.HostSyntax.outps 
+      |> Ext.List.fold_leftr (add_sym ~scope:Local) md.HostSyntax.inouts 
+      |> Ext.List.fold_leftr (add_sym ~scope:Local) md.HostSyntax.vars 
+      |> Ext.List.fold_leftr (add_sym ~scope:Global) md.HostSyntax.params in 
     type_fsm_ios env' m;
     List.iter (type_fsm_transition env' m) md.trans;
     type_fsm_itransition env' m md.itrans;
@@ -179,7 +179,7 @@ struct
       | Out, Input -> raise (Illegal_inst loc)
       | _, _ -> () in
     (* Get associated model *)
-    let mm = Misc.clone @@ lookup_model model in
+    let mm = Ext.Base.clone @@ lookup_model model in
       (* Note: we need a _deep copy_ of the model so that destructive updates performed by
          type-checking are applied to fresh copies *)
     let m = mm.A.desc in

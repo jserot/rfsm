@@ -104,7 +104,7 @@ struct
     let ts =
       List.fold_left
         (fun acc ({ Annot.desc = (q',{Annot.desc=e,_; _},_,_,_) as t; _ }) ->
-          if q = q' then Misc.update_list_assoc e t acc else acc)
+          if q = q' then Ext.List.add_list_assoc e t acc else acc)
         []
         m.trans in
     { st_src = q;

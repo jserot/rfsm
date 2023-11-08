@@ -170,9 +170,9 @@ struct
     let open Format in
     let pp_io fmt (id,cc) = Format.fprintf fmt "%a: %a" Ident.pp id pp_ctx_comp cc in
     fprintf fmt "@[<v>{inputs=%a@,outputs=%a@,shared=%a}@]"
-    (Misc.pp_list_v pp_io) ctx.inputs
-    (Misc.pp_list_v pp_io) ctx.outputs
-    (Misc.pp_list_v pp_io) ctx.shared
+    (Ext.List.pp_v pp_io) ctx.inputs
+    (Ext.List.pp_v pp_io) ctx.outputs
+    (Ext.List.pp_v pp_io) ctx.shared
 
   type t = {
     ctx: ctx;
@@ -189,10 +189,10 @@ struct
     let open Format in
     fprintf fmt "@[<v>{ctx=%a@,fsms=%a@,globals=%a@,types=%a@,dep_order=%a@,}@."
     pp_ctx s.ctx
-    (Misc.pp_list_v (pp_fsm ~verbose_level)) s.fsms
+    (Ext.List.pp_v (pp_fsm ~verbose_level)) s.fsms
     (Env.pp Value.pp) s.globals
-    (Misc.pp_list_v Syntax.pp_type_decl) s.types
-    (Misc.pp_list_h ~sep:"," (fun fmt (f,d) -> fprintf fmt "%a:%d" Ident.pp f d)) s.dep_order
+    (Ext.List.pp_v Syntax.pp_type_decl) s.types
+    (Ext.List.pp_h ~sep:"," (fun fmt (f,d) -> fprintf fmt "%a:%d" Ident.pp f d)) s.dep_order
 
   (* Rules *)
          

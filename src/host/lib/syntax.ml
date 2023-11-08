@@ -185,7 +185,7 @@ struct
   let ppf_cond fmt { Annot.desc = (ev,guards); _ } = 
     match guards with
     | [] -> Format.fprintf fmt "on %a" Ident.pp ev
-    | _ -> Format.fprintf fmt "on %a when %a" Ident.pp ev (Misc.pp_list_h ~sep:"." Guest.pp_expr) guards
+    | _ -> Format.fprintf fmt "on %a when %a" Ident.pp ev (Ext.List.pp_h ~sep:"." Guest.pp_expr) guards
 
   type action_desc =
     Emit of Ident.t
@@ -296,7 +296,7 @@ struct
 
   let subst_model_io ~phi m =
     let mm = m.Annot.desc in
-    let phi_r = List.map Misc.swap phi in
+    let phi_r = List.map Ext.Base.swap phi in
     let captured_vars = 
       List.filter
         (fun (id,_) -> List.mem_assoc (Ident.mk_global id) phi_r)
@@ -305,8 +305,8 @@ struct
       let pp_msg fmt vs =
         Format.fprintf fmt "The following variables are captured, and hence renamed, when instantiating model %a: %a"
           Ident.pp mm.name
-          (Misc.pp_list_h ~sep:" " Ident.pp) vs in
-      Misc.warning (Misc.to_string pp_msg captured_vars)
+          (Ext.List.pp_h ~sep:" " Ident.pp) vs in
+      Misc.warning (Ext.Format.to_string pp_msg captured_vars)
       end;
     let phi' = List.map (fun id -> (id, Ident.upd_id local_prefix id)) captured_vars in
     Annot.map
@@ -497,28 +497,28 @@ struct
     let open Format in
     let pp_iov fmt (x,t) = fprintf fmt "%a:%a" Ident.pp x pp_type_expr t in
     let pp_ov fmt (o,e) = fprintf fmt "%a=%a" Ident.pp o pp_expr e in
-    let pp_ovs fmt ovs = match ovs with [] -> () | _ -> fprintf fmt "{%a}" (Misc.pp_list_h pp_ov) ovs in
+    let pp_ovs fmt ovs = match ovs with [] -> () | _ -> fprintf fmt "{%a}" (Ext.List.pp_h pp_ov) ovs in
     let pp_state fmt { Annot.desc=x,ovs; _ } = fprintf fmt "%a%a" Ident.pp x pp_ovs ovs in
     fprintf fmt "@[<v>{@,name=%a@,params=[%a]@,inps=%a@,outps=%a@,inouts=%a@,states=[%a]@,vars=%a@,trans=%a@,itrans=%a@,}@]"
       Ident.pp p.name
-      (Misc.pp_list_h ~sep:"," pp_iov) p.params
-      (Misc.pp_list_v pp_iov) p.inps
-      (Misc.pp_list_v pp_iov) p.outps
-      (Misc.pp_list_v pp_iov) p.inouts
-      (Misc.pp_list_h ~sep:"," pp_state) p.states
-      (Misc.pp_list_v pp_iov) p.vars
-      (Misc.pp_list_v pp_transition) p.trans
+      (Ext.List.pp_h ~sep:"," pp_iov) p.params
+      (Ext.List.pp_v pp_iov) p.inps
+      (Ext.List.pp_v pp_iov) p.outps
+      (Ext.List.pp_v pp_iov) p.inouts
+      (Ext.List.pp_h ~sep:"," pp_state) p.states
+      (Ext.List.pp_v pp_iov) p.vars
+      (Ext.List.pp_v pp_transition) p.trans
       pp_itransition p.itrans
   let pp_model fmt m = pp_model_desc fmt m.Annot.desc
       
   let pp_program fmt p = 
     let open Format in
     fprintf fmt "@[<v>{@,csts=%a@,fns=%a@,types=%a@,models=%a@,globals=%a@,insts=%a@,}@]@."
-      (Misc.pp_list_v pp_cst_decl) p.cst_decls
-      (Misc.pp_list_v pp_fun_decl) p.fun_decls
-      (Misc.pp_list_v Guest.pp_type_decl) p.type_decls
-      (Misc.pp_list_v pp_model) p.models
-      (Misc.pp_list_v pp_global) p.globals
-      (Misc.pp_list_v pp_inst) p.insts
+      (Ext.List.pp_v pp_cst_decl) p.cst_decls
+      (Ext.List.pp_v pp_fun_decl) p.fun_decls
+      (Ext.List.pp_v Guest.pp_type_decl) p.type_decls
+      (Ext.List.pp_v pp_model) p.models
+      (Ext.List.pp_v pp_global) p.globals
+      (Ext.List.pp_v pp_inst) p.insts
 
 end

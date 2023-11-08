@@ -33,11 +33,11 @@ let rec pp_type_decl_desc fmt td =
   match td with
   | TD_Enum (name,ctors) ->
      fprintf fmt "typedef enum { %a } %a;"
-       (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors
+       (Rfsm.Ext.List.pp_h ~sep:"," pp_print_string) ctors
        pp_ident name
   | TD_Record (name,fields) ->
      fprintf fmt "typedef struct { %a} %a;"
-       (Rfsm.Misc.pp_list_h pp_rfield) fields
+       (Rfsm.Ext.List.pp_h pp_rfield) fields
        pp_ident name
   | TD_Alias (name,t) ->
      fprintf fmt "typedef %a %a;" pp_type_expr t pp_ident name
@@ -72,16 +72,16 @@ let pp_expr fmt e =
   | EFloat f -> fprintf fmt "%f" f
   | EChar c -> fprintf fmt "'%c'" c
   | EFapp (op,[e]) when List.mem op.Rfsm.Ident.id ["~-";"~-."]-> fprintf fmt "-%a" (pp (level+1)) e
-  | EFapp (f,es) -> fprintf fmt "%a(%a)" pp_ident f (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) es
+  | EFapp (f,es) -> fprintf fmt "%a(%a)" pp_ident f (Rfsm.Ext.List.pp_h ~sep:"," (pp level)) es
   | EBinop (op,e1,e2) ->
        fprintf fmt "%s%a%s%a%s" (paren level "(") (pp (level+1)) e1 (cop_of op) (pp (level+1)) e2 (paren level ")")
   | ECon0 c -> fprintf fmt "%a" pp_ident c
   | EIndexed (a,i) -> fprintf fmt "%a[%a]" pp_ident a (pp level) i
   | ERanged (a,hi,lo) -> fprintf fmt "%a[%a:%a]" pp_ident a (pp level) hi (pp level) lo (* Not strictly C *)
-  | EArrExt vs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp level)) vs
+  | EArrExt vs -> fprintf fmt "{%a}" (Rfsm.Ext.List.pp_h ~sep:"," (pp level)) vs
   | ECond (e1,e2,e3) -> fprintf fmt "%a?%a:%a" (pp (level+1)) e1 (pp (level+1)) e2 (pp (level+1)) e3
   | ECast (e,t) -> fprintf fmt "((%a)(%a))" pp_type_expr t (pp level) e
-  | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield level)) fs (* Not strictly C *)
+  | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Ext.List.pp_h ~sep:"," (pp_rfield level)) fs (* Not strictly C *)
   | ERecord (r,f) -> fprintf fmt "%a.%s" pp_ident r f 
   and pp_rfield level fmt (n,v) = fprintf fmt "%s=%a" n (pp level) v in
   pp 0 fmt e

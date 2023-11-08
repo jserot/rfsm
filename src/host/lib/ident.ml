@@ -38,6 +38,6 @@ let pp_qual fmt s =
 let pp fmt i =
   if !print_scope then pp_qual fmt i else Format.fprintf fmt "%s" i.id
 
-let to_string = Misc.to_string pp
+let to_string = Ext.Format.to_string pp
 
 let compare { id=id1; _ } { id=id2; _ } = Stdlib.compare id1 id2 (* Do not take scope into account *)

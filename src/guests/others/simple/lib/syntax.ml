@@ -43,7 +43,7 @@ let rec pp_type_expr_desc fmt te =
   | TeConstr ({Rfsm.Ident.id="array";_},[t'],Some sz) -> fprintf fmt "%a array[%d]" pp_type_expr t' sz
   | TeConstr (c,[],_) -> fprintf fmt "%a" pp_ident c
   | TeConstr (c,[t'],_) -> fprintf fmt "%a %a" pp_type_expr t' pp_ident c
-  | TeConstr (c,ts,_) -> fprintf fmt "(%a) %a" (Rfsm.Misc.pp_list_h ~sep:"," pp_type_expr) ts pp_ident c 
+  | TeConstr (c,ts,_) -> fprintf fmt "(%a) %a" (Rfsm.Ext.List.pp_h ~sep:"," pp_type_expr) ts pp_ident c 
 and pp_type_expr fmt te = 
   Format.fprintf fmt "%a" pp_type_expr_desc te.Annot.desc 
 
@@ -64,8 +64,8 @@ let rec pp_type_decl_desc fmt td =
   let open Format in
   let pp_rfield fmt (n,t) = fprintf fmt "%s: %a" n pp_type_expr t in
   match td with
-  | TD_Enum (name,ctors) -> fprintf fmt "(\"%a\", enum { %a })" pp_ident name (Rfsm.Misc.pp_list_h ~sep:"," pp_print_string) ctors
-  | TD_Record (name,fields) -> fprintf fmt "(\"%a\", record { %a })" pp_ident name (Rfsm.Misc.pp_list_h ~sep:";" pp_rfield) fields
+  | TD_Enum (name,ctors) -> fprintf fmt "(\"%a\", enum { %a })" pp_ident name (Rfsm.Ext.List.pp_h ~sep:"," pp_print_string) ctors
+  | TD_Record (name,fields) -> fprintf fmt "(\"%a\", record { %a })" pp_ident name (Rfsm.Ext.List.pp_h ~sep:";" pp_rfield) fields
   | TD_Alias (name,t) -> fprintf fmt "(\"%a\", alias %a)" pp_ident name pp_type_expr t
 and pp_type_decl fmt td = Format.fprintf fmt "%a" pp_type_decl_desc td.Annot.desc
 
@@ -102,12 +102,12 @@ let rec pp_expr_desc fmt e =
   | ECon0 c -> fprintf fmt "%a" pp_ident c
   | EIndexed (a,i) -> fprintf fmt "%a[%a]" pp_ident a pp_expr i
   | ERanged (a,hi,lo) -> fprintf fmt "%a[%a:%a]" pp_ident a pp_expr lo pp_expr hi
-  | EArrExt vs -> fprintf fmt "[%a]" (Rfsm.Misc.pp_list_h ~sep:"," pp_expr) vs
+  | EArrExt vs -> fprintf fmt "[%a]" (Rfsm.Ext.List.pp_h ~sep:"," pp_expr) vs
   | ECond (e1,e2,e3) -> fprintf fmt "%a?%a:%a" pp_expr e1 pp_expr e2 pp_expr e3
   | ECast (e,t) -> fprintf fmt "%a::%a" pp_expr e pp_type_expr t
-  | EFapp (f,es) -> fprintf fmt "%a(%a)" pp_ident f (Rfsm.Misc.pp_list_h ~sep:"," pp_expr) es
+  | EFapp (f,es) -> fprintf fmt "%a(%a)" pp_ident f (Rfsm.Ext.List.pp_h ~sep:"," pp_expr) es
   | ERecord (r,f) -> fprintf fmt "%a.%s" pp_ident r f
-  | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," pp_rfield) fs
+  | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Ext.List.pp_h ~sep:"," pp_rfield) fs
 and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc
 
 (** Assignation LHS *)
@@ -153,7 +153,7 @@ let lhs_base_name l = match l.Annot.desc with
 
 let lhs_vcd_repr l = match l.Annot.desc with
   | LhsVar v -> v
-  | LhsIndex (a,i) -> Rfsm.Ident.upd_id (fun x -> x ^ "." ^ Rfsm.Misc.to_string pp_expr i) a 
+  | LhsIndex (a,i) -> Rfsm.Ident.upd_id (fun x -> x ^ "." ^ Rfsm.Ext.Format.to_string pp_expr i) a 
   | LhsRange (a,hi,lo) -> a (* TO FIX ? *)
   | LhsRField (a,f) -> Rfsm.Ident.upd_id (fun x -> x ^ "." ^ f) a
 

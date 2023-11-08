@@ -199,14 +199,14 @@ let rec pp_typ ?(abbrev=false) fmt t =
   | TyVar v -> fprintf fmt "_%d" v.stamp
   | TyArrow (t1,t2) -> fprintf fmt "%a -> %a" (pp_typ ~abbrev) t1 (pp_typ ~abbrev) t2 
   | TyProduct [t] -> if !print_full_types then fprintf fmt "(%a)" (pp_typ ~abbrev) t else (pp_typ ~abbrev) fmt t
-  | TyProduct ts -> Rfsm.Misc.pp_list_h ~sep:"*" (pp_typ ~abbrev) fmt ts
+  | TyProduct ts -> Rfsm.Ext.List.pp_h ~sep:"*" (pp_typ ~abbrev) fmt ts
   | TyConstr (c,[]) -> fprintf fmt "%s" c 
   | TyConstr (c,[t']) -> fprintf fmt "%a %s" (pp_typ ~abbrev) t' c 
-  | TyConstr (c,ts) -> fprintf fmt " (%a) %s" (Rfsm.Misc.pp_list_h ~sep:"," (pp_typ ~abbrev)) ts c 
+  | TyConstr (c,ts) -> fprintf fmt " (%a) %s" (Rfsm.Ext.List.pp_h ~sep:"," (pp_typ ~abbrev)) ts c 
   | TyRecord (nm,fs) ->
      if abbrev
      then fprintf fmt "%s" nm
-     else fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:"," (pp_rfield ~abbrev)) fs
+     else fprintf fmt "{%a}" (Rfsm.Ext.List.pp_h ~sep:"," (pp_rfield ~abbrev)) fs
   | TyArray (t',sz) -> fprintf fmt "%a array[%d]" (pp_typ ~abbrev) t' sz 
 
 and pp_rfield ~abbrev fmt (n,ty) = Format.fprintf fmt "%s: %a" n (pp_typ ~abbrev) ty
@@ -217,4 +217,4 @@ let pp_typ_scheme fmt t =
   | [] ->
      fprintf fmt "@[<h>%a@]" (pp_typ ~abbrev:false) t.ts_body
   | _ ->
-     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Misc.pp_list_h ~sep:"," pp_var) t.ts_params (pp_typ ~abbrev:false) t.ts_body
+     fprintf fmt "@[<h>forall %a. %a@]" (Rfsm.Ext.List.pp_h ~sep:"," pp_var) t.ts_params (pp_typ ~abbrev:false) t.ts_body

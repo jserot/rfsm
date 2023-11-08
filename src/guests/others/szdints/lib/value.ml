@@ -68,9 +68,9 @@ let rec pp fmt v =
   | Val_bool v -> fprintf fmt "%b" v
   | Val_float v -> fprintf fmt "%.8f" v
   | Val_char c -> fprintf fmt "'%c'" c
-  | Val_array vs -> fprintf fmt "[%a]" (Rfsm.Misc.pp_list_h ~sep:"," pp) (Array.to_list vs)
+  | Val_array vs -> fprintf fmt "[%a]" (Rfsm.Ext.List.pp_h ~sep:"," pp) (Array.to_list vs)
   | Val_enum c -> fprintf fmt "%s" c
   | Val_fn _ -> fprintf fmt "<fun>"
-  | Val_record fs -> fprintf fmt "{%a}" (Rfsm.Misc.pp_list_h ~sep:";" pp_rfield) fs
+  | Val_record fs -> fprintf fmt "{%a}" (Rfsm.Ext.List.pp_h ~sep:";" pp_rfield) fs
   | Val_unknown -> fprintf fmt "?"
 

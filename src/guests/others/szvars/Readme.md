@@ -19,6 +19,7 @@ hack
 More formally :
 -------------
 
+```
 \tau ::=                                    types
        | ...
        | \alpha                             type variable
@@ -29,20 +30,21 @@ More formally :
        | \beta                              size variable
        | int                                litteral (int size or array dimension)
        | int \times int                     pair of litterals (range for int's, dimensions for 2D arrays)
+```
 
 Examples
 --------
 
-type expression                   associated type
----------------                   ---------------
-int<8>                            int([],8)
-int                               int([],'a)
-bool array[8]                     array([bool([],\empty)],8)
-int<0:7>                          int([],(0,7))
+| type expression | Associated type            |
+| --------------- |:--------------------------:|
+| int<0:7>        | int([],(0,7))              |
+| int<8>          | int([],8)                  |
+| int             | int([],'a)                 |
+| bool array[8]   | array([bool([],\empty)],8) |
 
 Note that 
 - there's no type expression for unsized arrays (it is therefore not possible to declare such an
   array in a program); this could change in future extensions (?)
-- a type like [int([],(0,'a)] will never occur; this explains why size variables can occur in type
+- a type like `int([],(0,'a)]`will never occur; this explains why size variables can occur in type
   size position but not in size litteral position
 

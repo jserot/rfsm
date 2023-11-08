@@ -1,6 +1,5 @@
 COMPILER
 
-- separate src/host/lib/misc.ml in misc+utils
 - true modular parsing in Menhir ?
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL

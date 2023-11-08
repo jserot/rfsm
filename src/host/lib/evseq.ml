@@ -71,6 +71,6 @@ struct
     List.map (fun t -> Evset.mk t [Evset.Event.Ev name]) ts
     
   let pp fmt es = 
-    Misc.pp_list_v Evset.pp fmt es
+    Ext.List.pp_v Evset.pp fmt es
 
 end

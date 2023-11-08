@@ -79,19 +79,19 @@ struct
     Logfile.start ();
     begin match !Options.target with
     | Some Options.Dot ->
-       Misc.check_dir !Options.target_dir;
+       Ext.File.check_dir !Options.target_dir;
        let fs = Dot.output_static ~dir:!Options.target_dir ~name:!Options.main_prefix s in
        List.iter Logfile.write fs
     | Some Options.CTask ->
-       Misc.check_dir !Options.target_dir;
+       Ext.File.check_dir !Options.target_dir;
        let fs = Ctask.output ~dir:!Options.target_dir s in
        List.iter Logfile.write fs
     | Some Options.SystemC ->
-       Misc.check_dir !Options.target_dir;
+       Ext.File.check_dir !Options.target_dir;
        let fs = Systemc.output ~dir:!Options.target_dir ~pfx:!Options.main_prefix s in
        List.iter Logfile.write fs
     | Some Options.Vhdl ->
-       Misc.check_dir !Options.target_dir;
+       Ext.File.check_dir !Options.target_dir;
        let fs = Vhdl.output ~dir:!Options.target_dir ~pfx:!Options.main_prefix s in
        List.iter Logfile.write fs
     | Some Options.Sim ->
@@ -161,7 +161,7 @@ struct
        exit 2
     | L.Dynamic.Non_deterministic_transition (f, t, ts) ->
        eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d: %a\n" 
-         f t (Misc.pp_list_v L.Syntax.ppf_transition) ts;
+         f t (Ext.List.pp_v L.Syntax.ppf_transition) ts;
        exit 2
     | L.Guest.Value.Unsupported_vcd v ->
        eprintf "No VCD conversion for value %a\n" L.Guest.Value.pp v;
