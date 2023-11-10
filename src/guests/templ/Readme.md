@@ -8,7 +8,7 @@ To use it
   - edit the files `{info,types,syntax,typing,value,static,eval,ctask,error,options,systemc,vhdl}.ml`
   - check that everything compiles by typing `make`
 4. go to the `myguest/bin` subdir
-  - edit the files `guest_kw.mll`, `guest_tokens.mll`, `guest_open.mly`, `guest_rules.mly` and `guest_tokens.mly`
+  - edit the files `guest_kw.mll`, `guest_rules.mll` and `guest_parser.mly`
   - check that everything compiles by typing `make`
 5. go to `myguest` dir and type `make`
 

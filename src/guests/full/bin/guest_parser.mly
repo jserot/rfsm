@@ -1,4 +1,43 @@
-type_decl:
+(* The parser for the guest language *)
+(* See file ../../../../host/lib/host_parser.mly for the list of keywords already defined by the host language *)
+
+%token <bool> BOOL
+%token <float> FLOAT
+%token <char> CHAR
+%token PLUS MINUS TIMES DIV MOD
+%token FPLUS FMINUS FTIMES FDIV
+%token LAND LOR LXOR
+%token SHR SHL
+%token NOTEQUAL
+%token LBRACKET RBRACKET
+%token ENUM
+%token RECORD
+%token QMARK
+%token LTE
+%token GTE
+%token COLONCOLON
+%token TYINT
+%token TYARRAY
+
+%nonassoc QMARK               (* Lowest precedence *)
+%left EQUAL NOTEQUAL GT LT GTE LTE
+%left SHR SHL
+%left LAND LOR LXOR
+%left PLUS MINUS
+%left TIMES DIV MOD
+%left FPLUS FMINUS
+%left FTIMES FDIV
+%nonassoc COLONCOLON
+%nonassoc prec_unary_minus         (* Highest precedence *)
+
+%{
+open Full.Top.Syntax
+
+let mk_binop (op,e1,e2) = EBinop (Rfsm.Ident.mk ~scope:Rfsm.Ident.Global op, e1, e2)
+%}
+
+%%
+%public type_decl:
   | TYPE id=LID EQUAL ENUM LBRACE ctors=separated_nonempty_list(COMMA,ctor) RBRACE
      { mk ~loc:$sloc (TD_Enum (mk_global_ident id,ctors)) }
   | TYPE id=LID EQUAL RECORD LBRACE fs=separated_nonempty_list(COMMA,record_field) RBRACE
@@ -12,7 +51,7 @@ record_field:
 ctor:
   | c = UID { c }
 
-type_expr:
+%public type_expr:
   | TYINT szs=int_annot
     { mk ~loc:$sloc (TeConstr (mk_global_ident "int", [], szs)) }
   | t=type_expr TYARRAY LBRACKET szs=array_size RBRACKET
@@ -23,16 +62,20 @@ type_expr:
 int_annot:
     | (* Nothing *)
       { [] }
-    | LT w=INT GT
+    | LT w=size_annot GT
         { [w] }
-    | LT lo=INT COLON hi=INT GT
+    | LT lo=size_annot COLON hi=size_annot GT
         { [lo; hi] }
 
 array_size:
-    | sz=INT { [sz] }
+    | sz=size_annot { [sz] }
     (* TODO : n-dim arrays ? *)
 
-expr:
+size_annot:
+    | c=INT { SzConst c }
+    | i=LID { SzParam (mk_ident i) }
+
+%public expr:
   | e = simple_expr { e }
   | e1 = expr PLUS e2 = expr { mk ~loc:$sloc  (mk_binop ("+", e1, e2)) }
   | e1 = expr MINUS e2 = expr { mk ~loc:$sloc  (mk_binop ("-", e1, e2)) }
@@ -68,17 +111,17 @@ simple_expr:
   | e = scalar_const { e }
   | LPAREN e = expr RPAREN { e }
 
-lhs:
+%public lhs:
   | v = LID { mk ~loc:$sloc (LhsVar (mk_ident v)) }
   | id = LID LBRACKET idx = expr RBRACKET { mk ~loc:$sloc (LhsIndex (mk_ident id, idx)) }
   | a=LID DOT f=LID { mk ~loc:$sloc (LhsRField (mk_ident a, f)) }
   | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { mk ~loc:$sloc (LhsRange (mk_ident a,hi,lo)) }
 
-param_value:
+%public param_value:
   | v = scalar_const { v }
   | v = LID { mk ~loc:$sloc (EVar (mk_ident v)) }
 
-scalar_const:
+%public scalar_const:
   | c = INT { mk ~loc:$sloc (EInt c) }
   | MINUS c = INT { mk ~loc:$sloc (EInt (-c)) }
   | c = BOOL { mk ~loc:$sloc (EBool c) }
@@ -86,11 +129,11 @@ scalar_const:
   | MINUS c = FLOAT { mk ~loc:$sloc (EFloat (-.c)) }
   | c = CHAR { mk ~loc:$sloc (EChar c) }
 
-const:
+%public const:
   | c = scalar_const { c }
   | c = array_const { c }
 
-stim_const: 
+%public stim_const: 
   | c = scalar_const { c }
   | c = scalar_const COLONCOLON t = type_expr { mk ~loc:$sloc (ECast (c,t)) }
   | c = UID { mk ~loc:$sloc (ECon0 (mk_global_ident c)) }

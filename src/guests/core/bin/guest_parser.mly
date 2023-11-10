@@ -1,10 +1,31 @@
-type_decl:
+(* The parser for the guest language *)
+(* See file ../../../../host/lib/host_parser.mly for the list of keywords already defined by the host language *)
+
+%token <bool> BOOL
+%token PLUS MINUS TIMES DIV
+%token NOTEQUAL
+
+(* Precedences and associativities for expressions *)
+
+%left EQUAL NOTEQUAL GT LT
+%left PLUS MINUS 
+%left TIMES DIV
+
+%{
+open Core.Top.Syntax
+
+let mk_binop (op,e1,e2) = EBinop (Rfsm.Ident.mk ~scope:Rfsm.Ident.Global op, e1, e2)
+%}
+
+%%
+
+%public type_decl:
  | TYPE /* Not used. There's no type declaration in the Core guest language */ { mk ~loc:$sloc () }
 
-type_expr:
+%public type_expr:
   | tc = LID { mk ~loc:$sloc (TeConstr tc) }
 
-expr:
+%public expr:
   | e = simple_expr { e }
   | e1 = expr PLUS e2 = expr { mk ~loc:$sloc  (mk_binop ("+", e1, e2)) }
   | e1 = expr MINUS e2 = expr { mk ~loc:$sloc  (mk_binop ("-", e1, e2)) }
@@ -20,20 +41,20 @@ simple_expr:
   | e = scalar_const { e }
   | LPAREN e = expr RPAREN { e }
 
-lhs:
+%public lhs:
   | v = LID { mk ~loc:$sloc (LhsVar (mk_ident v)) }
 
-param_value:
+%public param_value:
   | v = scalar_const { v }
 
-scalar_const:
+%public scalar_const:
   | c = INT { mk ~loc:$sloc (EInt c) }
   | MINUS c = INT { mk ~loc:$sloc (EInt (-c)) }
   | c = BOOL { mk ~loc:$sloc (EBool c) }
 
-const:
+%public const:
   | c = scalar_const { c }
 
-stim_const: 
+%public stim_const: 
   | c = scalar_const { c }
 

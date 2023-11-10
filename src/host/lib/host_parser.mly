@@ -2,7 +2,7 @@
 /*                                                                    */
 /*              This file is part of the RFSM package                 */
 /*                                                                    */
-/*  Copyright (c/ 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+/*  Copyright (c/ 2018-present, Jocelyn SEROT.  All rights reserved.  */
 /*                                                                    */
 /*  This source code is licensed under the license found in the       */
 /*  LICENSE file in the root directory of this source tree.           */
@@ -10,8 +10,6 @@
 /**********************************************************************/
 
 /* Parser for the host language */
-
-/* This file will be pre-processed to generate the parser for the guest language */
 
 %token FSM
 %token MODEL
@@ -54,13 +52,13 @@
 %token AND
 %token RPAREN LPAREN
 %token TYPE
-#include "guest_tokens.mly"
+(* #include "guest_tokens.mly" *)
 
 %type <Lang.L.Syntax.program> program
 %start program
 
 %{
-#include "guest_open.mly"
+(* #include "guest_open.mly" *)
 
 let mk_io (cat,(id,ty)) = id, (cat,ty)
 let mk_io' (cat,(id,ty)) = id, ty
@@ -236,4 +234,4 @@ id:
   | i = LID { i }
   | i = UID { i }
 
-#include "guest_rules.mly"
+(* #include "guest_rules.mly" *)

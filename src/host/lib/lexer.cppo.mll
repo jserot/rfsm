@@ -1,3 +1,18 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the RFSM package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2018-present, Jocelyn SEROT.  All rights reserved.  *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
+(* Lexer  for the host language *)
+
+(* This file will be pre-processed to generate the lexer for the target language *)
+
 {
 open Parser
 
@@ -70,7 +85,7 @@ rule main = parse
   | "|" { BAR }
   | "!" { EMARK }
   | "=" { EQUAL }
-#include "guest_tokens.mll"
+#include "guest_rules.mll"
   | eof { EOF }
   | _
       { raise (Lexical_error(Illegal_character,

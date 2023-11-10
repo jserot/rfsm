@@ -1,3 +1,5 @@
+(* List of guest-specific lexer rules *)
+
   | ['0'-'9']+ ('.' ['0'-'9']*)? (['e' 'E'] ['+' '-']? ['0'-'9']+)?
       { FLOAT (float_of_string(Lexing.lexeme !Location.input_lexbuf)) }
   | "'" [^ '\\' '\'' '\010' '\013'] "'"

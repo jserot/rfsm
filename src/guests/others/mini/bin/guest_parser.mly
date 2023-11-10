@@ -1,28 +1,37 @@
-/* Parser rules for the guest language */
+(* The parser for the guest language *)
+(* See file ../../../../host/lib/host_parser.mly for the list of keywords already defined by the host language *)
 
-type_decl:
+%token TRUE
+%token FALSE
+
+%{
+open Mini.Top.Syntax
+%}
+
+%%
+%public type_decl:
   | TYPE /* Not used in this guest language */ { mk ~loc:$sloc () } 
 
-param_value:
+%public param_value:
   | v = scalar_const { v } /* Not used in this guest language */ 
 
-type_expr:
+%public type_expr:
   | tc = LID { mk ~loc:$sloc (TeConstr tc) }
 
-lhs:
+%public lhs:
   | v = LID { mk ~loc:$sloc (mk_ident v) }
 
-expr:
+%public expr:
   | v = LID { mk ~loc:$sloc (EVar (mk_ident v)) }
   | c = scalar_const { c }
 
-scalar_const:
+%public scalar_const:
   | TRUE { mk ~loc:$sloc (EBool true) }
   | FALSE { mk ~loc:$sloc (EBool false) }
 
-const:
+%public const:
   | c = scalar_const { c }
 
-stim_const: 
+%public stim_const: 
   | c = scalar_const { c }
 
