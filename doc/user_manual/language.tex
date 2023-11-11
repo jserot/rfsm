@@ -1,120 +1,50 @@
 \chapter{The RFSM language}
-\label{cha:rfsm-language}
+\label{cha:language}
 
-This section is more thorough presentation of the RFSM language introduced in the previous
-section. This presentation is deliberately informal. The complete language syntax can
-be found in Appendix~A.
+This section describes the syntax and semantics of the \emph{full} RFSM language in a more
+systematic, but informal, way. The corresponding formalized descriptions are given in the reference
+manual.
 
-\section{Types}
-\label{sec:types}
+\section{Programs}
+\label{sec:programs}
 
-There are two categories of types~: builtin types and user defined types.
+A RSFM program contains declarations of six kinds~: 
+\begin{itemize}
+\item \textbf{types}
+\item \textbf{constants}
+\item \textbf{functions}
+\item \textbf{FSM models}
+\item \textbf{global objects}
+\item \textbf{FSM instanciations}
+\end{itemize}
 
-\medskip
-\textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float}, \texttt{char}, \texttt{event} and
-\texttt{array}s.
-
-\step Objects of type \texttt{bool} can have only two values : \texttt{0} (false) and \texttt{1} (true).
-
-\step Values of type \texttt{char} are
-denoted using single quotes. For example, for a variable \verb|c| having type \verb|char| :
-\begin{center}
-  \example{\lstinline[language=Rfsm]|c := 'A'|}
-\end{center}
-They can be converted from/to they internal representation as integers using the "\verb|::|" \emph{cast}
-operator. For example, if \verb|c| has type \verb|char| and \verb|n| type \verb|int|, then 
-\begin{center}
-  \example{\lstinline[language=Rfsm]|n := 'A'::int; c:=(n+1)::char|}
-\end{center}
-assigns value 65 to \verb|n| (ASCII code) and, then, value \verb|'B'| to \verb|c|.
-
-
-\step The type \texttt{int} can be refined using a \emph{size} or a \emph{range annotation}. The
-type \verb|int<sz>|, where \verb|sz| is an integer, is the type of integers which can be encoded using
-\verb|n| bits. The type \verb|int<min:max>|, where both \verb|min| and \verb|max| are integers, is
-the type of integers whose value ranges from \verb|min| to \verb|max|. The size and range limits,
-can be constants or expressions whose value can be computed as compile time
-(expressions involving parameter values, as exemplified line 9 in Listing~\ref{lst:rfsm-gensig}).
-
-\step Supported operations on values of type \texttt{int} are described in Table~\ref{tab:int-ops}.
-If \verb|n| is an integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]|
-designates the value represented by the bits \verb|hi|...\verb|lo| in the binary representation of
-\verb|n|. Bit ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The
-syntax \verb|n[i||, where \verb|n| is an integer is equivalent to \verb|n[i:i]|. The \emph{cast}
-operator (\verb|::|) can be used to combine integers with different sizes (for example, if \verb|n|
-has type \verb|int<16>| and \verb|m| has type \verb|int<8>|, writing \verb|n:=n+m| is not allowed
-and mus be written, instead, \verb|n:=n+m::int<16>|. Note that the
-logical ``or'' operator is denoted ``\verb+||+'' because the single ``\verb+|+'' is already used in
-the syntax.
-
-\begin{table}
-\begin{center}
-\begin{tabular}{|l|l|} \hline
-\verb|+|, \verb|-|, \verb|*|, \verb|/|, \verb|%| (modulo) & arithmetic operations \\ \hline 
-\verb|>>|, \verb|<<| & (logical) shift right and left \\ \hline 
-\verb|&|, \verb+||+, \verb|^| & bitwise and, or and xor \\ \hline 
-\verb|[.:.]| & bit range extraction (ex: \verb|n:=m[5:3]|) \\ \hline 
-\verb|[.]| & single bit extraction (ex: \verb|b:=m[4]|) \\ \hline 
-\verb|::| & resize (ex: \verb|n::8|) \\ \hline 
-\end{tabular}
-\caption{\label{tab:int-ops}Builtin operations on integers}
-\end{center}
-\end{table}
-
-\step The operations on values of type \texttt{float} are : "\verb|+.|", "\verb|-.|", "\verb|*.|" and
-"\verb|/.|" (the dot suffix is required to distinguish them from the corresponding operations on
-\texttt{int}s).
-
-
-\step Arrays are 1D, fixed-size collections of \verb|int|s, \verb|bool|s or \verb|float|s. Indices
-range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
- \verb|int array[4]| is the type describing arrays of four integers. If \verb|t| is an object
-  with an array type, its cell with index $i$ is denoted \verb|t[i]|.
-
-
-\medskip
-\textbf{User defined types} are either \emph{type abbreviations}, \emph{enumerations} or
-\emph{records}.
-
-\step Type abbreviations are introduced with the following declaration
-\begin{center}
-  \framebox{\lstinline[language=Rfsm]{type typename = type_expression}}
-\end{center}
-Each occurrence of the defined type in the program is actually substituted by the corresponding type
-expression.
-% Type expressions in type abbreviations are currently limited to builtin types.
-
-\medskip
-\step Enumerated types  are introduced with the following declaration
-\begin{center}
-  \framebox{\lstinline[language=Rfsm]|type typename = enum \{ C1, ..., Cn \}|}
-\end{center}
-where \verb|C1|, \ldots, \verb|Cn| are the enumerated values, each being denoted by an identifier
-starting with an uppercase letter. For example : 
-\begin{center}
-  \example{\lstinline[language=Rfsm]|type color = \{ Red, Green, Orange \}|}
-\end{center}
-
-\medskip
-\step Record types are introduced with the following declaration
-\begin{center}
-  \framebox{\lstinline[language=Rfsm]|type typename = record \{ fid1: ty1, ..., fidn: tyn \}|}
-\end{center}
-where \verb|fid1|, \ldots, \verb|fidn| and \verb|ty1|, \ldots, \verb|tyn| are respectively the name
-and type of each record field For example : 
-\begin{center}
-  \example{\lstinline[language=Rfsm]|type coord = record \{ x: int, y: int\}|}
-\end{center}
-
-Individual fields of a value with a record type can be accessed using the classical ``dot''
-notation. For example, with a variable \verb|c| having type \verb|record| as defined above :
-\begin{center}
-  \example{\lstinline[language=Rfsm]|c.x := c.x+1|}
-\end{center}
-
+These declarations may appear in any order in a given program but an object used in a given section must
+have been declared before. 
 
 \section{FSM models}
 \label{sec:fsm-models}
+
+% The general form of an FSM model is given in listing.~\ref{lst:fsm-model-gen}.
+% \begin{lstlisting}[language=Rfsm,frame=single,caption=Overall syntax for FSM models,label=lst:fsm-model-gen]
+% fsm model <@\emph{parameter declarations}@> @\emph{name}@ (
+%      @\emph{io declaration}@
+%   {
+%   states: @\emph{state declaration}@;
+%   vars: @\emph{variable declaration}@;
+%   trans: @\emph{transition descriptions}@;
+%   itrans: @\emph{initial transition description}@;
+%   }
+% \end{lstlisting}
+% where
+% \begin{itemize}
+% \item \emph{name} is the name of the defined model,
+% \item \emph{parameter declarations} is an optional list of generic parameters,
+% \item \emph{io declarations} list the inputs and outputs of the FSM,
+% \item \emph{state declarations} list the states of the FSM,
+% \item \emph{variable declarations} is an optional list of internal variables,
+% \item \emph{transition descriptions} describe all the transitions of the FSM,
+% \item \emph{initial transition description} describes the initial transition of the FSM.
+% \end{itemize}
 
 An FSM model, introduced by the \verb|fsm model| keywords, describes the interface and behavior of a
 \emph{reactive finite state machine}. A reactive finite state machine is a finite state machine
@@ -124,12 +54,12 @@ whose transitions can only be caused by the occurrence of \emph{events}.
 \framebox{\lstinline[language=Rfsm]|fsm model <interface> { <body> }|}
 \end{center}
 
-\medskip
-The \textbf{interface} of the model gives its name, a list of parameters (which can be empty) and a
-list of inputs and outputs. All parameters and IOs are typed. Inputs and outputs are explicitely
-tagged. An IO tagged \verb|inout| acts both as input and output (it can be read and written by the
-model). Inputs and outputs are listed between \verb|(...)|. Parameters, if present are given between
-\verb|<...>|. Examples :
+\medskip The \textbf{interface} of the model gives its name, a list of parameters (which can be
+empty) and a list of inputs and outputs. All parameters and IOs are typed (see
+Sec.~\ref{sec:types}). Inputs and outputs are explicitely tagged. An IO tagged \verb|inout| acts
+both as input and output (it can be read and written by the model). Inputs and outputs are listed
+between \verb|(...)|. Parameters, if present are given between \verb|<...>| and allow the
+definition of \emph{generic} models. Examples :
 
 \begin{center}
 \example{\lstinline[language=Rfsm]|fsm model cntmod8 (in h: event, out s: int<0..7>) \{ ... \}|}
@@ -159,7 +89,7 @@ Each section starts with the corresponding keyword (\verb|states:|, \verb|vars:|
 \framebox{\lstinline[language=Rfsm]| fsm model ... ( ... ) \{ states: ...; vars: ...; trans: ...; itrans: ...; \}|}
 \end{center}
 
-\subsection*{States}
+\subsection{States}
 \label{sec:states}
 
 The \verb|states:| section gives the set of internal states, as a comma-separated list of
@@ -176,7 +106,7 @@ assignements are attached to the same state, they are separated using the \verb|
 \example{\lstinline[language=Rfsm]|states: Idle, Wait1 where s1=0, Wait2 where s1=1 and s2=0, Done;|}
 \end{center}
 
-\subsection*{Variables}
+\subsection{Variables}
 \label{sec:variables}
 
 The \verb|vars:| section gives the set of internal variables, each with its type. Example :
@@ -188,12 +118,12 @@ The \verb|vars:| section gives the set of internal variables, each with its type
 The type of a variable may depend on parameters listed in the model interface. Example
 
 \begin{center}
-\example{\lstinline[language=Rfsm]|fsm gensig<n: int> (...) \{ ... vars: k: int<0..n>; ... \}|}
+\example{\lstinline[language=Rfsm]|fsm gensig<n: int> (...) \{ ... vars: k: int<0:n>; ... \}|}
 \end{center}
 
 The \verb|vars:| section may be omitted.
 
-\subsection*{Transitions}
+\subsection{Transitions}
 \label{sec:transitions}
 
 The \verb|trans:| section gives the set of transitions between states. Each transition is denoted
@@ -205,7 +135,7 @@ The \verb|trans:| section gives the set of transitions between states. Each tran
 where
 \begin{itemize}
 \item \emph{src\_state} and \emph{dst\_state} respectively designates the source state and destination state,
-\item \emph{ev} is event trigerring the transition,
+\item \emph{ev} is the event trigerring the transition,
 \item \emph{guards} is a set a enabling conditions,
 \item \emph{actions} is a set of actions performed when then transition is enabled.
 \end{itemize}
@@ -237,23 +167,7 @@ are denoted
 \end{center}
 
 where \emph{id} is the name of the output (resp. variable) and \emph{expr} an expression involving
-inputs, outputs and variables and operations allowed on the corresponding types. The set of allowed
-operations is given in Table~\ref{tab:type-ops}.
-
-\begin{table}
-\begin{minipage}[c]{1.0\linewidth}
-\small
-\begin{center}
-\begin{tabular}{|l|l|} \hline
-{\tt int}       & {\tt + - * / mod = != > < >= <=} \\  \hline
-{\tt bool}      & {\tt = !=} \\ \hline 
-{\tt enumeration}     & {\tt = !=} \\  \hline
-\end{tabular}
-\caption{Operations on types}
-\label{tab:type-ops}
-\end{center}
-\end{minipage}
-\end{table}
+inputs, outputs and variables and operations allowed on the corresponding types.
 
 \medskip
 The action of emitting of an event  is simply denoted by the name of this event.
@@ -273,7 +187,7 @@ event \verb|top| occurs.
 \end{center}
 
 In the above example, the enclosing FSM switches from state \verb|Idle| to state \verb|Wait|, resetting the internal variable
-  \verb|ctr| to 0 and emitting event \verb|received| whenever an event occurs on its \verb|Clic| input.
+  \verb|ctr| to 0 and emitting the event \verb|received| whenever an event occurs on its \verb|Clic| input.
 
 \begin{center}
 \example{\lstinline[language=Rfsm]'Wait -> Wait on Top when ctr<8 with ctr:=ctr+1'}
@@ -300,7 +214,114 @@ The set of actions may be empty. In this case, the transition is denoted :
 \framebox{\lstinline[language=Rfsm]{src_state -> dst_state on ev when guard}}
 \end{center}
 
-\subsection*{Initial transition}
+\subsubsection*{Semantic issues}
+\label{sec:semantic-issues}
+
+\textbf{Sequential vs. synchronous actions}.
+By default, actions are performed  \emph{sequentially}, i.e. one after the other. 
+For example, if \verb|x| and \verb|y| are internal variables of the enclosing FSM and respectively
+have values 1 and 0, then taking this transition
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'S0 -> S1 on H with x:=x+1, y:=x*2'}
+\end{center}
+
+will assign them values 2 and 4 respectively, because the action \verb|x:=x+1| is performed before
+the action \verb|y:=x*2|. 
+
+This interpretation is the most intuitive one and naturally fits with software-based
+implementations. There's actually another interpretation in which actions are not performed sequentially but
+\emph{synchronously}. In this case, all the expressions appearing on the right-hand-side of
+assignations are fisrt evaluated \emph{in parallel} and then, and only then, all the assignations
+are performed. Because the values of the variables occuring in the RHS expressions are those 
+\emph{before} the transition, the order in which the actions are performed does not matter in this
+case. In the example above, the values assigned to \texttt{x} and \texttt{y} will be 2 and 2
+  respectively. This interpretation more naturally fits to \emph{hardware-based} implementations,
+in which variables are implemented as \emph{signals} all updated synchronously at each clock cycle. 
+Switching to a synchronous interpretation is possible by invoking the \texttt{rfsmc} compiler with the
+\texttt{-synchronous_actions} option. \textbf{Caveat}. This option is
+available when using the simulator and the VHDL backend but is
+currently not supported when using the C and SystemC backends.
+
+\medskip
+\textbf{Non-determinism and priorities}. 
+The FSM models involved in programs should normally be \emph{deterministic}. In other words, a
+situation where several transitions are enabled at the same instant should normally never arise. But
+this condition may actually be difficult to enforce, especially for models reacting to several input
+events. Consider for example, the model described in Listing~\ref{lst:rfsm-prio-pb}. This model
+describes a (simplified) stopwatch. It starts counting seconds (materialized by event \verb|sec|)
+as soon as event \verb|startstop| occurs and stops as soon as it occurs again.
+
+\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A program showing a potentially non-deterministic
+  model,label={lst:rfsm-prio-pb},float]
+fsm model chrono (
+     in sec: event,
+     in startstop: event,
+    out aff: int)
+  {
+  states: Stopped, Running;
+  vars: ctr: int;
+  trans:
+  | Stopped -> Running on startstop with ctr:=0; aff:=0
+  | Running -> Running on sec with ctr:=ctr+1; aff:=ctr
+  | Running -> Stopped on startstop;
+  itrans:
+  |-> Stopped;
+  }
+
+input StartStop: event = sporadic(25,70)
+input H:event = periodic(10,10,110)
+output Aff: int
+
+fsm c = chrono(H,StartStop,Aff)
+\end{lstlisting}
+
+The problem is that if both events occur simultaneously  then
+both the transitions at line 10 and 11 are enabled. In fact, here's the error message produced by
+the compiler when trying to simulate the above program :
+
+\small
+\begin{verbatim}
+Error when simulating FSM c: non deterministic transitions found at t=70:
+	- Running -- H / ctr:=ctr+1; aff:=ctr -> Running
+	- Running -- StartStop -> Stopped
+\end{verbatim}
+\normalsize
+
+Of course, this could be avoided by modifying the stimuli attached to input \verb|StartStop| so that
+the \texttt{StartStop} and \texttt{H} events are never emitted at the same time. But this is, in a
+sense, cheating, since the \texttt{StartStop} event is supposed to modelize user interaction which
+occur, by essence, at impredictible dates.
+
+The above problem can be solved by assigning a \emph{priority} to transitions. In the current
+implementation, this is achieved by tagging some transitions as ``high priority''
+transitions\footnote{Future versions may evolve towards a more sophisticated mechanism allowing
+  numeric priorities.}.  When several transitions are enabled, if one is tagged as ``high priority''
+than it is automatically selected\footnote{If none (resp. several) is (resp. are) tagged, the
+  conflict remains, of course.}. 
+
+Syntaxically, tagging a transition is simply achieved by replacing the leading ``\verb+|+'' by a
+``\verb|!|''.  In the
+case of the example above, the modified program is given in
+Listing~\ref{lst:rfsm-prio-solved}. Tagging the last transition is here equivalent to give to the
+\verb|startstop| precedence against the \verb|h| event when the model is in state
+\verb|Running|.
+
+\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A rewriting of the model defined
+  in Listing~\ref{lst:rfsm-prio-pb}, label={lst:rfsm-prio-solved},float]
+fsm model chrono (...)
+  {
+  ...
+  trans:
+    ...
+    | Running -> Running on sec with ctr:=ctr+1; aff:=ctr
+    ! Running -> Stopped on startstop  -- This transition takes priority on the others
+  itrans: -> Stopped;
+  }
+...
+\end{lstlisting}
+
+\subsection{Initial transition}
 \label{sec:initial-transition}
 
 The \verb|itrans:| section specifies the initial transition of the FSM. This transition is denoted~:
@@ -338,12 +359,8 @@ latter formulation. Stricly speaking, models for which the values specified by e
 equivalent could be accepted, but this condition is statically undecidable in general (because
 values assigned to outputs in transitions may depend of inputs).
 
-\section{Globals}
-\label{sec:globals}
 
-Globals are used to connect model instances to the external world or to other instances.
-
-\subsection*{Inputs and outputs}
+\section{Inputs and outputs}
 \label{sec:inputs-outputs}
 
 Interface to the external world are represented by \verb|input| and \verb|output| objects.
@@ -411,12 +428,12 @@ The previous declaration declares \verb|Clic| as a global input producing events
 The previous declaration declares \verb|E| as a global boolean input taking value \texttt{false} at
 t=0, \texttt{true} at t=25 and \texttt{false} again at t=35.
 
-\subsection*{Shared objects}
+\section{Shared objects}
 \label{sec:shared}
 
 Shared objects are used to represent interconnexions between FSM instances. This situation only
 occurs when the system model involves several FSM instances and when the input of a given instance
-is provided by the output of another one (see Section~\ref{sec:fsm-instances}).
+is provided by the output of another one.
 
 \step For shared objects the declaration simply gives a name and a type~:
 
@@ -424,14 +441,320 @@ is provided by the output of another one (see Section~\ref{sec:fsm-instances}).
 \framebox{\lstinline[language=Rfsm]'shared name : typ'}
 \end{center}
 
-\section{Instances and system}
+\medskip
+Examples:
+
+\begin{center}
+\example{\lstinline[language=Rfsm]'shared done: event'}
+
+\example{\lstinline[language=Rfsm]'shared ctr: int'}
+\end{center}
+
+The previous declarations declare \verb|done| as a shared event and \texttt{ctr} as a shared
+variable of type \texttt{int}.
+
+\subsection*{Semantic issues}
+
+\medskip
+Shared objects are typically used to perform some kind synchronisation between FSMs. The precise semantics
+of this synchronisation depends on the shared object. It is described formally in Appendix D.
+
+\subsubsection*{Synchronisation using a shared event}
+\label{sec:synchr-using-shar}
+
+Synchronisation using a shared event is both instantaneous and ephemeral.
+
+\textbf{Instantaneous} means that an event emitted by a FSM when taking a
+transition can trigger a reaction of another FSM at the same logical instant, the two reactions -- that of
+emitting FSM and that of the ``receiving'' FSM -- being simultaneous. 
+This is illustrated in Fig.~\ref{fig:sync-ev1}. Here, each occurence of event \texttt{H} when
+\texttt{a1} is in state \texttt{A} triggers the simultaneous transition of \texttt{a2} from state
+\texttt{A} to state \texttt{B}.
+
+\begin{figure}[h]
+  \centering
+\begin{tabular}[c]{cc}
+  \begin{minipage}[b]{0.3\linewidth}
+  \begin{lstlisting}[language=Rfsm]
+fsm model A1(
+  in h: event,
+  out e: event)
+{
+  states: A, B;
+  trans:
+  | A -> B on h with e
+  | B -> A on h;
+  itrans:
+  | -> A ;
+}
+
+fsm model A2(
+  in h: event,
+  in e: event)
+{
+  states: A, B;
+  trans:
+  | A -> B on e
+  | B -> A on h;
+  itrans:
+  | -> A ;
+}
+\end{lstlisting}
+  \end{minipage} &
+  \begin{minipage}[b]{0.7\linewidth}
+\begin{lstlisting}[language=Rfsm]
+input H : event = sporadic(10,20,30,40)
+shared e : event
+
+fsm a1 = A1(H,e)
+fsm a2 = A2(H,e)
+\end{lstlisting}
+\includegraphics[width=0.5\textwidth]{figs/sync-ev1-model}\\
+\includegraphics[width=0.7\textwidth]{figs/sync-ev1-chrono}
+  \end{minipage}
+\end{tabular}
+  \caption{Illustration of instantaneous synchronisation}
+  \label{fig:sync-ev1}
+\end{figure}
+
+\medskip
+\textbf{Ephemeral synchronisation} means that if an event emitted by a FSM when taking a
+transition is not awaited by another FSM it is simply ``lost''. In other words, events are never
+memorised. This is illustrated in Fig.~\ref{fig:sync-ev2}.  In this example, the first occurence of
+event \texttt{e} is lost because FSM \texttt{a2} is not waiting for it when it is emitted by FSM
+\texttt{a1} at the first occurrence of event \texttt{H}.  As a result, the transition of \texttt{a2}
+from state \texttt{B} to state \texttt{C} only occurs at second occurrence of \emph{e}, when
+\texttt{a2} is in state \texttt{B}.
+
+\begin{figure}[h]
+  \centering
+\begin{tabular}[c]{cc}
+  \begin{minipage}[b]{0.3\linewidth}
+  \begin{lstlisting}[language=Rfsm]
+fsm model A1(
+  in h: event,
+  out e: event)
+{
+  states: A, B, C;
+  trans:
+  | A -> B on h with e
+  | B -> C on h
+  | C -> A on h;
+  itrans:
+  | -> A ;
+}
+
+fsm model A2(
+  in h: event,
+  in e: event)
+{
+  states: A, B, C;
+  trans:
+  | A -> B on h
+  | B -> C on e
+  | C -> A on h;
+  itrans:
+  | -> A ;
+}
+  \end{lstlisting}
+  \end{minipage} &
+  \begin{minipage}[b]{0.7\linewidth}
+\begin{lstlisting}[language=Rfsm]
+input H : event = sporadic(10, 20, 30, 40, 50)
+shared e : event
+
+fsm a1 = A1(H,e)
+fsm a2 = A2(H,e)
+\end{lstlisting}
+\includegraphics[width=0.5\textwidth]{figs/sync-ev2-model}\\
+\includegraphics[width=0.7\textwidth]{figs/sync-ev2-chrono}
+  \end{minipage}
+\end{tabular}
+  \caption{Illustration of ephemeral synchronisation}
+  \label{fig:sync-ev2}
+\end{figure}
+
+\medskip \textbf{Note}. The semantics of event synchronisation described here is somehow related
+to that of \emph{rendez-vous} supported by certain programming languages. But it is definitely not
+equivalent. The latter enforces that \emph{both} transitions, the emitting and the
+receiving one, are taken together. This means in particular that if there's no transition waiting
+for the emitted event, the emitting transition will \emph{not} be taken (in other words, the source
+FSM will block). This is not the case here. In this situation, and as explained above, the emitted
+event will be simply ignored (``lost''). Emitting an event can never prevent a transition to be
+taken in our semantics.
+
+\medskip \textbf{Implementation issues}.  The semantics of events presented here is that implemented
+by the \texttt{rfsmc} simulator. For various reasons, it may not fully supported all compiler
+backends.  The support of shared events in the SystemC backend, for example, is fragile and has not
+yet fully tested\footnote{It relies on the insertion of zero-time \texttt{wait} instructions.}. It
+is completely lacking in the VHDL backend (VHDL implementation of FSMs can only be triggered by a
+single, ``external'' \texttt{clock} signal).  Finally, the \emph{event} mechanism provided by most
+of real-time operating systems (as abstracted by \verb|notify_ev()| and \verb|wait_ev()|
+pseudo-primitives used in the code generated by the C backend) may not obey the semantics provided
+here (most of OS-supported events are \emph{memorized} when they are not awaited for when emitted in
+particular). The concept of event provided by the RSFM language must therefore be viewed as a basic
+and abstract \emph{modeling} tool, to be refined afterwards at the implementation level.
+
+\subsubsection*{Synchronisation using shared variables}
+
+The semantics associated to shared variables is that
+of \emph{instantaneous broadcast}. This means that any modification of the value of a shared variable by a
+FSM is immediately viewed by the other FSMs. More precisely, if a reaction of a FSM modifies the
+value of a shared value, the new value can enable, \emph{in the same global reaction}, the
+transition of another FSM. This is illustrated in Fig.~\ref{fig:sync-sv1}. Here, both \texttt{a1}
+and \texttt{a2} react to event \texttt{H}. When \texttt{a1} and \texttt{a2} are in state \texttt{S1} this is possible
+only because the modification of the shared variable \texttt{v} made by \texttt{a1} is immediately
+visible and hence can enable the transition of \texttt{a2}.
+
+\begin{figure}[h]
+  \centering
+\begin{tabular}[c]{cc}
+  \begin{minipage}[b]{0.3\linewidth}
+  \begin{lstlisting}[language=Rfsm]
+fsm model A1(
+  in h: event,
+  out v: bool)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h with v:=1
+  | S2 -> S1 on h with v:=0;
+  itrans:
+  | -> S1 with v:=0;
+}
+fsm model A2(
+  in h: event,
+  in v: bool)
+{
+  states: S1, S2;
+  trans:
+  | S1 -> S2 on h when v=1
+  | S2 -> S1 on h; 
+  itrans:
+  | -> S1 ;
+}
+  \end{lstlisting}
+  \end{minipage} &
+  \begin{minipage}[b]{0.7\linewidth}
+\begin{lstlisting}[language=Rfsm]
+input H : event = sporadic(10, 20, 30, 40)
+shared V : bool
+
+fsm a1 = A1(H,V)
+fsm a2 = A2(H,V)
+\end{lstlisting}
+\includegraphics[width=0.7\textwidth]{figs/sync-sv1-model}
+\includegraphics[width=0.7\textwidth]{figs/sync-sv1-chrono}
+  \end{minipage}
+\end{tabular}
+  \caption{Illustration of instantaneous broadcast of shared variables}
+  \label{fig:sync-sv1}
+\end{figure}
+
+\bigskip Because shared variables are, by definition, memorized, they can used to implement
+\emph{defered synchronisation}, \emph{i.e.} the situation where a FSM emits an event which be used
+\emph{later} by another FSM (shared events cannot be used in this case since, as described above,
+non-awaited events are not memorized and hence lost). This is illustrated in
+Fig.~\ref{fig:sync-sv2}. Here, \texttt{a1} set variable \texttt{v} to 1 when going from state
+\texttt{S1} to \texttt{S2} but \texttt{a2} only detect this when going from state \texttt{S2} to
+\texttt{S3}, reseting the variable to 0 \emph{en passant}. In effect, \texttt{a1} has emitted a
+event which has been memorized and caught latter by \texttt{a2}.
+
+\begin{figure}[h]
+  \centering
+\begin{tabular}[c]{cc}
+  \begin{minipage}[b]{0.3\linewidth}
+  \begin{lstlisting}[language=Rfsm]
+fsm model A1(
+  in h: event,
+  out v: bool)
+{
+  states: S1, S2, S3;
+  trans:
+  | S1 -> S2 on h with v:=1
+  | S2 -> S3 on h
+  | S3 -> S1 on h;
+  itrans:
+  | -> S1 with v:=0;
+}
+
+fsm model A2(
+  in h: event,
+  inout v: bool)
+{
+  states: S1, S2, S3;
+  trans:
+  | S1 -> S2 on h
+  | S2 -> S3 on h when v=1 with v:=0
+  | S3 -> S1 on h;
+  itrans:
+  | -> S1 ;
+}
+  \end{lstlisting}
+  \end{minipage} &
+  \begin{minipage}[b]{0.7\linewidth}
+\begin{lstlisting}[language=Rfsm]
+input H : event = sporadic(10, 20, 30)
+shared v : bool
+
+fsm a1 = A1(H,v)
+fsm a2 = A2(H,v)
+\end{lstlisting}
+\includegraphics[width=0.7\textwidth]{figs/sync-sv2-model}
+\includegraphics[width=0.7\textwidth]{figs/sync-sv2-chrono}
+  \end{minipage}
+\end{tabular}
+  \caption{Using a shared variable to implement memorized events}
+  \label{fig:sync-sv2}
+\end{figure}
+
+\medskip \textbf{Implementation issues}.  
+The semantics of instantaneous broadcast for variables is the most intuitive one at the modelisation
+level is the default one for simulation. However, and as for events, this semantics is not supported
+by all compiler backends. 
+
+For the SystemC backend, support of instantaneous broadcast is supported by means of
+automatic insertion of zero-time delta-cycles and is therefore fragile.
+
+It is \emph{not} supported by the VHDL backend because shared variables are (currently)
+implemented as \emph{shared signals}, for which any modification at a given cycle is only visible
+at the next clock cycle. 
+
+Shared variables are implemented as global variables by the C backend. When the
+corresponding code is used to define concurrent tasks for a real-time operating system, the
+instantaneous broadcast hypothesis cannot in general be assumed (because the delay separating writes
+and reads of such a variable depends of the scheduler and cannot be predicted).
+
+% \medskip The \emph{instantaneous broadcast} interpretation can be replaced by a \emph{defered
+%   broadcast} one by calling the compiler with the \verb|-no_inst_bcast| option. Any modification to
+% a shared variable made by a FSM during a reaction will then not be visible by other FSMs at the same
+% reaction but at the next one. This is illustrated for example in Fig.~\ref{fig:sync-vp1b} which
+% shows the simulation results of the program listed in Fig.~\ref{fig:sync-vp1} when passing this
+% option to the compiler. Here, the modification of the shared variable \texttt{v} operated by the
+% transition from \texttt{s1} to \texttt{s2} of \texttt{a1} is \emph{not} viewed by \texttt{a2} at the
+% same occurrence of the \texttt{H} event, but only at the next one.
+ 
+% \begin{figure}[htbp]
+%   \centering
+% \includegraphics[width=0.6\textwidth]{figs/sync-vp1b}
+%   \caption{Simulation results for the program of Fig.~\ref{fig:sync-vp1} when disabling the
+%     instantaneous broadcast interpretation}
+%   \label{fig:sync-vp1b}
+% \end{figure}
+
+% The \verb|-no_inst_bcast| option is supported both by the SystemC and VHDL backend. When using the
+% latter, it makes the simulation result obtained by the VHDL simulator identical to those obtained by
+% the simulator.
+
+\section{FSM instances}
 \label{sec:fsm-instances}
 
 The description of the system is carried out by instanciating
--- and, possibly, inter-connecting -- previously defined FSM models.
+%-- and, possibly, inter-connecting --
+previously defined FSM models.
 
 \medskip
-Instanciating a model creates a ``copy'' of the corresponding FSM for which
+Instanciating a model creates a copy of the corresponding FSM for which
 \begin{itemize}
 \item the parameters of the model are bound to their actual value,
 \item the declared inputs and outputs are connected to global inputs, outputs or shared
@@ -468,70 +791,46 @@ For example, the last line of the program given in Listing~\ref{lst:rfsm-gensig}
 creates an instance of model \verb|gensig| for which \verb|n=4| and whose inputs (resp. output) are
 connected to the global inputs (resp. output) \texttt{H} and \texttt{E} (resp. \texttt{S}).
 
-\subsection*{Multi-FSM models}
-\label{sec:multi-fsm-models}
-
-It is of course possible to build a system model as a \emph{composition} of FSM instances.  An
-example is given in Listing~\ref{lst:rfsm-cntmod8}. The system is a simple modulo 8 counter, here
-described as a combination of three event-synchronized modulo 2 counters\footnote{This program is
-  provided in the distribution, under directory \texttt{examples/multi/ctrmod8}.}.
-
 \medskip
-Here a single FSM model (\texttt{cntmod2}) is instanciated thrice, as \texttt{C0}, \texttt{C1} and
-\texttt{C2}. These instances are synchronized using two \textbf{shared events}, \texttt{R0} and \texttt{R1}. 
+In the current version, paramater values are limited to scalar values (\texttt{int}s,
+\texttt{bool}s, \texttt{char}s and \texttt{float}s). 
 
-\medskip
-The graphical representation of the program is given in Fig.~\ref{fig:rfsm-cntmod8-top}. Simulation
-results are illustrated in Fig~\ref{fig:rfsm-cntmod8-vcd}. 
+% For example, provided that globals \verb|Top|, \verb|Clic|, \verb|SimpleClic| and \verb|DoubleClic|
+% have been previously declared with the correct type,  writing
 
-\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A multi-model RFSM
-  program,label={lst:rfsm-cntmod8},float]
-fsm model cntmod2(
-  in h: event,
-  out s: int<0:1>,
-  out r: event)
-{
-  states: E0, E1;
-  trans:
-  | E0 -> E1 on h with s:=1
-  | E1 -> E0 on h with r, s:=0;
-  itrans:
-  | -> E0 with s:=0;
-}
+% \begin{lstlisting}[language=Rfsm,frame=single,basicstyle=\small]
+% fsm c1 = ctlr<5>(Top,Clic,SimpleClic,DoubleClic)
+% \end{lstlisting}
 
-input H: event = periodic(10,10,100)
-output S0, S1, S2: int<0:1>
-output R2: event
+% will create an instance of the FSM model described in
+% Fig.~\pageref{fig:fsm-model-ex} named \verb|c1| and for which \verb|D=5|.
 
-shared R0, R1: event
+\section{Constants}
+\label{sec:constants}
 
-fsm C0 = cntmod2(H,S0,R0) 
-fsm C1 = cntmod2(R0,S1,R1) 
-fsm C2 = cntmod2(R1,S2,R2) 
-\end{lstlisting}
+Global constants can be defined using the following syntax~:  
 
-\begin{figure}[!h]
-   \includegraphics[height=9cm]{figs/ctrmod8-top}
-   \centering
-  \caption{A graphical representation of program described in Listing~\ref{lst:rfsm-cntmod8}}
-  \label{fig:rfsm-cntmod8-top}
-\end{figure}
+\begin{center}
+\framebox{\lstinline[language=Rfsm]|constant name : <type> = <value>|}
+\end{center}
 
-\clearpage
-\begin{figure}[!h]
-   \includegraphics[width=\textwidth]{figs/ctrmod8-chrono}
-   \centering
-  \caption{Simulation results for the program in Listing~\ref{lst:rfsm-cntmod8}}
-  \label{fig:rfsm-cntmod8-vcd}
-\end{figure}
+\noindent
+where
+\begin{itemize}
+\item \lstinline[language=Rfsm]|<type>| is the type of the defined constant (currently limited to
+  \verb|int|, \verb|bool|, \verb|char|, \verb|float| and arrays of such types,
+\item \lstinline[language=Rfsm]|<value>| is the value of the constant.
+\end{itemize}
+
+Global constants have a global scope and hence can be used in any FSM model or instance.
 
 \section{Functions}
 \label{sec:functions}
 
 Conditions and actions associated to FSM transitions can use globally defined functions. An example
 is given in listing~\ref{lst:rfsm-heron}\footnote{This example can be found in directory
-  \texttt{examples/heron/v2} in the distribution.}. The FSM described here computes an approximation
-of its input \verb|u| using Heron's classical algorithm. Successive approximations are computed in
+  \texttt{examples/full/single/heron} in the distribution.}. The FSM described here computes an approximation
+of the square root of its input \verb|u| using Heron's classical algorithm. Successive approximations are computed in
 state \verb|Iter| and the end of computation is detected when the square of the current
 approximation \verb|x| differs from the argument (\verb|a|) from less than a given threshold
 \verb|eps|. For this, the model uses the global function \verb|f_abs| defined at the beginning of
@@ -543,7 +842,7 @@ transitions going out of state \verb|Iter|.
   function definition,label={lst:rfsm-heron},float]
 function f_abs(x: float) : float { return x < 0.0 ? -.x : x }
 
-fsm model Heron<eps: float>(
+fsm model heron<eps: float>(
   in h: event,
   in start: bool,
   in u: float,
@@ -551,25 +850,24 @@ fsm model Heron<eps: float>(
   out niter: int,
   out r: float)
 {
-  states: Idle, Iter;
+  states: Idle where rdy=1, Iter where rdy=0;
   vars: a: float, x: float, n: int;
   trans:
-  | Idle -> Iter on h when start=1 with a:=u, x:=u, rdy:=0, n:=0
-  | Iter -> Iter on h when f_abs(x*.x-.a)>=eps with x:=(x+.a/.x)/.2.,
-                                                    n:=n+1
-  | Iter -> Idle on h when f_abs(x*.x-.a)<eps with r:=x, niter:=n, rdy:=1;
+  | Idle -> Iter on h when start=1 with a:=u, x:=u, n:=0
+  | Iter -> Iter on h when f_abs((x*.x)-.a)>=eps with x:=(x+.a/.x)/.2., n:=n+1
+  | Iter -> Idle on h when f_abs((x*.x)-.a)<eps with r:=x, niter:=n;
   itrans:
-  | -> Idle with rdy:=1;
+  | -> Idle;
 }
 
 input H : event = periodic (10,10,200)
 input U : float = value_changes (5:2.0)
 input Start : bool = value_changes (0:0, 25:1, 35:0)
-output Rdy : bool
-output R : float
-output niter : int
+output Rdy1, Rdy2 : bool
+output R1, R2 : float
+output Niter : int
 
-fsm heron = Heron<0.00000001> (H,Start,U,Rdy,niter,R)
+fsm h = heron<0.00000001> (H,Start,U,Rdy2,Niter,R2)
 \end{lstlisting}
 
 \medskip
@@ -590,170 +888,186 @@ where
 
 \medskip
 \step Functions can only return one result and cannot use local variables. There are therefore more
-like so-called \emph{macros} in the C language than full-fledged functions and are typically used to
-improve readability of the programs.
+like \emph{macros} in the C language and are typically used to improve readability of the programs.
 
-\clearpage
-\section{Constants}
-\label{sec:constants}
+\section{Types and type declarations}
+\label{sec:types}
 
-Global constants can be defined using the following syntax~:  
-
-\begin{center}
-\framebox{\lstinline[language=Rfsm]|constant name : <type> = <value>|}
-\end{center}
-
-\noindent
-where
-\begin{itemize}
-\item \lstinline[language=Rfsm]|<type>| is the type of the defined constant (currently limited to
-  \verb|int|, \verb|float| and arrays of \verb|int|s or \verb|float|s,
-\item \lstinline[language=Rfsm]|<value>| is the value of the constant (which must be an \verb|int|
-  or \verb|float| literal or an array of such literals).
-\end{itemize}
-
-Global constants, just like global functions, have a global scope and hence can be used in any FSM
-model or instance.
-
-\section{Semantic issues}
-\label{sec:semantic-issues}
-
-This presentation of the language has deliberately focused on syntax. Formalizing the semantics of programs made of
-reactive finite state machines -- and in particular when several of these machines are interacting
--- is actually far from trivial and will not be carried out here. 
-
-Instead, this section will describe some ``practical'' problems that may arise when simulating such
-systems and how the language currently addresses them, without delving too much into the underlying
-semantics issues\footnote{This is not that these issues do not deserve a formal treatment. Of
-  course, they do ! But we think we this document is not the right place to do it.}.
-
-\subsection{Priorities}
-\label{sec:priorities}
-
-The FSM models involved in programs should normally be \emph{deterministic}. In other words, a
-situation where several transitions are enabled at the same instant should normally never arise. But
-this condition may actually be difficult to enforce, especially for models reacting to several input
-events. Consider for example, the model described in Listing~\ref{lst:rfsm-prio-pb}. This model
-describes a (simplified) stopwatch. It starts counting seconds (materialized by event \verb|sec|)
-as soon as event \verb|startstop| occurs and stops as soon as it occurs again.
-
-\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A program showing a potentially non-deterministic
-  model,label={lst:rfsm-prio-pb},float]
-fsm model chrono (
-     in sec: event,
-     in startstop: event,
-    out aff: int)
-  {
-  states: Stopped, Running;
-  vars: ctr: int;
-  trans:
-  | Stopped -> Running on startstop with ctr:=0; aff:=0
-  | Running -> Running on sec with ctr:=ctr+1; aff:=ctr
-  | Running -> Stopped on startstop;
-  itrans:
-  |-> Stopped;
-  }
-
-input StartStop: event = sporadic(25,70)
-input H:event = periodic(10,10,110)
-output Aff: int
-
-fsm c = chrono(H,StartStop,Aff)
-\end{lstlisting}
-
-The problem is that if both events occur simultaneously  then
-both the transitions at line 10 and 11 are enabled. In fact, here's the error message produced by
-the compiler when trying to simulate the above program :
-
-\small
-\begin{verbatim}
-Error when simulating FSM c: non deterministic transitions found at t=70:
-	- Running--h|ctr:=ctr+1; aff:=ctr->Running[0]
-	- Running--startstop->Stopped[0]
-\end{verbatim}
-\normalsize
-
-Of course, this could be avoided by modifying the stimuli attached to input \verb|StartStop| so that the
-corresponding events are never emitted at time $t=n\times 10$. But this is, in a sence, cheating,
-since this event is supposed to modelize user interaction which occur, by essence, at impredictible
-dates. 
-
-The above problem can be solved by assigning a \emph{priority} to transitions. In the current
-implementation, this is achieved by tagging some transitions as ``high priority''
-transitions\footnote{Future versions may evolve towards a more sophisticated mechanism allowing
-  numeric priorities.}.  When several transitions are enabled, if one is tagged as ``high priority''
-than it is automatically selected\footnote{If none (resp. several) is (resp. are) tagged, the
-  conflict remains, of course.}. 
-
-Syntaxically, tagging a transition is simply achieved by replacing the leading ``\verb+|+'' by a
-``\verb|!|''.  In the
-case of the example above, the modified program is given in
-Listing~\ref{lst:rfsm-prio-solved}. Tagging the last transition is here equivalent to give to the
-\verb|startstop| precedence against the \verb|h| event when the model is in state
-\verb|Running|.
-
-\begin{lstlisting}[language=Rfsm,frame=single,numbers=left,caption=A rewriting of the model defined
-  in Listing~\ref{lst:rfsm-prio-pb}, label={lst:rfsm-prio-solved},float]
-fsm model chrono (...)
-  {
-  ...
-  trans:
-    ...
-    | Running -> Running on sec with ctr:=ctr+1; aff:=ctr
-    ! Running -> Stopped on startstop
-  itrans: -> Stopped;
-  }
-...
-\end{lstlisting}
-
-\subsection{Sequential vs. synchronous actions}
-\label{sec:sequ-vs.-synchr}
-
-An important question is whether, when a transition specifying \emph{several actions} to be
-performed is taken, the corresponding actions are performed sequentially or not. 
-
-Consider for example, the following transition, in which \verb|x| and \verb|y| are internal
-variables of the enclosing FSM :
-
-\begin{center}
-\example{\lstinline[language=Rfsm]'S0 -> S1 on H with x:=x+1, y:=x*2'}
-\end{center}
-
-Suppose that the value of variable \verb|x| is 1 just before event \verb|H| occurs. What will the value of
-variables \verb|x| and \verb|y| after this transition ?
-
-\step With a \textbf{sequential interpretation}, actions are performed sequentially, one after the
-other, in the order they are specified. With this interpretation, order of execution matters. In the example above, it will
-assign the value 2 to \verb|x| and 4 to \verb|y|.
-
-\step With a \textbf{synchronous interpretation}, actions are performed in parallel, the value of each variable
-occuring in right-hand-side expressions being the one \emph{before} the transition. With this
-interpretation, order of executions does \emph{not} matter. In the example above, it will
-assign the value 2 to \verb|x| and 2 to \verb|y|.
+Types present in RFSM programs belong to two categories~: builtin types and user defined types.
 
 \medskip
-A sequential interpretation naturally fits a software execution model, in which FSM variables are
-implemented as program variables and actions as immediate modifications of these variables, whereas
-a synchronous interpretation reflects hardware execution models, in which FSM variables are
-typically implemented as registers which are updated in parallel at each clock cycle.
+\textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float}, \texttt{char}, \texttt{event} and
+\texttt{array}s.
+
+\step Objects of type \texttt{bool} can have only two values : \texttt{0} (false) and \texttt{1} (true).
+
+\step Values of type \texttt{char} are
+denoted using single quotes. For example, for a variable \verb|c| having type \verb|char| :
+\begin{center}
+  \example{\lstinline[language=Rfsm]|c := 'A'|}
+\end{center}
+They can be converted from/to they internal representation as integers using the "\verb|::|" \emph{cast}
+operator. For example, if \verb|c| has type \verb|char| and \verb|n| type \verb|int|, then 
+\begin{center}
+  \example{\lstinline[language=Rfsm]|n := 'A'::int; c:=(n+1)::char|}
+\end{center}
+assigns value 65 to \verb|n| (ASCII code) and, then, value \verb|'B'| to \verb|c|.
+
+% \begin{table}[h]
+% %\begin{minipage}[c]{1.0\linewidth}
+% \small
+% \begin{center}
+% \begin{tabular}{|l|l|} \hline
+% {\tt int}       & {\tt + - * / mod = != > < >= <=} \\  \hline
+% {\tt bool}      & {\tt = !=} \\ \hline 
+% {\tt enumeration}     & {\tt = !=} \\  \hline
+% \end{tabular}
+% \caption{Operations on types}
+% \label{tab:type-ops}
+% \end{center}
+% %\end{minipage}
+% \end{table}
+
+\step The type \texttt{int} can be refined using a \emph{size} or a \emph{range annotation}. The
+type \verb|int<sz>|, where \verb|sz| is an integer, is the type of integers which can be encoded using
+\verb|n| bits. The type \verb|int<min:max>|, where both \verb|min| and \verb|max| are integers, is
+the type of integers whose value ranges from \verb|min| to \verb|max|. The size and range limits,
+can be given as litteral constants (ex: \verb|8|) or as parameter values\footnote{Provided, of
+  course, that the corresponding parameter as type \texttt{int}.}, as for the type of the
+variable \texttt{k} in Listing~\ref{lst:rfsm-gensig}.
+
+\step Supported operations on values of type \texttt{int} are described in Table~\ref{tab:int-ops}.
+If \verb|n| is an integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]|
+designates the value represented by the bits \verb|hi|...\verb|lo| in the binary representation of
+\verb|n|. Bit ranges can be both read (ex: \verb|x=y[6:2]|) or written (ex: \verb|x[8:4]:=0|). The
+syntax \verb|n[i]|, where \verb|n| is an integer is equivalent to \verb|n[i:i]|. The \emph{cast}
+operator (\verb|::|) can be used to combine integers with different sizes (for example, if \verb|n|
+has type \verb|int<16>| and \verb|m| has type \verb|int<8>|, writing \verb|n:=n+m| is not allowed
+and mus be written, instead, \verb|n:=n+m::int<16>|. Note that the
+logical ``or'' operator is denoted ``\verb+||+'' because the single ``\verb+|+'' is already used in
+the syntax.
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|l|l|} \hline
+\verb|+|, \verb|-|, \verb|*|, \verb|/|, \verb|%| (modulo) & arithmetic operations \\ \hline 
+\verb|>>|, \verb|<<| & (logical) shift right and left \\ \hline 
+\verb|&|, \verb+||+, \verb|^| & bitwise and, or and xor \\ \hline 
+\verb|[.:.]| & bit range extraction (ex: \verb|n:=m[5:3]|) \\ \hline 
+\verb|[.]| & single bit extraction (ex: \verb|b:=m[4]|) \\ \hline 
+\verb|::| & resize (ex: \verb|n::int<8>|) \\ \hline 
+\end{tabular}
+\caption{\label{tab:int-ops}Builtin operations on integers}
+\end{center}
+\end{table}
+
+\step The operations on values of type \texttt{float} are : "\verb|+.|", "\verb|-.|", "\verb|*.|" and
+"\verb|/.|" (the dot suffix is required to distinguish them from the corresponding operations on
+\texttt{int}s).
+
+
+\step Arrays are 1D, fixed-size collections of \verb|int|s, \verb|bool|s, \verb|char|s or \verb|float|s. Indices
+range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
+ \verb|int array[4]| is the type describing arrays of four integers. If \verb|t| is an object
+  with an array type, its cell with index $i$ is denoted \verb|t[i]|.
+
+\bigskip
+\textbf{User defined types} are either \emph{type abbreviations}, \emph{enumerations} or
+\emph{records}.
+
+\step Type abbreviations are introduced with the following declaration
+\begin{center}
+  \framebox{\lstinline[language=Rfsm]{type typename = type_expression}}
+\end{center}
+Each occurrence of the defined type in the program is actually substituted by the corresponding type
+expression.
+% Type expressions in type abbreviations are currently limited to builtin types.
 
 \medskip
-By default, the \verb|rfsmc| compiler relies on a sequential interpretation, both for simulation and
-code production\footnote{For the C and SystemC backends, this means that FSM variables are
-  implemented as local variables of the function implementing the FSM model. For the VHDL backend,
-  these variables are implemented as \texttt{variable}s withing the process implementing the
-  FSM.}. But, in certain cases, and in particular when specifying models to be synthetized on
-hardware, a synchronous interpretation is more natural and/or can lead to more efficient
-implementations. Switching to a synchronous interpretation is possible by invoking the \verb|rfsmc|
-compiler with the \verb|-synchronous_actions| option\footnote{For the VHDL backend, in particular, the
-  \texttt{-synchronous\_actions} option forces the FSM variables to be implemented as
-  \texttt{signal}s.}.  
+\step Enumerated types  are introduced with the following declaration
+\begin{center}
+  \framebox{\lstinline[language=Rfsm]|type typename = enum \{ C1, ..., Cn \}|}
+\end{center}
+where \verb|C1|, \ldots, \verb|Cn| are the enumerated values, each being denoted by an identifier
+starting with an uppercase letter. For example : 
+\begin{center}
+  \example{\lstinline[language=Rfsm]|type color = \{ Red, Green, Orange \}|}
+\end{center}
 
-% \medskip
-% \textbf{Note}. As a syntactic reminder, list of actions are printed in diagrams using ``\verb|;|'' as a separator when using
-% a sequential interpretation and using ``\verb|,|'' when using a synchronous interpretation.
+\medskip
+\step Record types are introduced with the following declaration
+\begin{center}
+  \framebox{\lstinline[language=Rfsm]|type typename = record \{ fid1: ty1, ..., fidn: tyn \}|}
+\end{center}
+where \verb|fid1|, \ldots, \verb|fidn| and \verb|ty1|, \ldots, \verb|tyn| are respectively the name
+and type of each record field For example : 
+\begin{center}
+  \example{\lstinline[language=Rfsm]|type coord = record \{ x: int, y: int\}|}
+\end{center}
+
+Individual fields of a value with a record type can be accessed using the classical ``dot''
+notation. For example, with a variable \verb|c| having type \verb|record| as defined above :
+\begin{center}
+  \example{\lstinline[language=Rfsm]|c.x := c.x+1|}
+\end{center}
+
+% \medskip The listing in Fig.~\ref{fig:fsm-model-ex} gives an example of a FSM model declaration. The
+% declared model is that of a simplified mouse controler. It has two inputs, \verb|Top| and
+% \verb|Clic|, and two outputs, \verb|SimpleClic| and \verb|DoubleClic|. All inputs an and outputs are
+% of type \verb|event|. Input \verb|Top| is here supposed to be periodic and hence provide an time
+% base. Whenever an event occurs on the input \verb|Clic|, an event is emitted either on
+% \verb|DoubleClic| or \verb|SimpleClic| depending on whether the \verb|Clic| event is followed by
+% another before \verb|D| events occur on the \verb|Top| input, where \verb|D| is a parameter of the
+% model. The description of the behavior employs two states, named \verb|Idle| and \verb|Wait|, an
+% internal variable, \verb|ctr|, and four transitions rules, listed in the \verb|trans:| section.  The
+% first rules says that a transition from state \verb|Idle| to state \verb|Wait| happens whenever and
+% event occurs on input \verb|Clic| and that the internal variable \verb|ctr| is then reset to 0. The
+% second rule says that a transition from state \verb|Wait| to state \verb|Idle| happens whenever and
+% event occurs on input \verb|Clic| and that an event is then emitted on output \verb|DoubleClic|. The
+% third rule says that a transition from state \verb|Wait| to itself happens whenever and event occurs
+% on input \verb|Top| provided that, at this instant, the value of variable \verb|ctr| is less than
+% \verb|D-1|. The variable \verb|ctr| is then incremented. The fourth and last rule says that a
+% transition from state \verb|Wait| to state \verb|Idle| happens, emitting an event on output
+% \verb|SimpleClic|, whenever and event occurs on input \verb|Top| and that, at this instant, the
+% value of variable \verb|ctr| is equal to \verb|D-1|. Finally, the initial transition, given after
+% the keyword \verb|itrans:| designates the state \verb|Idle| as the initial state (with no associated
+% action here). 
+
+% A graphical representation of this FSM is given on the right in Fig.~\ref{fig:fsm-model-ex} (this
+% diagram has been automatically generated by the RFSM compiler, as explained in
+% Chap.~\ref{chap:using}). 
+
+% \begin{figure}[t]
+%   \begin{minipage}[b]{0.6\linewidth}
+%    \centering
+% \begin{lstlisting}[language=Rfsm,frame=single,basicstyle=\small]
+% fsm model ctlr<D:int> (
+%   in Top: event,
+%   in Clic: event,
+%   out SimpleClic: event,
+%   out DoubleClic: event)
+%   {
+%   states:  Idle, Wait;
+%   vars:  ctr: int<0..D>;
+%   trans:
+%     Idle -- Clic | ctr:=0 -> Wait,
+%     Wait -- Clic | DoubleClic -> Idle,
+%     Wait -- Top.ctr<D-1 | ctr:=ctr+1 -> Wait,
+%     Wait -- Top.ctr=D-1 | SimpleClic -> Idle;
+%   itrans: -> Idle;
+%   }
+% \end{lstlisting}
+%   \end{minipage}
+%   \begin{minipage}[b]{0.4\linewidth}
+%    \includegraphics[height=5cm]{figs/mousectlr-dot}
+%    \centering
+%   \end{minipage}
+% \hfill
+%   \caption{Example of an FSM model description (with its graphical representation)}
+%   \label{fig:fsm-model-ex}
+% \end{figure}
 
 %%% Local Variables: 
 %%% mode: latex
-%%% TeX-master: "rfsm"
+%%% TeX-master: "rfsm_um"
 %%% End: 

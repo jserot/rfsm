@@ -123,7 +123,7 @@ Simulation of this model produces the following trace :
 ![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-chrono.png "")
 
 
-## WHAT'S IN THE BOX
+## PACKAGE DESCRIPTION
 
 RFSM actually is a framework composed of
 
@@ -145,17 +145,17 @@ As exemplified above, RFSM compilers can
 
   - `CTask` (a C dialect with primitives for describing tasks and event-based synchronisation)
   - `SystemC`
-  -  `VHDL` 
+  - `VHDL` 
 
 for simulation or implementation on a target platform (micro-controlers or FPGAs for instance). 
 
 ## Documentation
 
-The user manual can be found [here](http://jserot.github.io/rfsm/rfsm.pdf)
+The user and reference manuals can be found [here]() and [here]().
 
-The "host" library API is documented [here](https://jserot.github.io/rfsm/index.html). 
+The "host" library API is documented [here](). 
 
-This [document]() describes how to define a new guest language using the RFSM host library.
+This [document]() describes how to define a new language variant using the RFSM `host` library.
 
 This [note]() gives some technical details on the type system used in the `full` guest language.
 
@@ -212,6 +212,15 @@ sub-directory `./systemc` (resp. `./vhdl`). Also generated in these directories 
 `Makefile` for compiling and running the generated code and viewing the results. This `Makefile` is derived from a template
 located in directory `<opam_prefix>/share/rfsm/templates/`. These templates will also probably have to be
 adjusted to suit your local `SystemC` or `VHDL` installation.
+
+## BUILDING COMPILERS
+
+The implementation of RFSM relies on the _host+guest_ design pattern described
+[here](https://github.com/jserot/modlang). It is fairly easy to build one's own compiler 
+implementing a variant of the "standard" RFSM language and supporting dedicated expression
+sub-languages and type systems. The process is described in the reference manual. Several examples
+of variant languages are provided in the distribution (under directorty `guests/others`).
+
 
 ## RELATED TOOLS
 

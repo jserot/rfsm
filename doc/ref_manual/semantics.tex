@@ -1,4 +1,4 @@
-\chapter*{Appendix D -Formal semantics}
+\chapter{Formal semantics}
 \label{cha:semantics}
 
 \newcommand{\truev}{\mathsf{T}}
@@ -46,8 +46,7 @@
 \newcommand{\expr}{\mathsf{e}}
 \newcommand{\cupdot}{\mathbin{\mathaccent\cdot\cup}}
 
-\vspace{-5mm}
-We give formal \emph{static} and \emph{dynamic} semantics for a simplified version of the
+We here give the formal \emph{static} and \emph{dynamic} semantics for a simplified version of the
 \textsc{Rfsm} language, called \textsc{Core Rfsm}. Compared to the ``full'' \textsc{Rfsm} language,
 it lacks type, constant and function declarations, state valuation and has only basic types. 
 Its abstract syntax is described below. We note $X^*$ (resp. $X^+$) the repetition of 0
@@ -217,7 +216,7 @@ assigned values cannot depend on inputs or local variables.
 % \end{itemize}
 
 \medskip \textbf{Example}. The model of the automaton depicted below\footnote{This model, a
-  calibrated pulse generator has been introduced in Chap.~\ref{cha:overview}).}
+  calibrated pulse generator has been introduced in the \emph{Overview} chapter of the user manual.}
 can be formally described as $\mathcal{M}=\ttttttuple{Q}{I}{O}{V}{T}{\tau_0}$ where~:
 
 \begin{tabular}[c]{cc}
@@ -235,7 +234,7 @@ can be formally described as $\mathcal{M}=\ttttttuple{Q}{I}{O}{V}{T}{\tau_0}$ wh
 \item $\tau_0 = \ttuple{E0}{\sequ{s \gets 0}}$
 \end{itemize}
   \end{minipage} &
-   \includegraphics[width=0.25\linewidth]{figs/gensig-model}
+   \includegraphics[width=0.25\linewidth]{./figs/gensig-model}
 \end{tabular}
 
 \newpage
@@ -689,5 +688,5 @@ has not been done here for the sake of simplicity.
 
 %%% Local Variables:
 %%% mode: latex
-%%% TeX-master: "rfsm"
+%%% TeX-master: "rfsm_rm"
 %%% End:
