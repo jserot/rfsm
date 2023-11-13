@@ -1,6 +1,329 @@
 \chapter{ Building language variants}
 \label{cha:variants}
 
+Following the approach described in~\cite{Leroy00} for example, the RFSM compiler is implemented in
+a \emph{modular} way. The language is split into a \emph{host} language, describing the general
+structure and behavior of FSMs (states, transitions, \ldots) and a \emph{guest}
+language\footnote{``Base'' in the terminology of \cite{Leroy00}.} describing the syntax and
+semantics of \emph{expressions} used in transition guards and semantics. 
+Technically, this ``separation of concern'' is realized by providing the host language in the form
+of a \emph{functor} taking as argument the module implementing the guest language.
+
+This approach makes it fairly easy to produce variants of the ``standard'' RFSM language -- with
+dedicated type systems and expression languages typically -- by simply defining the module defining
+the guest language and applying the aforementioned functor. Actually, the full, ``standard'', RFSM
+  language was designed using this approach, starting from a very simple ``core'' guest
+  language gradually enriched with new features at the expression level\footnote{Traces of the
+    incremental design process can be found in the \texttt{srs/guests/core},
+    \texttt{src/guests/others/szdints} and \texttt{src/guests/others/szvars} directories for example.}. 
+
+The directory \verb|src/guests/templ| in the distribution provides the basic structure for deploying
+this approach. In practice, to implement a language variant, one has to
+\begin{itemize}
+\item write the implementation of the guest language in the form of a collection of modules in the
+  \texttt{lib} subdirectory\footnote{These modules will be encapsulated in a single module and the
+    latter will be passed to the host functor to build the target language.},
+\item write the lexer and the parser for this guest language (expressions, type expressions, \ldots),
+\item build the compiler by simply invoking \emph{make}  
+\end{itemize}
+
+\medskip
+To illustrate this process, we describe in the sequel the implementation of a very simple language
+language for which the guest language has only two types, `event` and `bool`,
+and expressions are limited to boolean constants and variables\footnote{This language is essentially
+  that provided in \texttt{src/guests/others/mini}.}. We focus here on the most salient features. 
+The \texttt{Readme} file in the  \texttt{templ} directory describes the procedure in
+details. Other examples, given in \verb|src/guests/core| and \verb|src/guests/others|\footnote{And, of
+  course, in \texttt{src/guests/full}.}, can also be used as guidelines. 
+
+\section{Implementing the \texttt{Guest} module}
+
+The module implementing the guest language must match the following signature~:
+
+\begin{lstlisting}[language={[Objective]Caml},frame=single,basicstyle=\small,label={lst:guest-sig}]
+module type T = sig
+  module Info : INFO
+  module Types : TYPES
+  module Syntax : SYNTAX with module Types = Types
+  module Typing : TYPING with module Syntax = Syntax and module Types = Types
+  module Value : VALUE with type typ = Types.typ
+  module Static : STATIC with type expr = Syntax.expr and type value = Value.t
+  module Eval : EVAL with module Syntax = Syntax and module Value = Value
+  module Ctask: CTASK with module Syntax = Syntax
+  module Systemc: SYSTEMC with module Syntax = Syntax and module Static = Static and type value = Value.t
+  module Vhdl: VHDL with module Syntax = Syntax and module Static = Static and type value = Value.t
+  module Error : ERROR
+  module Options : OPTIONS
+end
+\end{lstlisting}
+
+\noindent
+where
+\begin{itemize}
+\item module \texttt{Info} gives the name and version of the guest language,
+\item module \texttt{Syntax} describes the (abstract) syntax of the guest language,
+\item modules \texttt{Types} and \texttt{Typing} respectively describe the types and the typing
+  rules of the guest language,
+\item module \texttt{Static} describes the static semantics of the guest language (basically, the
+  interpretation of model parameters),
+\item modules \texttt{Value} and \texttt{Eval} respectively describe the values and the dynamic
+  semantics manipulating these values,
+\item modules \texttt{CTask}, \texttt{Systemc} and \texttt{Vhdl} respectively describe the
+  guest-level part of the C, SystemC and VHDL backends,
+\item module \texttt{Error} describes how guest-specific errors are handled,
+\item module \texttt{Options} describes guest-specific compiler options.
+\end{itemize}
+
+Listings~\ref{lst:mini-types}, \ref{lst:mini-syntax},\ref{lst:mini-value} and \ref{lst:mini-eval}
+respectively show the contents of of the \texttt{Types},
+\texttt{Syntax}, \texttt{Value} and \texttt{Eval} modules for the \texttt{mini} language.
+The definition of non essential fonctions has been omitted\footnote{See the corresponding source files in
+  \texttt{src/guests/others/mini/lib} for a complete listing.}.
+
+\begin{lstlisting}[language={[Objective]Caml},frame=single,basicstyle=\small,caption={Module
+    \texttt{Guest.Types} (excerpt)},label={lst:mini-types}]
+type typ =
+  | TyEvent
+  | TyBool
+  | TyUnknown
+
+let no_type =  TyUnknown
+
+let is_event_type (t: typ) = match t with TyEvent -> true | _ -> false
+let is_bool_type (t: typ) =  match t with TyBool -> true | _ -> false
+
+let pp_typ ?(abbrev=false) fmt (t: typ) = ...
+\end{lstlisting}
+
+In module \texttt{Types}, the key definition is that of type \texttt{typ}, which describes the
+guest-level types, \emph{i.e.} the types which can be attributed to guest-level expressions and
+variables. The type \texttt{TyUnknown} is used to define the value \texttt{no_type} which is
+attributed by the host language to (yet) untyped syntax elements.
+
+\begin{lstlisting}[language={[Objective]Caml},frame=single,basicstyle=\small,caption={Module
+    \texttt{Guest.Syntax} (excerpt)}, label={lst:mini-syntax}]
+module Types = Types
+
+module Location = Rfsm.Location
+module Annot = Rfsm.Annot
+module Ident = Rfsm.Ident
+
+let mk ~loc x = Annot.mk ~loc ~typ:Types.no_type x
+
+(* Type expressions *)
+
+type type_expr = (type_expr_desc,Types.typ) Annot.t
+and type_expr_desc = TeConstr of string (* name, no args here *)
+
+let is_bool_type (te: type_expr) = ...
+let is_event_type (te: type_expr) = ...
+
+let pp_type_expr fmt (te: type_expr) =  ...
+
+(* Expressions *)
+  
+type expr = (expr_desc,Types.typ) Annot.t
+and expr_desc = 
+  | EVar of Ident.t
+  | EBool of bool
+
+let vars_of_expr (e: expr) = ...
+and pp_expr fmt (e: expr) = ...
+
+(* LHSs *)
+  
+type lhs = (lhs_desc,Types.typ) Annot.t
+and lhs_desc = Ident.t
+
+let lhs_var (l: lhs) = ...
+let vars_of_lhs (l: lhs) = ...
+let is_simple_lhs (l: lhs) = true
+
+let mk_simple_lhs (v: Ident.t) =
+  Annot.{ desc=v; typ=Types.no_type; loc=Location.no_location }
+
+let pp_lhs fmt l =  ...
+\end{lstlisting}
+
+The module \texttt{Syntax} use the modules \texttt{Location}, \texttt{Annot}  and \texttt{Ident}
+provided by the \texttt{Rfsm} host library. These modules provide types and functions to handle
+source code locations, syntax annotations and identifiers respectively. The type
+\verb|('a,Types.typ) Annot.t| is associated to syntax nodes of type
+\verb|'a|. The types \verb|type_expr|, \verb|expr| and \verb|lhs| respectively describe guest-level
+type expressions, expressions and left-hand-sides (LHS). LHS are used in the definition of
+actions. In this language they are limited to simple identifiers (ex: \verb|x:=<expr>|) but the
+guest language can use other forms (like in the RFSM ``full'' language which support arrays and
+records in LHS). 
+
+\begin{lstlisting}[language={[Objective]Caml},frame=single,basicstyle=\small,caption={Module
+    \texttt{Guest.Values} (excerpt)},label={lst:mini-value}]
+type typ =
+  | TyEvent
+  | TyBool
+  | TyUnknown
+
+let no_type =  TyUnknown
+
+let is_event_type t = match t with TyEvent -> true | _ -> false
+let is_bool_type t =  match t with TyBool -> true | _ -> false
+let mk_type_fun ty_args ty_res = ...
+
+let pp_typ ?(abbrev=false) fmt t = ...
+\end{lstlisting}
+
+\begin{lstlisting}[language={[Objective]Caml},frame=single,basicstyle=\small,caption={Module
+    \texttt{Guest.Value} (excerpt)},label={lst:mini-value}]
+type t =
+  | Val_bool of bool
+  | Val_unknown
+
+let default_value ty = match ty with
+  | _ -> Val_unknown
+
+exception Unsupported_vcd of t
+
+let vcd_type (v: t) = match v with
+  | Val_bool _ -> Rfsm.Vcd_types.TyBool
+  | _ -> raise (Unsupported_vcd v)
+
+let vcd_value (v: t) = match v with
+  | Val_bool v -> Rfsm.Vcd_types.Val_bool v
+  | _ -> raise (Unsupported_vcd v)
+
+let pp fmt (v: t) =  ...
+\end{lstlisting}
+
+The module \verb|Guest.Value| define the values, associated to guest-level expressions by the
+dynamic semantics. The value \verb|Val_unknown| is used to represent undefined or unitialized
+value. The functions \verb|vcd_type| and \verb|vcd_value| provide the interface to the VCD backend,
+generating simulation traces~: they should return a VCD compatible representation  (defined in the
+host library \verb|Vcd_types| module) of a value.
+
+\begin{lstlisting}[language={[Objective]Caml},frame=single,basicstyle=\small,caption={Module
+    \texttt{Guest.Eval} (excerpt)},label={lst:mini-eval}]
+module Syntax = Syntax
+module Value = Value
+module Env = Rfsm.Env
+module Annot = Rfsm.Annot
+
+type env = Value.t Env.t
+
+exception Illegal_expr of Syntax.expr
+exception Uninitialized of Rfsm.Location.t
+
+let mk_env () = Env.init []
+
+let upd_env lhs v env = Env.upd lhs.Annot.desc v env
+
+let lookup ~loc v env = 
+ match Rfsm.Env.find v env with
+  | Value.Val_unknown -> raise (Uninitialized loc)
+  | v -> v
+
+let eval_expr env e = match e.Annot.desc with
+  | Syntax.EVar v -> lookup ~loc:e.Annot.loc v env
+  | Syntax.EBool i -> Val_bool i 
+
+let eval_bool env e = 
+  match eval_expr env e with
+  | Val_bool b -> b
+  | _ -> raise (Illegal_expr e) 
+
+let pp_env fmt env = ...
+\end{lstlisting}
+
+The module \verb|Guest.Eval| defines the guest-level dynamic semantics, \emph{i.e.} the definition
+of the dynamic environment \texttt{env}, used to bind identifiers to values and of the 
+functions \verb|eval_expr| and \verb|exal_bool| used to evaluate guest-level expressions. The
+presence of a distinct, \verb|eval_bool| function is required because the boolean type and
+expressions are not part of the host-level syntax. The definition of the \texttt{env} type here uses
+that provided by the host library but any definition matching the corresponding signature would do.
+
+\section{Implementing the \texttt{Guest} parser}
+
+The parser for the guest language defines the concrete syntax for guest-level type expressions,
+expressions and LHS. It is written in a separate \texttt{.mly} file which will be combined with the
+parser for the host language\footnote{Using \texttt{menhir} facility to split parser specifications
+  into multiple files.}. There are only two guest specific tokens here, denoting the boolean
+constants \texttt{true} and \texttt{false}. The \texttt{open} directive in the prologue section
+gives access to the abstract syntax definitions given in \texttt{Guest.Syntax} module. The function
+\texttt{mk}, defined in this module, builds annotated syntax nodes, inserting the source code
+location. 
+
+\begin{lstlisting}[language={menhir},frame=single,basicstyle=\small,caption={File
+    guest_parser.mly},label={lst:mini-eval}]
+%token TRUE
+%token FALSE
+
+%{
+open Mini.Top.Syntax
+%}
+
+%%
+%public type_expr:
+  | tc = LID { mk ~loc:$sloc (TeConstr tc) }
+
+%public lhs:
+  | v = LID { mk ~loc:$sloc (mk_ident v) }
+
+%public expr:
+  | v = LID { mk ~loc:$sloc (EVar (mk_ident v)) }
+  | c = scalar_const { c }
+
+%public scalar_const:
+  | TRUE { mk ~loc:$sloc (EBool true) }
+  | FALSE { mk ~loc:$sloc (EBool false) }
+
+%public const:
+  | c = scalar_const { c }
+
+%public stim_const: 
+  | c = scalar_const { c }
+
+\end{lstlisting}
+
+\section{Implementing the \texttt{Guest} lexer}
+
+The \texttt{ocamllex} tool, used for defining the lexer, does not support multi-file definitions.
+The lexer for the guest-specific part of the target language is therefore supplied in the form of
+code fragments to be inserted in the host lexer definition file\footnote{Technically, this insertion is
+  performed using the \texttt{cppo} tool.}. These fragments are listed in two separate files,
+present in the \texttt{bin} subdirectory of the guest directory~:
+\begin{itemize}
+\item the file \texttt{guest_km} contains the lexer definition of the guest-specific keywords,
+\item the file \texttt{guest_rules} contains the guest-specific rules.
+\end{itemize}
+
+In the case of the \texttt{mini} language defined here, the latter is empty and the former only
+contains the two following lines.
+
+\begin{verbatim}
+"true", TRUE;
+"false", FALSE;
+\end{verbatim}
+
+\section{Building the compiler}
+
+Defining the target language implementation and building the associated compiler is then simply
+obtained by the two following functor applications\footnote{For technical reasons, these two
+  statements are placed in distinct files, \texttt{bin\/lang.ml} and \texttt{bin\/rfsmc.ml}.}~:
+
+\begin{lstlisting}[language={[Objective]caml},frame=single,basicstyle=\small]
+module L = Rfsm.Host.Make(Mini.Top)
+
+module Compiler =
+  Rfsm.Compiler.Make
+    (L)
+    (Lexer)
+    (struct include Parser type program = L.Syntax.program end)
+\end{lstlisting}
+
+Invoking the compiler now boils down to executing
+
+\begin{lstlisting}[language={[Objective]caml},frame=single,basicstyle=\small]
+let _ = Printexc.print Compiler.main ()
+\end{lstlisting}
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "rfsm_rm"

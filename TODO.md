@@ -26,8 +26,5 @@ DIST
 
 DOC
 - full -> standard
-- add a section (at least paragraph) on sized types and paramaterized types
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
-- fix automatic numbering of Appendices
-- add a section describing how to build a new language by providing a guest lib+bin
 - integrate Notes.md to documentation

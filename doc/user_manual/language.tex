@@ -899,6 +899,7 @@ Types present in RFSM programs belong to two categories~: builtin types and user
 \textbf{Builtin types} are : \texttt{bool}, \texttt{int}, \texttt{float}, \texttt{char}, \texttt{event} and
 \texttt{array}s.
 
+\medskip
 \step Objects of type \texttt{bool} can have only two values : \texttt{0} (false) and \texttt{1} (true).
 
 \step Values of type \texttt{char} are
@@ -928,6 +929,7 @@ assigns value 65 to \verb|n| (ASCII code) and, then, value \verb|'B'| to \verb|c
 % %\end{minipage}
 % \end{table}
 
+\medskip
 \step The type \texttt{int} can be refined using a \emph{size} or a \emph{range annotation}. The
 type \verb|int<sz>|, where \verb|sz| is an integer, is the type of integers which can be encoded using
 \verb|n| bits. The type \verb|int<min:max>|, where both \verb|min| and \verb|max| are integers, is
@@ -936,6 +938,7 @@ can be given as litteral constants (ex: \verb|8|) or as parameter values\footnot
   course, that the corresponding parameter as type \texttt{int}.}, as for the type of the
 variable \texttt{k} in Listing~\ref{lst:rfsm-gensig}.
 
+\medskip
 \step Supported operations on values of type \texttt{int} are described in Table~\ref{tab:int-ops}.
 If \verb|n| is an integer and \verb|hi| (resp. \verb|lo|) an integer expression then \verb|n[hi:lo]|
 designates the value represented by the bits \verb|hi|...\verb|lo| in the binary representation of
@@ -961,11 +964,12 @@ the syntax.
 \end{center}
 \end{table}
 
+\medskip
 \step The operations on values of type \texttt{float} are : "\verb|+.|", "\verb|-.|", "\verb|*.|" and
 "\verb|/.|" (the dot suffix is required to distinguish them from the corresponding operations on
 \texttt{int}s).
 
-
+\medskip
 \step Arrays are 1D, fixed-size collections of \verb|int|s, \verb|bool|s, \verb|char|s or \verb|float|s. Indices
 range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
  \verb|int array[4]| is the type describing arrays of four integers. If \verb|t| is an object
