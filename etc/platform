@@ -3,7 +3,7 @@
 
 # Settings for compiling under MacOS
 SRCDIR=/Users/jserot/Dev/ml/rfsm
-RFSMC=$(SRCDIR)/_build/default/src/guests/full/bin/rfsmc.exe
+RFSMC=$(SRCDIR)/_build/default/src/guests/std/bin/rfsmc.exe
 RFSMMAKE=$(SRCDIR)/etc/bin/rfsmmake
 LIBDIR=$(SRCDIR)/etc
 DOT=dot
@@ -13,7 +13,7 @@ TXTVIEWER=nano
 
 # Settings for compiling under Windows
 # SRCDIR=/cygdrive/z/Caml/rfsm
-# RFSMC=$(SRCDIR)/_build/default/src/guests/full/bin/rfsmc.exe
+# RFSMC=$(SRCDIR)/_build/default/src/guests/std/bin/rfsmc.exe
 # RFSMMAKE=$(SRCDIR)/etc/bin/rfsmmake
 # LIBDIR=$(SRCDIR)/etc
 # DOT="/cygdrive/c/Program Files (x86)\Graphviz\bin\dot.exe"

@@ -1,20 +1,17 @@
 .PHONY: doc.html doc.pdf tests
 
-all: host guest_full guest_core # doc
+all: host std_guest doc
 
 host:
 	(cd src/host; make)
 
-guests: full others
+all_guests: std_guest other_guests
 
-guest_full:
-	(cd src/guests/full; make)
-
-guest_core:
-	(cd src/guests/core; make)
+std_guest:
+	(cd src/guests/std; make)
 
 other_guests:
-	for i in src/guests/others/{simple,szdints,szvars}; do (cd $$i; make); done
+	for i in src/guests/others/{core,mini,simple,szdints,szvars}; do (cd $$i; make); done
 
 install:
 	dune build @install

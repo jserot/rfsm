@@ -19,15 +19,13 @@ config-stamp
 *.rel
 *.cf
 Info.plist
+src/guests/run_regression_tests
 examples/others/
-examples/tofix/
-examples/tosee/
 examples/*/*/Makefile
 examples/*/*/*/Makefile
 examples/*/*/rfsm.output
 examples/*/*/*/rfsm.output
-!examples/full/{multi,single}/*/{sim,systemc,vhdl}/*.{gtkw,sav}
-!examples/core/{multi,single}/*/{sim,systemc,vhdl}/*.{gtkw,sav}
+!examples/std/{multi,single}/*/{sim,systemc,vhdl}/*.{gtkw,sav}
 tests/
 *.dot
 *.o

@@ -6,7 +6,7 @@ FSM-based systems.
 
 \medskip
 Listing~\ref{lst:rfsm-gensig} is an example of a simple RFSM program\footnote{This program is
-  provided in the distribution, under directory \texttt{examples/full/single/gensig}.}. This program is
+  provided in the distribution, under directory \texttt{examples/std/single/gensig}.}. This program is
 used to describe and simulate the model of a calibrated pulse generator. Given an input clock
 \verb|H|, with period $T_H$, it generates a pulse of duration $n \times T_H$ whenever input
 \texttt{E} is set when event $H$ occurs.
@@ -240,7 +240,7 @@ It is of course possible to describe systems composed of several FSM instances.
 \medskip
 A first example is given in Listing~\ref{lst:rfsm-cntmod8} and Fig.~\ref{fig:rfsm-cntmod8}. The system is a simple modulo 8 counter, here
 described as a combination of three event-synchronized modulo 2 counters\footnote{This program is
-  provided in the distribution, under directory \texttt{examples/full/multi/ctrmod8}.}.
+  provided in the distribution, under directory \texttt{examples/std/multi/ctrmod8}.}.
 
 Here a single FSM model (\texttt{cntmod2}) is instanciated thrice, as \texttt{C0}, \texttt{C1} and
 \texttt{C2}. These instances are synchronized using two \textbf{shared events}, \texttt{R0} and \texttt{R1}. 

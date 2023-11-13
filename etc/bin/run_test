@@ -129,7 +129,7 @@ options: [defaults in brackets after descriptions]
   -show                  launch DOT or VCD viewer after running the test [default: no]
   -help                  print this message
 kind=makefile|dot.run|dot|sim|ctask|systemc.code|systemc.run|systemc|systemc.sim|vhdl.code|vhdl.run|vhdl|vhdl.sim
-subdir=core|full|...
+subdir=std|...
 EOF
 	exit 0;;
     *) break;;
@@ -140,7 +140,7 @@ done
 IFS="/" read -ra PARTS <<< "$2"
 GUEST="${PARTS[0]}"
 case $GUEST in
-full|core) ;;
+full) ;;
 *) GUEST="${PARTS[0]}/${PARTS[1]}"
 esac
 if [ $CUSTOM_RFSMC == "no" ]; then

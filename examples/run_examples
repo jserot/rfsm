@@ -3,7 +3,7 @@
 # A script for automatically running examples
 
 RUN_TEST="../etc/bin/run_test"
-SUBDIRS="full"
+SUBDIRS="std"
 
 while : ; do
   case "$1" in

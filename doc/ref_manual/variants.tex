@@ -11,7 +11,7 @@ of a \emph{functor} taking as argument the module implementing the guest languag
 
 This approach makes it fairly easy to produce variants of the ``standard'' RFSM language -- with
 dedicated type systems and expression languages typically -- by simply defining the module defining
-the guest language and applying the aforementioned functor. Actually, the full, ``standard'', RFSM
+the guest language and applying the aforementioned functor. Actually, the ``standard'', RFSM
   language was designed using this approach, starting from a very simple ``core'' guest
   language gradually enriched with new features at the expression level\footnote{Traces of the
     incremental design process can be found in the \texttt{srs/guests/core},
@@ -34,7 +34,7 @@ and expressions are limited to boolean constants and variables\footnote{This lan
   that provided in \texttt{src/guests/others/mini}.}. We focus here on the most salient features. 
 The \texttt{Readme} file in the  \texttt{templ} directory describes the procedure in
 details. Other examples, given in \verb|src/guests/core| and \verb|src/guests/others|\footnote{And, of
-  course, in \texttt{src/guests/full}.}, can also be used as guidelines. 
+  course, in \texttt{src/guests/std}.}, can also be used as guidelines. 
 
 \section{Implementing the \texttt{Guest} module}
 
@@ -152,7 +152,7 @@ source code locations, syntax annotations and identifiers respectively. The type
 \verb|'a|. The types \verb|type_expr|, \verb|expr| and \verb|lhs| respectively describe guest-level
 type expressions, expressions and left-hand-sides (LHS). LHS are used in the definition of
 actions. In this language they are limited to simple identifiers (ex: \verb|x:=<expr>|) but the
-guest language can use other forms (like in the RFSM ``full'' language which support arrays and
+guest language can use other forms (like in the RFSM ``standard'' language which support arrays and
 records in LHS). 
 
 \begin{lstlisting}[language={[Objective]Caml},frame=single,basicstyle=\small,caption={Module

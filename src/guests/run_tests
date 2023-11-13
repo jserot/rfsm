@@ -19,7 +19,7 @@ options: [defaults in brackets after descriptions]
   -show                  launch DOT or VCD viewer after running the test [default: no]
   -help                  print this message
 kind=dot|sim|ctask|systemc|vhdl|systemc.code|vhdl.code|systemc.sim|vhdl.sim
-subdir=full|core|others/...
+subdir=std|others/...
 EOF
 	exit 0;;
     *) break;;
@@ -44,8 +44,8 @@ done
 echo "***" $ns"/"$nt "test(s) OK"
 }
 
-#SUBDIRS="others/core others/simple others/szdints others/szvars full"
-SUBDIRS="core full"
+#SUBDIRS="others/core others/simple others/szdints others/szvars std"
+SUBDIRS="std"
 
 case $2 in
     all) 

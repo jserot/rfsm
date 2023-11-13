@@ -1,6 +1,5 @@
 COMPILER
 
-- full -> standard
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)
@@ -19,9 +18,7 @@ EXAMPLES
 
 DIST
 - adjust links to docs in README
-- full -> standard
 - use Dune `install` stanza to install documentation, etcs and examples
 - KNOWN-BUGS -> Issues
 
 DOC
-- full -> standard

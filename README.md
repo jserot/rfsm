@@ -32,7 +32,7 @@ where
 For example, the transition from state `E0` to state `E1`, labeled `h.(e=1)/k:=1` is taken whenever
 input `e` is equal to `1` when `h` occurs and, when this happens, local variable `k` is set to 1. 
 
-Here's a formulation of this model in the RFSM `full` guest language :
+Here's a formulation of this model in RFSM :
 
 ```
 fsm model gensig <n: int> (
@@ -155,9 +155,6 @@ The user and reference manuals can be found [here]() and [here]().
 
 The "host" library API is documented [here](). 
 
-This [document]() describes how to define a new language variant using the RFSM `host` library.
-
-This [note]() gives some technical details on the type system used in the `full` guest language.
 
 ## Installation
 
@@ -168,7 +165,7 @@ The latest stable version is provided as a ready-to-install OPAM
 
 The package includes
 - the RFSM library itself (under `./host/lib`)
-- the so-called "full" RFSM compiler, described in the user manual (under `./guests/full`)
+- the so-called _standard_ RFSM compiler, described in the user manual (under `./guests/std`)
 - a bunch of variant compilers, corresponding to distinct parameterizations of the host language
   (under `./guests/others`)
 - a program `rfsmmake` generating Makefiles for compiling RFSM programs and viewing and compiling
@@ -178,15 +175,15 @@ The package includes
 ### Compiling and running examples
 
 Some examples are provided in
-[examples/single](https://github.com/jserot/rfsm/tree/master/examples/full/single) and
-[examples/multi](https://github.com/jserot/rfsm/tree/master/examples/full/multi) (the former concerns systems
+[examples/single](https://github.com/jserot/rfsm/tree/master/examples/single) and
+[examples/multi](https://github.com/jserot/rfsm/tree/master/examples/multi) (the former concerns systems
 built from a single state diagram, the latter systems built from several diagrams).
 
 For compiling and running an example
 
 * get a copy of the source tree and go to the selected example directory
   * `git clone https://github.com/jserot/rfsm`
-  * `cd rfsm/examples/full/single/gensig` (for example)
+  * `cd rfsm/examples/std/single/gensig` (for example)
   
 * build the top `Makefile` by invoking: `rfsmmake main.pro` 
   (this supposes that the `rfsm` package has been properly installed; in particular that the `rfsmc`
@@ -224,5 +221,5 @@ of variant languages are provided in the distribution (under directorty `guests/
 
 ## RELATED TOOLS
 
-A Graphical User Interface to the so-called `full` RFSM compiler - but restricted to mono-FSM models
+A Graphical User Interface to the RFSM compiler - but restricted to mono-FSM models
 - is provided by the [RfsmLight](http://github.com/jserot/rfsm-light) application.

@@ -1,7 +1,7 @@
 \chapter{The RFSM language}
 \label{cha:language}
 
-This section describes the syntax and semantics of the \emph{full} RFSM language in a more
+This section describes the syntax and semantics of the \emph{standard} RFSM language in a more
 systematic, but informal, way. The corresponding formalized descriptions are given in the reference
 manual.
 
@@ -829,7 +829,7 @@ Global constants have a global scope and hence can be used in any FSM model or i
 
 Conditions and actions associated to FSM transitions can use globally defined functions. An example
 is given in listing~\ref{lst:rfsm-heron}\footnote{This example can be found in directory
-  \texttt{examples/full/single/heron} in the distribution.}. The FSM described here computes an approximation
+  \texttt{examples/std/single/heron} in the distribution.}. The FSM described here computes an approximation
 of the square root of its input \verb|u| using Heron's classical algorithm. Successive approximations are computed in
 state \verb|Iter| and the end of computation is detected when the square of the current
 approximation \verb|x| differs from the argument (\verb|a|) from less than a given threshold
