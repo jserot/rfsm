@@ -25,4 +25,3 @@ DIST
 
 DOC
 - full -> standard
-- fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}

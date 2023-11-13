@@ -17,8 +17,6 @@ $(DOC).pdf: $(SRCS) $(GEN_SRCS)
 clean:
 	\rm -f *.dvi *.log *.rel *.aux *.toc
 
-.PHONY: grammar.tex
-
 realclean: clobber
 
 clobber: clean
