@@ -5,7 +5,6 @@ COMPILER
 - allow shared signals with multiple writers in VHDL
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)
 - display enums as string in SystemC generated VCDs (currently not supported by SystemC 2.3) 
-- rewrite parsers with `$sloc+%inline` (cf OCaml 4.08 srcs)
 - clarify mechanism for delta-waits insertion in SystemC backend
 - VHDL implementation of models with multiple input events
 - VHDL implementation of event and variable synchronized models
@@ -27,4 +26,3 @@ DIST
 DOC
 - full -> standard
 - fully automatize generation of doc/um/{grammar.tex,grammar-defns.sty}
-- integrate Notes.md to documentation

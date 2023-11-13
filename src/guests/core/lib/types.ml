@@ -9,6 +9,23 @@
 (*                                                                    *)
 (**********************************************************************)
 
+(* NOTE. Even this simple` guest language needs a polymorphic type system, in order
+   to accomodate primitives such as [=], [<], etc., which must have type : [t * t -> bool] for any possible type [t].
+   This is classicaly supported by using _type schemes_. The type scheme assigned to [=] for ex is 
+   [for all 'a. 'a * 'a -> bool] and any time this primitive is referenced in the program, this type
+   scheme is _instanciated_ to a new type ['v * 'v -> bool], where ['v] is a fresh type variable.
+
+   Note that this type of polymorphism only occurs for _builtin primitives_. There's no way to
+   declare a constant, function, global IO, model IO or local variable with a polymorphic type (in other
+   words, type expressions never contain type variables.
+
+   The generalisation/instanciation operations are simpler than in the classical Hindley-Milner type system
+   since it either involves __all_ or _none__ of the type variables occuring in a type. The list of variables to
+   be generalized in a type can be computed once for all (since it does not depend of the context of
+   the expression in which this type occurs). Generalisation extracts all type and size variables and
+   put them in the list(s) associated to the resulting type scheme. Instanciation systematically
+   replaces all the variables of these lists by fresh copies. *)
+
 module Location = Rfsm.Location
                 
 type typ =
