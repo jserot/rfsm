@@ -3,7 +3,7 @@
 RFSM is a framework for describing, simulating and generating code from _reactive finite state
 machines_. A reactive finite state machine is a finite state machine (FSM) for which transitions
 between states are always triggered by a single _event_. When the triggering event occurs
-a set of boolean expressions, called _guards_, may also be used to decide whether the transition
+a set of boolean expressions, called _guards_, may be used to decide whether the transition
 is taken or not and _actions_, such as updating an output or local variable or emitting an event, can
 also be performed.
 
