@@ -1,0 +1,24 @@
+-- Emet "Gagne" a chaque occurrence de trois "Pile" consecutifs
+
+fsm model pf(
+  in pile: event,
+  in face: event,
+  out gagne: event)
+{
+  states: P0, P1, P2;
+  trans:
+  | P0 -> P0 on face
+  | P0 -> P1 on pile
+  | P1 -> P0 on face
+  | P1 -> P2 on pile
+  | P2 -> P0 on face
+  | P2 -> P2 on pile with gagne;
+  itrans:
+  | -> P0 ;
+}
+
+input Face : event = sporadic(10, 30, 60, 100, 150)
+input Pile : event = sporadic(20, 40, 50, 70, 80, 90, 110, 120, 130, 140)
+output Gagne : event
+
+fsm pf1 = pf(Pile,Face,Gagne)

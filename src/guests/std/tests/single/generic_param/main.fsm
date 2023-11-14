@@ -1,0 +1,18 @@
+-- This test to check if the type of parameters is correctly generalized
+-- Here, [n] should have type [int<4>] in [f4] and [int<8>] in [f8] 
+
+fsm model f <n: int> (in h: event, in i: int<n>)
+{
+  states: Idle;
+  trans:
+  | Idle -> Idle on h when i=n;
+  itrans:
+  | -> Idle;
+}
+
+input h : event = periodic (10,0,100)
+input i4 : int<4> = value_changes (0:0)
+input i8 : int<8> = value_changes (0:0)
+
+fsm f4 = f<4>(h,i4)
+fsm f8 = f<8>(h,i8)

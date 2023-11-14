@@ -1,0 +1,19 @@
+-- A simple model for a programmable timer
+-- Counts 10 occurences of [h] when [start] is received and emits [done]
+-- The counter value is available on IO [t]
+-- See ../../../xxx for a generalized version, with the the number of occurrences to count specified as a model parameter
+
+fsm model timer<n: int>(
+  in h: event,
+  in start: event,
+  out done: event,
+  inout t: int)
+{
+  states: Idle, Count;
+  trans:
+  | Idle -> Count on start with t:=0
+  | Count -> Count on h when t<n-1 with t:=t+1
+  | Count -> Idle on h when t=n-1 with done;
+  itrans:
+  | -> Idle ;
+}

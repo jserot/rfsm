@@ -1,0 +1,31 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Sat Jul 22 08:26:51 2023
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/examples/full/single/heron/vhdl/main_tb.ghw"
+[dumpfile_mtime] "Sat Jul 22 08:25:02 2023"
+[dumpfile_size] 1008
+[savefile] "/Users/jserot/Dev/ml/rfsm/examples/full/single/heron/vhdl/main_tb.gtkw"
+[timestart] 0
+[size] 1021 299
+[pos] 223 87
+*-25.870552 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.main_tb.
+[treeopen] top.main_tb.top.
+[sst_width] 198
+[signals_width] 184
+[sst_expanded] 1
+[sst_vpaned_height] 60
+@28
+top.main_tb.h
+top.main_tb.u
+top.main_tb.start
+top.main_tb.rdy1
+top.main_tb.r1
+top.main_tb.rdy2
+top.main_tb.r2
+@29
+top.main_tb.niter
+[pattern_trace] 1
+[pattern_trace] 0

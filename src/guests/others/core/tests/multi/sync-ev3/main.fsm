@@ -1,0 +1,32 @@
+-- Event-based synchronisation, example 3
+
+fsm model m1 (
+  in h: event,
+  out e: event)
+{
+  states: E1, E2;
+  trans:
+ | E1 -> E2 on h with e
+ | E2 -> E1 on h;
+  itrans:
+  | -> E1;
+}
+
+fsm model m2 (
+  in h: event,
+  in e: event)
+{
+  states: E3, E4, E5;
+  trans:
+ | E3 -> E4 on h
+ | E4 -> E5 on e
+ | E5 -> E3 on h;
+  itrans:
+  | -> E3;
+}
+
+input h: event = periodic(10,10,100)
+shared e: event
+
+fsm a1 = m1(h,e)
+fsm a2 = m2(h,e)

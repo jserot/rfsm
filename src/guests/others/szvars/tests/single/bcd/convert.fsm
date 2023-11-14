@@ -1,0 +1,29 @@
+type digit = int<4>
+
+type bcd3 = record { d2: digit, d1: digit, d0: digit }
+
+fsm model convert  (
+  in h: event,
+  in start: bool,
+  in inp: int<8>,
+  out rdy: bool,
+  out n: bcd3)
+{
+  states: Idle where rdy=1, Convert where rdy=0;
+  vars: r: int<20>, i: int<0:8>, m: bcd3;
+  trans:
+  | Idle -> Convert on h when start=1 with r:=inp::int<20>, i:=0
+  | Convert -> Convert on h when i<8 with r[11:8]:=r[11:8]>4?r[11:8]+3:r[11:8],
+                                          r[15:12]:=r[15:12]>4?r[15:12]+3:r[15:12],
+                                          r[19:16]:=r[19:16]>4?r[19:16]+3:r[19:16],
+                                          r:=r<<1,
+                                          i:=i+1
+  | Convert -> Idle on h when i=8 with m.d2:=r[19:16]::digit,
+                                       m.d1:=r[15:12]::digit,
+                                       m.d0:=r[11:8]::digit,
+                                       n:=m;
+  itrans:
+  | -> Idle;
+}
+
+

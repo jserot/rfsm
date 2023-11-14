@@ -1,0 +1,14 @@
+fsm model gensig(
+  in h: event,
+  in e: bool,
+  out s: bool)
+{
+  states: E0, E1, E2, E3;
+  trans:
+  | E0 -> E1 on h when e with s:=true
+  | E1 -> E2 on h
+  | E2 -> E3 on h
+  | E3 -> E0 on h with s:=false;
+  itrans:
+  | -> E0 with s:=false;
+}

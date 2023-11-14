@@ -1,0 +1,31 @@
+-- Synchronisation using a shared variable, third example 
+
+fsm model m1 (
+  in h: event,
+  out v: bool)
+{
+  states: E1, E2;
+  trans:
+ | E1 -> E2 on h
+ | E2 -> E1 on h with v:=true;
+  itrans:
+  | -> E1 with v:=false;
+}
+
+fsm model m2 (
+  in h: event,
+  inout v: bool)
+{
+  states: E3, E4;
+  trans:
+ | E3 -> E4 on h when v=true
+ | E4 -> E3 on h with v:=false;
+  itrans:
+  | -> E3;
+}
+
+input h: event = periodic(10,10,100)
+shared v: bool
+
+fsm a1 = m1(h,v)
+fsm a2 = m2(h,v)

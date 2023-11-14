@@ -1,0 +1,66 @@
+library ieee;
+use ieee.std_logic_1164.all;	   
+use ieee.numeric_std.all;
+
+entity tb is
+end tb;
+
+architecture Bench of tb is
+
+component syracuse 
+  port(
+        H: in std_logic;
+        Start: in std_logic;
+        u0: in unsigned(7 downto 0);
+        Rdy: out std_logic;
+        N: out unsigned(7 downto 0);
+        rst: in std_logic
+        );
+end component;
+
+  signal t_N: unsigned(7 downto 0);
+  signal t_Rdy: std_logic;
+  signal t_u0: unsigned(7 downto 0);
+  signal t_Start: std_logic;
+  signal t_H: std_logic;
+  signal t_rst: std_logic;
+
+begin
+
+  UUT0: syracuse
+    port map(t_H,t_Start,t_u0,t_Rdy,t_N,t_rst);
+
+  process
+
+  begin
+  wait for 0 ns;
+  t_Start <= '0';
+  t_u0 <= to_unsigned(10,8);
+  t_rst <= '0';
+  wait for 1 ns;
+  t_rst <= '0';
+  wait for 9 ns;
+  t_H <= '1';
+  wait for 1 ns;
+  t_H <= '0';
+  wait for 9 ns;
+  t_H <= '1';
+  wait for 1 ns;
+  t_H <= '0';
+  wait for 4 ns;
+  t_Start <= '1';
+  wait for 5 ns;
+  t_H <= '1';
+  wait for 1 ns;
+  t_H <= '0';
+  wait for 4 ns;
+  t_Start <= '0';
+  wait for 5 ns;
+  t_H <= '1';
+  wait for 1 ns;
+  t_H <= '0';
+    
+    wait;
+
+  end process;
+end Bench;

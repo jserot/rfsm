@@ -1,14 +1,20 @@
 #!/bin/bash
 
 RUN_TEST="../../etc/bin/run_test"
+OPTS=""
+DRYRUN=""
 
 while : ; do
   case "$1" in
     "") break;;
     -makefile)
-        RUN_TEST="$RUN_TEST -makefile";;
+        OPTS="$OPTS -makefile";;
     -compiler)
-        RUN_TEST="$RUN_TEST -compiler $2"; shift;;
+        OPTS="$OPTS -compiler $2"; shift;;
+    -show)
+        OPTS="$OPTS -show";;
+    -dryrun)
+        DRYRUN="-dryrun";;
     -help)
         cat <<EOF
 Usage: run_tests [options] kind subdir
@@ -17,6 +23,7 @@ options: [defaults in brackets after descriptions]
   -makefile              (re)build makefile in test directories [default: no]
   -compiler path         path to the rfsmc compiler [default: $RFSMC]
   -show                  launch DOT or VCD viewer after running the test [default: no]
+  -dryrun                show issued commands only, do not execute them
   -help                  print this message
 kind=dot|sim|ctask|systemc|vhdl|systemc.code|vhdl.code|systemc.sim|vhdl.sim
 subdir=std|others/...
@@ -27,8 +34,6 @@ EOF
   shift
 done
 
-echo "RUN_TESTS: RUN_TEST=$RUN_TEST 1=$1 2=$2"
-
 run ()
 {
 nt=0
@@ -37,7 +42,10 @@ for i in $2/tests/{single,multi}/[a-z]*
 do
     if [ -e $i ]; then
         (( nt = nt + 1 ))
-        $RUN_TEST $1 $i
+        if [ -n $DRYRUN ]; then
+            echo "$RUN_TEST $DRYRUN $OPTS $1 $i"
+        fi
+        $RUN_TEST $DRYRUN $OPTS $1 $i
         (( ns = ns + $? ));
     fi
 done

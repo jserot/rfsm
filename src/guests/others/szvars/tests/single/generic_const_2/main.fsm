@@ -1,0 +1,18 @@
+-- This test to check if the type of globals constants is correctly generalized
+
+constant n: int = 0
+
+fsm model f(in h: event, in i: int<4>, out o: int<8>)
+{
+  states: Idle;
+  trans:
+  | Idle -> Idle on h when i=n with o:=n;
+  itrans:
+  | -> Idle;
+}
+
+input h : event = periodic (10,0,100)
+input i4 : int<4> = value_changes (0:0)
+output o8 : int<8>
+
+fsm f = f(h,i4,o8)

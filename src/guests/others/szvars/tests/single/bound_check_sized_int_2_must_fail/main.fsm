@@ -1,0 +1,17 @@
+-- This should raise an out of bound error when simulating 
+
+fsm model err(
+  in h: event)
+{
+  states: Idle;
+  vars: i: int,
+        z: int<8>;
+  trans:
+  | Idle -> Idle on h with z[i] := 1, i:=i+1;
+  itrans:
+  | -> Idle with i:=0, z:=0;
+}
+
+input H : event = periodic(10, 10, 100)
+
+fsm e = err(H)

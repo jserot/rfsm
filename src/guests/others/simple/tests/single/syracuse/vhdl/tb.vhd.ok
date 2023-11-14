@@ -1,0 +1,82 @@
+library ieee;
+use ieee.std_logic_1164.all;	   
+use ieee.numeric_std.all;
+
+entity tb is
+end tb;
+
+architecture Bench of tb is
+
+  component syracuse
+  port(h      : in  std_logic;
+        start : in  std_logic;
+        u0    : in  unsigned(7 downto 0);
+        rdy   : out std_logic;
+        n     : out unsigned(7 downto 0);
+        rst   : in  std_logic
+        );
+  end component;
+
+  signal t_u0, t_n: unsigned(7 downto 0);
+  signal t_h, t_start, t_rdy, t_rst: std_logic;
+
+begin
+
+  UUT: syracuse
+    port map(t_h,t_start,t_u0,t_rdy,t_n,t_rst);
+  
+  Clk_sig: process
+  begin
+    t_h<='1';			-- clock signal
+    wait for 5 ns;
+    t_h<='0';
+    wait for 5 ns;
+  end process;
+
+  process
+
+    --  Test patterns 
+
+    type pattern is record
+      u0 : natural;  -- Inputs
+      n : natural;   -- Expected output
+      end record;
+
+    type pattern_array is
+      array (natural range <>) of pattern;
+
+    constant patterns : pattern_array :=
+      ( (10, 7), (10, 7) );
+
+  begin
+    wait for 5 ns;
+    t_rst <= '1';                     -- Initial reset
+    wait for 20 ns;
+    t_rst <= '0';
+    t_start <= '0';
+    
+    for i in patterns'range loop
+      --  Set the inputs.
+      t_u0 <= to_unsigned(patterns(i).u0,8);
+      -- Assert start
+      wait for 10 ns;
+      t_start <= '1';
+      wait for 10 ns;
+      t_start <= '0';
+      --  Wait for the results.
+      wait until t_rdy = '1';
+      --  Check the outputs.
+      wait for 5 ns;
+      --assert to_integer(unsigned(t_r)) = patterns(i).r
+        --report "error " severity error;
+      -- Wait before applying next pattern
+      wait for 100 ns;
+    end loop;
+
+    assert false report "end of test" severity note;
+
+    --  Wait forever; this will finish the simulation.
+    wait;
+
+  end process;
+end Bench;

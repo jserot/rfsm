@@ -1,0 +1,7 @@
+input H : event = periodic (10,10,80)
+input E : bool = value_changes (0:false, 25:true, 35:false)
+output S : bool 
+
+fsm g = gensig(H,E,S)
+
+

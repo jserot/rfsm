@@ -77,42 +77,57 @@ make_all ()
 
 make_makefile ()
 {
-    echo -n "Making Makefile in $1... "
-    (cd $1; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
-    grep "Wrote Makefile" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
-    grep "OK" $TMP >/dev/null && exit 1
+    if [ $DRYRUN == "yes" ]; then
+        echo "(cd $1; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)"
+    else
+        echo -n "Making Makefile in $1... "
+        (cd $1; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
+        grep "Wrote Makefile" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
+        grep "OK" $TMP >/dev/null && exit 1
+    fi
 }
 
 make_target ()
 {
-    if [ $CUSTOM_RFSMC == "yes" ];
-    then
-        echo -n "Testing $1 in $2 with RFSMC=$RFSMC... "
-        (cd $2; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
+    if [ $DRYRUN == "yes" ]; then
+        if [ $CUSTOM_RFSMC == "yes" ];
+        then
+            echo "(cd $2; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)"
+        fi
+        echo "(cd $2; if [ -e Makefile ]; then make clobber > $TMP 2>&1; fi)"
+        echo "(cd $2; try_make $1) > $TMP 2>&1"
     else
-        echo -n "Testing $1 in $2... "
+        if [ $CUSTOM_RFSMC == "yes" ];
+        then
+            echo -n "Testing $1 in $2 with RFSMC=$RFSMC... "
+            (cd $2; $RFSMMAKE -lib $RFSMLIB -with-test-targets -no-confirm -compiler $RFSMC -o Makefile ./main.pro > $TMP 2>&1)
+        else
+            echo -n "Testing $1 in $2... "
+        fi
+        (cd $2; if [ -e Makefile ]; then make clobber > $TMP 2>&1; fi)
+        (cd $2; try_make $1) > $TMP 2>&1
+        grep "OK" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
+        grep "FAILED" $TMP >/dev/null && echo -e "\033[31mFAILED\033[0m"
+        grep "OK" $TMP >/dev/null && exit 1
+        exit 0
     fi
-    (cd $2; if [ -e Makefile ]; then make clobber > $TMP 2>&1; fi)
-    (cd $2; try_make $1) > $TMP 2>&1
-    grep "OK" $TMP >/dev/null && echo -e "\033[32mOK\033[0m"
-    grep "FAILED" $TMP >/dev/null && echo -e "\033[31mFAILED\033[0m"
-    grep "OK" $TMP >/dev/null && exit 1
-    exit 0
 }
 
-CUSTOM_RFSMC=no
-SHOW=no
-BUILD_MAKEF=no
+CUSTOM_RFSMC="no"
+SHOW="no"
+BUILD_MAKEF="no"
+DRYRUN="no"
 
 while : ; do
   case "$1" in
     "") break;;
-    -makefile) BUILD_MAKEF=yes;;
-    -show) SHOW=yes;;
+    -makefile) BUILD_MAKEF="yes";;
+    -show) SHOW="yes";;
+    -dryrun) DRYRUN="yes";;
     -compiler)
         if [ -e $2 ]; then
             RFSMC=$2;
-            CUSTOM_RFSMC=yes;
+            CUSTOM_RFSMC="yes";
             shift
         else
             echo "Non existent file: $2"
@@ -121,12 +136,13 @@ while : ; do
         ;;
     -help)
         cat <<EOF
-Usage: do_test [options] kind subdir
+Usage: run_test [options] kind subdir
 where
 options: [defaults in brackets after descriptions]
   -makefile              (re)build Makefile in test directory [default: no]
   -compiler path         path to the rfsmc compiler [default: $RFSMC]
   -show                  launch DOT or VCD viewer after running the test [default: no]
+  -dryrun                show issued commands only, do not execute them
   -help                  print this message
 kind=makefile|dot.run|dot|sim|ctask|systemc.code|systemc.run|systemc|systemc.sim|vhdl.code|vhdl.run|vhdl|vhdl.sim
 subdir=std|...
@@ -137,17 +153,24 @@ EOF
   shift
 done
 
+# echo "RUNTEST: BUILD_MAKEF=$BUILD_MAKEF"
+# echo "RUNTEST: SHOW=$SHOW"
+# echo "RUNTEST: DRYRUN=$DRYRUN"
+# echo "RUNTEST: COMPILER=$COMPILER"
+# echo "RUNTEST: 1=$1"
+# echo "RUNTEST: 2=$2"
+
 IFS="/" read -ra PARTS <<< "$2"
 GUEST="${PARTS[0]}"
 case $GUEST in
-full) ;;
+std) ;;
 *) GUEST="${PARTS[0]}/${PARTS[1]}"
 esac
+# echo "RUNTEST: GUEST=$GUEST"
 if [ $CUSTOM_RFSMC == "no" ]; then
     RFSMC=/Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$GUEST/bin/rfsmc.bc; # Default version
 fi
 
-#echo "C=$RFSMC BUILD_MAKEF=$BUILD_MAKEF SHOW=$SHOW 1=$1 2=$2"
 
 if [ $BUILD_MAKEF == "yes" ]; then make_makefile $2; fi
 make_target $1 $2

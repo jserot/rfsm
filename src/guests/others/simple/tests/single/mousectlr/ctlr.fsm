@@ -1,0 +1,21 @@
+-- A simplified model of a mouse controler
+-- Emits [DoubleClic] is [Clic] occurs and re-occurs before [d] periods of [top] elapse
+-- Emits [SimpleClic] otherwise
+-- Instanciated here with d=5
+
+fsm model ctlr<d: int>(
+  in top: event,
+  in clic: event,
+  out sclic: event,
+  out dclic: event)
+{
+  states: Idle, Wait;
+  vars: ctr: int;
+  trans:
+  | Idle -> Wait on clic with ctr:=0
+  | Wait -> Idle on clic with dclic
+  | Wait -> Wait on top when ctr<d-1 with ctr:=ctr+1
+  | Wait -> Idle on top when ctr=d-1 with sclic;
+  itrans:
+  | -> Idle ;
+}

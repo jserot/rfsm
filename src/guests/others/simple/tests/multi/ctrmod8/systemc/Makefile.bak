@@ -1,0 +1,33 @@
+SYSTEMC		= /usr/local/systemc-2.3.0
+TARGET_ARCH	= macosx
+CXX         = g++
+LD	    = g++
+CXXFLAGS    = -Wall  -I. -I$(SYSTEMC)/include -Wno-deprecated
+LDFLAGS	    =  -L$(SYSTEMC)/lib-macosx64
+
+SOURCES     = $(wildcard *.cpp)
+OBJS        = $(SOURCES:.cpp=.o)
+EXE	    = a.out
+GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
+
+all: $(EXE) 
+
+$(EXE) : $(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) -o $@  -lsystemc  2>&1 | c++filt
+
+run: a.out
+	./a.out
+
+view: tb.vcd
+	$(GTKWAVE) -f tb.vcd -a tb.gtkw > /tmp/gtkwave.log 2>&1; echo $$?
+
+.cpp.o:
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+clean:
+	-rm -f *.o *~ *_old $(EXE)
+	-rm -f a.out
+	-rm -f core
+	-rm -f *.vcd
+	-rm -f *.cpp *.h
+

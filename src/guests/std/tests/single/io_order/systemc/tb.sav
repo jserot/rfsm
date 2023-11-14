@@ -1,0 +1,25 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Sun Mar 18 18:30:58 2018
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/working/examples/others/genpwm/v2/systemc/tb.vcd"
+[dumpfile_mtime] "Sun Mar 18 18:30:38 2018"
+[dumpfile_size] 1722
+[savefile] "/Users/jserot/Dev/ml/rfsm/working/examples/others/genpwm/v2/systemc/tb.sav"
+[timestart] 0
+[size] 1043 300
+[pos] 31 493
+*-17.052212 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 198
+[signals_width] 176
+[sst_expanded] 1
+[sst_vpaned_height] 60
+@28
+SystemC.h
+@25
+SystemC.r[31:0]
+@28
+SystemC.s
+SystemC.startstop
+[pattern_trace] 1
+[pattern_trace] 0

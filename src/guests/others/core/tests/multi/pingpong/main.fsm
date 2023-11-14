@@ -1,0 +1,43 @@
+-- A Ping-Pong model
+--
+-- FSM A sends "Ping" to FSM B and waits for answer "Pong"
+-- FSM B waits for "Ping" and emits "Pong" back after a pre-defined delay
+--
+-- The delay is here hardcoded. See ../../../simple/multi/pingpong for a generalized version,
+-- where it si specified as a model parameter
+
+
+fsm model A(
+  in top: event,
+  in pong: event,
+  out ping: event)
+{
+  states: Repos, AttPong;
+  trans:
+  | Repos -> AttPong on top with ping
+  | AttPong -> Repos on pong;
+  itrans:
+  | -> Repos ;
+}
+
+fsm model B(
+  in h: event,
+  in ping: event,
+  out pong: event)
+{
+  states: AttPing, Delay;
+  vars: t: int;
+  trans:
+  | AttPing -> Delay on ping with t:=3
+  | Delay -> Delay on h when t>0 with t:=t-1
+  | Delay -> AttPing on h when t=0 with pong;
+  itrans:
+  | -> AttPing ;
+}
+
+input H: event = periodic(1, 0, 10)
+input Top: event = sporadic(4)
+shared Ping, Pong: event
+
+fsm A = A(Top,Pong,Ping)
+fsm B = B(H,Ping,Pong)

@@ -1,0 +1,27 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Sun Jul 16 14:02:42 2023
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/examples/core/single/altbit/systemc/main.vcd"
+[dumpfile_mtime] "Sun Jul 16 14:01:23 2023"
+[dumpfile_size] 1209
+[savefile] "/Users/jserot/Dev/ml/rfsm/examples/core/single/altbit/systemc/main.gtkw"
+[timestart] 0
+[size] 1031 293
+[pos] 198 378
+*-15.275752 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 193
+[signals_width] 150
+[sst_expanded] 1
+[sst_vpaned_height] 60
+@28
+SystemC.E
+SystemC.H
+@24
+SystemC.a1_state[31:0]
+SystemC.a2_state[31:0]
+@28
+SystemC.Err1
+SystemC.Err2
+[pattern_trace] 1
+[pattern_trace] 0

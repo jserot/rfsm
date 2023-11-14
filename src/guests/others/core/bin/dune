@@ -9,11 +9,11 @@
   (modules lexer))
 
 (menhir
-  (modules ../../../host/lib/host_parser guest_parser)
+  (modules ../../../../host/lib/host_parser guest_parser)
   (merge_into parser)
   (flags --unused-tokens --unused-precedence-levels))
 
 (rule
  (target lexer.mll)
- (deps (:first-dep ../../../host/lib/lexer.cppo.mll) guest_kw.mll guest_rules.mll)
- (action (run cppo -n -I . -I ../../../host/lib %{first-dep} -o %{target})))
+ (deps (:first-dep ../../../../host/lib/lexer.cppo.mll) guest_kw.mll guest_rules.mll)
+ (action (run cppo -n -I . -I ../../../../host/lib %{first-dep} -o %{target})))

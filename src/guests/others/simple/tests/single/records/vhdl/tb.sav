@@ -1,0 +1,46 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Tue Nov 20 09:14:41 2018
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/examples/working/udtypesio/record/vhdl/tb.ghw"
+[dumpfile_mtime] "Tue Nov 20 09:09:57 2018"
+[dumpfile_size] 1039
+[savefile] "/Users/jserot/Dev/ml/rfsm/examples/working/udtypesio/record/vhdl/tb.sav"
+[timestart] 0
+[size] 950 527
+[pos] 143 134
+*-26.051550 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.tb.
+[treeopen] top.tb.inp.
+[treeopen] top.tb.u_top.
+[treeopen] top.tb.u_top.inp.
+[treeopen] top.tb.u_top.outp.
+[sst_width] 198
+[signals_width] 184
+[sst_expanded] 1
+[sst_vpaned_height] 141
+@28
+top.tb.rst
+top.tb.h
+top.tb.u_top.u_f.state
++{inp:x} top.tb.u_top.inp.x
+@c00024
++{inp:y[7:0]} #{top.tb.u_top.inp.y[7:0]} top.tb.u_top.inp.y[7] top.tb.u_top.inp.y[6] top.tb.u_top.inp.y[5] top.tb.u_top.inp.y[4] top.tb.u_top.inp.y[3] top.tb.u_top.inp.y[2] top.tb.u_top.inp.y[1] top.tb.u_top.inp.y[0]
+@28
+top.tb.u_top.inp.y[7]
+top.tb.u_top.inp.y[6]
+top.tb.u_top.inp.y[5]
+top.tb.u_top.inp.y[4]
+top.tb.u_top.inp.y[3]
+top.tb.u_top.inp.y[2]
+top.tb.u_top.inp.y[1]
+top.tb.u_top.inp.y[0]
+@1401204
+-group_end
+@28
++{outp:x} top.tb.u_top.outp.x
+@24
++{outp:y[7:0]} #{top.tb.u_top.outp.y[7:0]} top.tb.u_top.outp.y[7] top.tb.u_top.outp.y[6] top.tb.u_top.outp.y[5] top.tb.u_top.outp.y[4] top.tb.u_top.outp.y[3] top.tb.u_top.outp.y[2] top.tb.u_top.outp.y[1] top.tb.u_top.outp.y[0]
+[pattern_trace] 1
+[pattern_trace] 0

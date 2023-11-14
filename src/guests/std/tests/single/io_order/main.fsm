@@ -1,0 +1,16 @@
+-- Check that models IOs can be listed in any order (not necessarily with inputs first)
+-- Note that the backends will re-order them, though
+
+fsm model f (out o: int, in h: event)
+{
+  states: Idle;
+  trans:
+  | Idle -> Idle on h with o:=0;
+  itrans:
+  | -> Idle;
+}
+
+input h : event = periodic (10,0,100)
+output o : int
+
+fsm f = f(o,h)

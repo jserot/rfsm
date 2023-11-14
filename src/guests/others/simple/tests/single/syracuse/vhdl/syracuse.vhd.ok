@@ -1,0 +1,54 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+library rfsm;
+use rfsm.core.all;
+
+entity syracuse is
+  port(	h: 	in std_logic;
+        start:	in std_logic;
+        u0:	in unsigned(7 downto 0);
+        rdy:	out std_logic;
+        n:	out unsigned(7 downto 0);
+        rst:	in std_logic
+        );
+end syracuse;
+
+architecture RTL of syracuse is
+  type t_state is (Repos, Calcul);
+  signal etat: t_state;           
+  signal u, m: unsigned(7 downto 0);
+begin
+  process(rst, h)
+  begin
+    if (rst='1') then
+      etat <= Repos;
+      rdy <= '1';
+    elsif rising_edge(h) then
+      case etat is
+        when Repos =>
+          if (start='1') then
+            u <= u0;
+            m <= to_unsigned(1,8);
+            rdy <= '0';
+            etat <= Calcul;
+          end if;
+        when Calcul =>
+          if ( u = to_unsigned(1,8) ) then
+            n <= m;
+            rdy <= '1';   
+            etat <= Repos;
+          else
+            if ( u mod 2 = 0 ) then
+              u <= u / 2;
+              m <= m + 1;
+             else
+               u <= mul(to_unsigned(3,8),u)+1;
+              m <= m + 1;
+            end if;
+            etat <= Calcul;
+          end if;
+      end case;                 
+    end if;
+  end process;      
+end RTL;

@@ -1,0 +1,27 @@
+--  Run-length decoder 
+
+type rle = record {
+  val: char,
+  cnt: int
+}
+
+fsm model rld(
+  in h: event,
+  in e: rle,
+  out s: char)
+{
+  states: Idle, Write;
+  vars: r: rle;
+  trans:
+  | Idle -> Write on h with r:=e
+  | Write -> Write on h when r.cnt>0 with s:=r.val, r.cnt:=r.cnt-1
+  | Write -> Idle on h when r.cnt=0 with s:=' ';
+  itrans:
+  | -> Idle ;
+}
+
+input h : event = periodic(10, 10, 120)
+input inp : rle = value_changes(5:{val='A',cnt=3}, 45:{val='B',cnt=2}, 75:{val='+',cnt=1})
+output outp : char
+
+fsm f = rld(h,inp,outp)

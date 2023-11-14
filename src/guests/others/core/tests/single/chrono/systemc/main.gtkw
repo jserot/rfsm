@@ -1,0 +1,23 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Mon Jul 17 06:22:54 2023
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/rfsm/examples/core/single/chrono/systemc/main.vcd"
+[dumpfile_mtime] "Mon Jul 17 06:22:04 2023"
+[dumpfile_size] 1000
+[savefile] "/Users/jserot/Dev/ml/rfsm/examples/core/single/chrono/systemc/main.gtkw"
+[timestart] 0
+[size] 1096 293
+[pos] -1 306
+*-15.193048 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 193
+[signals_width] 141
+[sst_expanded] 1
+[sst_vpaned_height] 60
+@28
+SystemC.H
+SystemC.StartStop
+@24
+SystemC.Aff[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

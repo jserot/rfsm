@@ -1,0 +1,38 @@
+LIBDIR=/Users/jserot/Dev/ml/rfsmc/etc
+
+include $(LIBDIR)/platform
+
+LIBDIR=/Users/jserot/Dev/ml/rfsmc/etc
+
+GHDL=ghdl
+GHDLOPTS=-fno-color-diagnostics -P$(LIBDIR)/lib/vhdl
+
+all: run
+
+run: main_tb
+	$(GHDL) -r $(GHDLOPTS) main_tb --wave=main_tb.ghw
+
+view: run
+	$(VCDVIEWER) main_tb.ghw main_tb.gtkw > /tmp/gtkwave.log 2>&1; echo $$?
+
+clean:
+	\rm -f work*.cf
+	\rm -f *.o
+	\rm -f main_tb
+	\rm -f main_tb.vcd
+	\rm -f main_tb.ghw
+
+clobber: clean
+	\rm -f *~
+	\rm -rf html
+
+rfsm.vhd: $(LIBDIR)/lib/vhdl/rfsm.vhd
+	cp $< $@
+
+main_tb: rfsm.vhd globals.vhd conv.vhd main_tb.vhd
+	$(GHDL) -a $(GHDLOPTS) rfsm.vhd
+	$(GHDL) -a $(GHDLOPTS) globals.vhd
+	$(GHDL) -a $(GHDLOPTS) conv.vhd
+	$(GHDL) -a $(GHDLOPTS) main_top.vhd
+	$(GHDL) -a $(GHDLOPTS) main_tb.vhd
+	$(GHDL) -e $(GHDLOPTS) main_tb

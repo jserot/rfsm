@@ -18,6 +18,8 @@ install:
 
 INSTALL_DOCDIR=`opam var doc`
 
+doc: doc.html doc.pdf
+
 doc.view:
 	open -a Safari _build/default/_doc/_html/index.html
 
@@ -25,10 +27,8 @@ doc.html:
 	dune build @doc
 
 doc.pdf:
-	(cd ./doc; make)
-#	rm -rf ./docs/*
-#	cp -r _build/default/_doc/_html/* ./docs
-#	cp doc/rfsm.pdf ./docs
+	(cd ./doc/user_manual; make)
+	(cd ./doc/ref_manual; make)
 
 html: README.md
 	pandoc -t html -o README.html README.md

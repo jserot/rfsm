@@ -1,0 +1,20 @@
+-- This test to check if the type of globals constants is correctly generalized
+-- Type-checking should fail in this case because the type of local variables should _not_ be generalized !
+
+constant n: int = 0
+
+fsm model f(in h: event, in i: int<4>, out o: int<8>)
+{
+  states: Idle;
+  vars: z: int;
+  trans:
+  | Idle -> Idle on h when i=z with o:=z; -- Type checking should fail here
+  itrans:
+  | -> Idle;
+}
+
+input h : event = periodic (10,0,100)
+input i4 : int<4> = value_changes (0:0)
+output o8 : int<8>
+
+fsm f = f(h,i4,o8)

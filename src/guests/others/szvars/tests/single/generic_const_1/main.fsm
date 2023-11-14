@@ -1,0 +1,29 @@
+-- This test to check if the type of globals constants is correctly generalized
+-- Here, [n] should have type [int<4>] in [f4] and [int<8>] in [f8] 
+
+constant n: int = 0
+
+fsm model f4(in h: event, in i: int<4>)
+{
+  states: Idle;
+  trans:
+  | Idle -> Idle on h when i=n;
+  itrans:
+  | -> Idle;
+}
+
+fsm model f8(in h: event, in i: int<8>)
+{
+  states: Idle;
+  trans:
+  | Idle -> Idle on h when i=n;
+  itrans:
+  | -> Idle;
+}
+
+input h : event = periodic (10,0,100)
+input i4 : int<4> = value_changes (0:0)
+input i8 : int<8> = value_changes (0:0)
+
+fsm f4 = f4(h,i4)
+fsm f8 = f8(h,i8)
