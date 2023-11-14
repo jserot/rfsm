@@ -17,8 +17,6 @@ COMPILER
 EXAMPLES
 
 DIST
-- adjust links to docs in README
 - use Dune `install` stanza to install documentation, etcs and examples
-- KNOWN-BUGS -> Issues
 
 DOC
