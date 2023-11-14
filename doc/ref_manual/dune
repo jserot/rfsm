@@ -1,3 +1,0 @@
-(install
-  (files rfsm_rm.pdf)
-  (section doc))
