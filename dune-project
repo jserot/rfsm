@@ -1,4 +1,4 @@
-(lang dune 2.6)
+(lang dune 3.11)
 (name rfsm)
 (source (github jserot/rfsm))
 (license MIT)
@@ -8,7 +8,6 @@
 (homepage "http://github.com/jserot/rfsm")
 (documentation "http://jserot.github.io/rfsm")
 (using menhir 2.0)
-(allow_approximate_merlin)
 
 (package
   (name rfsm)
