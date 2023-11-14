@@ -13,7 +13,7 @@ two inputs (`h`, of type `event`, and `e`, of type `bool`) and one output (`s`, 
 occurrence of the `h` event and when a `1` is read, the `s` output is set to `1` for a duration
 `D=n.T`. 
 
-![](https://github.com/jserot/rfsm/tree/master/doc/figs/gensig-model-moore.png)
+![](https://github.com/jserot/rfsm/blob/master/doc/figs/gensig-model-moore.png "")
 
 The model has two states (named `E0` and `E1`). The initial state is `E0`. 
 The `s` output is `0` when the machine is in state `E0` and `1` when it is in state `E1`.
