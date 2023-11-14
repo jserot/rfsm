@@ -224,4 +224,4 @@ of variant languages are provided in the distribution (under directorty `guests/
 ## RELATED TOOLS
 
 A Graphical User Interface to the RFSM compiler - but restricted to mono-FSM models
-- is provided by the [RfsmLight](http://github.com/jserot/rfsm-light) application.
+is provided by the [RfsmLight](http://github.com/jserot/rfsm-light) application.
