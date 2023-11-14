@@ -13,7 +13,7 @@ two inputs (`h`, of type `event`, and `e`, of type `bool`) and one output (`s`, 
 occurrence of the `h` event and when a `1` is read, the `s` output is set to `1` for a duration
 `D=n.T`. 
 
-![](https://github.com/jserot/rfsm/blob/master/doc/figs/gensig-model-moore.png "")
+![](https://github.com/jserot/rfsm/blob/master/docs/figs/gensig-model-moore.png "")
 
 The model has two states (named `E0` and `E1`). The initial state is `E0`. 
 The `s` output is `0` when the machine is in state `E0` and `1` when it is in state `E1`.
@@ -75,12 +75,12 @@ Invoking the `rfmsc` compiler with the `-sim` option produces `.vcd` file, which
 be viewed with the [Gtkwave](http://gtkwave.sourceforge.net) trace viewer for example, as shown
 below
 
-![](https://github.com/jserot/rfsm/blob/master/doc/figs/gensig-chrono.png "")
+![](https://github.com/jserot/rfsm/blob/master/docs/figs/gensig-chrono.png "")
 
 Invoking the `rfmsc` compiler with the `-ctask`, `-systemc` and `-vhdl` option can generate C,
 SystemC and VHDL code for the model (and the testbench). Here's for example the VHDL code generated
 for the `gensig` model. All the generated code can  can be viewed
-[here](https://github.com/jserot/rfsm/tree/master/doc/code/gensig).
+[here](https://github.com/jserot/rfsm/tree/master/docs/code/gensig).
 
 RFSM can also be used to describe multi-FSM models. Here's a description of a simple modulo-8
 counter as three concurrent modulo-2 counters :
@@ -116,11 +116,11 @@ internal, shared events named `R0` and `R1`.
 A graphical view of global model (obtained by invoking the `rfsmc` compiler with the `-dot` option) is
 given below
 
-![](https://github.com/jserot/rfsm/blob/master/doc/figs/ctrmod8-top.png "")
+![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-top.png "")
 
 Simulation of this model produces the following trace :
 
-![](https://github.com/jserot/rfsm/blob/master/doc/figs/ctrmod8-chrono.png "")
+![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-chrono.png "")
 
 ## PACKAGE DESCRIPTION
 
@@ -151,11 +151,11 @@ for simulation or implementation on a target platform (micro-controlers or FPGAs
 ## Documentation
 
 The user and reference manuals can be found
-[here](https://github.com/jserot/rfsm/tree/master/doc/user_manual/rfsm_um.pdf) and
-[here](https://github.com/jserot/rfsm/tree/master/doc/ref_manual/rfsm_rm.pdf).
+[here](https://github.com/jserot/rfsm/tree/master/docs/user_manual/rfsm_um.pdf) and
+[here](https://github.com/jserot/rfsm/tree/master/docs/ref_manual/rfsm_rm.pdf).
 
 The "host" library API is documented
-[here](https://github.com/jserot/rfsm/blob/master/doc/lib/index.html ""). 
+[here](https://jserot/github.io/rfsm/index.html ""). 
 
 
 

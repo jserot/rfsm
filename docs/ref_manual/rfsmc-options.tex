@@ -1,0 +1,32 @@
+-main & set prefix for the generated main files\\
+-dump\_typed & dump typed representation of model(s)/program to stdout\\
+-dump\_static & dump static representation of model(s)/program to stdout\\
+-target\_dir & set target directory (default: .)\\
+-lib & set location of the support library (default: <opam\_prefix>/share/rfsm)\\
+-dot & generate .dot representation of model(s)/program\\
+-sim & run simulation (generating .vcd file)\\
+-ctask & generate CTask code\\
+-systemc & generate SystemC code\\
+-vhdl & generate VHDL code\\
+-version & print version of the compiler and quit\\
+-show\_models & generate separate representations for uninstanciated FSM models \\
+-dot\_qual\_ids & print qualified identifiers in DOT representations\\
+-gui & generate report and error messages for interacting with rfsm-light\\
+-dot\_no\_captions & Remove captions in .dot representation(s)\\
+-dot\_short\_trans & Print single-line transition labels (default is multi-lines)\\
+-dot\_abbrev\_types & Print abbreviated types (default is to print definitions)\\
+-dot\_boxed & Draw FSM instances in boxes\\
+-sim\_trace & set trace level for simulation (default: 0)\\
+-vcd\_int\_size & set default int size for VCD traces (default: 8)\\
+-synchronous\_actions & interpret actions synchronously\\
+-sc\_time\_unit & set time unit for the SystemC test-bench (default: SC\_NS)\\
+-sc\_trace & set trace mode for SystemC backend (default: false)\\
+-stop\_time & set stop time for the SystemC and VHDL test-bench (default: 100)\\
+-sc\_double\_float & implement float type as C++ double instead of float (default: false)\\
+-vhdl\_trace & set trace mode for VHDL backend (default: false)\\
+-vhdl\_time\_unit & set time unit for the VHDL test-bench\\
+-vhdl\_ev\_duration & set duration of event signals (default: 1 ns)\\
+-vhdl\_rst\_duration & set duration of reset signals (default: 1 ns)\\
+-vhdl\_numeric\_std & translate integers as numeric\_std [un]signed (default: false)\\
+-vhdl\_bool\_as\_bool & translate all booleans as boolean (default: false)\\
+-vhdl\_dump\_ghw & make GHDL generate trace files in .ghw format instead of .vcd\\

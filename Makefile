@@ -1,5 +1,3 @@
-.PHONY: doc.html doc.pdf tests
-
 all: host std_guest doc
 
 host:
@@ -16,8 +14,6 @@ other_guests:
 install:
 	dune build @install
 
-INSTALL_DOCDIR=`opam var doc`
-
 doc: doc.html doc.pdf
 
 doc.view:
@@ -25,14 +21,11 @@ doc.view:
 
 doc.html:
 	dune build @doc
+	cp -r _build/default/_doc/_html/* ./docs
 
 doc.pdf:
-	(cd ./doc/user_manual; make)
-	(cd ./doc/ref_manual; make)
-
-html: README.md
-	pandoc -t html -o README.html README.md
-	pandoc -t html -o CHANGES.html CHANGES.md
+	(cd ./docs/user_manual; make)
+	(cd ./docs/ref_manual; make)
 
 clean:
 	dune clean

@@ -13,10 +13,10 @@ config
 config-stamp
 *.dvi
 *.pdf
-doc/user_manual/*
-!doc/user_manual/rfsm_um.pdf
-doc/ref_manual/*
-!doc/ref_manual/rfsm_rm.pdf
+docs/user_manual/*
+!docs/user_manual/rfsm_um.pdf
+docs/ref_manual/*
+!docs/ref_manual/rfsm_rm.pdf
 *.aux
 *.log
 *.rel
