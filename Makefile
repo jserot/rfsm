@@ -21,7 +21,7 @@ doc.view:
 
 doc.html:
 	dune build @doc
-	cp -r _build/default/_doc/_html/* ./docs
+	cp -r -p _build/default/_doc/_html/* ./docs
 
 doc.pdf:
 	(cd ./docs/user_manual; make)
