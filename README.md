@@ -116,12 +116,11 @@ internal, shared events named `R0` and `R1`.
 A graphical view of global model (obtained by invoking the `rfsmc` compiler with the `-dot` option) is
 given below
 
-![](https://github.com/jserot/rfsm/tree/master/doc/figs/ctrmod8-top.png "")
+![](https://github.com/jserot/rfsm/blob/master/doc/figs/ctrmod8-top.png "")
 
 Simulation of this model produces the following trace :
 
-![](https://github.com/jserot/rfsm/tree/master/doc/figs/ctrmod8-chrono.png "")
-
+![](https://github.com/jserot/rfsm/blob/master/doc/figs/ctrmod8-chrono.png "")
 
 ## PACKAGE DESCRIPTION
 
