@@ -80,7 +80,7 @@ below
 Invoking the `rfmsc` compiler with the `-ctask`, `-systemc` and `-vhdl` option can generate C,
 SystemC and VHDL code for the model (and the testbench). Here's for example the VHDL code generated
 for the `gensig` model. All the generated code can  can be viewed
-[here](https://github.com/jserot/rfsm/blob/master/docs/code/gensig).
+[here](https://github.com/jserot/rfsm/tree/master/docs/code/gensig).
 
 RFSM can also be used to describe multi-FSM models. Here's a description of a simple modulo-8
 counter as three concurrent modulo-2 counters :
@@ -116,11 +116,11 @@ internal, shared events named `R0` and `R1`.
 A graphical view of global model (obtained by invoking the `rfsmc` compiler with the `-dot` option) is
 given below
 
-![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-top.png "")
+![](https://github.com/jserot/rfsm/tree/master/docs/figs/ctrmod8-top.png "")
 
 Simulation of this model produces the following trace :
 
-![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-chrono.png "")
+![](https://github.com/jserot/rfsm/tree/master/docs/figs/ctrmod8-chrono.png "")
 
 
 ## PACKAGE DESCRIPTION
@@ -151,9 +151,12 @@ for simulation or implementation on a target platform (micro-controlers or FPGAs
 
 ## Documentation
 
-The user and reference manuals can be found [here]() and [here]().
+The user and reference manuals can be found
+[here](https://github.com/jserot/rfsm/tree/master/doc/user_manual/rfsm_um.pdf) and
+[here](https://github.com/jserot/rfsm/tree/master/doc/ref_manual/rfsm_rm.pdf).
 
-The "host" library API is documented [here](). 
+The "host" library API is documented
+[here](https://github.com/jserot/rfsm/tree/master/doc/lib/index.html). 
 
 
 ## Installation
@@ -175,8 +178,8 @@ The package includes
 ### Compiling and running examples
 
 Some examples are provided in
-[examples/single](https://github.com/jserot/rfsm/tree/master/examples/single) and
-[examples/multi](https://github.com/jserot/rfsm/tree/master/examples/multi) (the former concerns systems
+[examples/single](https://github.com/jserot/rfsm/tree/master/examples/std/single) and
+[examples/multi](https://github.com/jserot/rfsm/tree/master/examples/std/multi) (the former concerns systems
 built from a single state diagram, the latter systems built from several diagrams).
 
 For compiling and running an example
