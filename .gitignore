@@ -13,10 +13,10 @@ config
 config-stamp
 *.dvi
 *.pdf
-doc/user_manual/
-!doc/user_manual/rfsm_um.pdf
-doc/ref_manual/
-!doc/ref_manual/rfsm_rm.pdf
+doc/user_manual/*.tex
+doc/user_manual/*.sty
+doc/user_manual/Makefile
+doc/user_manual/dune
 *.aux
 *.log
 *.rel
