@@ -155,7 +155,7 @@ The user and reference manuals can be found
 [here](https://github.com/jserot/rfsm/tree/master/docs/ref_manual/rfsm_rm.pdf).
 
 The "host" library API is documented
-[here](https://jserot/github.io/rfsm/index.html ""). 
+[here](https://jserot.github.io/rfsm/index.html ""). 
 
 
 
