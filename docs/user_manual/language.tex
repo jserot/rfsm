@@ -8,18 +8,18 @@ manual.
 \section{Programs}
 \label{sec:programs}
 
-A RSFM program contains declarations of six kinds~: 
+A RSFM program is made of successive sections, containing, respectively 
 \begin{itemize}
-\item \textbf{types}
-\item \textbf{constants}
-\item \textbf{functions}
-\item \textbf{FSM models}
-\item \textbf{global objects}
-\item \textbf{FSM instanciations}
+\item type declarations,
+\item constant declarations,
+\item function declarations,
+\item FSM model definitions,
+\item global object definitions,
+\item FSM instanciations.
 \end{itemize}
 
-These declarations may appear in any order in a given program but an object used in a given section must
-have been declared before. 
+Each section is optional\footnote{Though, obviously, a program with no model definition, and hence
+  no FSM instanciation, is of little interest.} but their must appear in the order given above.
 
 \section{FSM models}
 \label{sec:fsm-models}
@@ -230,18 +230,19 @@ will assign them values 2 and 4 respectively, because the action \verb|x:=x+1| i
 the action \verb|y:=x*2|. 
 
 This interpretation is the most intuitive one and naturally fits with software-based
-implementations. There's actually another interpretation in which actions are not performed sequentially but
-\emph{synchronously}. In this case, all the expressions appearing on the right-hand-side of
-assignations are fisrt evaluated \emph{in parallel} and then, and only then, all the assignations
-are performed. Because the values of the variables occuring in the RHS expressions are those 
-\emph{before} the transition, the order in which the actions are performed does not matter in this
-case. In the example above, the values assigned to \texttt{x} and \texttt{y} will be 2 and 2
-  respectively. This interpretation more naturally fits to \emph{hardware-based} implementations,
-in which variables are implemented as \emph{signals} all updated synchronously at each clock cycle. 
-Switching to a synchronous interpretation is possible by invoking the \texttt{rfsmc} compiler with the
-\texttt{-synchronous_actions} option. \textbf{Caveat}. This option is
-available when using the simulator and the VHDL backend but is
-currently not supported when using the C and SystemC backends.
+implementations.
+% There's actually another interpretation in which actions are not performed sequentially but
+% \emph{synchronously}. In this case, all the expressions appearing on the right-hand-side of
+% assignations are fisrt evaluated \emph{in parallel} and then, and only then, all the assignations
+% are performed. Because the values of the variables occuring in the RHS expressions are those 
+% \emph{before} the transition, the order in which the actions are performed does not matter in this
+% case. In the example above, the values assigned to \texttt{x} and \texttt{y} will be 2 and 2
+%   respectively. This interpretation more naturally fits to \emph{hardware-based} implementations,
+% in which variables are implemented as \emph{signals} all updated synchronously at each clock cycle. 
+% Switching to a synchronous interpretation is possible by invoking the \texttt{rfsmc} compiler with the
+% \verb|-synchronous_actions| option. \textbf{Caveat}. This option is
+% available when using the simulator and the VHDL backend but is
+% currently not supported when using the C and SystemC backends.
 
 \medskip
 \textbf{Non-determinism and priorities}. 
@@ -293,7 +294,7 @@ the \texttt{StartStop} and \texttt{H} events are never emitted at the same time.
 sense, cheating, since the \texttt{StartStop} event is supposed to modelize user interaction which
 occur, by essence, at impredictible dates.
 
-The above problem can be solved by assigning a \emph{priority} to transitions. In the current
+The above problem can be solved by assigning \emph{priorities} to transitions. In the current
 implementation, this is achieved by tagging some transitions as ``high priority''
 transitions\footnote{Future versions may evolve towards a more sophisticated mechanism allowing
   numeric priorities.}.  When several transitions are enabled, if one is tagged as ``high priority''
@@ -338,8 +339,9 @@ denoted~:
 \framebox{\lstinline[language=Rfsm]{| -> init_state}}
 \end{center}
 
-\medskip
-\textbf{Note}. Output values can be set by either attaching them to states or by updating them on
+\subsection{Output values}
+
+Output values can be set by either attaching them to states or by updating them on
 transitions. For a given output \texttt{o}, attaching a value \texttt{v} to a state \texttt{S}, by writing
 
 \begin{center}
@@ -365,6 +367,7 @@ values assigned to outputs in transitions may depend of inputs).
 
 Interface to the external world are represented by \verb|input| and \verb|output| objects.
 
+\medskip
 \step For outputs the declaration simply gives a name and a type~:
 
 \begin{center}
@@ -435,6 +438,7 @@ Shared objects are used to represent interconnexions between FSM instances. This
 occurs when the system model involves several FSM instances and when the input of a given instance
 is provided by the output of another one.
 
+\medskip
 \step For shared objects the declaration simply gives a name and a type~:
 
 \begin{center}
@@ -456,17 +460,19 @@ variable of type \texttt{int}.
 \subsection*{Semantic issues}
 
 \medskip
-Shared objects are typically used to perform some kind synchronisation between FSMs. The precise semantics
-of this synchronisation depends on the shared object. It is described formally in Appendix D.
+Shared objects are typically used to perform some kind synchronisation between FSMs. The precise semantic
+of this synchronisation depends on the shared object. We here describe it informally. A formal
+account is given the reference manual. 
 
 \subsubsection*{Synchronisation using a shared event}
 \label{sec:synchr-using-shar}
 
 Synchronisation using a shared event is both instantaneous and ephemeral.
 
+\medskip
 \textbf{Instantaneous} means that an event emitted by a FSM when taking a
 transition can trigger a reaction of another FSM at the same logical instant, the two reactions -- that of
-emitting FSM and that of the ``receiving'' FSM -- being simultaneous. 
+the ``emitting'' FSM and that of the ``receiving'' FSM -- being simultaneous. 
 This is illustrated in Fig.~\ref{fig:sync-ev1}. Here, each occurence of event \texttt{H} when
 \texttt{a1} is in state \texttt{A} triggers the simultaneous transition of \texttt{a2} from state
 \texttt{A} to state \texttt{B}.
@@ -588,7 +594,7 @@ by the \texttt{rfsmc} simulator. For various reasons, it may not fully supported
 backends.  The support of shared events in the SystemC backend, for example, is fragile and has not
 yet fully tested\footnote{It relies on the insertion of zero-time \texttt{wait} instructions.}. It
 is completely lacking in the VHDL backend (VHDL implementation of FSMs can only be triggered by a
-single, ``external'' \texttt{clock} signal).  Finally, the \emph{event} mechanism provided by most
+single, external, \texttt{clock} signal).  Finally, the \emph{event} mechanism provided by most
 of real-time operating systems (as abstracted by \verb|notify_ev()| and \verb|wait_ev()|
 pseudo-primitives used in the code generated by the C backend) may not obey the semantics provided
 here (most of OS-supported events are \emph{memorized} when they are not awaited for when emitted in
@@ -609,7 +615,7 @@ visible and hence can enable the transition of \texttt{a2}.
 \begin{figure}[h]
   \centering
 \begin{tabular}[c]{cc}
-  \begin{minipage}[b]{0.3\linewidth}
+  \begin{minipage}[b]{0.4\linewidth}
   \begin{lstlisting}[language=Rfsm]
 fsm model A1(
   in h: event,
@@ -635,10 +641,10 @@ fsm model A2(
 }
   \end{lstlisting}
   \end{minipage} &
-  \begin{minipage}[b]{0.7\linewidth}
+  \begin{minipage}[b]{0.6\linewidth}
 \begin{lstlisting}[language=Rfsm]
-input H : event = sporadic(10, 20, 30, 40)
-shared V : bool
+input H: event = sporadic(10,20,30,40)
+shared V: bool
 
 fsm a1 = A1(H,V)
 fsm a2 = A2(H,V)
@@ -652,18 +658,18 @@ fsm a2 = A2(H,V)
 \end{figure}
 
 \bigskip Because shared variables are, by definition, memorized, they can used to implement
-\emph{defered synchronisation}, \emph{i.e.} the situation where a FSM emits an event which be used
+\emph{defered synchronisation}, \emph{i.e.} the situation where a FSM emits an event which will be used
 \emph{later} by another FSM (shared events cannot be used in this case since, as described above,
 non-awaited events are not memorized and hence lost). This is illustrated in
 Fig.~\ref{fig:sync-sv2}. Here, \texttt{a1} set variable \texttt{v} to 1 when going from state
-\texttt{S1} to \texttt{S2} but \texttt{a2} only detect this when going from state \texttt{S2} to
+\texttt{S1} to \texttt{S2} but \texttt{a2} only detects this when going from state \texttt{S2} to
 \texttt{S3}, reseting the variable to 0 \emph{en passant}. In effect, \texttt{a1} has emitted a
 event which has been memorized and caught latter by \texttt{a2}.
 
 \begin{figure}[h]
   \centering
 \begin{tabular}[c]{cc}
-  \begin{minipage}[b]{0.3\linewidth}
+  \begin{minipage}[b]{0.4\linewidth}
   \begin{lstlisting}[language=Rfsm]
 fsm model A1(
   in h: event,
@@ -685,17 +691,18 @@ fsm model A2(
   states: S1, S2, S3;
   trans:
   | S1 -> S2 on h
-  | S2 -> S3 on h when v=1 with v:=0
+  | S2 -> S3 on h when v=1
+                  with v:=0
   | S3 -> S1 on h;
   itrans:
   | -> S1 ;
 }
   \end{lstlisting}
   \end{minipage} &
-  \begin{minipage}[b]{0.7\linewidth}
+  \begin{minipage}[b]{0.6\linewidth}
 \begin{lstlisting}[language=Rfsm]
-input H : event = sporadic(10, 20, 30)
-shared v : bool
+input H: event = sporadic(10,20,30)
+shared v: bool
 
 fsm a1 = A1(H,v)
 fsm a2 = A2(H,v)
@@ -785,10 +792,10 @@ of the formal and actual parameters (resp. IOs) must match.
 For example, the last line of the program given in Listing~\ref{lst:rfsm-gensig}
 
 \begin{center}
-\example{\lstinline[language=Rfsm]'fsm g = gensig<4>(H,E,S)'}
+\example{\lstinline[language=Rfsm]'fsm g = gensig<3>(H,E,S)'}
 \end{center}
 
-creates an instance of model \verb|gensig| for which \verb|n=4| and whose inputs (resp. output) are
+creates an instance of model \verb|gensig| for which \verb|n=3| and whose inputs (resp. output) are
 connected to the global inputs (resp. output) \texttt{H} and \texttt{E} (resp. \texttt{S}).
 
 \medskip
@@ -817,9 +824,9 @@ Global constants can be defined using the following syntax~:
 \noindent
 where
 \begin{itemize}
-\item \lstinline[language=Rfsm]|<type>| is the type of the defined constant (currently limited to
+\item \emph{type} is the type of the defined constant (currently limited to
   \verb|int|, \verb|bool|, \verb|char|, \verb|float| and arrays of such types,
-\item \lstinline[language=Rfsm]|<value>| is the value of the constant.
+\item \emph{value} is the value of the constant.
 \end{itemize}
 
 Global constants have a global scope and hence can be used in any FSM model or instance.
@@ -903,7 +910,7 @@ Types present in RFSM programs belong to two categories~: builtin types and user
 \step Objects of type \texttt{bool} can have only two values : \texttt{0} (false) and \texttt{1} (true).
 
 \step Values of type \texttt{char} are
-denoted using single quotes. For example, for a variable \verb|c| having type \verb|char| :
+denoted using single quotes. For example, for a variable \verb|c| having type \verb|char|~:
 \begin{center}
   \example{\lstinline[language=Rfsm]|c := 'A'|}
 \end{center}
@@ -946,7 +953,7 @@ designates the value represented by the bits \verb|hi|...\verb|lo| in the binary
 syntax \verb|n[i]|, where \verb|n| is an integer is equivalent to \verb|n[i:i]|. The \emph{cast}
 operator (\verb|::|) can be used to combine integers with different sizes (for example, if \verb|n|
 has type \verb|int<16>| and \verb|m| has type \verb|int<8>|, writing \verb|n:=n+m| is not allowed
-and mus be written, instead, \verb|n:=n+m::int<16>|. Note that the
+and must be written, instead, \verb|n:=n+m::int<16>|. Note that the
 logical ``or'' operator is denoted ``\verb+||+'' because the single ``\verb+|+'' is already used in
 the syntax.
 
@@ -979,6 +986,7 @@ range from 0 to \verb|n-1| where \verb|n| is the size of the array. For example,
 \textbf{User defined types} are either \emph{type abbreviations}, \emph{enumerations} or
 \emph{records}.
 
+\medskip
 \step Type abbreviations are introduced with the following declaration
 \begin{center}
   \framebox{\lstinline[language=Rfsm]{type typename = type_expression}}

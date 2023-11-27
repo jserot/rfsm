@@ -1,5 +1,6 @@
 COMPILER
 
+- LHS = LVAL
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)
@@ -20,3 +21,4 @@ DIST
 - use Dune `install` stanza to install documentation, etcs and examples
 
 DOC
+- LHS = LVAL

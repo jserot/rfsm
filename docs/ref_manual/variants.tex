@@ -4,8 +4,8 @@
 Following the approach described in~\cite{Leroy00} for example, the RFSM compiler is implemented in
 a \emph{modular} way. The language is split into a \emph{host} language, describing the general
 structure and behavior of FSMs (states, transitions, \ldots) and a \emph{guest}
-language\footnote{``Base'' in the terminology of \cite{Leroy00}.} describing the syntax and
-semantics of \emph{expressions} used in transition guards and semantics. 
+language\footnote{``Base language'' in the terminology of \cite{Leroy00}.} describing the syntax and
+semantics of \emph{expressions} used in transition guards and actions. 
 Technically, this ``separation of concern'' is realized by providing the host language in the form
 of a \emph{functor} taking as argument the module implementing the guest language.
 
@@ -75,7 +75,7 @@ where
 \end{itemize}
 
 Listings~\ref{lst:mini-types}, \ref{lst:mini-syntax},\ref{lst:mini-value} and \ref{lst:mini-eval}
-respectively show the contents of of the \texttt{Types},
+respectively show the contents of the \texttt{Types},
 \texttt{Syntax}, \texttt{Value} and \texttt{Eval} modules for the \texttt{mini} language.
 The definition of non essential fonctions has been omitted\footnote{See the corresponding source files in
   \texttt{src/guests/others/mini/lib} for a complete listing.}.
@@ -145,7 +145,7 @@ let mk_simple_lhs (v: Ident.t) =
 let pp_lhs fmt l =  ...
 \end{lstlisting}
 
-The module \texttt{Syntax} use the modules \texttt{Location}, \texttt{Annot}  and \texttt{Ident}
+The module \texttt{Syntax} uses the modules \texttt{Location}, \texttt{Annot}  and \texttt{Ident}
 provided by the \texttt{Rfsm} host library. These modules provide types and functions to handle
 source code locations, syntax annotations and identifiers respectively. The type
 \verb|('a,Types.typ) Annot.t| is associated to syntax nodes of type
@@ -193,7 +193,7 @@ let vcd_value (v: t) = match v with
 let pp fmt (v: t) =  ...
 \end{lstlisting}
 
-The module \verb|Guest.Value| define the values, associated to guest-level expressions by the
+The module \verb|Guest.Value| defines the values, associated to guest-level expressions by the
 dynamic semantics. The value \verb|Val_unknown| is used to represent undefined or unitialized
 value. The functions \verb|vcd_type| and \verb|vcd_value| provide the interface to the VCD backend,
 generating simulation traces~: they should return a VCD compatible representation  (defined in the
@@ -234,12 +234,12 @@ let pp_env fmt env = ...
 
 The module \verb|Guest.Eval| defines the guest-level dynamic semantics, \emph{i.e.} the definition
 of the dynamic environment \texttt{env}, used to bind identifiers to values and of the 
-functions \verb|eval_expr| and \verb|exal_bool| used to evaluate guest-level expressions. The
+functions \verb|eval_expr| and \verb|eval_bool| used to evaluate guest-level expressions. The
 presence of a distinct, \verb|eval_bool| function is required because the boolean type and
 expressions are not part of the host-level syntax. The definition of the \texttt{env} type here uses
-that provided by the host library but any definition matching the corresponding signature would do.
+that provided by the RFSM host library but any definition matching the corresponding signature would do.
 
-\section{Implementing the \texttt{Guest} parser}
+\section{Implementing the guest language parser}
 
 The parser for the guest language defines the concrete syntax for guest-level type expressions,
 expressions and LHS. It is written in a separate \texttt{.mly} file which will be combined with the
@@ -282,16 +282,16 @@ open Mini.Top.Syntax
 
 \end{lstlisting}
 
-\section{Implementing the \texttt{Guest} lexer}
+\section{Implementing the guest language lexer}
 
 The \texttt{ocamllex} tool, used for defining the lexer, does not support multi-file definitions.
 The lexer for the guest-specific part of the target language is therefore supplied in the form of
 code fragments to be inserted in the host lexer definition file\footnote{Technically, this insertion is
-  performed using the \texttt{cppo} tool.}. These fragments are listed in two separate files,
-present in the \texttt{bin} subdirectory of the guest directory~:
+  performed using the \texttt{cppo} tool.}. These fragments are listed in two separate files, which
+must be supplied in the \texttt{bin} subdirectory of the guest directory~:
 \begin{itemize}
-\item the file \texttt{guest_km} contains the lexer definition of the guest-specific keywords,
-\item the file \texttt{guest_rules} contains the guest-specific rules.
+\item the file \texttt{guest_kw.mll} contains the lexer definition of the guest-specific keywords,
+\item the file \texttt{guest_rules.mll} contains the guest-specific rules.
 \end{itemize}
 
 In the case of the \texttt{mini} language defined here, the latter is empty and the former only
