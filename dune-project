@@ -14,8 +14,7 @@
   (synopsis "A toolset for describing and simulating StateChart-like state diagrams")
   (depends
     (menhir (>= 2.0))
-    (lascar (>= 0.7))
-    (ocamlgraph (>= 1.8))
-    (ocaml (>= 4.10))))
+    (ocamlgraph (>= 2.0))
+    (ocaml (>= 5.0))))
 
-(generate_opam_files true)
+;(generate_opam_files true)
