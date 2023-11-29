@@ -5,7 +5,6 @@ maintainer: ["Jocelyn Sérot <jocelyn.serot@uca.fr>"]
 authors: ["Jocelyn Sérot <jocelyn.serot@uca.fr>"]
 license: "MIT"
 homepage: "http://github.com/jserot/rfsm"
-doc: "http://jserot.github.io/rfsm"
 bug-reports: "jocelyn.serot@uca.fr"
 depends: [
   "dune" {>= "3.11"}
