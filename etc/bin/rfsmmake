@@ -46,11 +46,12 @@ EOF
   shift
 done
 
-go="no"
-if [[ $confirm = "yes" ]]; then
-    if [ -e $generated_file ]; then
+if [ -e $generated_file ]; then
+    if [[ $confirm = "yes" ]]; then
         echo "File $generated_file already exists. Overwrite (yes|no) ?"
         read go
+    else
+        go="no"
     fi
 else
     go="yes"
