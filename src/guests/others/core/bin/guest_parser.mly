@@ -41,8 +41,8 @@ simple_expr:
   | e = scalar_const { e }
   | LPAREN e = expr RPAREN { e }
 
-%public lhs:
-  | v = LID { mk ~loc:$sloc (LhsVar (mk_ident v)) }
+%public lval:
+  | v = LID { mk ~loc:$sloc (LvalVar (mk_ident v)) }
 
 %public param_value:
   | v = scalar_const { v }

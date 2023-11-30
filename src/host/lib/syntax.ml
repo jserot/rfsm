@@ -18,7 +18,7 @@ module type SYNTAX = sig
   type typ = Guest.Types.typ
   type expr = Guest.expr
   type type_expr = Guest.type_expr
-  type lhs = Guest.lhs
+  type lval = Guest.lval
 
   type type_decl = Guest.type_decl
 
@@ -56,7 +56,7 @@ module type SYNTAX = sig
   and action = (action_desc,typ) Annot.t
   and action_desc =
     Emit of Ident.t
-  | Assign of lhs * expr
+  | Assign of lval * expr
             
   and transition = (transition_desc,typ) Annot.t
   and transition_desc = Ident.t * cond * action list * Ident.t * int  (* source state, condition, actions, destination state, priority *)
@@ -148,14 +148,14 @@ struct
   type typ = Guest.Types.typ
   type expr = Guest.expr
   type type_expr = Guest.type_expr
-  type lhs = Guest.lhs
+  type lval = Guest.lval
 
   type type_decl = Guest.type_decl
 
   let pp_typ = Guest.Types.pp_typ ~abbrev:false
   let pp_type_expr fmt te = Guest.Types.pp_typ ~abbrev:false fmt te.Annot.typ
   let pp_expr = Guest.pp_expr
-  let pp_lhs = Guest.pp_lhs
+  let pp_lval = Guest.pp_lval
 
   type inst_desc =
       Ident.t  
@@ -189,7 +189,7 @@ struct
 
   type action_desc =
     Emit of Ident.t
-  | Assign of lhs * expr [@@deriving show {with_path=false}]
+  | Assign of lval * expr [@@deriving show {with_path=false}]
   type action = (action_desc,typ) Annot.t
   let pp_action fmt a = pp_action_desc fmt a.Annot.desc
             
@@ -286,7 +286,7 @@ struct
                                   
   let subst_io_action phi act = match act.Annot.desc with
     | Emit ev -> { act with desc = Emit (subst_var phi ev) }
-    | Assign (lhs,expr) -> { act with desc = Assign (Guest.subst_lhs phi lhs, Guest.subst_expr phi expr) }
+    | Assign (lval,expr) -> { act with desc = Assign (Guest.subst_lval phi lval, Guest.subst_expr phi expr) }
                         
   let subst_io_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
    { t with desc = (q, subst_io_cond phi cond, List.map (subst_io_action phi) acts, q', p) }
@@ -332,7 +332,7 @@ struct
                                   
   let subst_param_action phi act = match act.Annot.desc with
     | Emit _ -> act
-    | Assign (lhs,expr) -> { act with desc = Assign (lhs, Guest.subst_param_expr phi expr) }
+    | Assign (lval,expr) -> { act with desc = Assign (lval, Guest.subst_param_expr phi expr) }
                         
   let subst_param_transition phi ({Annot.desc=(q,cond,acts,q',p); _} as t)  =
    { t with desc = (q, subst_param_cond phi cond, List.map (subst_param_action phi) acts, q', p) }
@@ -366,7 +366,7 @@ struct
         m.states in
     let remove_output_valuation ({ Annot.desc=q, ovs; _} as s) = { s with Annot.desc = q, List.remove_assoc o ovs } in
     let add_act e acts =
-      Annot.{desc=Assign(Guest.mk_simple_lhs o, e); typ=Guest.Types.no_type; loc=Location.no_location} :: acts in 
+      Annot.{desc=Assign(Guest.mk_simple_lval o, e); typ=Guest.Types.no_type; loc=Location.no_location} :: acts in 
     let add_output_assignation ({ Annot.desc=q,conds,acts,q',p; _ } as t) =
       match List.assoc_opt q' updated_states with
       | Some e -> { t with Annot.desc = q,conds,add_act e acts,q',p }
@@ -420,12 +420,12 @@ struct
   and ppr_action_desc env act =
     match act with
     | Emit _ -> act
-    | Assign (lhs, expr) ->
-       let typ = type_of ~loc:lhs.Annot.loc env (Guest.lhs_base_name lhs) in
+    | Assign (lval, expr) ->
+       let typ = type_of ~loc:lval.Annot.loc env (Guest.lval_base_name lval) in
        let expr' = Guest.ppr_expr env expr in
        if Guest.is_bool_type typ 
-       then Assign (lhs, Guest.ppr_expr env ~expected_type:(Some typ) expr')
-       else Assign (Guest.ppr_lhs env lhs, expr') (* In case pre-processing should be carried out _inside_ LHS sub-exprs *)
+       then Assign (lval, Guest.ppr_expr env ~expected_type:(Some typ) expr')
+       else Assign (Guest.ppr_lval env lval, expr') (* In case pre-processing should be carried out _inside_ l-value sub-exprs *)
 
   let rec ppr_global gl = { gl with Annot.desc = ppr_global_desc gl.Annot.desc }
   and ppr_global_desc ((id,cat,te,stim) as gl) = 
@@ -453,7 +453,7 @@ struct
   let wvars_of_action a =
     match a.Annot.desc with
     | Emit _ -> S.empty
-    | Assign (lhs,_) -> S.of_list (Guest.vars_of_lhs lhs)
+    | Assign (lval,_) -> S.of_list (Guest.vars_of_lval lval)
 
   let events_of_action a =
     match a.Annot.desc with

@@ -70,34 +70,34 @@ let rec pp_expr_desc fmt e =
 and pp_expr fmt e =
   pp_expr_desc fmt e.Annot.desc
 
-(** Assignations LHS *)
+(** L-values *)
   
-type lhs = (lhs_desc,Types.typ) Annot.t
-and lhs_desc = 
-  | LhsVar of Rfsm.Ident.t
+type lval = (lval_desc,Types.typ) Annot.t
+and lval_desc = 
+  | LvalVar of Rfsm.Ident.t
 
-let rec pp_lhs_desc ~pp_ident fmt l = match l with
-  | LhsVar v -> Format.fprintf fmt "%a" pp_ident v
-and pp_lhs fmt l =
-  pp_lhs_desc ~pp_ident:Rfsm.Ident.pp fmt l.Annot.desc
-and pp_qual_lhs fmt l =
-  pp_lhs_desc ~pp_ident:Rfsm.Ident.pp_qual fmt l.Annot.desc
+let rec pp_lval_desc ~pp_ident fmt l = match l with
+  | LvalVar v -> Format.fprintf fmt "%a" pp_ident v
+and pp_lval fmt l =
+  pp_lval_desc ~pp_ident:Rfsm.Ident.pp fmt l.Annot.desc
+and pp_qual_lval fmt l =
+  pp_lval_desc ~pp_ident:Rfsm.Ident.pp_qual fmt l.Annot.desc
 
-let is_simple_lhs l = true (* Always, for the Core language *)
+let is_simple_lval l = true (* Always, for the Core language *)
 
-let mk_simple_lhs v = Annot.{ desc=LhsVar v; typ=Types.no_type; loc=Location.no_location }
+let mk_simple_lval v = Annot.{ desc=LvalVar v; typ=Types.no_type; loc=Location.no_location }
 
-let lhs_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's ? *)
+let lval_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's ? *)
   let mk d = { l with Annot.desc = d } in
   let p s = pfx ^ "." ^ s in
   match l.Annot.desc with
-  | LhsVar v -> mk (LhsVar Rfsm.Ident.{ v with id = p v.id })
+  | LvalVar v -> mk (LvalVar Rfsm.Ident.{ v with id = p v.id })
 
-let lhs_base_name l = match l.Annot.desc with
-  | LhsVar v -> v
+let lval_base_name l = match l.Annot.desc with
+  | LvalVar v -> v
 
-let lhs_vcd_repr l = match l.Annot.desc with
-  | LhsVar v -> v
+let lval_vcd_repr l = match l.Annot.desc with
+  | LvalVar v -> v
 
 (** Inspectors *)
               
@@ -106,8 +106,8 @@ let rec vars_of_expr e = match e.Annot.desc with
   | EBinop (_,e1,e2) -> vars_of_expr e1 @ vars_of_expr e2
   | _ -> []
 
-let vars_of_lhs l = match l.Annot.desc with
-  | LhsVar v -> [v]
+let vars_of_lval l = match l.Annot.desc with
+  | LvalVar v -> [v]
 
 (** Substitutions *)
               
@@ -121,9 +121,9 @@ let rec subst_expr phi e =
   | EBinop (op,e1,e2) -> { e with Annot.desc = EBinop (op, subst_expr phi e1, subst_expr phi e2) }
   | _ -> e
 
-let subst_lhs phi l = 
+let subst_lval phi l = 
   match l.Annot.desc with
-  | LhsVar v -> { l with Annot.desc = LhsVar (subst_var phi v) }
+  | LvalVar v -> { l with Annot.desc = LvalVar (subst_var phi v) }
 
 let subst_param_expr phi e = e  (* No parameters, hence no need to substitute *)
 
@@ -131,9 +131,9 @@ let subst_param_type_expr phi te = te  (* No parameters, hence no need to substi
 
 (** VCD interface *)
               
-let vcd_name lhs =
-  match lhs.Annot.desc with
-  | LhsVar v -> v
+let vcd_name lval =
+  match lval.Annot.desc with
+  | LvalVar v -> v
 
 (** Pre-processing *)
 
@@ -160,4 +160,4 @@ let ppr_expr env ?(expected_type=None) e =
         Tests like as [e=true] or assignations like [x:=false] can be then written [e=1] and [x:=0] resp. *)
   | _ -> e
 
-let ppr_lhs _ l = l 
+let ppr_lval _ l = l 

@@ -130,30 +130,30 @@ and expr_desc =
 let vars_of_expr (e: expr) = ...
 and pp_expr fmt (e: expr) = ...
 
-(* LHSs *)
+(* L-values *)
   
-type lhs = (lhs_desc,Types.typ) Annot.t
-and lhs_desc = Ident.t
+type lval = (lval_desc,Types.typ) Annot.t
+and lval_desc = Ident.t
 
-let lhs_var (l: lhs) = ...
-let vars_of_lhs (l: lhs) = ...
-let is_simple_lhs (l: lhs) = true
+let lval_var (l: lval) = ...
+let vars_of_lval (l: lval) = ...
+let is_simple_lval (l: lval) = true
 
-let mk_simple_lhs (v: Ident.t) =
+let mk_simple_lval (v: Ident.t) =
   Annot.{ desc=v; typ=Types.no_type; loc=Location.no_location }
 
-let pp_lhs fmt l =  ...
+let pp_lval fmt l =  ...
 \end{lstlisting}
 
 The module \texttt{Syntax} uses the modules \texttt{Location}, \texttt{Annot}  and \texttt{Ident}
 provided by the \texttt{Rfsm} host library. These modules provide types and functions to handle
 source code locations, syntax annotations and identifiers respectively. The type
 \verb|('a,Types.typ) Annot.t| is associated to syntax nodes of type
-\verb|'a|. The types \verb|type_expr|, \verb|expr| and \verb|lhs| respectively describe guest-level
-type expressions, expressions and left-hand-sides (LHS). LHS are used in the definition of
+\verb|'a|. The types \verb|type_expr|, \verb|expr| and \verb|lval| respectively describe guest-level
+type expressions, expressions and l-values. L-values are used in the definition of
 actions. In this language they are limited to simple identifiers (ex: \verb|x:=<expr>|) but the
 guest language can use other forms (like in the RFSM ``standard'' language which support arrays and
-records in LHS). 
+records as l-values). 
 
 \begin{lstlisting}[language={[Objective]Caml},frame=single,basicstyle=\small,caption={Module
     \texttt{Guest.Values} (excerpt)},label={lst:mini-value}]
@@ -213,7 +213,7 @@ exception Uninitialized of Rfsm.Location.t
 
 let mk_env () = Env.init []
 
-let upd_env lhs v env = Env.upd lhs.Annot.desc v env
+let upd_env lval v env = Env.upd lval.Annot.desc v env
 
 let lookup ~loc v env = 
  match Rfsm.Env.find v env with
@@ -242,7 +242,7 @@ that provided by the RFSM host library but any definition matching the correspon
 \section{Implementing the guest language parser}
 
 The parser for the guest language defines the concrete syntax for guest-level type expressions,
-expressions and LHS. It is written in a separate \texttt{.mly} file which will be combined with the
+expressions and l-values. It is written in a separate \texttt{.mly} file which will be combined with the
 parser for the host language\footnote{Using \texttt{menhir} facility to split parser specifications
   into multiple files.}. There are only two guest specific tokens here, denoting the boolean
 constants \texttt{true} and \texttt{false}. The \texttt{open} directive in the prologue section
@@ -263,7 +263,7 @@ open Mini.Top.Syntax
 %public type_expr:
   | tc = LID { mk ~loc:$sloc (TeConstr tc) }
 
-%public lhs:
+%public lval:
   | v = LID { mk ~loc:$sloc (mk_ident v) }
 
 %public expr:

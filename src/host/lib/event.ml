@@ -17,7 +17,7 @@ module type T = sig
 
   type t =
     | Ev of Ident.t                 (** pure event *)
-    | Upd of Syntax.lhs * Value.t   (** assignation ([lhs <- v]) *)
+    | Upd of Syntax.lval * Value.t   (** assignation ([lval <- v]) *)
     | StateMove of string * string  (** state move ([src],[dst]) *)
   val is_pure_event: t -> bool
   val compare: t -> t -> int
@@ -35,19 +35,19 @@ struct
              
   type t =
     | Ev of Ident.t
-    | Upd of Syntax.lhs * Value.t   
+    | Upd of Syntax.lval * Value.t   
     | StateMove of string * string 
 
   let is_pure_event = function Ev _ -> true | _ -> false
 
   let compare = Stdlib.compare
               
-  (* let vcd_register lhs v acc = acc *)
+  (* let vcd_register lval v acc = acc *)
 
   let pp fmt s =
     let open Format in
     match s with
     | Ev e -> fprintf fmt "%a" Ident.pp e
-    | Upd (lhs,v) -> fprintf fmt "%a<-%a" Syntax.pp_lhs lhs Value.pp v
+    | Upd (lval,v) -> fprintf fmt "%a<-%a" Syntax.pp_lval lval Value.pp v
     | StateMove (f,q) -> fprintf fmt "%s<-%s" f q
 end

@@ -59,10 +59,10 @@ and pp_bool fmt b = match Rfsm.Vhdl_types.cfg.vhdl_bool_as_bool, b with
   | false, true -> fprintf fmt "'1'"
   | false, false -> fprintf fmt "'0'"
                   
-let rec pp_lhs_desc fmt l =
+let rec pp_lval_desc fmt l =
   match l with 
-  | Syntax.LhsVar v -> fprintf fmt "%a" pp_ident v
-and pp_lhs fmt l = pp_lhs_desc fmt l.Rfsm.Annot.desc
+  | Syntax.LvalVar v -> fprintf fmt "%a" pp_ident v
+and pp_lval fmt l = pp_lval_desc fmt l.Rfsm.Annot.desc
 
 let pp_type_decl fmt td = ()
 let pp_type_fns_intf fmt td = ()

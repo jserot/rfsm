@@ -54,8 +54,8 @@ struct
   let pp_ident fmt i =
     if cfg.qual_ids then Ident.pp_qual fmt i else Ident.pp fmt i
 
-  let pp_lhs fmt l =
-    if cfg.qual_ids then Syntax.Guest.pp_qual_lhs fmt l else Syntax.Guest.pp_lhs fmt l
+  let pp_lval fmt l =
+    if cfg.qual_ids then Syntax.Guest.pp_qual_lval fmt l else Syntax.Guest.pp_lval fmt l
 
   let string_length_nl s = 
       List.fold_left
@@ -77,8 +77,8 @@ struct
     let open Format in
     match a with
     | Syntax.Emit e -> fprintf fmt "%a" pp_ident e
-    | Syntax.Assign (lhs,expr) ->
-       fprintf fmt "%a:=%a" pp_lhs lhs Syntax.Guest.pp_expr expr
+    | Syntax.Assign (lval,expr) ->
+       fprintf fmt "%a:=%a" pp_lval lval Syntax.Guest.pp_expr expr
 
   let pp_actions fmt acts =
     Ext.List.pp_h ~sep:(if cfg.trans_vlayout then "\n" else ";") pp_action fmt acts

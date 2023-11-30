@@ -69,8 +69,8 @@ struct
          let t = GuestTyping.lookup_var ~loc s env in
          if GuestTyping.Types.is_event_type t then t 
          else raise (Type_mismatch (loc,"event",t))
-      | HostSyntax.Assign (lhs,expr) -> 
-         let t = GuestTyping.type_lhs env lhs in
+      | HostSyntax.Assign (lval,expr) -> 
+         let t = GuestTyping.type_lval env lval in
          let t' = GuestTyping.type_expression env expr in
          GuestTyping.type_check ~loc t t';
          t in
@@ -98,7 +98,7 @@ struct
     (* For each transition [q -> cond / acts -> q'] check that
      *    - [q] and [q'] are listed as states in the model declaration
      *    - [cond] has form [e.[guard1]...[guardn]] where [e] has type [event] and each [guardi] type [bool]
-     *    - for each [act]=[lhs:=rhs] in [acts], [type(rhs)=type(lhs)] *)
+     *    - for each [act]=[lval:=rhs] in [acts], [type(rhs)=type(lval)] *)
     check_fsm_state ~loc m q;
     check_fsm_state ~loc m q';
     type_fsm_condition env cond;

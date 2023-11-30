@@ -65,7 +65,7 @@ struct
   
   let mk_changes name tvs =
     let open Evset.Event in
-    List.map (fun (t,v) -> Evset.mk t [Upd (Syntax.mk_simple_lhs name, v)]) tvs
+    List.map (fun (t,v) -> Evset.mk t [Upd (Syntax.mk_simple_lval name, v)]) tvs
   
   let mk_sporadic name ts =
     List.map (fun t -> Evset.mk t [Evset.Event.Ev name]) ts

@@ -22,6 +22,6 @@ let rec type_of_type_expr env te = (* TO BE FILLED *)
 
 let rec type_expression env e = (* TO BE FILLED *)
 
-let type_lhs env l = (* TO BE FILLED *)
+let type_lval env l = (* TO BE FILLED *)
 
 let type_check ~loc ty ty' =  (* TO BE FILLED. Hint: should probably call sth like [Types.unify ~loc ty ty'] *)

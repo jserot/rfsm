@@ -18,7 +18,7 @@ open Mini.Top.Syntax
 %public type_expr:
   | tc = LID { mk ~loc:$sloc (TeConstr tc) }
 
-%public lhs:
+%public lval:
   | v = LID { mk ~loc:$sloc (mk_ident v) }
 
 %public expr:

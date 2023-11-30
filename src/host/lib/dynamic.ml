@@ -104,14 +104,14 @@ struct
        else                                   (* ActEmitG *)
          (vars, env),
          (Evset.empty t)
-    | Syntax.Assign (lhs,expr) ->
+    | Syntax.Assign (lval,expr) ->
        let genv = Env.union vars env in
-       let x = Syntax.Guest.lhs_base_name lhs in
-       let pfx p lhs = if p = "" then lhs else Syntax.Guest.lhs_prefix p lhs in 
+       let x = Syntax.Guest.lval_base_name lval in
+       let pfx p lval = if p = "" then lval else Syntax.Guest.lval_prefix p lval in 
        let upd ?(prefix="") env =
          let v = Eval.eval_expr genv expr in
-         Trace.add (mk_event t (Event.Upd (pfx prefix lhs, v))) trace; (* Using prefixes in traces allow VCD scoping *)
-         Eval.upd_env lhs v env in
+         Trace.add (mk_event t (Event.Upd (pfx prefix lval, v))) trace; (* Using prefixes in traces allow VCD scoping *)
+         Eval.upd_env lval v env in
        if Env.mem x vars then (* ActUpdL *)
          (upd ~prefix:(Ident.to_string f) vars, env), (* For local updates, prefix target variable *)
          Evset.empty t
@@ -274,7 +274,7 @@ struct
          else
            Misc.fatal_error ("Dynamic.is_input: " ^ Ident.to_string x ^ " is not an event typed input")
       | Event.Upd (l,_) ->
-         let x = Syntax.Guest.lhs_base_name l in
+         let x = Syntax.Guest.lval_base_name l in
          if List.mem_assoc x ctx.Static.inputs && not (Types.is_event_type ((List.assoc x ctx.Static.inputs).ct_typ)) then
            ()
          else

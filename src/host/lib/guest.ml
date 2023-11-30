@@ -93,44 +93,44 @@ module type SYNTAX = sig
   val pp_expr: Format.formatter -> expr -> unit
   (** [pp_expr fmt e] prints expression [e] on formatter [fmt]. *)
 
-  (**{3 LHS} *)
+  (**{3 L-Values} *)
 
-  type lhs_desc
-  and lhs = (lhs_desc,Types.typ) Annot.t
-  (** The type of {e left-hand sides}, occuring at the left of the [:=] symbol in assignations. A guest language
-      will typically have {e variables} as LHS but can also support more elaborated forms, such as array indices
+  type lval_desc
+  and lval = (lval_desc,Types.typ) Annot.t
+  (** The type of {e l-values}, occuring at the left of the [:=] symbol in assignations. A guest language
+      will typically have {e variables} as l-values but can also support more elaborated forms, such as array indices
       (ex: [a[i]:=...]) or record fields (ex: [r.f := ...]). *)
 
-  val mk_simple_lhs: Ident.t -> lhs
-  (** [mk_simple_lhs name] should return the LHS designating a simple variable with name [name]. *)
+  val mk_simple_lval: Ident.t -> lval
+  (** [mk_simple_lval name] should return the {e l-value} designating a simple variable with name [name]. *)
 
-  val is_simple_lhs: lhs -> bool
-  (** [is_simple_lhs l] should return [true] iff LHS [l] is a simple variable *)
+  val is_simple_lval: lval -> bool
+  (** [is_simple_lval l] should return [true] iff {e l-value} [l] is a simple variable *)
     
-  val lhs_base_name: lhs -> Ident.t
-  (** [lhs_base_name l] should return the {e base name} of LHS [l]. If [l] is a simple variable, this is simply its name. 
+  val lval_base_name: lval -> Ident.t
+  (** [lval_base_name l] should return the {e base name} of {e l-value} [l]. If [l] is a simple variable, this is simply its name. 
       For array or record access, this will typically the name of target array (resp. record). *)
 
-  val lhs_prefix: string -> lhs -> lhs
-  (** [lhs_prefix p l] should return the LHS obtained by adding prefix ["p."] to the base name of LHS [l].
-      For example, if [l] is a simple variable named ["v"], [lhs_prefix "foo" l] is the ["foo.v"]. This function 
+  val lval_prefix: string -> lval -> lval
+  (** [lval_prefix p l] should return the {e l-value} obtained by adding prefix ["p."] to the base name of {e l-value} [l].
+      For example, if [l] is a simple variable named ["v"], [lval_prefix "foo" l] is the ["foo.v"]. This function 
       is used to generated {e name scopes} when dumping VCD traces. *)
     
-  val lhs_vcd_repr: lhs -> Ident.t
-  (** [lhs_vcd_repr l] should return a representation of LHS [l] to be used in a VCD trace file. 
+  val lval_vcd_repr: lval -> Ident.t
+  (** [lval_vcd_repr l] should return a representation of {e l-value} [l] to be used in a VCD trace file. 
       If [l] is a simple variable, this is simply its name. 
-      Other cases will depend on the LHS definition and the version of VCD format used.
-      See for example the definition of [lhs_vcd_repr] for the [full] guest language. *)
+      Other cases will depend on the {e l-value} definition and the version of VCD format used.
+      See for example the definition of [lval_vcd_repr] for the [full] guest language. *)
 
-  val vars_of_lhs: lhs -> Ident.t list
-  (** [vars_of_lhs l] should return the list of variables occuring in LHS [l]. This includes simple variables
+  val vars_of_lval: lval -> Ident.t list
+  (** [vars_of_lval l] should return the list of variables occuring in {e l-value} [l]. This includes simple variables
       but also the name of the target array, record, etc. *)
 
-  val pp_lhs: Format.formatter -> lhs -> unit
-  (** [pp_lhs fmt l] prints LHS [l] on formatter [fmt]. *)
+  val pp_lval: Format.formatter -> lval -> unit
+  (** [pp_lval fmt l] prints {e l-value} [l] on formatter [fmt]. *)
     
-  val pp_qual_lhs: Format.formatter -> lhs -> unit
-  (** Same as [pp_lhs] but with an indication of the {!type:Ident.scope} of the LHS *)
+  val pp_qual_lval: Format.formatter -> lval -> unit
+  (** Same as [pp_lval] but with an indication of the {!type:Ident.scope} of the {e l-value} *)
     
   (**{3 Substitutions} *)
 
@@ -138,8 +138,8 @@ module type SYNTAX = sig
     (** [subst_id phi e] applies substitution [phi] to expression [e], substituting each occurrence of identifier
         [id] by identifier [phi id] *)
 
-  val subst_lhs: Ident.t Subst.t -> lhs -> lhs
-    (** [subst_lhs phi l] applies substitution [phi] to LHS [l], substituting each occurrence of identifier
+  val subst_lval: Ident.t Subst.t -> lval -> lval
+    (** [subst_lval phi l] applies substitution [phi] to {e l-value} [l], substituting each occurrence of identifier
         [id] by identifier [phi id] *)
 
   val subst_param_type_expr: expr Subst.t -> type_expr -> type_expr
@@ -162,8 +162,8 @@ module type SYNTAX = sig
       The optional argument [expected_type] can be used to perform type-dependent transformations.
       A typical usage is to rewrite [0] (resp [1]) as [false] (resp. [true]). See [guests/core/lib/syntax.ml] for example *)
 
-  val ppr_lhs: ppr_env -> lhs -> lhs
-  (** [ppr_lhs env e] should return the result of pre-processing LHS [e] in env [env]. *)
+  val ppr_lval: ppr_env -> lval -> lval
+  (** [ppr_lval env e] should return the result of pre-processing {e l-value} [e] in env [env]. *)
   
 end
   
@@ -216,8 +216,8 @@ module type TYPING = sig
   val type_of_type_expr: env -> Syntax.type_expr -> Types.typ
   (** [type_of_type_expr env te] should return the type denoted by the type expression [te] in environment [env]. *)
 
-  val type_lhs: env -> Syntax.lhs -> Types.typ
-  (** [type_lhs env l] should return the type of LHS [l] in environment [env]. *)
+  val type_lval: env -> Syntax.lval -> Types.typ
+  (** [type_lval env l] should return the type of {e l-value} [l] in environment [env]. *)
 end
   
 (**{2 Values} *)
@@ -295,7 +295,7 @@ module type EVAL = sig
   val mk_env: unit -> env
   (** [mk_env ()] should return a new, empty dynamic environment *)
     
-  val upd_env: Syntax.lhs -> Value.t -> env -> env
+  val upd_env: Syntax.lval -> Value.t -> env -> env
   (** [upd_env l v env] should return the environment obtained by adding the binding [(l,v)] to [env].
       If [l] is already bound in [env], the associated value is updated. *)
 
@@ -365,8 +365,8 @@ module type SYSTEMC = sig
   val pp_typ: Format.formatter -> Syntax.Types.typ -> unit
   (** [pp_typ fmt ty] should print, on formatter [fmt], the SystemC type corresponding to type [ty]. *)
 
-  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
-  (** [pp_lhs fmt l] should print, on formatter [fmt], the SystemC representation of LHS [l]. *)
+  val pp_lval: Format.formatter -> Syntax.lval -> unit
+  (** [pp_lval fmt l] should print, on formatter [fmt], the SystemC representation of {e l-value} [l]. *)
 
   val pp_value: Format.formatter -> value -> unit
   (** [pp_value fmt v] should print, on formatter [fmt], the SystemC value corresponding to value [v]. *)
@@ -394,8 +394,8 @@ module type VHDL = sig
   val pp_expr: Format.formatter -> Syntax.expr -> unit
   (** [pp_expr fmt e] should print, on formatter [fmt], the VHDL expression corresponding to expression [e]. *)
 
-  val pp_lhs: Format.formatter -> Syntax.lhs -> unit
-  (** [pp_lhs fmt l] should print, on formatter [fmt], the VHDL representation of LHS [l]. *)
+  val pp_lval: Format.formatter -> Syntax.lval -> unit
+  (** [pp_lval fmt l] should print, on formatter [fmt], the VHDL representation of {e l-value} [l]. *)
 
   val pp_value: Format.formatter -> value * Vhdl_types.t -> unit
   (** [pp_value fmt (v,t)] should print, on formatter [fmt], the VHDL value corresponding to value [v], with type [t]. *)

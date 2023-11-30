@@ -106,11 +106,11 @@ simple_expr:
   | e = scalar_const { e }
   | LPAREN e = expr RPAREN { e }
 
-%public lhs:
-  | v = LID { mk ~loc:$sloc (LhsVar (mk_ident v)) }
-  | id = LID LBRACKET idx = expr RBRACKET { mk ~loc:$sloc (LhsIndex (mk_ident id, idx)) }
-  | a=LID DOT f=LID { mk ~loc:$sloc (LhsRField (mk_ident a, f)) }
-  | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { mk ~loc:$sloc (LhsRange (mk_ident a,hi,lo)) }
+%public lval:
+  | v = LID { mk ~loc:$sloc (LvalVar (mk_ident v)) }
+  | id = LID LBRACKET idx = expr RBRACKET { mk ~loc:$sloc (LvalIndex (mk_ident id, idx)) }
+  | a=LID DOT f=LID { mk ~loc:$sloc (LvalRField (mk_ident a, f)) }
+  | a=LID LBRACKET hi=expr COLON lo=expr RBRACKET { mk ~loc:$sloc (LvalRange (mk_ident a,hi,lo)) }
 
 %public param_value:
   | v = scalar_const { v }

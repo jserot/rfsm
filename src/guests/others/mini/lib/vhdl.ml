@@ -29,7 +29,7 @@ let pp_expr fmt e =
   | Syntax.EBool b -> pp_bool fmt b 
   | Syntax.EVar v -> Format.fprintf fmt "%a=%a" Ident.pp v pp_bool true
 
-let pp_lhs fmt l = Syntax.pp_lhs fmt l
+let pp_lval fmt l = Syntax.pp_lval fmt l
 
 let pp_type_decl fmt td = () (* No type declarations for this guest language *)
 let pp_type_fns_intf fmt td =  ()

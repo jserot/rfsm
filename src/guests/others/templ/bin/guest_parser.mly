@@ -16,7 +16,7 @@
 (* This include, at least, rules for the following non-terminals :
    - type_decl
    - type_expr 
-   - lhs
+   - lval
    - param_value
    - scalar_const
    - const

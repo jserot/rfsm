@@ -198,7 +198,7 @@ actions:
 
 action:
   | i = LID  { mk ~loc:$sloc (Lang.L.Syntax.Emit (mk_ident i)) }
-  | l = lhs COLEQ e = expr { mk ~loc:$sloc (Lang.L.Syntax.Assign (l, e)) }
+  | l = lval COLEQ e = expr { mk ~loc:$sloc (Lang.L.Syntax.Assign (l, e)) }
 
 (* IOS *)
 

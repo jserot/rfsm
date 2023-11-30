@@ -88,9 +88,9 @@ let rec type_expression env e =
        type_application ~loc:e.Annot.loc env ty_fn ty_args
     | Syntax.ECon0 c -> lookup_ctor ~loc:e.Annot.loc c env
     | Syntax.EIndexed (a,i) ->
-       let r = type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lhs *) in
+       let r = type_indexed_expr ~loc:e.Annot.loc env a i (* shared with type_lval *) in
        r
-    | Syntax.ERanged (a,i1,i2) -> type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lhs *)
+    | Syntax.ERanged (a,i1,i2) -> type_ranged_expr ~loc:e.Annot.loc env a i1 i2 (* shared with type_lval *)
     | Syntax.EArrExt [] -> Rfsm.Misc.fatal_error "Guest.Typing.type_expression: empty array" (* should not happen *)
     | Syntax.EArrExt ((e1::es) as exps) -> 
        let ty_e1 = type_expression env e1 in
@@ -203,19 +203,19 @@ let type_type_decl env td =
   td.Annot.typ <- ty;
   env'
 
-let type_lhs env l =
+let type_lval env l =
   let ty = match l.Annot.desc with
-    | Syntax.LhsVar x -> lookup_var ~loc:l.Annot.loc x env
-    | Syntax.LhsIndex (a,i) -> type_indexed_expr ~loc:l.Annot.loc env a i
-    | Syntax.LhsRange (a,i1,i2) -> type_ranged_expr ~loc:l.Annot.loc env a i1 i2
-    | Syntax.LhsRField (x,f) -> 
+    | Syntax.LvalVar x -> lookup_var ~loc:l.Annot.loc x env
+    | Syntax.LvalIndex (a,i) -> type_indexed_expr ~loc:l.Annot.loc env a i
+    | Syntax.LvalRange (a,i1,i2) -> type_ranged_expr ~loc:l.Annot.loc env a i1 i2
+    | Syntax.LvalRField (x,f) -> 
        begin match lookup_var ~loc:l.Annot.loc x env with
        | TyRecord (_,fs) -> 
           begin
             try List.assoc f fs 
             with Not_found -> raise (Rfsm.Ident.Undefined ("record field",l.Annot.loc,Syntax.mk_global_ident f))
           end
-       | _ -> Rfsm.Misc.fatal_error "Guest.Typing.type_lhs"
+       | _ -> Rfsm.Misc.fatal_error "Guest.Typing.type_lval"
        end
   in
   l.Annot.typ <- ty;

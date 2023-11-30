@@ -24,9 +24,9 @@ exception Illegal_expr of Syntax.expr
 
 let mk_env () = Env.empty 
 
-let upd_env lhs v env = 
-  match lhs.Annot.desc with
-  | Syntax.LhsVar x -> Env.upd x v env
+let upd_env lval v env = 
+  match lval.Annot.desc with
+  | Syntax.LvalVar x -> Env.upd x v env
 
 exception Uninitialized of Location.t
 

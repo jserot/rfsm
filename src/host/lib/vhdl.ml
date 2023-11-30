@@ -93,16 +93,16 @@ struct
     let pp fmt a = match a.Annot.desc  with
       | Syntax.Emit id ->
          fprintf fmt "notify_ev(%a,%d %s)" Ident.pp id cfg.vhdl_ev_duration cfg.vhdl_time_unit
-      | Syntax.Assign (lhs, expr) ->
-         let id = G.Syntax.lhs_base_name lhs in
+      | Syntax.Assign (lval, expr) ->
+         let id = G.Syntax.lval_base_name lval in
          let pp_expr = G.pp_expr in
-         let pp_lhs = G.pp_lhs in
-         if G.Syntax.is_simple_lhs lhs then
+         let pp_lval = G.pp_lval in
+         if G.Syntax.is_simple_lval lval then
            fprintf fmt "%a %s %a" Ident.pp id (asn id) pp_expr expr
-         else (* Non-scalar LHS *)
+         else (* Non-scalar LVAL *)
            begin
              if List.mem_assoc id m.c_vars
-             then fprintf fmt "%a %s %a" pp_lhs lhs (asn id) pp_expr expr
+             then fprintf fmt "%a %s %a" pp_lval lval (asn id) pp_expr expr
              else raise (Invalid_output_assign (Ident.to_string id, a.Annot.loc))
            end in
     fprintf fmt "%s%a;\n" tab pp a

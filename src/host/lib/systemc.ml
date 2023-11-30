@@ -85,20 +85,20 @@ struct
     let open Cmodel in
     let pp fmt a = match a.Annot.desc  with
       | Syntax.Emit id -> fprintf fmt "notify_ev(%a,\"%a\")" Ident.pp id Ident.pp id
-      | Syntax.Assign (lhs, expr) ->
-         let id = G.Syntax.lhs_base_name lhs in
+      | Syntax.Assign (lval, expr) ->
+         let id = G.Syntax.lval_base_name lval in
          let pp_expr = G.pp_expr in
-         let pp_lhs = G.pp_lhs in
-         if G.Syntax.is_simple_lhs lhs then
+         let pp_lval = G.pp_lval in
+         if G.Syntax.is_simple_lval lval then
            begin
              if List.mem_assoc id m.c_vars
              then fprintf fmt "%a = %a" Ident.pp id pp_expr expr
              else fprintf fmt "%a.write(%a)" Ident.pp id pp_expr expr
            end
-         else (* Non-scalar LHS *)
+         else (* Non-scalar l-value *)
            begin
              if List.mem_assoc id m.c_vars
-             then fprintf fmt "%a = %a" pp_lhs lhs pp_expr expr
+             then fprintf fmt "%a = %a" pp_lval lval pp_expr expr
              else raise (Invalid_output_assign (Ident.to_string id, a.Annot.loc))
            end in
     fprintf fmt "%s%a;\n" tab pp a

@@ -135,17 +135,17 @@ let eval_bool env e =
   | Val_bool b -> b
   | _ -> raise (Illegal_expr e) (* Should not occur after TC *)
 
-let upd_env lhs v env = 
+let upd_env lval v env = 
   (* Note: bound checking (for arrays, ranged and sized integers) should take place here.
      For example, we should reject :
      - [r:=10] if [r] has type [int<0:9>]
      - [a[i]:=v] if [i=10] and [a] has type [int array[10]]
      - [u[8:4]:=0] if [u] has type [int<8>] *)
-  let env' = match lhs.Annot.desc with
-  | Syntax.LhsVar x ->
+  let env' = match lval.Annot.desc with
+  | Syntax.LvalVar x ->
      Env.upd x v env
-  | Syntax.LhsIndex (x,idx) ->
-     begin match lookup ~loc:lhs.Annot.loc x env, v with
+  | Syntax.LvalIndex (x,idx) ->
+     begin match lookup ~loc:lval.Annot.loc x env, v with
      | Val_array vs, _ ->
         let i = eval_expr_index x ~bounds:(0,Array.length vs-1) env idx in
         vs.(i) <- v;
@@ -155,15 +155,15 @@ let upd_env lhs v env =
         Env.upd x (Val_int (Rfsm.Bits.set_bits ~hi:i ~lo:i ~dst v')) env
      | _ -> Rfsm.Misc.fatal_error "Guest.Eval.upd_env"
      end
-  | Syntax.LhsRange (x,idx1,idx2) ->
+  | Syntax.LvalRange (x,idx1,idx2) ->
      begin
-       match lookup ~loc:lhs.Annot.loc x env, eval_expr env idx1, eval_expr env idx2, v with
+       match lookup ~loc:lval.Annot.loc x env, eval_expr env idx1, eval_expr env idx2, v with
        | Val_int dst, Val_int hi, Val_int lo, Val_int v' ->
           Env.upd x (Val_int (Rfsm.Bits.set_bits ~hi ~lo ~dst v')) env
        | _ -> Rfsm.Misc.fatal_error "Guest.Eval.upd_env"
      end
-  | Syntax.LhsRField (r,f) ->
-     begin match lookup ~loc:lhs.Annot.loc r env with
+  | Syntax.LvalRField (r,f) ->
+     begin match lookup ~loc:lval.Annot.loc r env with
      | Val_record fs ->
         Env.upd r (Val_record (Rfsm.Ext.List.replace_assoc f v fs)) env
      | _ -> Rfsm.Misc.fatal_error "Guest.Eval.upd_env"

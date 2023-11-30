@@ -47,28 +47,28 @@ let rec pp_expr_desc fmt e =
   | EBool b -> Format.fprintf fmt "%b" b
 and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc
 
-(* LHSs *)
+(* L-values *)
   
-type lhs = (lhs_desc,Types.typ) Annot.t
-and lhs_desc = Ident.t
+type lval = (lval_desc,Types.typ) Annot.t
+and lval_desc = Ident.t
 
-let lhs_var l = Ident.to_string l.Annot.desc
+let lval_var l = Ident.to_string l.Annot.desc
 
-let vars_of_lhs l = [l.Annot.desc]
+let vars_of_lval l = [l.Annot.desc]
 
-let is_simple_lhs l = true
+let is_simple_lval l = true
 
-let mk_simple_lhs v =
+let mk_simple_lval v =
   Annot.{ desc=v; typ=Types.no_type; loc=Location.no_location }
 
-let lhs_prefix pfx l = { l with Annot.desc = Ident.upd_id (fun i -> pfx^"."^i) l.Annot.desc }
+let lval_prefix pfx l = { l with Annot.desc = Ident.upd_id (fun i -> pfx^"."^i) l.Annot.desc }
 
-let lhs_base_name l = l.Annot.desc
+let lval_base_name l = l.Annot.desc
 
-let lhs_vcd_repr l = l.Annot.desc
+let lval_vcd_repr l = l.Annot.desc
 
-let pp_lhs fmt l = Format.fprintf fmt "%a" Ident.pp l.Annot.desc
-let pp_qual_lhs fmt l = Format.fprintf fmt "%a" Ident.pp_qual l.Annot.desc
+let pp_lval fmt l = Format.fprintf fmt "%a" Ident.pp l.Annot.desc
+let pp_qual_lval fmt l = Format.fprintf fmt "%a" Ident.pp_qual l.Annot.desc
 
 (* Substitutions *)
               
@@ -81,7 +81,7 @@ let subst_expr phi e =
   | EVar v -> { e with Annot.desc = EVar (subst phi v) }
   | _ -> e
 
-let subst_lhs phi l = { l with Annot.desc = subst phi l.Annot.desc }
+let subst_lval phi l = { l with Annot.desc = subst phi l.Annot.desc }
 
 let subst_param_expr phi e = e (* No parameters in this guest language *)
 
@@ -93,4 +93,4 @@ type ppr_env = type_expr Rfsm.Env.t
 
 let ppr_expr env ?(expected_type=None) e = e 
 
-let ppr_lhs env l = l
+let ppr_lval env l = l

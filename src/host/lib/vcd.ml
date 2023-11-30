@@ -60,7 +60,7 @@ struct
   let register_event acc e =
     match e with
     | Event.Ev name -> Vcd_types.register_signal acc (name, Vcd_types.TyEvent)
-    | Event.Upd (lhs,v) -> Vcd_types.register_signal acc (Event.Syntax.lhs_vcd_repr lhs, Event.Value.vcd_type v)
+    | Event.Upd (lval,v) -> Vcd_types.register_signal acc (Event.Syntax.lval_vcd_repr lval, Event.Value.vcd_type v)
     | Event.StateMove (s,q) -> Vcd_types.register_signal acc (Ident.mk s, Vcd_types.TyString)
 
   let register_signals acc (s:EvSeq.Evset.t) =
@@ -79,7 +79,7 @@ struct
          let id, _  = lookup name in 
          fprintf oc "1%c\n" id          (* Instantaneous event *)
       | Event.Upd (l, v) ->             (* Update *)
-         let name = Event.Syntax.lhs_vcd_repr l in
+         let name = Event.Syntax.lval_vcd_repr l in
          let id, ty  = lookup name in 
          let v' = Event.Value.vcd_value v in
          let fmt = vcd_repr ty v'  in
@@ -97,13 +97,13 @@ struct
     let module Event = EvSeq.Evset.Event in
     let normalize_event (e: Event.t) = 
       match e with
-        | Event.Upd (lhs,v) as ev -> 
-           let base_name = Event.Syntax.lhs_base_name lhs in (* Ex: "x"->"x", "r.f"-> "r", "a[i]" ->"a" *)
+        | Event.Upd (lval,v) as ev -> 
+           let base_name = Event.Syntax.lval_base_name lval in (* Ex: "x"->"x", "r.f"-> "r", "a[i]" ->"a" *)
            let es = 
            begin
              match Event.Value.flatten ~base:base_name v with
              | [_] -> [ev]  (* "Simple" case *)
-             | nvs -> List.map (fun (n,v) -> Event.Upd (Event.Syntax.mk_simple_lhs n, v)) nvs (* "Complex" case *)
+             | nvs -> List.map (fun (n,v) -> Event.Upd (Event.Syntax.mk_simple_lval n, v)) nvs (* "Complex" case *)
            end in
            es
         | _ -> [e]  in

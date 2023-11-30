@@ -110,52 +110,52 @@ let rec pp_expr_desc fmt e =
   | ERecordExt fs -> fprintf fmt "{%a}" (Rfsm.Ext.List.pp_h ~sep:"," pp_rfield) fs
 and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc
 
-(** Assignation LHS *)
+(** L-values *)
   
-type lhs = (lhs_desc,Types.typ) Annot.t
-and lhs_desc = 
-  | LhsVar of ident
-  | LhsIndex of ident * expr (* a[i] *)
-  | LhsRange of ident * expr * expr  (* v[hi:lo] := ... when v is an int *)
-  | LhsRField of ident * string             (* v.field_name when v has a record type *)
+type lval = (lval_desc,Types.typ) Annot.t
+and lval_desc = 
+  | LvalVar of ident
+  | LvalIndex of ident * expr (* a[i] *)
+  | LvalRange of ident * expr * expr  (* v[hi:lo] := ... when v is an int *)
+  | LvalRField of ident * string             (* v.field_name when v has a record type *)
 
-let rec pp_lhs_desc ~pp_ident fmt l = match l with
-  | LhsVar v -> Format.fprintf fmt "%a" pp_ident v
-  | LhsIndex (a,i) -> Format.fprintf fmt "%a[%a]" pp_ident a pp_expr i
-  | LhsRange (a,hi,lo) -> Format.fprintf fmt "%a[%a:%a]" pp_ident a pp_expr hi pp_expr lo
-  | LhsRField (r,f) -> Format.fprintf fmt "%a.%s" pp_ident r f
-and pp_lhs fmt l =
-  pp_lhs_desc ~pp_ident:Rfsm.Ident.pp fmt l.Annot.desc
-and pp_qual_lhs fmt l =
-  pp_lhs_desc ~pp_ident:Rfsm.Ident.pp_qual fmt l.Annot.desc
+let rec pp_lval_desc ~pp_ident fmt l = match l with
+  | LvalVar v -> Format.fprintf fmt "%a" pp_ident v
+  | LvalIndex (a,i) -> Format.fprintf fmt "%a[%a]" pp_ident a pp_expr i
+  | LvalRange (a,hi,lo) -> Format.fprintf fmt "%a[%a:%a]" pp_ident a pp_expr hi pp_expr lo
+  | LvalRField (r,f) -> Format.fprintf fmt "%a.%s" pp_ident r f
+and pp_lval fmt l =
+  pp_lval_desc ~pp_ident:Rfsm.Ident.pp fmt l.Annot.desc
+and pp_qual_lval fmt l =
+  pp_lval_desc ~pp_ident:Rfsm.Ident.pp_qual fmt l.Annot.desc
 
-let mk_simple_lhs v = Annot.{ desc=LhsVar v; typ=Types.no_type; loc=Location.no_location }
+let mk_simple_lval v = Annot.{ desc=LvalVar v; typ=Types.no_type; loc=Location.no_location }
 
-let is_simple_lhs l = 
+let is_simple_lval l = 
   match l.Annot.desc with
-  | LhsVar _ ->  true
+  | LvalVar _ ->  true
   | _ -> false
 
-let lhs_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's ? *)
+let lval_prefix pfx l =  (* TODO: replace this by explicit scoping of Ident.t's ? *)
   let mk d = { l with Annot.desc = d } in
   let p v = Rfsm.Ident.upd_id (fun x -> pfx ^ "." ^ x) v in
   match l.Annot.desc with
-  | LhsVar v -> mk (LhsVar (p v))
-  | LhsIndex (a,i) -> mk (LhsIndex (p a,i))
-  | LhsRange (a,i1,i2) -> mk (LhsRange (p a,i1,i2))
-  | LhsRField (a,f) -> mk (LhsRField (p a,f))
+  | LvalVar v -> mk (LvalVar (p v))
+  | LvalIndex (a,i) -> mk (LvalIndex (p a,i))
+  | LvalRange (a,i1,i2) -> mk (LvalRange (p a,i1,i2))
+  | LvalRField (a,f) -> mk (LvalRField (p a,f))
 
-let lhs_base_name l = match l.Annot.desc with
-  | LhsVar v -> v
-  | LhsIndex (a,_) -> a 
-  | LhsRange (a,_,_) -> a 
-  | LhsRField (a,_) -> a 
+let lval_base_name l = match l.Annot.desc with
+  | LvalVar v -> v
+  | LvalIndex (a,_) -> a 
+  | LvalRange (a,_,_) -> a 
+  | LvalRField (a,_) -> a 
 
-let lhs_vcd_repr l = match l.Annot.desc with
-  | LhsVar v -> v
-  | LhsIndex (a,i) -> Rfsm.Ident.upd_id (fun x -> x ^ "." ^ Rfsm.Ext.Format.to_string pp_expr i) a 
-  | LhsRange (a,hi,lo) -> a (* TO FIX ? *)
-  | LhsRField (a,f) -> Rfsm.Ident.upd_id (fun x -> x ^ "." ^ f) a
+let lval_vcd_repr l = match l.Annot.desc with
+  | LvalVar v -> v
+  | LvalIndex (a,i) -> Rfsm.Ident.upd_id (fun x -> x ^ "." ^ Rfsm.Ext.Format.to_string pp_expr i) a 
+  | LvalRange (a,hi,lo) -> a (* TO FIX ? *)
+  | LvalRField (a,f) -> Rfsm.Ident.upd_id (fun x -> x ^ "." ^ f) a
 
 (** Inspectors *)
               
@@ -173,11 +173,11 @@ let rec vars_of_expr e = match e.Annot.desc with
   | ERecord (r,f) -> [r]
   | ERecordExt fs -> List.concat (List.map (fun (_,e) -> vars_of_expr e) fs)
 
-let vars_of_lhs l = match l.Annot.desc with
-  | LhsVar v -> [v]
-  | LhsIndex (a,i) -> a :: vars_of_expr i 
-  | LhsRange (a,hi,lo) -> [a] @ vars_of_expr hi @ vars_of_expr lo
-  | LhsRField (r,f) -> [r]
+let vars_of_lval l = match l.Annot.desc with
+  | LvalVar v -> [v]
+  | LvalIndex (a,i) -> a :: vars_of_expr i 
+  | LvalRange (a,hi,lo) -> [a] @ vars_of_expr hi @ vars_of_expr lo
+  | LvalRField (r,f) -> [r]
 
 (** Substitutions *)
               
@@ -201,12 +201,12 @@ let rec subst_expr phi e =
   | ERecord (r,f) -> subst e (ERecord (subst_var phi r, f))
   | ERecordExt fs -> subst e (ERecordExt (List.map (fun (n,e) -> n, subst_expr phi e) fs))
 
-let subst_lhs phi l = 
+let subst_lval phi l = 
   match l.Annot.desc with
-  | LhsVar v -> { l with Annot.desc = LhsVar (subst_var phi v) }
-  | LhsIndex (a,i) -> { l with Annot.desc = LhsIndex (subst_var phi a, subst_expr phi i) } 
-  | LhsRField (r,f) -> { l with Annot.desc = LhsRField (subst_var phi r, f) } 
-  | LhsRange (a,hi,lo) -> { l with Annot.desc = LhsRange (subst_var phi a, subst_expr phi hi, subst_expr phi lo) } 
+  | LvalVar v -> { l with Annot.desc = LvalVar (subst_var phi v) }
+  | LvalIndex (a,i) -> { l with Annot.desc = LvalIndex (subst_var phi a, subst_expr phi i) } 
+  | LvalRField (r,f) -> { l with Annot.desc = LvalRField (subst_var phi r, f) } 
+  | LvalRange (a,hi,lo) -> { l with Annot.desc = LvalRange (subst_var phi a, subst_expr phi hi, subst_expr phi lo) } 
 
 let rec subst_param_expr phi e =
   let subst e d = { e with Annot.desc = d } in
@@ -219,11 +219,11 @@ let rec subst_param_expr phi e =
         only when [i] is a litteral constant. For ex
           subst_param_expr ["a"->{1,2,1}] "a[1]" = "2"
         But this does not work when [i] is a variable or a more complex expression. 
-        A solution would be to extend to syntax of indexed expression to accept litterals as LHS. I.e.
+        A solution would be to extend to syntax of indexed expression to accept litterals as LVAL. I.e.
           type expr = 
             ...
-            | EIndexed (ilhs, expr)
-          and ilhs = 
+            | EIndexed (ilval, expr)
+          and ilval = 
             | EVar ...
             | EArrLit ...
         In the this version, we simply restrict parameters to have scalar values (see ../../../bin/simple/guest_rules.mly *)
@@ -282,5 +282,5 @@ let ppr_expr env ?(expected_type=None) e =
        { e with Annot.desc = ERanged (a,i,i) }
   | _ -> e
 
-let ppr_lhs _ l = l 
+let ppr_lval _ l = l 
 

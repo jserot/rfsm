@@ -18,8 +18,8 @@ let pp_typ fmt t = (* TO BE FILLED *)
 
 let pp_expr fmt e =  (* TO BE FILLED *)
 
-let rec pp_lhs_desc fmt l = (* TO BE FILLED *)
-and pp_lhs fmt l = pp_lhs_desc fmt l.Rfsm.Annot.desc
+let rec pp_lval_desc fmt l = (* TO BE FILLED *)
+and pp_lval fmt l = pp_lval_desc fmt l.Rfsm.Annot.desc
 
 let pp_value fmt v =  (* TO BE FILLED *)
 

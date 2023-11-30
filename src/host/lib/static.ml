@@ -339,7 +339,7 @@ struct
       let open Syntax in
       match a.Annot.desc with
       | Emit _ -> S.empty
-      | Assign (lhs,_) -> S.of_list (Guest.vars_of_lhs lhs) in
+      | Assign (lval,_) -> S.of_list (Guest.vars_of_lval lval) in
     let rec scan acc acts = match acts with
         [] -> true
       | a::rest ->

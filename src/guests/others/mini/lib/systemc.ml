@@ -21,7 +21,7 @@ let pp_typ fmt t =
 
 let pp_expr fmt e = Syntax.pp_expr fmt e
 
-let pp_lhs fmt l = Syntax.pp_lhs fmt l 
+let pp_lval fmt l = Syntax.pp_lval fmt l 
 
 let pp_value fmt v = Value.pp fmt v
 

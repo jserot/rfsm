@@ -41,32 +41,32 @@ let rec vars_of_expr e =  (* TO BE FILLED *)
 let rec pp_expr_desc fmt e =  (* TO BE FILLED *)
 and pp_expr fmt e = pp_expr_desc fmt e.Annot.desc
 
-(* LHSs *)
+(* L-values *)
   
-type lhs = (lhs_desc,Types.typ) Annot.t
-and lhs_desc =  (* TO BE FILLED *)
+type lval = (lval_desc,Types.typ) Annot.t
+and lval_desc =  (* TO BE FILLED *)
 
-let vars_of_lhs l =  (* TO BE FILLED *)
+let vars_of_lval l =  (* TO BE FILLED *)
 
-let is_simple_lhs l = (* TO BE FILLED *)
+let is_simple_lval l = (* TO BE FILLED *)
 
-let mk_simple_lhs v =  (* TO BE FILLED *)
+let mk_simple_lval v =  (* TO BE FILLED *)
 
-let lhs_prefix pfx l =   (* TO BE FILLED *)
+let lval_prefix pfx l =   (* TO BE FILLED *)
 
-let lhs_base_name l =  (* TO BE FILLED *)
+let lval_base_name l =  (* TO BE FILLED *)
 
-let lhs_vcd_repr l =  (* TO BE FILLED *)
+let lval_vcd_repr l =  (* TO BE FILLED *)
 
-let rec pp_lhs_desc ~pp_ident fmt l = (* TO BE FILLED *)
-and pp_lhs fmt l = pp_lhs_desc ~pp_ident:Rfsm.Ident.pp fmt l.Annot.desc
-and pp_qual_lhs fmt l = pp_lhs_desc ~pp_ident:Rfsm.Ident.pp_qual fmt l.Annot.desc
+let rec pp_lval_desc ~pp_ident fmt l = (* TO BE FILLED *)
+and pp_lval fmt l = pp_lval_desc ~pp_ident:Rfsm.Ident.pp fmt l.Annot.desc
+and pp_qual_lval fmt l = pp_lval_desc ~pp_ident:Rfsm.Ident.pp_qual fmt l.Annot.desc
 
 (* Substitutions *)
               
 let rec subst_id phi e = (* TO BE FILLED. Hint: use [Rfsm.Subst.apply] *)
 
-let subst_lhs phi l =  (* TO BE FILLED. Hint: use [Rfsm.Subst.apply] *)
+let subst_lval phi l =  (* TO BE FILLED. Hint: use [Rfsm.Subst.apply] *)
 
 let subst_expr phi e = (* TO BE FILLED *)
 
@@ -79,4 +79,4 @@ type ppr_env = type_expr Rfsm.Env.t
 
 let ppr_expr env ?(expected_type=None) e = (* TO BE FILLED *)
 
-let ppr_lhs env l = (* TO BE FILLED *)
+let ppr_lval env l = (* TO BE FILLED *)

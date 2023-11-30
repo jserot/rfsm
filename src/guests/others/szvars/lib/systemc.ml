@@ -97,13 +97,13 @@ let pp_expr fmt e =
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
-let rec pp_lhs_desc fmt l =
+let rec pp_lval_desc fmt l =
   match l with 
-  | Syntax.LhsVar v -> Format.fprintf fmt "%a" pp_ident v
-  | Syntax.LhsIndex (a,i) -> Format.fprintf fmt "%a[%a]" pp_ident a pp_expr i
-  | Syntax.LhsRange (a,hi,lo) -> Format.fprintf fmt "%a.range(%a,%a)" pp_ident a pp_expr hi pp_expr lo
-  | Syntax.LhsRField (r,f) -> Format.fprintf fmt "%a.repr.%s" pp_ident r f
-and pp_lhs fmt l = pp_lhs_desc fmt l.Rfsm.Annot.desc
+  | Syntax.LvalVar v -> Format.fprintf fmt "%a" pp_ident v
+  | Syntax.LvalIndex (a,i) -> Format.fprintf fmt "%a[%a]" pp_ident a pp_expr i
+  | Syntax.LvalRange (a,hi,lo) -> Format.fprintf fmt "%a.range(%a,%a)" pp_ident a pp_expr hi pp_expr lo
+  | Syntax.LvalRField (r,f) -> Format.fprintf fmt "%a.repr.%s" pp_ident r f
+and pp_lval fmt l = pp_lval_desc fmt l.Rfsm.Annot.desc
 
 let pp_value fmt v = 
   let open Format in

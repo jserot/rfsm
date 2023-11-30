@@ -38,7 +38,7 @@ let type_expression env e =
   e.Annot.typ <- ty;
   ty
 
-let type_lhs env l =
+let type_lval env l =
   let ty = match l.Annot.desc with
     | x -> lookup_var ~loc:l.Annot.loc x env in
   l.Annot.typ <- ty;

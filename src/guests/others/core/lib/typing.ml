@@ -93,9 +93,9 @@ and type_array_access ~loc env a i =
     end in
   ty_res
 
-let type_lhs env l =
+let type_lval env l =
   let ty = match l.Annot.desc with
-    | Syntax.LhsVar x -> lookup_var ~loc:l.Annot.loc x env in
+    | Syntax.LvalVar x -> lookup_var ~loc:l.Annot.loc x env in
   l.Annot.typ <- ty;
   ty
 

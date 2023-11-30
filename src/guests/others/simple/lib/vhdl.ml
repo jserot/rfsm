@@ -118,13 +118,13 @@ and pp_cast fmt (e,te) =
   | t, t' when t=t' -> pp_expr fmt e
   | _, _ -> raise (Illegal_cast e)
 
-let rec pp_lhs_desc fmt l =
+let rec pp_lval_desc fmt l =
   match l with 
-  | Syntax.LhsVar v -> fprintf fmt "%a" pp_ident v
-  | Syntax.LhsIndex (a,i) -> fprintf fmt "%a(%a)" pp_ident a pp_expr i
-  | Syntax.LhsRange (a,hi,lo) -> fprintf fmt "%a(%a)" pp_ident a pp_range (hi,lo)
-  | Syntax.LhsRField (r,f) -> fprintf fmt "%a.%s" pp_ident r f
-and pp_lhs fmt l = pp_lhs_desc fmt l.Rfsm.Annot.desc
+  | Syntax.LvalVar v -> fprintf fmt "%a" pp_ident v
+  | Syntax.LvalIndex (a,i) -> fprintf fmt "%a(%a)" pp_ident a pp_expr i
+  | Syntax.LvalRange (a,hi,lo) -> fprintf fmt "%a(%a)" pp_ident a pp_range (hi,lo)
+  | Syntax.LvalRField (r,f) -> fprintf fmt "%a.%s" pp_ident r f
+and pp_lval fmt l = pp_lval_desc fmt l.Rfsm.Annot.desc
 
 let rec pp_value fmt (v,ty) =
   let open Format in

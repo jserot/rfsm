@@ -13,7 +13,7 @@ exception Uninitialized of Rfsm.Location.t
 
 let mk_env () = Env.init []
 
-let upd_env lhs v env = Env.upd lhs.Annot.desc v env
+let upd_env lval v env = Env.upd lval.Annot.desc v env
 
 let lookup ~loc v env = 
  match Rfsm.Env.find v env with

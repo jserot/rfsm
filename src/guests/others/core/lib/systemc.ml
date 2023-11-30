@@ -57,10 +57,10 @@ let pp_expr fmt e =
   and paren level p = if level > 0 then p else "" in
   pp 0 fmt e
 
-let rec pp_lhs_desc fmt l =
+let rec pp_lval_desc fmt l =
   match l with 
-  | Syntax.LhsVar v -> Format.fprintf fmt "%a" Rfsm.Ident.pp v
-and pp_lhs fmt l = pp_lhs_desc fmt l.Rfsm.Annot.desc
+  | Syntax.LvalVar v -> Format.fprintf fmt "%a" Rfsm.Ident.pp v
+and pp_lval fmt l = pp_lval_desc fmt l.Rfsm.Annot.desc
 
 let pp_value fmt v = 
   let open Format in

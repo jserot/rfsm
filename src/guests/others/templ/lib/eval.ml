@@ -10,7 +10,7 @@ exception Illegal_expr of Syntax.expr
 
 let mk_env () =  (* TO BE WRITTEN *)
 
-let upd_env lhs v env = (* TO BE WRITTEN *)
+let upd_env lval v env = (* TO BE WRITTEN *)
 
 let rec eval_expr env e = (* TO BE WRITTEN *)
 
