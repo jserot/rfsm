@@ -78,9 +78,9 @@ below
 ![](https://github.com/jserot/rfsm/blob/master/docs/figs/gensig-chrono.png "")
 
 Invoking the `rfmsc` compiler with the `-ctask`, `-systemc` and `-vhdl` option can generate C,
-SystemC and VHDL code for the model (and the testbench). Here's for example the VHDL code generated
-for the `gensig` model. All the generated code can  can be viewed
-[here](https://github.com/jserot/rfsm/tree/master/docs/code/gensig).
+SystemC and VHDL code for the model (and the testbench) for simulation and implementation on a
+target platform (micro-controlers or FPGAs for instance). The code generated from the example above 
+can be viewed [here](https://github.com/jserot/rfsm/tree/master/docs/code/gensig).
 
 RFSM can also be used to describe multi-FSM models. Here's a description of a simple modulo-8
 counter as three concurrent modulo-2 counters :
@@ -113,8 +113,8 @@ fsm C2 = cntmod2(R1,S2,R2)
 We here have three instances of the `cntmod2` model. These instances are synchronized using two
 internal, shared events named `R0` and `R1`.
 
-A graphical view of global model (obtained by invoking the `rfsmc` compiler with the `-dot` option) is
-given below
+A graphical view of global model (obtained by invoking the `rfsmc` compiler with the `-dot` option
+and displaying this file with [Graphviz](http://www.graphviz.org)) is given below
 
 ![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-top.png "")
 
@@ -122,105 +122,59 @@ Simulation of this model produces the following trace :
 
 ![](https://github.com/jserot/rfsm/blob/master/docs/figs/ctrmod8-chrono.png "")
 
-## PACKAGE DESCRIPTION
-
-RFSM actually is a framework composed of
-
-* an Ocaml library defining a _host_ language for describing _generic_ reactive finite state
-  machines, _i.e._ state machines which are _parameterized_ on the kind of expressions and actions attached to the their
-  transitions
-
-* a set of _guest_ languages, obtained by parameterizing this host language, each implemented as a
-  command-line compiler
-
-As exemplified above, RFSM compilers can
-
-* generate graphical representation of the system (to be viewed with [Graphviz](http://www.graphviz.org) for example)
-
-* simulate the behavior of the system when reacting to input stimuli (generating execution traces as
-  `.vcd` files, to be viewed with [Gtkwave](http://gtkwave.sourceforge.net) for example)
-
-* generate implementation of the described system in
-
-  - `CTask` (a C dialect with primitives for describing tasks and event-based synchronisation)
-  - `SystemC`
-  - `VHDL` 
-
-for simulation or implementation on a target platform (micro-controlers or FPGAs for instance). 
-
-## Documentation
-
-The user and reference manuals can be found
-[here](https://github.com/jserot/rfsm/tree/master/docs/user_manual/rfsm_um.pdf) and
-[here](https://github.com/jserot/rfsm/tree/master/docs/ref_manual/rfsm_rm.pdf).
-
-The "host" library API is documented
-[here](https://jserot.github.io/rfsm/index.html ""). 
-
-
-
-## Installation
+## INSTALLATION
 
 The latest stable version is provided as a ready-to-install OPAM
 [package](https://opam.ocaml.org/packages/rfsm). Just type 
 
 `opam install rfsm`
 
-The package includes
-- the RFSM library itself (under `./host/lib`)
-- the so-called _standard_ RFSM compiler, described in the user manual (under `./guests/std`)
-- a bunch of variant compilers, corresponding to distinct parameterizations of the host language
-  (under `./guests/others`)
-- a program `rfsmmake` generating Makefiles for compiling RFSM programs and viewing and compiling
-  results
-- dedicated `SystemC` and `VHDL` libraries to be used with generated code
+This will install 
+- the compiler `rfsmc` and Makefile generator `rfsmmake` in `~/.opam/<switch>/bin`
+- a platform definition file `~/.opam/<switch>/share/rfsm/platform`
+- VHDL and SystemC support libraries in `~/.opam/<switch>/share/rfsm/lib`
+- a collection of examples in `~/.opam/<switch>/share/rfsm/examples`
+### Running the examples
 
-### Compiling and running examples
+To test the compiler on an example
 
-Some examples are provided in
-[examples/single](https://github.com/jserot/rfsm/tree/master/examples/std/single) and
-[examples/multi](https://github.com/jserot/rfsm/tree/master/examples/std/multi) (the former concerns systems
-built from a single state diagram, the latter systems built from several diagrams).
+1. Make a copy the example source directory. Ex: `cp -r ~/.opam/<switch>/share/rfsm/examples/single/gensig /tmp/gensig`
+2. Go to the copied directory: `cd /tmp/gensig`
+3. Invoke the Makefile generator: `rfsmmake main.pro` 
 
-For compiling and running an example
+The generated `Makefile` contains the required set of rules to 
 
-* get a copy of the source tree and go to the selected example directory
-  * `git clone https://github.com/jserot/rfsm`
-  * `cd rfsm/examples/std/single/gensig` (for example)
-  
-* build the top `Makefile` by invoking: `rfsmmake main.pro` 
-  (this supposes that the `rfsm` package has been properly installed; in particular that the `rfsmc`
-  and `rfsmmake` executables are available on your path)
-  
-* the generated `Makefile` contains a set of rules to 
-
-  - generate and view the graphical representation of the system (`make dot`)
-
-  - simulate the behavior the system and view the execution traces (`make sim`)
-
-  - generate code describing the system in C (`make ctask.code`), SystemC (`make systemc.code`) and
-    VHDL (`make vhdl.code`)
+- generate and view the graphical representation of the system (`make dot`)
+- simulate the behavior the system and view the execution traces (`make sim`)
+- generate code describing the system in C (`make ctask.code`), SystemC (`make systemc.code`) and VHDL (`make vhdl.code`)
 
 Viewing the graphical representations (`.dot` files) and the execution traces (`.vcd` files) is
 carried out by calling external programs called `$DOTVIEWER` and `$VCDVIEWER` in the Makefile.
-Default values are provided in the file `<opam_prefix>/share/rfsm/platform`, where `<opam_prefix>`
-is the root of the `opam` tree where the `rfsm` package has been installed. These values will
-probably to be adjusted according to your system.
+Default values are provided in the file `~/.opam/<switch>/share/rfsm/platform` but these values 
+will probably to be adjusted according to your system.
 
 The generated SystemC (resp. VHDL) code is written in
 sub-directory `./systemc` (resp. `./vhdl`). Also generated in these directories is a dedicated
 `Makefile` for compiling and running the generated code and viewing the results. This `Makefile` is derived from a template
-located in directory `<opam_prefix>/share/rfsm/templates/`. These templates will also probably have to be
+located in directory `~/.opam/<switch>/share/rfsm/templates/`. These templates will also probably have to be
 adjusted to suit your local `SystemC` or `VHDL` installation.
 
-## BUILDING COMPILERS
+## DOCUMENTATION
+
+The user and reference manuals can be found
+[here](https://github.com/jserot/rfsm/tree/master/docs/user_manual/rfsm_um.pdf) and
+[here](https://github.com/jserot/rfsm/tree/master/docs/ref_manual/rfsm_rm.pdf).
+
+## BUILDING A CUSTOM COMPILER
 
 The implementation of RFSM relies on the _host+guest_ design pattern described
-[here](https://github.com/jserot/modlang). It is fairly easy to build one's own compiler 
+[here](https://github.com/jserot/modlang). It is fairly easy to build one's own compiler
 implementing a variant of the "standard" RFSM language and supporting dedicated expression
-sub-languages and type systems. The process is described in the reference manual. Several examples
-of variant languages are provided in the distribution (under directorty `guests/others`).
+sub-languages and type systems. The process is described in the [reference
+manual](https://github.com/jserot/rfsm/tree/master/docs/ref_manual/rfsm_rm.pdf).  Several examples
+of variant languages are provided in the distribution (under directory `src/guests/others`).
 
+The so-called host RFSM library API supporting this mechanism is documented [here](https://jserot.github.io/rfsm/index.html ""). 
 
 ## RELATED TOOLS
 
