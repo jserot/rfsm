@@ -12,7 +12,7 @@ depends: [
   "menhir" {>= "2.0"}
   "ocamlgraph" {>= "2.0"}
   "ppx_deriving" {>= "5.0"}
-  "ocaml" {>= "4.14.0"}
+  "ocaml" {>= "5.0.0"}
   "odoc" {with-doc}
 ]
 build: [
