@@ -6,9 +6,11 @@ To use it
 2. Make a copy of this directory in `src/guests` and rename it (`myguest` for example)
 3. Go to the `myguest/lib` subdir
   - edit the files `{info,types,syntax,typing,value,static,eval,ctask,error,options,systemc,vhdl}.ml`
+  - rename `dune.templ` as `dune`
   - check that everything compiles by typing `make`
 4. go to the `myguest/bin` subdir
   - edit the files `guest_kw.mll`, `guest_rules.mll` and `guest_parser.mly`
+  - rename `dune.templ` as `dune`
   - check that everything compiles by typing `make`
 5. go to `myguest` dir and type `make`
 
