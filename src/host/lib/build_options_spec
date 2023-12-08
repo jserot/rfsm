@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 if [ "$#" -eq 3 ]; then
     cat $2 > $3
     echo "" >> $3
