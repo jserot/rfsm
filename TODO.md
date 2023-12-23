@@ -19,3 +19,4 @@ EXAMPLES
 DIST
 
 DOC
+- clean .tex files
