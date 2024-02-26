@@ -16,7 +16,11 @@ COMPILER
 
 EXAMPLES
 
+TOOLS
+- syntax checkers for guards, actions and state valuations, to be used by `rfsm-light`
+
 DIST
+- opam install `etc/lib/{systemc,vhdl}`  and `src/host/lib/options_spec.txt` (to be used when building `rfsm-light`)
 
 DOC
 - clean .tex files
