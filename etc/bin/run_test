@@ -168,7 +168,7 @@ std) ;;
 esac
 # echo "RUNTEST: GUEST=$GUEST"
 if [ $CUSTOM_RFSMC == "no" ]; then
-    RFSMC=/Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$GUEST/bin/rfsmc.bc; # Default version
+    RFSMC=/Users/jserot/Dev/ml/rfsm/_build/default/src/guests/$GUEST/bin/rfsmc.exe; # Default version
 fi
 
 

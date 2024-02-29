@@ -51,7 +51,7 @@ if [ -e $generated_file ]; then
         echo "File $generated_file already exists. Overwrite (yes|no) ?"
         read go
     else
-        go="no"
+        go="yes"
     fi
 else
     go="yes"
@@ -74,5 +74,7 @@ if [[ $go = "yes" ]]; then
         cat $libdir/templates/Makefile.test.templ >> $generated_file
     fi
     echo "Wrote $generated_file in $cwd"
+else
+    echo "No go in $cwd"
 fi
 
