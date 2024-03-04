@@ -10,7 +10,7 @@
 (**********************************************************************)
 
 (**{1 The command-line compiler} *)
-
+    
 (** Output signature of the functor {!Compiler.Make} *)
 module type T = sig
   val main: unit -> unit
@@ -20,8 +20,10 @@ end
 module type PARSER = sig
   type token 
   type program
+  type fragment
   exception Error
   val program: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> program
+  val fragment: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> fragment
 end
 
 (** Signature for the [Lexer] input to the functor {!Compiler.Make} *)
@@ -36,9 +38,15 @@ end
 module Make
          (L: Host.T)
          (Lexer: LEXER)
-         (Parser: PARSER with type token = Lexer.token and type program = L.Syntax.program) : T =
+         (Parser: PARSER
+            with type token = Lexer.token
+             and type program = L.Syntax.program
+             and type fragment = L.Syntax.fragment)
+  : T =
 struct
 
+  module Error = Error.Make(L)(Lexer)(Parser)
+      
   let usage = "usage: rfsmc [options...] files"
 
   let source_files = ref ([] : string list)
@@ -53,19 +61,21 @@ struct
     Printf.printf "---------------------------------------------------------------------------\n";
     flush stdout
 
-  let parse fname = 
+  let analyse ~lexer:lexer ~parser:parse fname = 
     let ic = open_in_bin fname in
     Location.input_name := fname;
     Location.input_chan := ic;
     let lexbuf = Lexing.from_channel !Location.input_chan in
     Location.input_lexbuf := lexbuf;
-    Parser.program Lexer.main !Location.input_lexbuf
+    parse lexer !Location.input_lexbuf
 
   let compile f =
     let open L in
     let p0 =
       List.fold_left
-        (fun p f -> Syntax.add_program p (parse f))
+        (fun p f -> 
+           let p' = analyse ~lexer:Lexer.main ~parser:Parser.program f in
+           Syntax.add_program p p')
         Syntax.empty_program
         !source_files in
     let p = Syntax.ppr_program p0 in
@@ -107,89 +117,33 @@ struct
     end;
     Logfile.stop ()
 
-  let pp_loc fmt loc = 
-    if !Options.gui then Format.fprintf fmt "* Where: \"%s\"\n* Reason: " (Location.text_of_location loc)
-    else Location.pp_location fmt loc
+  let check_fragment () =
+    let open L in
+    match !source_files with
+    | [f] ->
+      let p = analyse ~lexer:Lexer.main ~parser:Parser.fragment f in
+      (* Format.printf "parsed=%a" L.Syntax.pp_fragment p; *)
+      let tenv0 = Typing.mk_env () in
+      if !Options.dump_tenv then Format.printf "tenv=%a@." pp_tenv tenv0;
+      type_fragment tenv0 p
+    | _ ->
+      Format.eprintf "Usage: rfsmc -check_fragment [options] file";
+      flush stderr;
+      exit 1
 
   let main () =
-    let open Format in
-    let open Location in
     try
       Sys.catch_break true;
       Printexc.record_backtrace !Options.dump_backtrace;
       Arg.parse (Options.spec @ L.Guest.Options.specs) anonymous usage;
-      print_banner ();
-      compile !Options.main_prefix
+      if !Options.check_fragment then
+        check_fragment ()
+      else
+        begin
+          print_banner ();
+          compile !Options.main_prefix
+      end
     with
-    | Parser.Error ->
-       let pos1 = Lexing.lexeme_start !input_lexbuf in
-       let pos2 = Lexing.lexeme_end !input_lexbuf in
-       let loc = Loc(!input_name,pos1, pos2) in
-       eprintf "%aSyntax error\n" pp_loc loc;
-       flush stderr;
-       exit 1
-    | Lexer.Lexical_error(Lexer.Illegal_character, pos1, pos2) ->
-       eprintf "%aIllegal character.\n" pp_loc (Loc(!input_name,pos1, pos2)); flush stderr; exit 1
-    | Ident.Undefined (what,loc,s) ->
-       eprintf "%aUndefined %s: %a\n" pp_loc loc what Ident.pp s;
-       exit 2
-    | Ident.Duplicate (what,loc,x) -> 
-      eprintf "%aDuplicate %s: %a\n" pp_loc loc what Ident.pp x; exit 2
-    | L.Typing.Duplicate_symbol (loc,s) -> 
-       eprintf "%aThe symbol %a is already defined in this context\n" pp_loc loc Ident.pp s;
-       exit 2
-    | L.Typing.Duplicate_state (loc,name) ->
-       eprintf "%aDuplicate state name: %a\n" pp_loc loc Ident.pp name;
-       exit 2
-    | L.Typing.Invalid_state (loc,name) ->
-       eprintf "%aNo state named %a\n" pp_loc loc Ident.pp name;
-       exit 2
-    | L.Typing.Illegal_inst loc ->
-       eprintf "%aCannot instantiate model: formal and actual parameters do not match\n" pp_loc loc;
-       exit 2
-    | L.Typing.No_event_input loc ->
-       eprintf "%aThere must be at least one input with type event for this model\n" pp_loc loc;
-       exit 2
-    | L.Typing.Illegal_state_output (loc,q,o) ->
-       eprintf "%aIllegal valuation for output %a in state %a\n" pp_loc loc Ident.pp o Ident.pp q;
-       exit 2
-    | L.Typing.Type_mismatch (loc,t,t') ->
-       eprintf "%aType mismatch: the expected type here was %s, not %a\n" pp_loc loc t L.Typing.HostSyntax.pp_typ t' ;
-       exit 2
-    | L.Dynamic.Illegal_stimulus_value loc ->
-       eprintf "%aIllegal stimulus value\n" pp_loc loc;
-       exit 2
-    | L.Dynamic.Non_deterministic_transition (f, t, ts) ->
-       eprintf "Error when simulating FSM %s: non deterministic transitions found at t=%d: %a\n" 
-         f t (Ext.List.pp_v L.Syntax.ppf_transition) ts;
-       exit 2
-    | L.Guest.Value.Unsupported_vcd v ->
-       eprintf "No VCD conversion for value %a\n" L.Guest.Value.pp v;
-       exit 2
-    | L.Guest.Static.Non_static_value e ->
-       eprintf "%aThis expression cannot be statically evaluated\n" pp_loc e.Annot.loc;
-       exit 2
-    | L.Vcd.Unsupported (ty,v) ->
-       eprintf "No representation for VCD type/value: %a:%a\n" Vcd_types.pp_vcd_typ ty Vcd_types.pp_vcd_value v;
-       exit 2
-    | L.Systemc.Invalid_output_assign (id,loc) ->
-       eprintf "%aSystemC backend; cannot assign non-scalar output %s\n" pp_loc loc id;
-       exit 2
-    | L.Vhdl.Invalid_output_assign (id,loc) ->
-       eprintf "%aVHDL backend; cannot assign non-scalar output %s\n" pp_loc loc id;
-       exit 2
-    | Misc.Not_implemented msg ->
-       eprintf "Not implemented: %s.\n" msg; flush stderr;
-       exit 22
-    | Misc.Fatal_error msg ->
-       eprintf "Internal error: %s.\n" msg; flush stderr;
-       exit 23
-    | Sys_error msg ->
-       eprintf "Input/output error: %s.\n" msg; flush stderr;
-       exit 21
-    | Sys.Break -> flush stderr; exit 20
-    | End_of_file -> exit 0
-    | e ->
-       if !Options.dump_backtrace then Printexc.print_backtrace stderr;
-       L.Guest.Error.handle e
+      e -> Error.handle e
+
 end
