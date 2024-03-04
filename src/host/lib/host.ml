@@ -25,9 +25,11 @@ module type T = sig
   module Systemc: Systemc.SYSTEMC with module Static = Static
   module Vhdl: Vhdl.VHDL with module Static = Static
   val type_program: Typing.env -> Syntax.program -> Typing.typed_program
+  val type_fragment: Typing.env -> Syntax.fragment -> unit
   val elab: Typing.typed_program -> Syntax.program -> Static.t
   val run: ?vcd_file:string -> Syntax.program -> Static.t -> unit
   val pp_program: Format.formatter -> Syntax.program -> unit
+  val pp_fragment: Format.formatter -> Syntax.fragment -> unit
   val pp_tenv: Format.formatter -> Typing.env -> unit
 end
 
@@ -49,6 +51,7 @@ struct
     module Vhdl = Vhdl.Make(Static)(G.Vhdl)
 
     let type_program tenv p = Typing.type_program tenv p
+    let type_fragment tenv p = Typing.type_fragment tenv p
 
     let elab tp p = Static.build tp p
 
@@ -60,5 +63,6 @@ struct
         end
 
     let pp_program p = Syntax.pp_program p
+    let pp_fragment p = Syntax.pp_fragment p
     let pp_tenv fmt te = Typing.pp_env fmt te
   end

@@ -12,6 +12,7 @@ noide;general;-version;Arg.Unit;set_print_version;print version of the compiler 
 noide;general;-show_models;Arg.Unit;set_show_models;generate separate representations for uninstanciated FSM models 
 noide;dot;-dot_qual_ids;Arg.Unit;set_dot_qual_ids;print qualified identifiers in DOT representations
 noide;gui;-gui;Arg.Unit;set_gui;generate report and error messages for interacting with rfsm-light
+noide;gui;-check_fragment;Arg.Unit;set_check_fragment;check a program fragment (for GUI use only)
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
 ide;dot;-dot_short_trans;Arg.Unit;set_dot_short_trans;Print single-line transition labels (default is multi-lines)
 ide;dot;-dot_abbrev_types;Arg.Unit;set_dot_abbrev_types;Print abbreviated types (default is to print definitions)

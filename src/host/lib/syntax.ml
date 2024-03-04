@@ -45,7 +45,7 @@ module type SYNTAX = sig
       itrans: itransition 
     }
 
-  and io_cat = In| Out | InOut 
+  and io_cat = In| Out | InOut | Var (* [Var] is only used for program fragments *)
   
   and state = (state_desc,unit) Annot.t
   and state_desc = Ident.t * (Ident.t * expr) list (* Name, output valuations *)
@@ -97,6 +97,20 @@ module type SYNTAX = sig
       cc_val: expr;
       }
 
+  exception Invalid_symbol of Ident.t * Location.t * string 
+
+  type fragment = { (* Program fragment for syntax and type checking of guards, actions and state valuations by the GUI *)
+    pf_inps: (Ident.t * type_expr) list;
+    pf_outps: (Ident.t * type_expr) list;
+    pf_vars: (Ident.t * type_expr) list;
+    pf_objs: fragment_obj list;
+  }
+  
+  and fragment_obj =
+    | Guard of expr
+    | Action of action
+    | SVal of Ident.t * expr  (* Output, value *)
+      
   val empty_program: program
   val add_program: program -> program -> program
 
@@ -112,7 +126,9 @@ module type SYNTAX = sig
 
   val normalize_model: model -> model
 
+  val check_fragment: fragment -> unit
   val ppr_program: program -> program
+  val ppr_fragment: fragment -> fragment
     
   val pp_typ: Format.formatter -> typ -> unit
   val pp_expr: Format.formatter -> expr -> unit
@@ -138,6 +154,8 @@ module type SYNTAX = sig
   val pp_cst_decl: Format.formatter -> cst_decl -> unit
   val pp_fun_decl: Format.formatter -> fun_decl -> unit
   val pp_program: Format.formatter -> program -> unit
+  val pp_pf_obj: Format.formatter -> fragment_obj -> unit
+  val pp_fragment: Format.formatter -> fragment -> unit
 
 end
 
@@ -153,7 +171,8 @@ struct
   type type_decl = Guest.type_decl
 
   let pp_typ = Guest.Types.pp_typ ~abbrev:false
-  let pp_type_expr fmt te = Guest.Types.pp_typ ~abbrev:false fmt te.Annot.typ
+  (* let pp_type_expr fmt te = Guest.Types.pp_typ ~abbrev:false fmt te.Annot.typ *)
+  let pp_type_expr fmt te = Guest.pp_type_expr fmt te
   let pp_expr = Guest.pp_expr
   let pp_lval = Guest.pp_lval
 
@@ -208,7 +227,7 @@ struct
   type state = (state_desc,unit) Annot.t
   let pp_state fmt s = pp_state_desc fmt s.Annot.desc
 
-  type io_cat = In| Out | InOut 
+  type io_cat = In| Out | InOut | Var
 
   type model_desc = {
       name: Ident.t;
@@ -520,5 +539,85 @@ struct
       (Ext.List.pp_v pp_model) p.models
       (Ext.List.pp_v pp_global) p.globals
       (Ext.List.pp_v pp_inst) p.insts
+
+  exception Invalid_symbol of Ident.t * Location.t * string 
+
+  (* Program fragments - since 2.1 *)
+      
+  type fragment_obj =
+    | Guard of expr
+    | Action of action
+    | SVal of Ident.t * expr  (* Output, value *)
+  
+  type fragment = {
+    pf_inps: (Ident.t * type_expr) list;
+    pf_outps: (Ident.t * type_expr) list;
+    pf_vars: (Ident.t * type_expr) list;
+    pf_objs: fragment_obj list;
+    }
+
+  let pp_pf_iov fmt (id,t) = 
+    Format.fprintf fmt "%a: %a" Ident.pp id pp_type_expr t
+    
+  let pp_pf_obj fmt o = 
+    let open Format in
+    match o with
+    | Guard e -> fprintf fmt "guard \"%a\"" pp_expr e
+    | Action a -> fprintf fmt "action \"%a\"" pp_action a
+    | SVal (id,e) -> fprintf fmt "sval \"%a=%a\"" Ident.pp id pp_expr e 
+
+  let pp_fragment fmt p = 
+    let open Format in
+    fprintf fmt "@[<v>{@,inps = %a@,outps = %a@,vars = %a@,objs = %a@]@."
+      (Ext.List.pp_v pp_pf_iov) p.pf_inps
+      (Ext.List.pp_v pp_pf_iov) p.pf_outps
+      (Ext.List.pp_v pp_pf_iov) p.pf_vars
+      (Ext.List.pp_v pp_pf_obj) p.pf_objs
+
+  let check_fragment p = (* Basic sanity checking *)
+    let check_var ~loc ~msg ~src v =
+      if not @@ List.mem_assoc v src
+      then raise (Invalid_symbol (v, loc, msg)) in
+    let check_inp_or_var ~loc v =
+      check_var ~src:(p.pf_inps @ p.pf_vars) ~loc ~msg:"is not an input, nor a local variable" v in
+    let check_outp_or_var ~loc v =
+      check_var ~src:(p.pf_outps @ p.pf_vars) ~loc ~msg:"is not an output, nor a local variable" v in
+    let check_outp ~loc v =
+      check_var ~src:p.pf_outps ~loc ~msg:"is not an output" v in
+    let check obj =
+      match obj with
+      | Guard e ->
+        (* Check that all symbols occuring in [e] are defined as input or variable *)
+        List.iter
+          (check_inp_or_var ~loc:e.Annot.loc)
+          (Guest.vars_of_expr e) 
+      | Action a ->
+        (* Check that all symbols occuring in RHS are defined as input or variable
+           and that all symbols occuring in LHS are defined as output or variable *)
+        S.iter
+          (check_inp_or_var ~loc:a.Annot.loc)
+          (rvars_of_action a);
+        S.iter
+          (check_outp_or_var ~loc:a.Annot.loc)
+          (wvars_of_action a);
+      | SVal (o,e) ->
+        (* Check that all symbols occuring in RHS are defined as input or variable
+           and that [o] is defined as output *)
+        List.iter
+          (check_inp_or_var ~loc:e.Annot.loc)
+          (Guest.vars_of_expr e); 
+        check_outp ~loc:e.Annot.loc o in 
+    List.iter check p.pf_objs 
+    
+  let ppr_fragment_obj pf obj =
+    let env = Env.init (pf.pf_inps @ pf.pf_vars @ pf.pf_outps) in
+    match obj with
+    | Guard e -> Guard (Guest.ppr_expr env e)
+    | Action a -> Action (ppr_action env a)
+    | SVal (o,e) ->
+        let _, e' = ppr_ov ~loc:Location.no_location env (o,e) in
+        SVal (o, e')
+
+  let ppr_fragment pf = { pf with pf_objs = List.map (ppr_fragment_obj pf) pf.pf_objs }
 
 end

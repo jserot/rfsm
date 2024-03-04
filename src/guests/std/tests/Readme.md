@@ -1,1 +1,1 @@
-Most of tests are in the `../../../../examples/full` directory
+Most of tests are in the `../../../../examples/std` directory

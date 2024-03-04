@@ -15,6 +15,10 @@ module C = (* The command-line compiler *)
   Rfsm.Compiler.Make
     (L)
     (Lexer)
-    (struct include Parser type program = L.Syntax.program end)
+    (struct
+      include Parser
+      type program = L.Syntax.program
+      type fragment = L.Syntax.fragment
+    end)
            
 let _ = Printexc.print C.main ()

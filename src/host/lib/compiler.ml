@@ -121,13 +121,15 @@ struct
     let open L in
     match !source_files with
     | [f] ->
-      let p = analyse ~lexer:Lexer.main ~parser:Parser.fragment f in
-      (* Format.printf "parsed=%a" L.Syntax.pp_fragment p; *)
       let tenv0 = Typing.mk_env () in
       if !Options.dump_tenv then Format.printf "tenv=%a@." pp_tenv tenv0;
-      type_fragment tenv0 p
+      let p = analyse ~lexer:Lexer.main ~parser:Parser.fragment f in
+      (* Format.printf "parsed=%a" L.Syntax.pp_fragment p; *)
+      L.Syntax.check_fragment p;
+      p |> L.Syntax.ppr_fragment
+        |> type_fragment tenv0
     | _ ->
-      Format.eprintf "Usage: rfsmc -check_fragment [options] file";
+      Format.eprintf "Usage: rfsmc -check_fragment [options] file\n";
       flush stderr;
       exit 1
 

@@ -1,0 +1,6 @@
+-- check action RHS. Should fail because of type mismatch
+-- context 
+in i: bool;
+var k: int;
+-- program fragments to check
+action k:=i+1;

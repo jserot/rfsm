@@ -1,0 +1,5 @@
+-- check state valuation LHS. Should fail because of type mismatch
+-- context 
+out o: int;
+-- fragment to check
+sval o=true;

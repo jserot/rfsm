@@ -23,6 +23,7 @@ module type TYPING = sig
   val type_program: env -> HostSyntax.program -> typed_program
   val pp_env: Format.formatter -> env -> unit
   val pp_typed_program: Format.formatter -> typed_program -> unit
+  val type_fragment: env -> HostSyntax.fragment -> unit
 
   exception Duplicate_symbol of Location.t * Ident.t
   exception Invalid_state of Location.t * Ident.t
@@ -36,7 +37,7 @@ end
 module Make
          (HS: Syntax.SYNTAX)
          (GT: Guest.TYPING with module Syntax = HS.Guest and type Types.typ = HS.typ )
-         (GS: Guest.STATIC with type expr = HS.expr) =
+         (GS: Guest.STATIC with type expr = HS.expr) : TYPING with module HostSyntax=HS =
 struct
   module HostSyntax = HS
   module GuestTyping = GT 
@@ -61,7 +62,7 @@ struct
 
   (* Typing FSM models *)
 
-  let type_fsm_action env m act =
+  let type_fsm_action env act =
     (* TO FIX: the type of an action should always be "unit" ? *)
     let loc = act.A.loc in
     let ty = match act.A.desc with 
@@ -102,16 +103,17 @@ struct
     check_fsm_state ~loc m q;
     check_fsm_state ~loc m q';
     type_fsm_condition env cond;
-    List.iter (type_fsm_action env m) acts
+    List.iter (type_fsm_action env) acts
 
   let type_fsm_itransition env m A.{ desc=q,acts; loc=loc; _ } =
     (* For the initial transition [/ acts -> q] check that
      *    - [q] is listed as state in model declaration
      *    - for each [act]=[v:=exp] in [acts], [type(v)=type(exp)] *)
     check_fsm_state ~loc m q;
-    List.iter (type_fsm_action env m) acts
+    List.iter (type_fsm_action env) acts
 
   let type_fsm_state_valuation env (m:HostSyntax.model) q (o,expr) = 
+    (* Note : [expr] is _syntactically_ limited to be a scalar constant. Hence [env] is not really needed here. *)
     let te =
       try List.assoc o m.A.desc.HostSyntax.outps
       with Not_found -> raise (Illegal_state_output (expr.A.loc, q, o)) in
@@ -265,5 +267,38 @@ struct
     List.iter (type_global env) p.globals;
     { tp_models = List.map (type_fsm_model env) p.models;
       tp_insts =  List.map (type_fsm_inst env p) p.insts }
+
+  (* Typing program fragments (for GUI only) *)
+
+  let type_fragment_guard env g = type_fsm_guard env g
+
+  let type_fragment_action env a = type_fsm_action env a
+
+  let type_fragment_valuation env (o,expr) = 
+    (* Note : [expr] is _syntactically_ limited to be a scalar constant.
+       Hence [env] is, _here_, only used to retrieve the type of [o] *)
+    let loc =expr.A.loc in
+    let t = GuestTyping.lookup_var ~loc o env in
+    GuestTyping.type_check
+      ~loc
+      t
+      (GuestTyping.type_expression env expr)
+
+  let type_fragment_obj p env0 o =
+    let open HostSyntax in
+    let add_sym env (id,te) =
+      let ty = GuestTyping.type_of_type_expr env te in
+      GuestTyping.add_var ~scope:Ident.Local env (id,ty) in
+    let augment_env env ios = List.fold_left add_sym env ios in
+    match o with
+    | Guard e ->
+        type_fragment_guard (augment_env env0 (p.pf_inps @ p.pf_vars)) e 
+    | Action a ->
+        type_fragment_action (augment_env env0 (p.pf_inps @ p.pf_vars @ p.pf_outps)) a
+    | SVal (o,e) ->
+      type_fragment_valuation (augment_env env0 p.pf_outps) (o,e)
+                                        
+  let type_fragment env0 p = 
+    List.iter (type_fragment_obj p env0) p.HostSyntax.pf_objs
 
 end

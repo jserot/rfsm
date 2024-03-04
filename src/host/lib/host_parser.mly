@@ -52,10 +52,17 @@
 %token AND
 %token RPAREN LPAREN
 %token TYPE
+(* For program fragments only *)
+%token VAR
+%token GUARD
+%token ACTION
+%token SVAL
 (* #include "guest_tokens.mly" *)
 
 %type <Lang.L.Syntax.program> program
+%type <Lang.L.Syntax.fragment> fragment
 %start program
+%start fragment
 
 %{
 (* #include "guest_open.mly" *)
@@ -65,6 +72,8 @@ let mk_io' (cat,(id,ty)) = id, ty
 let mk_ident x = Rfsm.Ident.mk x
 let mk_global_ident x = Rfsm.Ident.(mk ~scope:Global x)
 let mk_state ~loc:l x = Annot.{ desc=x; typ=(); loc=Location.mk l }
+
+                          
 %}
 
 %%
@@ -235,3 +244,24 @@ id:
   | i = UID { i }
 
 (* #include "guest_rules.mly" *)
+
+(* PROGRAM FRAGMENTS *)
+
+iov:
+  | IN d=io_desc { Lang.L.Syntax.In, d }
+  | OUT d=io_desc { Lang.L.Syntax.Out, d }
+  | VAR d=io_desc { Lang.L.Syntax.Var, d }
+
+fragment_obj:
+  | GUARD e=expr { Lang.L.Syntax.Guard e }
+  | ACTION a=action { Lang.L.Syntax.Action a }
+  | SVAL ov=outp_valuation { let (id,e) = ov in Lang.L.Syntax.SVal (id,e) }
+
+fragment:
+  | iovs = list(terminated(iov,SEMICOLON))
+    objs = list(terminated(fragment_obj,SEMICOLON)) EOF
+    { Lang.L.Syntax.{
+        pf_inps = iovs |> List.filter (function (In,(id,t)) -> true | _ -> false) |> List.map mk_io';
+        pf_outps = iovs |> List.filter (function (Out,(id,t)) -> true | _ -> false) |> List.map mk_io';
+        pf_vars = iovs |> List.filter (function (Var,(id,t)) -> true | _ -> false) |> List.map mk_io';
+        pf_objs = objs; } }

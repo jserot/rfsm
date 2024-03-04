@@ -1,0 +1,5 @@
+-- check state valuation LHS. Ok
+-- context 
+out o: int;
+-- fragment to check
+sval o=1;

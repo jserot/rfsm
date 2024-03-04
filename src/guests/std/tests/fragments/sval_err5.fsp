@@ -1,0 +1,6 @@
+-- check state valuation LHS. Should fail because of syntax error (see BNF)
+-- context 
+out o: event;
+out u: event;
+-- fragment to check
+sval o=u;

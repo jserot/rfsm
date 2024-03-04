@@ -51,6 +51,11 @@ let keyword_table = [
   "function", FUNCTION;
   "return", RETURN;
   "type", TYPE;
+  (* For program fragments *)
+  "var", VAR;
+  "guard", GUARD;
+  "action", ACTION;
+  "sval", SVAL;
 #include "guest_kw.mll"
 ]
 

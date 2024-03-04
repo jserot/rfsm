@@ -52,6 +52,9 @@ let handle e =
        exit 2
     | Ident.Duplicate (what,loc,x) -> 
       eprintf "%aDuplicate %s: %a\n" pp_loc loc what Ident.pp x; exit 2
+    | L.Syntax.Invalid_symbol(x,loc,reason) ->
+       eprintf "%aInvalid symbol reference: \"%a\" %s\n" pp_loc loc Ident.pp x reason;
+       exit 2
     | L.Typing.Duplicate_symbol (loc,s) -> 
        eprintf "%aThe symbol %a is already defined in this context\n" pp_loc loc Ident.pp s;
        exit 2
