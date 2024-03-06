@@ -44,9 +44,10 @@ input N1 : int<8> = value_changes (5:150, 45:0)
 input N2 : int<8> = value_changes (5:25, 45:0)
 input Start : bool = value_changes (0:0, 25:1, 35:0)
 
-output Rdy : bool
 output R1 : int<8>  
+output Rdy1 : bool
 output R2 : int<8>  
+output Rdy2 : bool
 
-fsm d1 = div8_1 (H,Start,N1,N2,Rdy,R1)
-fsm d2 = div8_2 (H,Start,N1,N2,Rdy,R2)
+fsm d1 = div8_1 (H,Start,N1,N2,Rdy1,R1)
+fsm d2 = div8_2 (H,Start,N1,N2,Rdy2,R2)
