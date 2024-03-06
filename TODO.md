@@ -1,6 +1,5 @@
 COMPILER
 
-- rename "full" to "std" in src/guests/std/...
 - fix bugs in `examples/std/single/fir/vhdl` and `examples/std/single/div8/systemc`
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL

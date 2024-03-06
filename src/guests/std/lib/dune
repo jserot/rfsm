@@ -2,4 +2,4 @@
   (flags (:standard -annot) (:standard -w -27))
   (preprocess (pps ppx_deriving.show))
   (libraries rfsm) 
-  (name full))
+  (name std))

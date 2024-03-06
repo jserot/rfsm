@@ -1,6 +1,6 @@
 all:
-	dune build ./lib/full.cma
-	dune build ./lib/full.cmxa
+	dune build ./lib/std.cma
+	dune build ./lib/std.cmxa
 	dune build ./bin/rfsmc.exe
 
 clean:

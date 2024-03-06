@@ -1,7 +1,7 @@
 (executable
   (flags (:standard -annot) (:standard -w -26-27-37))
   (preprocess (pps ppx_deriving.show ppx_deriving.make))
-  (libraries rfsm full)
+  (libraries rfsm std)
   (public_name rfsmc))
 
 (ocamllex

@@ -1,4 +1,4 @@
-all: byte 
+all: native 
 
 byte:
 	dune build rfsmc.bc
