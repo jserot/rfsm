@@ -1,6 +1,5 @@
 COMPILER
 
-- fix bugs in `examples/std/single/fir/vhdl` 
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)

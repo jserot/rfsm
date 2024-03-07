@@ -90,10 +90,13 @@ let rec pp_expr fmt e =
        | _, _, _ -> fprintf fmt "%s%a%a%a%s" (paren level "(") (pp (level+1)) e1 pp_op op (pp (level+1)) e2 (paren level ")")
        end
     | Syntax.ECon0 c, _ -> pp_enum fmt c
-    | Syntax.EIndexed (a,i), _ -> fprintf fmt "%a(%a downto %a)" pp_ident a (pp level) i (pp level) i
+    | Syntax.EIndexed (a,i), Unsigned _
+    | Syntax.EIndexed (a,i), Signed _ ->
+        fprintf fmt "%a(%a downto %a)" pp_ident a (pp level) i (pp level) i
      (* This a hack to handle assignations of the form [r := v(i)] where [v] has type [Unsigned n]
         and [r] has type [Unsigned 1]. Translating this as [r := v(i) ] does not work because [v(i)]
-         should have [std_logic] in this case... *)
+         should have type [std_logic] in this case... *)
+    | Syntax.EIndexed (a,i), _ -> fprintf fmt "%a(%a)" pp_ident a (pp level) i
     | Syntax.ERanged (a,hi,lo), _ -> fprintf fmt "%a(%a)" pp_ident a pp_range (hi,lo)
     | Syntax.ECond (e1,e2,e3), _ -> fprintf fmt "cond(%a,%a,%a)" (pp (level+1)) e1 (pp (level+1)) e2 (pp (level+1)) e3
     | Syntax.EArrExt vs, _ -> fprintf fmt "(%a)" (Rfsm.Ext.List.pp_h ~sep:"," (pp level)) vs
@@ -150,20 +153,22 @@ and pp_cast fmt (e,te) =
   | t, t' when t=t' -> pp_expr fmt e
   | _, _ -> raise (Illegal_cast e)
 
-let rec pp_lval_desc fmt l =
-  match l with 
-  | Syntax.LvalVar v -> fprintf fmt "%a" pp_ident v
-  | Syntax.LvalIndex (a,i) ->
+let rec pp_lval_desc fmt (l,ty) =
+  let open Rfsm.Vhdl_types in
+  match l, vhdl_type_of ty with 
+  | Syntax.LvalVar v, _ -> fprintf fmt "%a" pp_ident v
+  | Syntax.LvalIndex (a,i), Unsigned _ ->
      fprintf fmt "%a(%a downto %a)" pp_ident a pp_expr i pp_expr i
      (* This a hack to handle assignations of the form [v(i) := e] where [v] has type [Unsigned n]
         and [e] has type [Unsigned 1]. Translating this as [v(i) := e] does not work because [e]
-         should have [std_logic] in this case... *)
-  | Syntax.LvalRange (a,hi,lo) -> fprintf fmt "%a(%a)" pp_ident a pp_range (hi,lo)
-  | Syntax.LvalRField (r,f) -> fprintf fmt "%a.%s" pp_ident r f
-and pp_lval fmt l = pp_lval_desc fmt l.Rfsm.Annot.desc
+         should have type [std_logic] in this case... *)
+  | Syntax.LvalIndex (a,i), _ ->
+     fprintf fmt "%a(%a)" pp_ident a pp_expr i
+  | Syntax.LvalRange (a,hi,lo), _ -> fprintf fmt "%a(%a)" pp_ident a pp_range (hi,lo)
+  | Syntax.LvalRField (r,f), _ -> fprintf fmt "%a.%s" pp_ident r f
+and pp_lval fmt l = pp_lval_desc fmt (l.Rfsm.Annot.desc,l.Rfsm.Annot.typ)
 
 let rec pp_value fmt (v,ty) =
-  let open Format in
   let open Rfsm.Vhdl_types in
   match v, ty with
     Value.Val_int (i,_), Unsigned n -> fprintf fmt "to_unsigned(%d,%d)" i n
