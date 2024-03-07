@@ -11,4 +11,4 @@
 
 (**{1 Compiler version} *)
 
-let version="2.0"
+let version="2.1"

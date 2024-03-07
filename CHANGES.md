@@ -1,3 +1,10 @@
+# 2.1 (Mar 8, 2024)
+
+* Fixed bugs in SystemC and VHDL backends affecting `examples/std/single/{div8,fir}` resp.
+* Renamed some lasting occurrences of `full` as `std` in the `std` guest tree
+* Added module `Error` in `host/lib`
+* Added option `-check_fragment` (to be used by the `rfsm-light` GUI)
+
 # 2.0 (Nov 28, 2023)
 
 * Entirely recrafted modular implementation (host+guests languages)
