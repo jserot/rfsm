@@ -61,11 +61,16 @@ struct
     Printf.printf "---------------------------------------------------------------------------\n";
     flush stdout
 
-  let analyse ~lexer:lexer ~parser:parse fname = 
+  let analyse_file ~lexer:lexer ~parser:parse fname = 
     let ic = open_in_bin fname in
     Location.input_name := fname;
     Location.input_chan := ic;
     let lexbuf = Lexing.from_channel !Location.input_chan in
+    Location.input_lexbuf := lexbuf;
+    parse lexer !Location.input_lexbuf
+
+  let analyse_string ~lexer:lexer ~parser:parse s = 
+    let lexbuf = Lexing.from_string s in
     Location.input_lexbuf := lexbuf;
     parse lexer !Location.input_lexbuf
 
@@ -74,7 +79,7 @@ struct
     let p0 =
       List.fold_left
         (fun p f -> 
-           let p' = analyse ~lexer:Lexer.main ~parser:Parser.program f in
+           let p' = analyse_file ~lexer:Lexer.main ~parser:Parser.program f in
            Syntax.add_program p p')
         Syntax.empty_program
         !source_files in
@@ -117,29 +122,70 @@ struct
     end;
     Logfile.stop ()
 
-  let check_fragment () =
-    let open L in
-    match !source_files with
-    | [f] ->
-      let tenv0 = Typing.mk_env () in
-      if !Options.dump_tenv then Format.printf "tenv=%a@." pp_tenv tenv0;
-      let p = analyse ~lexer:Lexer.main ~parser:Parser.fragment f in
-      (* Format.printf "parsed=%a" L.Syntax.pp_fragment p; *)
-      L.Syntax.check_fragment p;
-      p |> L.Syntax.ppr_fragment
-        |> type_fragment tenv0
-    | _ ->
-      Format.eprintf "Usage: rfsmc -check_fragment [options] file\n";
-      flush stderr;
-      exit 1
+  (* let check_fragment () =
+   *   let open L in
+   *   match !source_files with
+   *   | [f] ->
+   *     let tenv0 = Typing.mk_env () in
+   *     if !Options.dump_tenv then Format.printf "tenv=%a@." pp_tenv tenv0;
+   *     let p = analyse ~lexer:Lexer.main ~parser:Parser.fragment f in
+   *     (\* Format.printf "parsed=%a" L.Syntax.pp_fragment p; *\)
+   *     L.Syntax.check_fragment p;
+   *     p |> L.Syntax.ppr_fragment
+   *       |> type_fragment tenv0
+   *   | _ ->
+   *     Format.eprintf "Usage: rfsmc -check_fragment [options] file\n";
+   *     flush stderr;
+   *     exit 1 *)
+
+  let check_fragment f =
+      (* let open L in *)
+      (* let tenv0 = Typing.mk_env () in *)
+    try
+      let p = analyse_string ~lexer:Lexer.main ~parser:Parser.fragment f in
+      let answer = Ext.Format.to_string L.Syntax.pp_fragment p in
+      answer
+     with exn ->
+      Printf.printf "check_fragment raised %s\n" (Printexc.to_string exn); flush stdout ;
+      "<failed>"
+
+  let service ic oc =
+    try
+      while true do
+        Printf.printf "rfsm server: waiting for request\n" ; flush stdout;
+        let fragment = input_line ic in
+        Printf.printf "rfsm server: got fragment: %s\n" fragment ; flush stdout;
+        if not (String.starts_with ~prefix:"quit" fragment) then
+          let answer = String.escaped (check_fragment fragment) in
+          Printf.printf "rfsm server: sending response: %s\n" answer ; flush stdout;
+          output_string oc (answer^"\n") ;
+          flush oc
+      done
+    with exn ->
+      Printf.printf "rfsm server: caught exn %s. Ending\n" (Printexc.to_string exn); flush stdout ;
+      exit 0
+
+  (* let service ic oc =
+   *   try
+   *     while true do
+   *       Printf.printf "rfsm server: waiting for request\n" ; flush stdout;
+   *       let s = input_line ic in
+   *       Printf.printf "rfsm server: got: %s\n" s ; flush stdout;
+   *       if s <> "QUIT" then
+   *         let r = String.uppercase_ascii s
+   *         in output_string oc (r^"\n") ; flush oc
+   *     done
+   *   with exn ->
+   *     Printf.printf "rfsm server: caught exn %s. Ending\n" (Printexc.to_string exn); flush stdout ;
+   *     exit 0 *)
 
   let main () =
     try
       Sys.catch_break true;
       Printexc.record_backtrace !Options.dump_backtrace;
       Arg.parse (Options.spec @ L.Guest.Options.specs) anonymous usage;
-      if !Options.check_fragment then
-        check_fragment ()
+      if !Options.server_mode then
+        Server.start ~socket:!Options.socket_path ~fn:service
       else
         begin
           print_banner ();

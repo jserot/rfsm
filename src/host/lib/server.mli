@@ -9,6 +9,7 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(**{1 Compiler version} *)
+(**{1 Socket-based server} *)
 
-let version="2.2"
+val start: socket:string -> fn:(in_channel -> out_channel -> unit) -> unit
+(** Start the service function [fn], reading input and writing output on Unix socket [socket]  *)

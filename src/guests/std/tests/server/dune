@@ -1,0 +1,5 @@
+(executable
+ (public_name client)
+ (flags (:standard -w -52))
+ (libraries unix)
+ (name client))

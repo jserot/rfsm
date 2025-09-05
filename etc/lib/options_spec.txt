@@ -10,10 +10,9 @@ noide;general;-systemc;Arg.Unit;set_systemc;generate SystemC code
 noide;general;-vhdl;Arg.Unit;set_vhdl;generate VHDL code
 noide;general;-version;Arg.Unit;set_print_version;print version of the compiler and quit
 noide;general;-show_models;Arg.Unit;set_show_models;generate separate representations for uninstanciated FSM models 
-noide;general;-server_mode;Arg.Unit;set_server_mode;run the compiler in server mode (to be used by the grasp app)
-ide;general;-socket_path;Arg.String;set_socket_path;set socket path when running in server mode
 noide;dot;-dot_qual_ids;Arg.Unit;set_dot_qual_ids;print qualified identifiers in DOT representations
 noide;gui;-gui;Arg.Unit;set_gui;generate report and error messages for interacting with rfsm-light
+noide;gui;-check_fragment;Arg.Unit;set_check_fragment;check a program fragment (for GUI use only)
 ide;dot;-dot_no_captions;Arg.Unit;set_dot_no_captions;Remove captions in .dot representation(s)
 ide;dot;-dot_short_trans;Arg.Unit;set_dot_short_trans;Print single-line transition labels (default is multi-lines)
 ide;dot;-dot_abbrev_types;Arg.Unit;set_dot_abbrev_types;Print abbreviated types (default is to print definitions)

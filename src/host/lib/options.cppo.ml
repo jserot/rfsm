@@ -26,7 +26,8 @@ let dot_abbrev_types = ref false
 let normalize = ref false
 let dump_backtrace = ref false
 let gui = ref false
-let check_fragment = ref false
+let server_mode = ref false
+let socket_path = ref "/tmp/rfsm_sock" (* TO BE FIXED *)
 
 let set_main_prefix p = main_prefix := p
 let set_old_syntax () = use_old_syntax := true
@@ -43,7 +44,8 @@ let set_target_dir name = target_dir := name
 let set_main_name name = main_name := name
 let set_normalize () = normalize := true
 let set_gui () = gui := true
-let set_check_fragment () = check_fragment := true
+let set_server_mode () = server_mode := true
+let set_socket_path path = socket_path := path
 
 let set_synchronous_actions () =
   Dynamic.cfg.act_semantics <- Misc.Synchronous;
