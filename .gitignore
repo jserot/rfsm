@@ -37,3 +37,4 @@ examples/std/{multi,single}/*/{ctask,sim,systemc,vhdl}/*
 HOWTO-PUBLISH
 src/host/lib/options.ml
 src/guests/run_regression_tests
+src/guests/std/tests/server/client/client.app/
