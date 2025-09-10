@@ -1,6 +1,0 @@
--- check action RHS. Ok
--- context 
-in i: int;
-var k: int;
--- program fragments to check
-action k:=i+1;

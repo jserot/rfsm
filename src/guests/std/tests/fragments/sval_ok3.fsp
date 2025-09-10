@@ -1,5 +1,0 @@
--- check state valuation LHS. Should also be Ok thx to implicit type casting
--- context 
-out o: bool;
--- fragment to check
-sval o=1;

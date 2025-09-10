@@ -23,7 +23,7 @@ module type TYPING = sig
   val type_program: env -> HostSyntax.program -> typed_program
   val pp_env: Format.formatter -> env -> unit
   val pp_typed_program: Format.formatter -> typed_program -> unit
-  val type_fragment: env -> HostSyntax.fragment -> unit
+  val type_fragment: HostSyntax.fragment -> unit
 
   exception Duplicate_symbol of Location.t * Ident.t
   exception Invalid_state of Location.t * Ident.t
@@ -268,7 +268,7 @@ struct
     { tp_models = List.map (type_fsm_model env) p.models;
       tp_insts =  List.map (type_fsm_inst env p) p.insts }
 
-  (* Typing program fragments (for GUI only) *)
+  (* Typing program fragments (server mode only) *)
 
   let type_fragment_guard env g = type_fsm_guard env g
 
@@ -298,7 +298,8 @@ struct
     | SVal (o,e) ->
       type_fragment_valuation (augment_env env0 p.pf_outps) (o,e)
                                         
-  let type_fragment env0 p = 
-    List.iter (type_fragment_obj p env0) p.HostSyntax.pf_objs
+  let type_fragment p = 
+    let tenv = mk_env () in
+    type_fragment_obj p tenv p.HostSyntax.pf_obj
 
 end

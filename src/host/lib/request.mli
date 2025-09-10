@@ -9,16 +9,14 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Lang
-   
-module C = (* The command-line compiler *)
-  Rfsm.Compiler.Make
-    (L)
-    (Lexer)
-    (struct
-      include Parser
-      type program = L.Syntax.program
-      type fragment_obj = L.Syntax.fragment_obj
-    end)
-           
-let _ = Printexc.print C.main ()
+(**{1 Client->server requests} *)
+
+type t =
+    GetVersion
+  | CheckFragment of Fragment.t
+  [@@deriving show]
+
+exception Invalid of string
+
+val from_string: string -> t
+  (** decodes a JSON-encoded request *)

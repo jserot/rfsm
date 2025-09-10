@@ -9,16 +9,21 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Lang
-   
-module C = (* The command-line compiler *)
-  Rfsm.Compiler.Make
-    (L)
-    (Lexer)
-    (struct
-      include Parser
-      type program = L.Syntax.program
-      type fragment_obj = L.Syntax.fragment_obj
-    end)
-           
-let _ = Printexc.print C.main ()
+type t =
+    GetVersion
+  | CheckFragment of Fragment.t
+  [@@deriving show]
+
+exception Invalid of string
+    
+let from_string s = 
+  let json = Yojson.Basic.from_string s in
+  let open Yojson.Basic.Util in
+  match keys json with
+  | ["version"] ->
+      GetVersion
+  | ["fragment"] ->
+      let f = member "fragment" json in
+      CheckFragment (Fragment.from_json f)
+  | _ ->
+    raise (Invalid s)

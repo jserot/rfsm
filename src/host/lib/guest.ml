@@ -59,6 +59,14 @@ module type SYNTAX = sig
   and type_expr_desc
   (** The type of guest-level {e type expressions}, denoting types *)
 
+  exception Illegal_type of string
+      
+  val mk_basic_type_expr: string -> type_expr
+  (** [mk_basic_type_expr c] returns the type expression describing the type constructor [c].
+      Raises [Illegal_type] if the guest language has no such type. *)
+  (* Note: this is hack for allowing the server mode to  build typing environments from simple
+     type names such as ["int"] or ["bool"]. *)
+  
   val is_bool_type: type_expr -> bool
   val is_event_type: type_expr -> bool
   val is_array_type: type_expr -> bool
@@ -67,6 +75,9 @@ module type SYNTAX = sig
 
   val pp_type_expr: Format.formatter -> type_expr -> unit
   (** [pp_type_expr fmt te] prints type expression [te] on formatter [fmt]. *)
+
+  val pp_type_expr_desc: Format.formatter -> type_expr_desc -> unit
+  (** [pp_type_expr fmt te] prints type expression desccription [te] on formatter [fmt]. *)
 
   (**{3 Type declarations} *)
 
@@ -202,8 +213,11 @@ module type TYPING = sig
 
   (**{3 Low-level interface to the the type-checking engine} *)
 
+  exception Type_conflict of Location.t * Types.typ * Types.typ
+                                           
   val type_check: loc:Location.t -> Types.typ -> Types.typ -> unit
-  (** [type_check loc t t'] should be called whenever types [t] and [t'] have to be unified at program location [loc]. *)
+  (** [type_check loc t t'] should be called whenever types [t] and [t'] have to be unified at program location [loc]
+      and raise [Type_conflict] if unification fails. *)
     
   (**{3 High-level interface to the type-checking engine} *)
 

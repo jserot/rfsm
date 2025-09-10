@@ -1,17 +1,19 @@
-SOCK_PATH=./rfsm_sock
-SERVER_PID=/tmp/rfsmc_pid
+QMAKE=/Users/jserot/Qt2/6.9.1/macos/bin/qmake
+SOCK_PATH=/tmp/rfsm_sock
+SERVER_PID=/tmp/rfsm_pid
 
-build:
-	dune build
-
+all:
+	(cd client; make)
+qmake:
+	(cd client; $(QMAKE))
 clean:
-	dune clean
-	rm -f $(SOCK_PATH)
-
+	(cd client; make clean)
+#	rm -f $(SOCK_PATH)
+clobber:
+	(cd client; make distclean)
+#	rm -f $(SOCK_PATH)
 run:
 	rm -f $(SOCK_PATH)
-#	pkill -l server.exe # Not required if the server process has been killed properly as below...
-	../../../../../_build/default/src/guests/std/bin/rfsmc.exe -server_mode -socket_path $(SOCK_PATH) & echo "$$!" > $(SERVER_PID)
-	@sleep 0.5 # Allow the server to start !
-	../../../../../_build/default/src/guests/std/tests/server/client.exe $(SOCK_PATH)
+# Server is now launched by client
+	(cd client/client.app/Contents/MacOS; ./client)
 #	kill -9 `cat $(SERVER_PID)`

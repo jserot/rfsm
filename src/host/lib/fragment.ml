@@ -9,16 +9,20 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Lang
-   
-module C = (* The command-line compiler *)
-  Rfsm.Compiler.Make
-    (L)
-    (Lexer)
-    (struct
-      include Parser
-      type program = L.Syntax.program
-      type fragment_obj = L.Syntax.fragment_obj
-    end)
-           
-let _ = Printexc.print C.main ()
+type t = {
+  jf_inps: (string * string) list; (* id, type expr *)
+  jf_outps: (string * string) list; (* id, type expr *)
+  jf_vars: (string * string) list; (* id, type expr *)
+  jf_obj: string; (* fragment to analyse; ex ["guard x=1"]  *)
+} [@@deriving show]
+
+let from_json json = 
+  let open Yojson.Basic.Util in
+  let extract name j = j |> member name |> to_assoc |> List.map (fun (k,j) -> k, to_string j) in
+  { jf_inps = extract "inps" json;
+    jf_outps = extract "outps" json; 
+    jf_vars =  extract "vars" json;
+    jf_obj = json |> member "obj" |> to_string; }
+
+let from_string s =
+  from_json (Yojson.Basic.from_string s)

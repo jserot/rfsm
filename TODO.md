@@ -1,5 +1,6 @@
 COMPILER
 
+- replace refs to `rfsm-light` by `grasp`
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)
@@ -15,9 +16,10 @@ COMPILER
 - communication via FIFOs (message queues) ?
 
 EXAMPLES
+- build a `guests/grasp` language restricted to what is possible with the `grasp` GUI ? 
+- fix `guests/others` languages to match the updated signature of `host/lib/Guest`
 
 TOOLS
-- syntax checkers for guards, actions and state valuations, to be used by `rfsm-light`
 
 DIST
 - opam install `etc/lib/{systemc,vhdl}`  and `src/host/lib/options_spec.txt` (to be used when building `rfsm-light`)

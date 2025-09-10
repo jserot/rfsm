@@ -20,10 +20,10 @@ end
 module type PARSER = sig
   type token 
   type program
-  type fragment
+  type fragment_obj
   exception Error
   val program: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> program
-  val fragment: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> fragment
+  val fragment_obj: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> fragment_obj
 end
 
 (** Signature for the [Lexer] input to the functor {!Compiler.Make} *)
@@ -41,7 +41,7 @@ module Make
          (Parser: PARSER
             with type token = Lexer.token
              and type program = L.Syntax.program
-             and type fragment = L.Syntax.fragment)
+             and type fragment_obj = L.Syntax.fragment_obj)
   : T =
 struct
 
@@ -122,62 +122,66 @@ struct
     end;
     Logfile.stop ()
 
-  (* let check_fragment () =
-   *   let open L in
-   *   match !source_files with
-   *   | [f] ->
-   *     let tenv0 = Typing.mk_env () in
-   *     if !Options.dump_tenv then Format.printf "tenv=%a@." pp_tenv tenv0;
-   *     let p = analyse ~lexer:Lexer.main ~parser:Parser.fragment f in
-   *     (\* Format.printf "parsed=%a" L.Syntax.pp_fragment p; *\)
-   *     L.Syntax.check_fragment p;
-   *     p |> L.Syntax.ppr_fragment
-   *       |> type_fragment tenv0
-   *   | _ ->
-   *     Format.eprintf "Usage: rfsmc -check_fragment [options] file\n";
-   *     flush stderr;
-   *     exit 1 *)
-
-  let check_fragment f =
-      (* let open L in *)
-      (* let tenv0 = Typing.mk_env () in *)
+  let check_fragment (f: Fragment.t) =
+    let open L in
     try
-      let p = analyse_string ~lexer:Lexer.main ~parser:Parser.fragment f in
-      let answer = Ext.Format.to_string L.Syntax.pp_fragment p in
-      answer
+      let mk_iov (id,t) = Ident.mk id, Syntax.mk_basic_type_expr t in
+      let pf = {
+        Syntax.pf_inps = List.map mk_iov f.jf_inps;
+        Syntax.pf_outps = List.map mk_iov f.jf_outps;
+        Syntax.pf_vars = List.map mk_iov f.jf_vars;
+        Syntax.pf_obj = analyse_string ~lexer:Lexer.main ~parser:Parser.fragment_obj f.jf_obj
+        } in
+      Format.printf "rfsm server: parsed fragment = %a" L.Syntax.pp_fragment pf;
+      L.Syntax.check_fragment pf; (* TBR ?  Redundant with type-checking ? *)
+      let ppf = L.Syntax.ppr_fragment pf in
+      Format.printf "rfsm server: pre-processed fragment = %a" L.Syntax.pp_fragment ppf;
+      type_fragment ppf;
+      Response.NoErr
      with exn ->
-      Printf.printf "check_fragment raised %s\n" (Printexc.to_string exn); flush stdout ;
-      "<failed>"
+       Printf.printf "rfsm server: check_fragment raised %s\n" (Printexc.to_string exn); flush stdout;
+       begin match exn with
+         (* The exceptions listed here will _not_ reach [Error.handle] *)
+         | L.Syntax.Invalid_symbol (id,_,reason) ->
+             Response.SemanticErr (Printf.sprintf "symbol %s: %s" (Ident.to_string id) reason)
+         | Typing.Type_mismatch(_,ty,ty') ->  
+             Response.TypingErr (Printf.sprintf "expected type here was %s, not %s\n"
+                                 ty
+                                 (Ext.Format.to_string L.Typing.HostSyntax.pp_typ ty'))
+         | L.Guest.Typing.Type_conflict (loc,ty,ty') -> 
+             Response.TypingErr (Printf.sprintf "cannot unify types %s and %s"
+                                 (Ext.Format.to_string L.Guest.Types.pp_typ ty)
+                                 (Ext.Format.to_string L.Guest.Types.pp_typ ty'))
+         | Parser.Error ->
+             Response.SyntaxErr
+         | _ ->
+             Response.OtherErr (Printexc.to_string exn)
 
+       end 
+
+  let handle_request req =
+    match req with
+    | Request.GetVersion -> Response.Version Version.version
+    | Request.CheckFragment pf -> check_fragment pf
+    
   let service ic oc =
     try
       while true do
         Printf.printf "rfsm server: waiting for request\n" ; flush stdout;
-        let fragment = input_line ic in
-        Printf.printf "rfsm server: got fragment: %s\n" fragment ; flush stdout;
-        if not (String.starts_with ~prefix:"quit" fragment) then
-          let answer = String.escaped (check_fragment fragment) in
-          Printf.printf "rfsm server: sending response: %s\n" answer ; flush stdout;
-          output_string oc (answer^"\n") ;
-          flush oc
+        let line = input_line ic in
+        Printf.printf "rfsm server: got request: %s\n" line ; flush stdout;
+        let request = Request.from_string line in
+        Format.printf "rfsm server: decoded request: %a\n" Request.pp request; flush stdout;
+        let response = handle_request request in
+        Format.printf "rfsm server: response = %a\n" Response.pp response; flush stdout;
+        let line' = Response.to_string response in
+        Printf.printf "rfsm server: encoded response: %s\n"  line'; flush stdout;
+        output_string oc (line' ^ "\n");
+        flush oc
       done
     with exn ->
       Printf.printf "rfsm server: caught exn %s. Ending\n" (Printexc.to_string exn); flush stdout ;
       exit 0
-
-  (* let service ic oc =
-   *   try
-   *     while true do
-   *       Printf.printf "rfsm server: waiting for request\n" ; flush stdout;
-   *       let s = input_line ic in
-   *       Printf.printf "rfsm server: got: %s\n" s ; flush stdout;
-   *       if s <> "QUIT" then
-   *         let r = String.uppercase_ascii s
-   *         in output_string oc (r^"\n") ; flush oc
-   *     done
-   *   with exn ->
-   *     Printf.printf "rfsm server: caught exn %s. Ending\n" (Printexc.to_string exn); flush stdout ;
-   *     exit 0 *)
 
   let main () =
     try

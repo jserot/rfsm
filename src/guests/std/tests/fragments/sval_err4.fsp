@@ -1,5 +1,0 @@
--- check state valuation LHS. Should fail because of type mismatch
--- context 
-out o: event;
--- fragment to check
-sval o=1;

@@ -13,7 +13,7 @@
 
 let pp_loc fmt loc = 
   if !Options.server_mode then ()
-  else if !Options.gui then Format.fprintf fmt "* Where: \"%s\"\n* Reason: " (Location.text_of_location loc)
+  (* else if !Options.gui then Format.fprintf fmt "* Where: \"%s\"\n* Reason: " (Location.text_of_location loc) *)
   else Location.pp_location fmt loc
 
 (** Output signature of the functor {!Error.Make} *)

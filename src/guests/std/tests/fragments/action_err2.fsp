@@ -1,6 +1,0 @@
--- check action LHS. Should fail because LHS is not an output nor a variable
--- context 
-in i: bool;
-var k: int;
--- program fragments to check
-action i:=i+1;

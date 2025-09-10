@@ -35,6 +35,16 @@ and type_size =
   | SzParam of Rfsm.Ident.t 
   | SzConst of int
 
+exception Illegal_type of string
+      
+let no_loc = Lexing.dummy_pos, Lexing.dummy_pos
+                                 
+let mk_type_expr0 c = mk ~loc:no_loc (TeConstr (mk_global_ident c, [], []))
+  
+let mk_basic_type_expr c = match c with
+  | "int" | "event" | "bool" -> mk_type_expr0 c
+  | _ -> raise (Illegal_type c)
+
 let is_con_type c (t: type_expr) =
   match t.Annot.desc with
   | TeConstr (c', _, _) when c'.Rfsm.Ident.id = c -> true

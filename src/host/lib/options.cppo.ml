@@ -25,7 +25,7 @@ let dump_static = ref false
 let dot_abbrev_types = ref false
 let normalize = ref false
 let dump_backtrace = ref false
-let gui = ref false
+(* let gui = ref false *)
 let server_mode = ref false
 let socket_path = ref "/tmp/rfsm_sock" (* TO BE FIXED *)
 
@@ -43,7 +43,7 @@ let set_dump_static () = dump_static := true
 let set_target_dir name = target_dir := name
 let set_main_name name = main_name := name
 let set_normalize () = normalize := true
-let set_gui () = gui := true
+(* let set_gui () = gui := true *)
 let set_server_mode () = server_mode := true
 let set_socket_path path = socket_path := path
 

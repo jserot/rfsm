@@ -18,6 +18,7 @@ module type SYNTAX = sig
   type typ = Guest.Types.typ
   type expr = Guest.expr
   type type_expr = Guest.type_expr
+  (* type type_expr_desc = Guest.type_expr_desc *)
   type lval = Guest.lval
 
   type type_decl = Guest.type_decl
@@ -45,7 +46,7 @@ module type SYNTAX = sig
       itrans: itransition 
     }
 
-  and io_cat = In| Out | InOut | Var (* [Var] is only used for program fragments *)
+  and io_cat = In| Out | InOut | Var (* [Var] is only used for program fragments - TO FIX *)
   
   and state = (state_desc,unit) Annot.t
   and state_desc = Ident.t * (Ident.t * expr) list (* Name, output valuations *)
@@ -99,11 +100,11 @@ module type SYNTAX = sig
 
   exception Invalid_symbol of Ident.t * Location.t * string 
 
-  type fragment = { (* Program fragment for syntax and type checking of guards, actions and state valuations by the GUI *)
+  type fragment = { (* Program fragment for syntax and type checking of guards, actions and state valuations. Server mode only *)
     pf_inps: (Ident.t * type_expr) list;
     pf_outps: (Ident.t * type_expr) list;
     pf_vars: (Ident.t * type_expr) list;
-    pf_objs: fragment_obj list;
+    pf_obj: fragment_obj;
   }
   
   and fragment_obj =
@@ -124,14 +125,18 @@ module type SYNTAX = sig
         - [l3] is the list of events possibly emitted by [m] when exiting state [q]
         - [l4] is the list of variables possibly modified by [m] when exiting state [q] *)
 
+  val mk_basic_type_expr: string -> type_expr
+    
   val normalize_model: model -> model
 
   val check_fragment: fragment -> unit
   val ppr_program: program -> program
+  (* val ppr_fragment_obj: fragment_obj -> fragment_obj *)
   val ppr_fragment: fragment -> fragment
     
   val pp_typ: Format.formatter -> typ -> unit
   val pp_expr: Format.formatter -> expr -> unit
+  (* val pp_type_expr_desc: Format.formatter -> type_expr_desc -> unit *)
   val pp_type_expr: Format.formatter -> type_expr -> unit
   val pp_cond_desc: Format.formatter -> cond_desc -> unit
   val pp_cond: Format.formatter -> cond -> unit (* Abstract syntax *)
@@ -154,7 +159,7 @@ module type SYNTAX = sig
   val pp_cst_decl: Format.formatter -> cst_decl -> unit
   val pp_fun_decl: Format.formatter -> fun_decl -> unit
   val pp_program: Format.formatter -> program -> unit
-  val pp_pf_obj: Format.formatter -> fragment_obj -> unit
+  (* val pp_pf_obj: Format.formatter -> fragment_obj -> unit *)
   val pp_fragment: Format.formatter -> fragment -> unit
 
 end
@@ -166,13 +171,17 @@ struct
   type typ = Guest.Types.typ
   type expr = Guest.expr
   type type_expr = Guest.type_expr
+  (* type type_expr_desc = Guest.type_expr_desc *)
   type lval = Guest.lval
+
+  let mk_basic_type_expr = Guest.mk_basic_type_expr
 
   type type_decl = Guest.type_decl
 
   let pp_typ = Guest.Types.pp_typ ~abbrev:false
   (* let pp_type_expr fmt te = Guest.Types.pp_typ ~abbrev:false fmt te.Annot.typ *)
   let pp_type_expr fmt te = Guest.pp_type_expr fmt te
+  (* let pp_type_expr_desc fmt te = Guest.pp_type_expr_desc fmt te *)
   let pp_expr = Guest.pp_expr
   let pp_lval = Guest.pp_lval
 
@@ -549,11 +558,13 @@ struct
     | Action of action
     | SVal of Ident.t * expr  (* Output, value *)
   
+  type fragment_iov = Ident.t * type_expr 
+                      
   type fragment = {
-    pf_inps: (Ident.t * type_expr) list;
-    pf_outps: (Ident.t * type_expr) list;
-    pf_vars: (Ident.t * type_expr) list;
-    pf_objs: fragment_obj list;
+    pf_inps: fragment_iov list;
+    pf_outps: fragment_iov list;
+    pf_vars: fragment_iov list;
+    pf_obj: fragment_obj;
     }
 
   let pp_pf_iov fmt (id,t) = 
@@ -568,11 +579,11 @@ struct
 
   let pp_fragment fmt p = 
     let open Format in
-    fprintf fmt "@[<v>{@,inps = %a@,outps = %a@,vars = %a@,objs = %a@]@."
+    fprintf fmt "@[<v>{@,inps = %a@,outps = %a@,vars = %a@,obj = %a@]@."
       (Ext.List.pp_v pp_pf_iov) p.pf_inps
       (Ext.List.pp_v pp_pf_iov) p.pf_outps
       (Ext.List.pp_v pp_pf_iov) p.pf_vars
-      (Ext.List.pp_v pp_pf_obj) p.pf_objs
+      pp_pf_obj p.pf_obj
 
   let check_fragment p = (* Basic sanity checking *)
     let check_var ~loc ~msg ~src v =
@@ -607,7 +618,7 @@ struct
           (check_inp_or_var ~loc:e.Annot.loc)
           (Guest.vars_of_expr e); 
         check_outp ~loc:e.Annot.loc o in 
-    List.iter check p.pf_objs 
+    check p.pf_obj
     
   let ppr_fragment_obj pf obj =
     let env = Env.init (pf.pf_inps @ pf.pf_vars @ pf.pf_outps) in
@@ -618,6 +629,6 @@ struct
         let _, e' = ppr_ov ~loc:Location.no_location env (o,e) in
         SVal (o, e')
 
-  let ppr_fragment pf = { pf with pf_objs = List.map (ppr_fragment_obj pf) pf.pf_objs }
+  let ppr_fragment pf = { pf with pf_obj = ppr_fragment_obj pf pf.pf_obj }
 
 end

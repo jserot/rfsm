@@ -9,16 +9,15 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Lang
-   
-module C = (* The command-line compiler *)
-  Rfsm.Compiler.Make
-    (L)
-    (Lexer)
-    (struct
-      include Parser
-      type program = L.Syntax.program
-      type fragment_obj = L.Syntax.fragment_obj
-    end)
-           
-let _ = Printexc.print C.main ()
+(**{1 Program fragments (to be sent to the server) *)
+
+type t = { 
+  jf_inps: (string * string) list; (* id, type expr *)
+  jf_outps: (string * string) list; (* id, type expr *)
+  jf_vars: (string * string) list; (* id, type expr *)
+  jf_obj: string; (* fragment to analyse; ex ["guard x=1"]  *)
+  } [@@deriving show]
+
+val from_json: Yojson.Basic.t -> t
+
+val from_string: string -> t

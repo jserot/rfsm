@@ -20,8 +20,9 @@ let handle e =
   | Builtins.Unknown_value -> 
       eprintf "Cannot operate on undefined values\n"; exit 2
   | Types.Type_circularity (loc,ty,ty')
+  | Typing.Type_conflict (loc,ty,ty')
   | Types.Type_conflict (loc,ty,ty') ->
-      eprintf "%aTyping error: cannot unify types %a and %a\n"
+      eprintf "%aTyPing error: cannot unify types %a and %a\n"
         pp_loc loc (Types.pp_typ ~abbrev:false) ty (Types.pp_typ ~abbrev:false) ty'; exit 2
   | Typing.Illegal_cast e -> 
       eprintf "%aIllegal cast\n" pp_loc e.Rfsm.Annot.loc; exit 2

@@ -1,6 +1,0 @@
--- check state valuation LHS. Should fail because [v] is not declared as an output
--- context 
-out o: int;
-var v: int;
--- fragment to check
-sval v=1;

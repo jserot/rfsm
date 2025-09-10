@@ -9,16 +9,15 @@
 (*                                                                    *)
 (**********************************************************************)
 
-open Lang
-   
-module C = (* The command-line compiler *)
-  Rfsm.Compiler.Make
-    (L)
-    (Lexer)
-    (struct
-      include Parser
-      type program = L.Syntax.program
-      type fragment_obj = L.Syntax.fragment_obj
-    end)
-           
-let _ = Printexc.print C.main ()
+type t = (* Server responses *)
+  (* Request [GetVersion] *)
+  | Version of string
+  (* Request [CheckFragment] *)
+  | NoErr
+  | SyntaxErr
+  | SemanticErr of string
+  | TypingErr of string
+  | OtherErr of string
+  [@@deriving show]
+      
+val to_string: t -> string

@@ -258,4 +258,11 @@ let type_lval env l =
   l.Annot.typ <- ty;
   ty
 
-let type_check ~loc ty ty' = Types.unify ~loc ty ty'
+exception Type_conflict of Location.t * Types.typ * Types.typ
+
+let type_check ~loc ty ty' =
+  try
+    Types.unify ~loc ty ty'
+  with 
+    Types.Type_conflict (loc,ty,ty') ->
+      raise (Type_conflict(loc,ty,ty'))
