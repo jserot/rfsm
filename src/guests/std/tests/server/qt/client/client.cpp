@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMessageBox>
 
 #include <QLocalSocket>
 
@@ -73,11 +74,14 @@ Client::~Client()
     qDebug() << "Client: bye !";
     if (m_socket->state() == QLocalSocket::ConnectedState) {
         if (m_process && m_process->state() == QProcess::Running) {
-            m_socket->write("QUIT\n");
-            m_socket->flush();
+          //m_socket->write("{\"close\":\"\"}\n");
+          //m_socket->flush();
+          // qDebug() << "Client: sent close request !";
             m_process->waitForFinished();
+            qDebug() << "Client: server process finished !";
         }
         m_socket->disconnectFromServer();
+        qDebug() << "Client: disconnected from server!";
     }
 }
 
@@ -89,23 +93,7 @@ void Client::connectToServer()
 
 void Client::sendRequest()
 {
-  QJsonObject inps, outps, vars, fragment, request;
-  QString text = requestText->text();
-  if ( text.startsWith("version") ) 
-    request.insert("version", "");
-  else {
-    inps.insert("h", "event"); // To be adjusted if needed ...
-    inps.insert("e", "int");
-    outps.insert("s", "bool");
-    vars.insert("k", "int");
-    fragment.insert("inps", inps);
-    fragment.insert("outps", outps);
-    fragment.insert("vars", vars);
-    fragment.insert("obj", requestText->text());
-    request.insert("fragment", fragment);
-  }
-  qDebug() << "Client: sending request: " << request;
-  QByteArray line = QJsonDocument(request).toJson(QJsonDocument::Compact) + '\n';
+  QByteArray line = requestText->text().trimmed().toUtf8() + '\n';
   qDebug() << "Client: sending line: " << line;
   m_socket->write(line);
   m_socket->flush();
@@ -118,38 +106,38 @@ void Client::readAnswer()
         QByteArray line = m_socket->readLine();
         line.chop(1);
         qDebug() << "Client: got response:" << line;
-        QJsonDocument doc = QJsonDocument::fromJson(line);
-        QJsonObject obj = doc.object();
-        QString res =
-          obj.keys().contains("version") ?
-          obj["version"].toString() :
-          obj["result"].toString();
-        qDebug() << "Client: response=" << res;
-        answerText->setText(res);
+        // QJsonDocument doc = QJsonDocument::fromJson(line);
+        // QJsonObject obj = doc.object();
+        // QString res =
+        //   obj.keys().contains("version") ?
+        //   obj["version"].toString() :
+        //   obj["result"].toString();
+        // qDebug() << "Client: response=" << res;
+        answerText->setText(line);
         }
 }
 
 void Client::handleError(QLocalSocket::LocalSocketError socketError)
 {
-        qDebug() << "Client: error:" << socketError << "retrying in 100ms";
-        Q_UNUSED(socketError);
-        requestText->setEnabled(false);
-        QTimer::singleShot(500, this, [this]() { connectToServer(); });
-//     switch (socketError) {
-//     case QLocalSocket::ServerNotFoundError:
-//         QMessageBox::information(this, tr("Client"),
-//                                  tr("The host was not found. Please make sure "
-//                                     "that the server is running and that the "
-//                                     "server name is correct."));
-//         break;
-//     case QLocalSocket::ConnectionRefusedError:
-//         QMessageBox::information(this, tr("Client"),
-//                                  tr("The connection was refused by the server. "));
-//         break;
-//     case QLocalSocket::PeerClosedError:
-//         break;
-//     default:
-//         QMessageBox::information(this, tr("Client"),
-//                                  tr("The following error occurred: %1.").arg(socket->errorString()));
-//     }
+        // qDebug() << "Client: error:" << socketError << "retrying in 100ms";
+        // Q_UNUSED(socketError);
+        // requestText->setEnabled(false);
+        // QTimer::singleShot(500, this, [this]() { connectToServer(); });
+    switch (socketError) {
+    case QLocalSocket::ServerNotFoundError:
+        QMessageBox::information(this, tr("Client"),
+                                 tr("The host was not found. Please make sure "
+                                    "that the server is running and that the "
+                                    "server name is correct."));
+        break;
+    case QLocalSocket::ConnectionRefusedError:
+        QMessageBox::information(this, tr("Client"),
+                                 tr("The connection was refused by the server. "));
+        break;
+    case QLocalSocket::PeerClosedError:
+        break;
+    default:
+        QMessageBox::information(this, tr("Client"),
+                                 tr("The following error occurred: %1.").arg(m_socket->errorString()));
+    }
 }
