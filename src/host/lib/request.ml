@@ -12,6 +12,8 @@
 type t =
     GetVersion
   | CheckFragment of Fragment.t
+  | Compile of string list
+  | Close
   [@@deriving show]
 
 exception Invalid of string
@@ -19,11 +21,20 @@ exception Invalid of string
 let from_string s = 
   let json = Yojson.Basic.from_string s in
   let open Yojson.Basic.Util in
-  match keys json with
-  | ["version"] ->
-      GetVersion
-  | ["fragment"] ->
-      let f = member "fragment" json in
-      CheckFragment (Fragment.from_json f)
-  | _ ->
+  try 
+    match keys json with
+    | ["close"] ->
+        Close
+    | ["version"] ->
+        GetVersion
+    | ["check"] ->
+        let f = member "check" json in
+        CheckFragment (Fragment.from_json f)
+    | ["compile"] ->
+        let j = member "compile" json in
+        let args = j |> member "args" |> to_list |> List.map to_string in
+        Compile args
+    | _ ->
+      raise (Invalid s)
+  with _ ->
     raise (Invalid s)

@@ -14,6 +14,8 @@
 type t =
     GetVersion
   | CheckFragment of Fragment.t
+  | Compile of string list (* arguments, as on command line *)
+  | Close
   [@@deriving show]
 
 exception Invalid of string

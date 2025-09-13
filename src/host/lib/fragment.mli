@@ -9,13 +9,13 @@
 (*                                                                    *)
 (**********************************************************************)
 
-(**{1 Program fragments (to be sent to the server) *)
+(** {1 Program fragments (to be checked in server mode) *)
 
 type t = { 
-  jf_inps: (string * string) list; (* id, type expr *)
-  jf_outps: (string * string) list; (* id, type expr *)
-  jf_vars: (string * string) list; (* id, type expr *)
-  jf_obj: string; (* fragment to analyse; ex ["guard x=1"]  *)
+  inps: (string * string) list; (* id, type expr *)
+  outps: (string * string) list; (* id, type expr *)
+  vars: (string * string) list; (* id, type expr *)
+  obj: string; (* fragment to analyse; ex ["guard x=1"]  *)
   } [@@deriving show]
 
 val from_json: Yojson.Basic.t -> t

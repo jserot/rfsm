@@ -9,15 +9,12 @@
 (*                                                                    *)
 (**********************************************************************)
 
-type t = (* Server responses *)
-  (* Request [GetVersion] *)
+(**{1 Server->client responses} *)
+
+type t = 
   | Version of string
-  (* Request [CheckFragment] *)
-  | NoErr
-  | SyntaxErr
-  | SemanticErr of string
-  | TypingErr of string
-  | OtherErr of string
+  | Ok of string list
+  | Error of string
   [@@deriving show]
       
 val to_string: t -> string

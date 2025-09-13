@@ -51,6 +51,8 @@ struct
 
   let source_files = ref ([] : string list)
 
+  let generated_files = ref ([] : string list)
+
   let anonymous fname = source_files := !source_files @ [fname]
 
   let print_banner () = 
@@ -74,7 +76,13 @@ struct
     Location.input_lexbuf := lexbuf;
     parse lexer !Location.input_lexbuf
 
-  let compile f =
+  let add_generated_file f = 
+     generated_files := !generated_files @ [f];
+     Logfile.write f
+
+  let compile () =
+    let pp_string fmt s = Format.printf "%s" s in
+    Format.printf "rfsm server: compile: %a %b\n" (Ext.List.pp_h pp_string) !source_files (!Options.target=Some Options.Dot) ; flush stdout;
     let open L in
     let p0 =
       List.fold_left
@@ -96,19 +104,19 @@ struct
     | Some Options.Dot ->
        Ext.File.check_dir !Options.target_dir;
        let fs = Dot.output_static ~dir:!Options.target_dir ~name:!Options.main_prefix s in
-       List.iter Logfile.write fs
+       List.iter add_generated_file fs
     | Some Options.CTask ->
        Ext.File.check_dir !Options.target_dir;
        let fs = Ctask.output ~dir:!Options.target_dir s in
-       List.iter Logfile.write fs
+       List.iter add_generated_file fs
     | Some Options.SystemC ->
        Ext.File.check_dir !Options.target_dir;
        let fs = Systemc.output ~dir:!Options.target_dir ~pfx:!Options.main_prefix s in
-       List.iter Logfile.write fs
+       List.iter add_generated_file fs
     | Some Options.Vhdl ->
        Ext.File.check_dir !Options.target_dir;
        let fs = Vhdl.output ~dir:!Options.target_dir ~pfx:!Options.main_prefix s in
-       List.iter Logfile.write fs
+       List.iter add_generated_file fs
     | Some Options.Sim ->
        if s.fsms <> [] then
          let vcd_file = !Options.target_dir ^ "/" ^ !Options.main_prefix ^ ".vcd" in
@@ -122,66 +130,90 @@ struct
     end;
     Logfile.stop ()
 
+
   let check_fragment (f: Fragment.t) =
     let open L in
     try
       let mk_iov (id,t) = Ident.mk id, Syntax.mk_basic_type_expr t in
       let pf = {
-        Syntax.pf_inps = List.map mk_iov f.jf_inps;
-        Syntax.pf_outps = List.map mk_iov f.jf_outps;
-        Syntax.pf_vars = List.map mk_iov f.jf_vars;
-        Syntax.pf_obj = analyse_string ~lexer:Lexer.main ~parser:Parser.fragment_obj f.jf_obj
+        Syntax.pf_inps = List.map mk_iov f.Fragment.inps;
+        Syntax.pf_outps = List.map mk_iov f.Fragment.outps;
+        Syntax.pf_vars = List.map mk_iov f.Fragment.vars;
+        Syntax.pf_obj = analyse_string ~lexer:Lexer.main ~parser:Parser.fragment_obj f.Fragment.obj
         } in
-      Format.printf "rfsm server: parsed fragment = %a" L.Syntax.pp_fragment pf;
+      (* Format.printf "rfsm server: parsed fragment = %a" L.Syntax.pp_fragment pf; *)
       L.Syntax.check_fragment pf; (* TBR ?  Redundant with type-checking ? *)
       let ppf = L.Syntax.ppr_fragment pf in
-      Format.printf "rfsm server: pre-processed fragment = %a" L.Syntax.pp_fragment ppf;
+      (* Format.printf "rfsm server: pre-processed fragment = %a" L.Syntax.pp_fragment ppf; *)
       type_fragment ppf;
-      Response.NoErr
+      Response.Ok []
      with exn ->
        Printf.printf "rfsm server: check_fragment raised %s\n" (Printexc.to_string exn); flush stdout;
        begin match exn with
          (* The exceptions listed here will _not_ reach [Error.handle] *)
          | L.Syntax.Invalid_symbol (id,_,reason) ->
-             Response.SemanticErr (Printf.sprintf "symbol %s: %s" (Ident.to_string id) reason)
+             Response.Error (Printf.sprintf "symbol %s: %s" (Ident.to_string id) reason)
          | Typing.Type_mismatch(_,ty,ty') ->  
-             Response.TypingErr (Printf.sprintf "expected type here was %s, not %s\n"
+             Response.Error (Printf.sprintf "expected type here was %s, not %s\n"
                                  ty
                                  (Ext.Format.to_string L.Typing.HostSyntax.pp_typ ty'))
          | L.Guest.Typing.Type_conflict (loc,ty,ty') -> 
-             Response.TypingErr (Printf.sprintf "cannot unify types %s and %s"
+             Response.Error (Printf.sprintf "cannot unify types %s and %s"
                                  (Ext.Format.to_string L.Guest.Types.pp_typ ty)
                                  (Ext.Format.to_string L.Guest.Types.pp_typ ty'))
          | Parser.Error ->
-             Response.SyntaxErr
+             Response.Error "syntax error"
          | _ ->
-             Response.OtherErr (Printexc.to_string exn)
-
+             Response.Error (Printf.sprintf "syntax error: %s" (Printexc.to_string exn))
        end 
 
   let handle_request req =
     match req with
     | Request.GetVersion -> Response.Version Version.version
     | Request.CheckFragment pf -> check_fragment pf
+    | Request.Close -> Response.Ok [] (* Not used, since the server will close without sending a response in this case *)
+    | Request.Compile args ->
+        Arg.current := 0;
+        begin try
+          Arg.parse_argv (Array.of_list (Sys.argv.(0) :: args)) (Options.spec @ L.Guest.Options.specs) anonymous usage;
+          compile ();
+          Response.Ok !generated_files
+        with Arg.Bad m-> 
+          Response.Error ("illegal compiler argument: " ^ m) 
+        end;
+
+  exception EndOfService
     
   let service ic oc =
-    try
-      while true do
+    while true do
+      try
         Printf.printf "rfsm server: waiting for request\n" ; flush stdout;
         let line = input_line ic in
         Printf.printf "rfsm server: got request: %s\n" line ; flush stdout;
         let request = Request.from_string line in
-        Format.printf "rfsm server: decoded request: %a\n" Request.pp request; flush stdout;
-        let response = handle_request request in
-        Format.printf "rfsm server: response = %a\n" Response.pp response; flush stdout;
-        let line' = Response.to_string response in
-        Printf.printf "rfsm server: encoded response: %s\n"  line'; flush stdout;
-        output_string oc (line' ^ "\n");
-        flush oc
-      done
-    with exn ->
-      Printf.printf "rfsm server: caught exn %s. Ending\n" (Printexc.to_string exn); flush stdout ;
-      exit 0
+        (* Format.printf "rfsm server: decoded request: %a\n" Request.pp request; flush stdout; *)
+        begin match request with
+          | Request.Close ->
+            raise EndOfService
+        | _ ->
+          let response = handle_request request in
+          (* Format.printf "rfsm server: response = %a\n" Response.pp response; flush stdout; *)
+          let line' = Response.to_string response in
+          (* Printf.printf "rfsm server: encoded response: %s\n"  line'; flush stdout; *)
+          output_string oc (line' ^ "\n");
+          flush oc
+        end
+      with
+      | End_of_file
+      | EndOfService -> 
+          Format.printf "rfsm server: closing\n"; flush stdout;
+          exit 0
+      | Yojson.Json_error _ ->
+          output_string oc ("Ill-formed request\n");
+          flush oc
+      | exn ->
+          Printf.printf "rfsm server: caught exn %s\n" (Printexc.to_string exn); flush stdout
+    done
 
   let main () =
     try
@@ -193,7 +225,7 @@ struct
       else
         begin
           print_banner ();
-          compile !Options.main_prefix
+          compile () (* !Options.main_prefix*)
       end
     with
       e -> Error.handle e

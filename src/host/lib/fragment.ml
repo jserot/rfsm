@@ -10,19 +10,20 @@
 (**********************************************************************)
 
 type t = {
-  jf_inps: (string * string) list; (* id, type expr *)
-  jf_outps: (string * string) list; (* id, type expr *)
-  jf_vars: (string * string) list; (* id, type expr *)
-  jf_obj: string; (* fragment to analyse; ex ["guard x=1"]  *)
+  inps: (string * string) list; (* id, type expr *)
+  outps: (string * string) list; (* id, type expr *)
+  vars: (string * string) list; (* id, type expr *)
+  obj: string; (* fragment to analyse; ex ["guard x=1"]  *)
 } [@@deriving show]
 
 let from_json json = 
   let open Yojson.Basic.Util in
-  let extract name j = j |> member name |> to_assoc |> List.map (fun (k,j) -> k, to_string j) in
-  { jf_inps = extract "inps" json;
-    jf_outps = extract "outps" json; 
-    jf_vars =  extract "vars" json;
-    jf_obj = json |> member "obj" |> to_string; }
+  let extract_iov j = member "id" j |> to_string, member "type" j |> to_string in
+  let extract_iovs name j = j |> member name |> to_list |> List.map extract_iov in
+  { inps = extract_iovs "inps" json;
+    outps = extract_iovs "outps" json;
+    vars =  extract_iovs "vars" json;
+    obj = json |> member "obj" |> to_string; }
 
 let from_string s =
   from_json (Yojson.Basic.from_string s)
