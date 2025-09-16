@@ -4,7 +4,9 @@
 #include <QObject>
 #include <QLocalSocket>
 #include <QProcess>
-#include <QJsonValue>
+//#include <QJsonValue>
+
+// Interface to the RFSM compiler in server mode
 
 class Compiler : public QObject {
     Q_OBJECT
@@ -18,10 +20,10 @@ public:
     void stopServer();
 
 signals:
-    void serverStarted();
     void serverError(const QString &error);
+    //void serverStarted(); // Not used
     // void connected();
-    void messageReceived(const QString &message);
+    //void messageReceived(const QString &message); // Not used (synchronous mode)
     // void disconnected();
 
 private slots:

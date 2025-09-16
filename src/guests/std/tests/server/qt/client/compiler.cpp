@@ -4,7 +4,6 @@
 #include <QJsonObject>
 #include <QDebug>
 
-
 Compiler::Compiler(QObject *parent) : QObject(parent)
 {
     serverProcess.setProcessChannelMode(QProcess::ForwardedChannels);
@@ -16,24 +15,26 @@ Compiler::Compiler(QObject *parent) : QObject(parent)
 }
 
 Compiler::~Compiler() {
-  qDebug() << "Compiler: done";
+  qDebug() << "compiler: done";
   stopServer();
 }
 
-void Compiler::startServer(const QString &serverPath, const QString &socketPath) {
+void Compiler::startServer(const QString &serverPath, const QString &socketPath)
+{
     this->socketPath = socketPath;
-
     QStringList serverArgs;
     serverArgs << "-server_mode" << "-socket_path" << socketPath;
     qDebug() << "compiler: launching:" << serverPath << serverArgs;
     serverProcess.start(serverPath, serverArgs);
-    if (!serverProcess.waitForStarted(3000)) {
-        qDebug() << "compiler: cannot launch server";
-        //emit serverError("cannot launch server");
-    }
-    qDebug() << "compiler: server started in" << serverProcess.workingDirectory();
-    //emit serverStarted();
-    QTimer::singleShot(300, this, [this]() { socket.connectToServer(this->socketPath); });
+    if ( serverProcess.waitForStarted(3000) ) {
+      qDebug() << "compiler: server started in" << serverProcess.workingDirectory();
+      //emit serverStarted();
+      QTimer::singleShot(300, this, [this]() { socket.connectToServer(this->socketPath); });
+      }
+    else {
+      qDebug() << "compiler: cannot launch server";
+      emit serverError("Cannot launch compiler server");
+      }
 }
 
 QString Compiler::sendRequest(const QString &text)

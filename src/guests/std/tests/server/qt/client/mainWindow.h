@@ -21,6 +21,7 @@ private:
   static const QString socketPath;
 
 private slots:
+  void serverError(QString err);
     void sendRequest();
 };
 
