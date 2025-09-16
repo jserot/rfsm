@@ -37,5 +37,6 @@ examples/std/{multi,single}/*/{ctask,sim,systemc,vhdl}/*
 HOWTO-PUBLISH
 src/host/lib/options.ml
 src/guests/run_regression_tests
-src/guests/std/tests/server/client/client.app/
-src/guests/std/tests/server/client/moc_*
+src/guests/std/tests/server/qt/client/client.app/
+src/guests/std/tests/server/qt/client/moc_*
+src/guests/std/tests/server/examples/*.dot
