@@ -1,8 +1,16 @@
-HEADERS       = client.h
-SOURCES       = client.cpp \
-                main.cpp
-QT           += network widgets
+TEMPLATE = app
+TARGET = client
+CONFIG += c++17 console
+QT += core widgets network
 
-# install
-target.path = .
-INSTALLS += target
+SOURCES += \
+    main.cpp \
+    mainWindow.cpp \
+    compiler.cpp
+
+HEADERS += \
+    mainWindow.h \
+    compiler.h
+
+FORMS += \
+    mainWindow.ui

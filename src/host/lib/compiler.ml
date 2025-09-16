@@ -81,8 +81,6 @@ struct
      Logfile.write f
 
   let compile () =
-    let pp_string fmt s = Format.printf "%s" s in
-    Format.printf "rfsm server: compile: %a %b\n" (Ext.List.pp_h pp_string) !source_files (!Options.target=Some Options.Dot) ; flush stdout;
     let open L in
     let p0 =
       List.fold_left
@@ -174,6 +172,8 @@ struct
     | Request.Close -> Response.Ok [] (* Not used, since the server will close without sending a response in this case *)
     | Request.Compile args ->
         Arg.current := 0;
+        source_files := [];
+        generated_files := [];
         begin try
           Arg.parse_argv (Array.of_list (Sys.argv.(0) :: args)) (Options.spec @ L.Guest.Options.specs) anonymous usage;
           compile ();

@@ -17,7 +17,7 @@ CXX           = /Library/Developer/CommandLineTools/usr/bin/clang++
 DEFINES       = -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -O2 $(EXPORT_ARCH_ARGS) -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=12 -Wall -Wextra $(DEFINES)
 CXXFLAGS      = -pipe -stdlib=libc++ -O2 -std=gnu++1z $(EXPORT_ARCH_ARGS) -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=12 -Wall -Wextra $(DEFINES)
-INCPATH       = -I. -I/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtGui.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers -I. -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/AGL.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/AGL.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/mkspecs/macx-clang -F/Users/jserot/Qt2/6.9.1/macos/lib
+INCPATH       = -I. -I/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtGui.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers -I. -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/AGL.framework/Headers -I. -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/AGL.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/mkspecs/macx-clang -F/Users/jserot/Qt2/6.9.1/macos/lib
 QMAKE         = /Users/jserot/Qt2/6.9.1/macos/bin/qmake
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
@@ -37,7 +37,7 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = client1.0.0
-DISTDIR = /Users/jserot/Dev/Qt/clientserver/v4/client/.tmp/client1.0.0
+DISTDIR = /Users/jserot/Dev/ml/rfsm/src/guests/std/tests/server/qt2/client/.tmp/client1.0.0
 LINK          = /Library/Developer/CommandLineTools/usr/bin/clang++
 LFLAGS        = -stdlib=libc++ -headerpad_max_install_names $(EXPORT_ARCH_ARGS) -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=12 -Wl,-rpath,@executable_path/../Frameworks -Wl,-rpath,/Users/jserot/Qt2/6.9.1/macos/lib
 LIBS          = $(SUBLIBS) -F/Users/jserot/Qt2/6.9.1/macos/lib -framework QtWidgets -framework QtGui -framework AppKit -framework ImageIO -framework Metal -framework QtNetwork -framework QtCore -framework IOKit -framework DiskArbitration -framework UniformTypeIdentifiers -framework AGL -framework OpenGL   
@@ -52,11 +52,15 @@ OBJECTS_DIR   = ./
 
 ####### Files
 
-SOURCES       = client.cpp \
-		main.cpp moc_client.cpp
-OBJECTS       = client.o \
-		main.o \
-		moc_client.o
+SOURCES       = main.cpp \
+		mainWindow.cpp \
+		compiler.cpp moc_mainWindow.cpp \
+		moc_compiler.cpp
+OBJECTS       = main.o \
+		mainWindow.o \
+		compiler.o \
+		moc_mainWindow.o \
+		moc_compiler.o
 DIST          = /Users/jserot/Qt2/6.9.1/macos/mkspecs/features/spec_pre.prf \
 		/Users/jserot/Qt2/6.9.1/macos/mkspecs/features/device_config.prf \
 		/Users/jserot/Qt2/6.9.1/macos/mkspecs/common/unix.conf \
@@ -303,8 +307,10 @@ DIST          = /Users/jserot/Qt2/6.9.1/macos/mkspecs/features/spec_pre.prf \
 		/Users/jserot/Qt2/6.9.1/macos/mkspecs/features/exceptions.prf \
 		/Users/jserot/Qt2/6.9.1/macos/mkspecs/features/yacc.prf \
 		/Users/jserot/Qt2/6.9.1/macos/mkspecs/features/lex.prf \
-		client.pro client.h client.cpp \
-		main.cpp
+		client.pro mainWindow.h \
+		compiler.h main.cpp \
+		mainWindow.cpp \
+		compiler.cpp
 QMAKE_TARGET  = client
 DESTDIR       = 
 TARGET        = client.app/Contents/MacOS/client
@@ -318,14 +324,14 @@ EXPORT_VALID_ARCHS = x86_64 arm64
 EXPORT_DEFAULT_ARCHS = arm64
 EXPORT_ARCHS = $(filter $(EXPORT_VALID_ARCHS), $(if $(ARCHS), $(ARCHS), $(if $(EXPORT_DEFAULT_ARCHS), $(EXPORT_DEFAULT_ARCHS), $(EXPORT_VALID_ARCHS))))
 EXPORT_ARCH_ARGS = $(foreach arch, $(if $(EXPORT_ARCHS), $(EXPORT_ARCHS), $(EXPORT_VALID_ARCHS)), -arch $(arch))
-EXPORT__PRO_FILE_ = /Users/jserot/Dev/Qt/clientserver/v4/client/client.pro
+EXPORT__PRO_FILE_ = /Users/jserot/Dev/ml/rfsm/src/guests/std/tests/server/qt2/client/client.pro
 
 
 include /Users/jserot/Qt2/6.9.1/macos/mkspecs/features/mac/sdk.mk
 first: all
 ####### Build rules
 
-client.app/Contents/MacOS/client:  $(OBJECTS)  
+client.app/Contents/MacOS/client: ui_mainWindow.h $(OBJECTS)  
 	@test -d client.app/Contents/MacOS/ || mkdir -p client.app/Contents/MacOS/
 	$(LINK) $(LFLAGS) -o $(TARGET)  $(OBJECTS) $(OBJCOMP) $(LIBS)
 
@@ -856,8 +862,9 @@ dist: distdir FORCE
 distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
-	$(COPY_FILE) --parents client.h $(DISTDIR)/
-	$(COPY_FILE) --parents client.cpp main.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents mainWindow.h compiler.h $(DISTDIR)/
+	$(COPY_FILE) --parents main.cpp mainWindow.cpp compiler.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents mainWindow.ui $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -885,23 +892,47 @@ benchmark: first
 
 compiler_rcc_make_all:
 compiler_rcc_clean:
-compiler_moc_header_make_all: moc_client.cpp
+compiler_moc_header_make_all: moc_mainWindow.cpp moc_compiler.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_client.cpp
-moc_client.cpp: client.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QWidget \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qwidget.h \
+	-$(DEL_FILE) moc_mainWindow.cpp moc_compiler.cpp
+moc_mainWindow.cpp: mainWindow.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QMainWindow \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		compiler.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QObject \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/QLocalSocket \
 		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/qlocalsocket.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QProcess \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qprocess.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QJsonValue \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qjsonvalue.h \
 		/Users/jserot/Qt2/6.9.1/macos/libexec/moc
-	/Users/jserot/Qt2/6.9.1/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=199711L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=16 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/jserot/Qt2/6.9.1/macos/mkspecs/macx-clang -I/Users/jserot/Dev/Qt/clientserver/v4/client -I/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtGui.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/16/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/Users/jserot/Qt2/6.9.1/macos/lib client.h -o moc_client.cpp
+	/Users/jserot/Qt2/6.9.1/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=199711L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=16 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/jserot/Qt2/6.9.1/macos/mkspecs/macx-clang -I/Users/jserot/Dev/ml/rfsm/src/guests/std/tests/server/qt2/client -I/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtGui.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/16/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/Users/jserot/Qt2/6.9.1/macos/lib mainWindow.h -o moc_mainWindow.cpp
+
+moc_compiler.cpp: compiler.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QObject \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qobject.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/QLocalSocket \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/qlocalsocket.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QProcess \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qprocess.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QJsonValue \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qjsonvalue.h \
+		/Users/jserot/Qt2/6.9.1/macos/libexec/moc
+	/Users/jserot/Qt2/6.9.1/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=199711L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=16 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/jserot/Qt2/6.9.1/macos/mkspecs/macx-clang -I/Users/jserot/Dev/ml/rfsm/src/guests/std/tests/server/qt2/client -I/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtGui.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers -I/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 -I/Library/Developer/CommandLineTools/usr/lib/clang/16/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/usr/include -F/Users/jserot/Qt2/6.9.1/macos/lib compiler.h -o moc_compiler.cpp
 
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
 compiler_moc_source_make_all:
 compiler_moc_source_clean:
-compiler_uic_make_all:
+compiler_uic_make_all: ui_mainWindow.h
 compiler_uic_clean:
+	-$(DEL_FILE) ui_mainWindow.h
+ui_mainWindow.h: mainWindow.ui \
+		/Users/jserot/Qt2/6.9.1/macos/libexec/uic
+	/Users/jserot/Qt2/6.9.1/macos/libexec/uic mainWindow.ui -o ui_mainWindow.h
+
 compiler_rez_source_make_all:
 compiler_rez_source_clean:
 compiler_yacc_decl_make_all:
@@ -910,62 +941,75 @@ compiler_yacc_impl_make_all:
 compiler_yacc_impl_clean:
 compiler_lex_make_all:
 compiler_lex_clean:
-compiler_clean: compiler_moc_header_clean 
+compiler_clean: compiler_moc_header_clean compiler_uic_clean 
 
 ####### Compile
 
-client.o: client.cpp client.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QWidget \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qwidget.h \
+main.o: main.cpp mainWindow.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QMainWindow \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		compiler.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QObject \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/QLocalSocket \
 		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/qlocalsocket.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QDebug \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qdebug.h \
 		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QProcess \
 		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qprocess.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QTimer \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qtimer.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QLabel \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qlabel.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QLineEdit \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qlineedit.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QPushButton \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qpushbutton.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QGridLayout \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qgridlayout.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QApplication \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qapplication.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o client.o client.cpp
-
-main.o: main.cpp client.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QWidget \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qwidget.h \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/QLocalSocket \
-		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/qlocalsocket.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QJsonValue \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qjsonvalue.h \
 		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QApplication \
 		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qapplication.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
-moc_client.o: moc_client.cpp 
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_client.o moc_client.cpp
+mainWindow.o: mainWindow.cpp mainWindow.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QMainWindow \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		compiler.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QObject \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qobject.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/QLocalSocket \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/qlocalsocket.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QProcess \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qprocess.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QJsonValue \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qjsonvalue.h \
+		ui_mainWindow.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QDebug \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qdebug.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/QMessageBox \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtWidgets.framework/Headers/qmessagebox.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainWindow.o mainWindow.cpp
+
+compiler.o: compiler.cpp compiler.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QObject \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qobject.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/QLocalSocket \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtNetwork.framework/Headers/qlocalsocket.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QProcess \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qprocess.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QJsonValue \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qjsonvalue.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QJsonDocument \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qjsondocument.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QJsonObject \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qjsonobject.h \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/QDebug \
+		/Users/jserot/Qt2/6.9.1/macos/lib/QtCore.framework/Headers/qdebug.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o compiler.o compiler.cpp
+
+moc_mainWindow.o: moc_mainWindow.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_mainWindow.o moc_mainWindow.cpp
+
+moc_compiler.o: moc_compiler.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_compiler.o moc_compiler.cpp
 
 ####### Install
 
-install_target: first FORCE
-	@test -d $(INSTALL_ROOT)/Users/jserot/Dev/Qt/clientserver/v4/client/. || mkdir -p $(INSTALL_ROOT)/Users/jserot/Dev/Qt/clientserver/v4/client/.
-	$(DEL_FILE) -r $(INSTALL_ROOT)/Users/jserot/Dev/Qt/clientserver/v4/client/client.app
-	
-	$(QINSTALL) client.app $(INSTALL_ROOT)/Users/jserot/Dev/Qt/clientserver/v4/client/client.app
-	-$(STRIP) $(INSTALL_ROOT)/Users/jserot/Dev/Qt/clientserver/v4/client/client.app/Contents/MacOS/$(QMAKE_TARGET)
+install:  FORCE
 
-uninstall_target: FORCE
-	-$(DEL_FILE) -r $(INSTALL_ROOT)/Users/jserot/Dev/Qt/clientserver/v4/client/client.app
-	-$(DEL_DIR) $(INSTALL_ROOT)/Users/jserot/Dev/Qt/clientserver/v4/client/./ 
-
-
-install: install_target  FORCE
-
-uninstall: uninstall_target  FORCE
+uninstall:  FORCE
 
 FORCE:
 

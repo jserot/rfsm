@@ -1,0 +1,5 @@
+# Copy-paste in the client app lineEdit 
+{"version":""}
+{"compile":{"args":["-dot","-target_dir","/Users/jserot/Dev/ml/rfsm/src/guests/std/tests/server/examples","/Users/jserot/Dev/ml/rfsm/src/guests/std/tests/server/examples/sample.fsm"]}}
+{"check":{"inps":[{"id":"h","type":"event"}],outps:[{"id":"o","type":"bool"}],"vars":[{"id":"k","type":"int"}],"obj":"sval o=1"}}
+{"check":{"inps":[{"id":"h","type":"event"}],outps:[{"id":"o","type":"bool"}],"vars":[{"id":"k","type":"int"}],"obj":"sval o=2"}}
