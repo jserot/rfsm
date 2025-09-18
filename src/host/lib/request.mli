@@ -20,5 +20,7 @@ type t =
 
 exception Invalid of string
 
-val from_string: string -> t
-  (** decodes a JSON-encoded request *)
+val of_yojson: Yojson.Basic.t -> t
+val of_string: string -> t
+val to_json: t -> Yojson.Basic.t
+val to_string: t -> string

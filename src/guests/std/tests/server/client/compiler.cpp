@@ -41,10 +41,10 @@ QString Compiler::sendRequest(const QString &text)
 {
     if (socket.state() == QLocalSocket::ConnectedState) {
         QByteArray data = text.trimmed().toUtf8() + '\n';
-        qDebug() << "compiler: sending: " << data;
+        //qDebug() << "compiler: sending: " << data;
         socket.write(data);
         socket.flush();
-        qDebug() << "compiler: sent";
+        //qDebug() << "compiler: sent";
         QString response = readAnswer();
         return response;
         }

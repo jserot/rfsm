@@ -13,8 +13,12 @@
 
 type t = 
   | Version of string
-  | Ok of string list
+  | CompilationOk of string list (* list_of_generated_files *)
+  | CompilationFailed of string (* error message *)
+  | CheckingOk (* TODO: add rd/wr variables here *)
+  | CheckingFailed of string (* error_message *)
   | Error of string
+  | None
   [@@deriving show]
       
 val to_string: t -> string

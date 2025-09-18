@@ -12,29 +12,46 @@
 type t =
     GetVersion
   | CheckFragment of Fragment.t
-  | Compile of string list
+  | Compile of string list (* args, including anonymous one(s) *)
   | Close
   [@@deriving show]
 
 exception Invalid of string
-    
-let from_string s = 
-  let json = Yojson.Basic.from_string s in
+
+let of_yojson (json : Yojson.Basic.t) : t =
   let open Yojson.Basic.Util in
-  try 
-    match keys json with
-    | ["close"] ->
-        Close
-    | ["version"] ->
-        GetVersion
-    | ["check"] ->
-        let f = member "check" json in
-        CheckFragment (Fragment.from_json f)
-    | ["compile"] ->
-        let j = member "compile" json in
-        let args = j |> member "args" |> to_list |> List.map to_string in
-        Compile args
-    | _ ->
-      raise (Invalid s)
-  with _ ->
-    raise (Invalid s)
+  match json |> member "kind" |> to_string with
+  | "version" -> GetVersion
+  | "close" -> Close
+  | "check" ->
+      let frag = Fragment.of_json (json |> member "fragment") in
+      CheckFragment frag
+  | "compile" ->
+      let files = json |> member "args" |> to_list |> List.map to_string in
+      Compile files
+  | other ->
+      
+      raise (Invalid other)
+
+let of_string s = 
+  s |> Yojson.Basic.from_string |> of_yojson
+
+let to_json (r : t) : Yojson.Basic.t =
+  match r with
+  | GetVersion ->
+      `Assoc [("kind", `String "version")]
+  | Close ->
+      `Assoc [("kind", `String "close")]
+  | CheckFragment frag ->
+      `Assoc [
+        ("kind", `String "check");
+        ("fragment", Fragment.to_json frag)
+      ]
+  | Compile files ->
+      `Assoc [
+        ("kind", `String "compile");
+        ("args", `List (List.map (fun s -> `String s) files))
+      ]
+
+let to_string r =
+  Yojson.Basic.pretty_to_string (to_json r)

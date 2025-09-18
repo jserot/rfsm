@@ -18,6 +18,7 @@ type t = {
   obj: string; (* fragment to analyse; ex ["guard x=1"]  *)
   } [@@deriving show]
 
-val from_json: Yojson.Basic.t -> t
-
-val from_string: string -> t
+val of_json: Yojson.Basic.t -> t
+val of_string: string -> t
+val to_json: t -> Yojson.Basic.t
+val to_string: t -> string

@@ -5,12 +5,13 @@ QT += core widgets network
 
 SOURCES += \
     main.cpp \
-    mainWindow.cpp \
+    fragment.cpp \
+    request.cpp \
+    response.cpp \
     compiler.cpp
 
 HEADERS += \
-    mainWindow.h \
+    fragment.h \
+    request.h \
+    response.h \
     compiler.h
-
-FORMS += \
-    mainWindow.ui

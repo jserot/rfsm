@@ -144,7 +144,7 @@ struct
       let ppf = L.Syntax.ppr_fragment pf in
       (* Format.printf "rfsm server: pre-processed fragment = %a" L.Syntax.pp_fragment ppf; *)
       type_fragment ppf;
-      Response.Ok []
+      Response.CheckingOk
      with exn ->
        Printf.printf "rfsm server: check_fragment raised %s\n" (Printexc.to_string exn); flush stdout;
        begin match exn with
@@ -169,7 +169,7 @@ struct
     match req with
     | Request.GetVersion -> Response.Version Version.version
     | Request.CheckFragment pf -> check_fragment pf
-    | Request.Close -> Response.Ok [] (* Not used, since the server will close without sending a response in this case *)
+    | Request.Close -> Response.None (* Not used, since the server will close without sending a response in this case *)
     | Request.Compile args ->
         Arg.current := 0;
         source_files := [];
@@ -177,42 +177,43 @@ struct
         begin try
           Arg.parse_argv (Array.of_list (Sys.argv.(0) :: args)) (Options.spec @ L.Guest.Options.specs) anonymous usage;
           compile ();
-          Response.Ok !generated_files
+          Response.CompilationOk !generated_files
         with Arg.Bad m-> 
-          Response.Error ("illegal compiler argument: " ^ m) 
-        end;
+          Response.CompilationFailed ("illegal compiler argument: " ^ m) 
+        end
 
-  exception EndOfService
-    
+  (* exception EndOfService *)
+
   let service ic oc =
     while true do
-      try
-        Printf.printf "rfsm server: waiting for request\n" ; flush stdout;
-        let line = input_line ic in
-        Printf.printf "rfsm server: got request: %s\n" line ; flush stdout;
-        let request = Request.from_string line in
-        (* Format.printf "rfsm server: decoded request: %a\n" Request.pp request; flush stdout; *)
-        begin match request with
-          | Request.Close ->
-            raise EndOfService
-        | _ ->
-          let response = handle_request request in
-          (* Format.printf "rfsm server: response = %a\n" Response.pp response; flush stdout; *)
-          let line' = Response.to_string response in
-          (* Printf.printf "rfsm server: encoded response: %s\n"  line'; flush stdout; *)
-          output_string oc (line' ^ "\n");
-          flush oc
-        end
-      with
-      | End_of_file
-      | EndOfService -> 
-          Format.printf "rfsm server: closing\n"; flush stdout;
-          exit 0
-      | Yojson.Json_error _ ->
-          output_string oc ("Ill-formed request\n");
-          flush oc
-      | exn ->
-          Printf.printf "rfsm server: caught exn %s\n" (Printexc.to_string exn); flush stdout
+      let response = 
+        try
+          Printf.printf "rfsm server: waiting for request\n" ; flush stdout;
+          let line = input_line ic in
+          Printf.printf "rfsm server: got request: %s\n" line ; flush stdout;
+          let request = Request.of_string line in
+          Format.printf "rfsm server: decoded request: %a\n" Request.pp request; flush stdout;
+          begin match request with
+            | Request.Close ->
+              Format.printf "rfsm server: closing\n"; flush stdout;
+              Response.None
+            | _ ->
+              handle_request request
+          end
+        with
+        | End_of_file ->
+          Response.None
+        | Yojson.Json_error _ ->
+          Response.Error "Ill-formed request"
+        | exn ->
+          let m = Printexc.to_string exn in
+          Printf.printf "rfsm server: caught exn %s\n" m; flush stdout;
+          Response.Error m in
+      (* Format.printf "rfsm server: response = %a\n" Response.pp response; flush stdout; *)
+      let line' = Response.to_string response in
+      Printf.printf "rfsm server: encoded response: %s\n"  line'; flush stdout;
+      output_string oc (line' ^ "\n");
+      flush oc
     done
 
   let main () =
