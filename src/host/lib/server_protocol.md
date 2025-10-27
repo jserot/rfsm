@@ -1,3 +1,4 @@
+** TO BE UPDATED **
 Possible requests (and associated responses) (in `JSON` format) when using the compiler in "server" mode (`rfsmc -server_mode ...`)
 
 - REQUEST: `{"version": ""}` : get compiler version

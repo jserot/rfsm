@@ -128,8 +128,7 @@ struct
     end;
     Logfile.stop ()
 
-
-  let check_fragment (f: Fragment.t) =
+  let check_fragment (type_check:bool) (f: Fragment.t) =
     let open L in
     try
       let mk_iov (id,t) = Ident.mk id, Syntax.mk_basic_type_expr t in
@@ -140,35 +139,38 @@ struct
         Syntax.pf_obj = analyse_string ~lexer:Lexer.main ~parser:Parser.fragment_obj f.Fragment.obj
         } in
       (* Format.printf "rfsm server: parsed fragment = %a" L.Syntax.pp_fragment pf; *)
-      L.Syntax.check_fragment pf; (* TBR ?  Redundant with type-checking ? *)
-      let ppf = L.Syntax.ppr_fragment pf in
-      (* Format.printf "rfsm server: pre-processed fragment = %a" L.Syntax.pp_fragment ppf; *)
-      type_fragment ppf;
-      Response.CheckingOk
+      let rds,wrs = L.Syntax.check_fragment pf in
+      if type_check then begin
+        let ppf = L.Syntax.ppr_fragment pf in
+        (* Format.printf "rfsm server: pre-processed fragment = %a" L.Syntax.pp_fragment ppf; *)
+        type_fragment ppf
+        end;
+      Response.CheckingOk (List.map Ident.to_string rds, List.map Ident.to_string wrs)
      with exn ->
-       Printf.printf "rfsm server: check_fragment raised %s\n" (Printexc.to_string exn); flush stdout;
+       if !Options.verbose then (Printf.printf "rfsm server: check_fragment raised %s\n" (Printexc.to_string exn); flush stdout);
        begin match exn with
          (* The exceptions listed here will _not_ reach [Error.handle] *)
          | L.Syntax.Invalid_symbol (id,_,reason) ->
-             Response.Error (Printf.sprintf "symbol %s: %s" (Ident.to_string id) reason)
+             Response.CheckingFailed (Printf.sprintf "symbol %s: %s" (Ident.to_string id) reason)
          | Typing.Type_mismatch(_,ty,ty') ->  
-             Response.Error (Printf.sprintf "expected type here was %s, not %s\n"
+             Response.CheckingFailed (Printf.sprintf "expected type here was %s, not %s\n"
                                  ty
                                  (Ext.Format.to_string L.Typing.HostSyntax.pp_typ ty'))
          | L.Guest.Typing.Type_conflict (loc,ty,ty') -> 
-             Response.Error (Printf.sprintf "cannot unify types %s and %s"
+             Response.CheckingFailed (Printf.sprintf "cannot unify types %s and %s"
                                  (Ext.Format.to_string L.Guest.Types.pp_typ ty)
                                  (Ext.Format.to_string L.Guest.Types.pp_typ ty'))
          | Parser.Error ->
-             Response.Error "syntax error"
+             Response.CheckingFailed "syntax error"
          | _ ->
-             Response.Error (Printf.sprintf "syntax error: %s" (Printexc.to_string exn))
+             Response.CheckingFailed (Printf.sprintf "syntax error: %s" (Printexc.to_string exn))
        end 
 
   let handle_request req =
     match req with
     | Request.GetVersion -> Response.Version Version.version
-    | Request.CheckFragment pf -> check_fragment pf
+    | Request.CheckFragment pf -> check_fragment true pf
+    | Request.ScanFragment pf -> check_fragment false pf
     | Request.Close -> Response.None (* Not used, since the server will close without sending a response in this case *)
     | Request.Compile args ->
         Arg.current := 0;
@@ -182,36 +184,38 @@ struct
           Response.CompilationFailed ("illegal compiler argument: " ^ m) 
         end
 
-  (* exception EndOfService *)
+  exception EndOfService
 
   let service ic oc =
     while true do
       let response = 
         try
-          Printf.printf "rfsm server: waiting for request\n" ; flush stdout;
+          if !Options.verbose then (Printf.printf "rfsm server: waiting for request\n" ; flush stdout);
           let line = input_line ic in
-          Printf.printf "rfsm server: got request: %s\n" line ; flush stdout;
+          if !Options.verbose then (Printf.printf "rfsm server: got request: %s\n" line ; flush stdout);
           let request = Request.of_string line in
-          Format.printf "rfsm server: decoded request: %a\n" Request.pp request; flush stdout;
+          if !Options.verbose then (Format.printf "rfsm server: decoded request: %a\n" Request.pp request; flush stdout);
           begin match request with
             | Request.Close ->
-              Format.printf "rfsm server: closing\n"; flush stdout;
-              Response.None
+                raise EndOfService
             | _ ->
               handle_request request
           end
         with
+        | EndOfService ->
+          if !Options.verbose then (Format.printf "rfsm server: terminating\n"; flush stdout); 
+          begin try Unix.unlink !Options.socket_path with _ -> () end;
+          exit 0
         | End_of_file ->
-          Response.None
+            Response.None
         | Yojson.Json_error _ ->
-          Response.Error "Ill-formed request"
+            Response.Error "Ill-formed request"
         | exn ->
-          let m = Printexc.to_string exn in
-          Printf.printf "rfsm server: caught exn %s\n" m; flush stdout;
-          Response.Error m in
-      (* Format.printf "rfsm server: response = %a\n" Response.pp response; flush stdout; *)
+            let m = Printexc.to_string exn in
+            if !Options.verbose then (Printf.printf "rfsm server: caught exn %s\n" m; flush stdout); 
+            Response.Error m in
       let line' = Response.to_string response in
-      Printf.printf "rfsm server: encoded response: %s\n"  line'; flush stdout;
+      if !Options.verbose then (Printf.printf "rfsm server: encoded response: %s\n"  line'; flush stdout); 
       output_string oc (line' ^ "\n");
       flush oc
     done

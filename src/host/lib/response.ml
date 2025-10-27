@@ -13,7 +13,7 @@ type t =
   | Version of string
   | CompilationOk of string list (* list_of_generated_files *)
   | CompilationFailed of string (* error message *)
-  | CheckingOk (* TODO: add rd/wr variables here *)
+  | CheckingOk of string list * string list (* read vars, written vars *)
   | CheckingFailed of string (* error_message *)
   | Error of string
   | None
@@ -39,10 +39,12 @@ let to_json (r: t) : Yojson.Basic.t =
         ("result", `Bool false);
         ("message", `String msg)
       ]
-  | CheckingOk ->
+  | CheckingOk (rds,wrs) ->
       `Assoc [
         ("kind", `String "checked");
-        ("result", `Bool true)
+        ("result", `Bool true);
+        ("rds", `List (List.map (fun v -> `String v) rds));
+        ("wrs", `List (List.map (fun v -> `String v) wrs));
       ]
   | CheckingFailed msg ->
       `Assoc [
@@ -97,7 +99,9 @@ let of_json (json : Yojson.Basic.t) : t =
   | "checked" ->
       let res = json |> member "result" |> to_bool in
       if res then
-        CheckingOk 
+        let rds = json |> member "rds" |> to_list |> List.map to_string in
+        let wrs = json |> member "wrs" |> to_list |> List.map to_string in
+        CheckingOk (rds,wrs)
       else
         let msg = json |> member "message" |> to_string in
         CheckingFailed msg

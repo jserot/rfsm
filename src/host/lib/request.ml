@@ -12,6 +12,7 @@
 type t =
     GetVersion
   | CheckFragment of Fragment.t
+  | ScanFragment of Fragment.t
   | Compile of string list (* args, including anonymous one(s) *)
   | Close
   [@@deriving show]
@@ -26,6 +27,9 @@ let of_yojson (json : Yojson.Basic.t) : t =
   | "check" ->
       let frag = Fragment.of_json (json |> member "fragment") in
       CheckFragment frag
+  | "scan" ->
+      let frag = Fragment.of_json (json |> member "fragment") in
+      ScanFragment frag
   | "compile" ->
       let files = json |> member "args" |> to_list |> List.map to_string in
       Compile files
@@ -45,6 +49,11 @@ let to_json (r : t) : Yojson.Basic.t =
   | CheckFragment frag ->
       `Assoc [
         ("kind", `String "check");
+        ("fragment", Fragment.to_json frag)
+      ]
+  | ScanFragment frag ->
+      `Assoc [
+        ("kind", `String "scan");
         ("fragment", Fragment.to_json frag)
       ]
   | Compile files ->

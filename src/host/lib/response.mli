@@ -15,7 +15,7 @@ type t =
   | Version of string
   | CompilationOk of string list (* list_of_generated_files *)
   | CompilationFailed of string (* error message *)
-  | CheckingOk (* TODO: add rd/wr variables here *)
+  | CheckingOk of string list * string list (* read vars, written vars *)
   | CheckingFailed of string (* error_message *)
   | Error of string
   | None

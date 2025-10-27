@@ -26,6 +26,7 @@ module type T = sig
   module Vhdl: Vhdl.VHDL with module Static = Static
   val type_program: Typing.env -> Syntax.program -> Typing.typed_program
   val type_fragment: Syntax.fragment -> unit
+  val scan_fragment: Syntax.fragment -> Ident.t list * Ident.t list  (* List of rd symbols, list of wr symbols *)
   val elab: Typing.typed_program -> Syntax.program -> Static.t
   val run: ?vcd_file:string -> Syntax.program -> Static.t -> unit
   val pp_program: Format.formatter -> Syntax.program -> unit
@@ -52,6 +53,8 @@ struct
 
     let type_program tenv p = Typing.type_program tenv p
     let type_fragment p = Typing.type_fragment p
+
+    let scan_fragment p = Syntax.check_fragment p
 
     let elab tp p = Static.build tp p
 

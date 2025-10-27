@@ -129,7 +129,8 @@ module type SYNTAX = sig
     
   val normalize_model: model -> model
 
-  val check_fragment: fragment -> unit
+  val check_fragment: fragment -> Ident.t list * Ident.t list
+  
   val ppr_program: program -> program
   (* val ppr_fragment_obj: fragment_obj -> fragment_obj *)
   val ppr_fragment: fragment -> fragment
@@ -585,7 +586,7 @@ struct
       (Ext.List.pp_v pp_pf_iov) p.pf_vars
       pp_pf_obj p.pf_obj
 
-  let check_fragment p = (* Basic sanity checking *)
+  let check_fragment p = (* Basic sanity checking + extraction of rd/wr symbols *)
     let check_var ~loc ~msg ~src v =
       if not @@ List.mem_assoc v src
       then raise (Invalid_symbol (v, loc, msg)) in
@@ -599,27 +600,34 @@ struct
       match obj with
       | Guard e ->
         (* Check that all symbols occuring in [e] are defined as input or variable *)
+        let rds = Guest.vars_of_expr e in 
         List.iter
           (check_inp_or_var ~loc:e.Annot.loc)
-          (Guest.vars_of_expr e) 
+          rds;
+          rds, []
       | Action a ->
         (* Check that all symbols occuring in RHS are defined as input or variable
            and that all symbols occuring in LHS are defined as output or variable *)
+        let rds = rvars_of_action a in
+        let wrs = wvars_of_action a in
         S.iter
           (check_inp_or_var ~loc:a.Annot.loc)
-          (rvars_of_action a);
+          rds;
         S.iter
           (check_outp_or_var ~loc:a.Annot.loc)
-          (wvars_of_action a);
+          wrs;
+        S.elements rds, S.elements wrs
       | SVal (o,e) ->
         (* Check that all symbols occuring in RHS are defined as input or variable
            and that [o] is defined as output *)
+        let rds = Guest.vars_of_expr e in 
         List.iter
           (check_inp_or_var ~loc:e.Annot.loc)
-          (Guest.vars_of_expr e); 
-        check_outp ~loc:e.Annot.loc o in 
+          rds;
+        check_outp ~loc:e.Annot.loc o;
+        rds, [o] in
     check p.pf_obj
-    
+
   let ppr_fragment_obj pf obj =
     let env = Env.init (pf.pf_inps @ pf.pf_vars @ pf.pf_outps) in
     match obj with
