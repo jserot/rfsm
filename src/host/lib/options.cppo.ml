@@ -59,7 +59,7 @@ let set_sequential_actions () =
   Vhdl.cfg.vhdl_act_semantics <- Misc.Sequential
 let set_sim_trace level = Dynamic.cfg.verbose_level <- level
 
-let set_dot_no_captions () = Dot.cfg.show_captions <- false
+let set_dot_captions () = Dot.cfg.show_captions <- true
 let set_dot_short_trans () =  Dot.cfg.Dot.trans_vlayout <- false
 let set_show_models () =
   Dot.cfg.show_models <- true;

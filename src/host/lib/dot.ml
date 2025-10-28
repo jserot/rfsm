@@ -40,7 +40,7 @@ let cfg = {
     qual_ids = false;
     abbrev_types = false;
     show_models = false;
-    show_captions = true;
+    show_captions = false;
     boxed = false;
   }
 
