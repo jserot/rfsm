@@ -609,7 +609,7 @@ struct
         (* Check that all symbols occuring in RHS are defined as input or variable
            and that all symbols occuring in LHS are defined as output or variable *)
         let rds = rvars_of_action a in
-        let wrs = wvars_of_action a in
+        let wrs = S.union (wvars_of_action a) (events_of_action a) in
         S.iter
           (check_inp_or_var ~loc:a.Annot.loc)
           rds;
