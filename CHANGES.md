@@ -1,3 +1,8 @@
+# 2.2 (Nov 1, 2025)
+
+* Server mode (used by the `Grasp` GUI application)
+* Changed option `-dot_no_caption` to `-dot_captions`
+
 # 2.1 (Mar 8, 2024)
 
 * Fixed bugs in SystemC and VHDL backends affecting `examples/std/single/{div8,fir}` resp.
