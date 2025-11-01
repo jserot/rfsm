@@ -20,7 +20,8 @@ let stop () = match !channel with
   
 let start () = 
   stop ();
-  let oc = open_out fname in
+  let tmp_name = Filename.concat (Filename.get_temp_dir_name ()) fname in
+  let oc = open_out tmp_name in
   channel := Some oc
 
 let write fname =
