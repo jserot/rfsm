@@ -118,6 +118,7 @@ struct
     | Some Options.Sim ->
        if s.fsms <> [] then
          let vcd_file = !Options.target_dir ^ "/" ^ !Options.main_prefix ^ ".vcd" in
+         add_generated_file vcd_file;
          run ~vcd_file p s
        else begin
            Printf.eprintf "No testbench to simulate.\n"; flush stderr;
