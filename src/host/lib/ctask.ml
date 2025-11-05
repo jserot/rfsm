@@ -112,6 +112,10 @@ struct
   let pp_output_valuation fmt (o,e) = 
     fprintf fmt "      %a = %a;\n" Ident.pp o G.pp_expr e
     
+  let pp_single_state m fmt Cmodel.{ st_src=q; st_sensibility_list=evs; st_transitions=tss } =
+    List.iter (pp_output_valuation fmt) (List.assoc q m.Cmodel.c_states);
+    pp_transitions q false evs fmt tss
+
   let pp_state_case m fmt Cmodel.{ st_src=q; st_sensibility_list=evs; st_transitions=tss } =
     fprintf fmt "    case %a:\n" Ident.pp q;
     List.iter (pp_output_valuation fmt) (List.assoc q m.Cmodel.c_states);
@@ -146,7 +150,7 @@ struct
     fprintf ocf "  while ( 1 ) {\n";
     begin match m.c_body with
       [] -> () (* should not happen *)
-    | [q] -> pp_state_case m ocf q 
+    | [q] -> pp_single_state m ocf q 
     | qs -> 
        fprintf ocf "    switch ( %s ) {\n" cfg.state_var_name;
        List.iter (pp_state_case m ocf) m.c_body;
