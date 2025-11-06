@@ -134,6 +134,7 @@ This will install
 - a platform definition file `~/.opam/<switch>/share/rfsm/platform`
 - VHDL and SystemC support libraries in `~/.opam/<switch>/share/rfsm/lib`
 - a collection of examples in `~/.opam/<switch>/share/rfsm/examples`
+
 ### Running the examples
 
 To test the compiler on an example
@@ -178,5 +179,5 @@ The so-called host RFSM library API supporting this mechanism is documented [her
 
 ## RELATED TOOLS
 
-A Graphical User Interface to the RFSM compiler - but restricted to mono-FSM models
-is provided by the [RfsmLight](http://github.com/jserot/rfsm-light) application.
+A Graphical User Interface to the RFSM compiler
+is provided by the [Grasp](http://github.com/jserot/grasp) application.
