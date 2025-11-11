@@ -22,7 +22,7 @@ EXAMPLES
 TOOLS
 
 DIST
-- opam install `etc/lib/{systemc,vhdl}`  and `src/host/lib/options_spec.txt` (to be used when building `rfsm-light`)
+- opam install `etc/lib/{systemc,vhdl}`  and `src/host/lib/options_spec.txt` (to be used when building `grasp`)
 
 DOC
 - clean .tex files
