@@ -11,5 +11,5 @@
 
 (**{1 Socket-based server} *)
 
-val start: socket:string -> fn:(in_channel -> out_channel -> unit) -> unit
-(** Start the service function [fn], reading input and writing output on Unix socket [socket]  *)
+val start: socket_port:int -> service:(in_channel -> out_channel -> unit) -> unit
+(** Start the service function [handler], reading input and writing output on Internet socket [127.0.0.1:port]  *)

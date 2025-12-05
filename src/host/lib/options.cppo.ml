@@ -28,7 +28,7 @@ let dump_backtrace = ref false
 (* let gui = ref false *)
 let server_mode = ref false
 let verbose = ref false
-let socket_path = ref "/tmp/rfsm_sock" (* TO BE FIXED *)
+let socket_port = ref 12345
 
 let set_main_prefix p = main_prefix := p
 let set_old_syntax () = use_old_syntax := true
@@ -47,7 +47,7 @@ let set_normalize () = normalize := true
 (* let set_gui () = gui := true *)
 let set_server_mode () = server_mode := true
 let set_verbose () = verbose := true
-let set_socket_path path = socket_path := path
+let set_socket_port path = socket_port := path
 
 let set_synchronous_actions () =
   Dynamic.cfg.act_semantics <- Misc.Synchronous;

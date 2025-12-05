@@ -205,7 +205,8 @@ struct
         with
         | EndOfService ->
           if !Options.verbose then (Format.printf "rfsm server: terminating\n"; flush stdout); 
-          begin try Unix.unlink !Options.socket_path with _ -> () end;
+          close_in_noerr ic;
+          close_out_noerr oc; (* Will close the socket *)
           exit 0
         | End_of_file ->
             Response.None
@@ -227,7 +228,7 @@ struct
       Printexc.record_backtrace !Options.dump_backtrace;
       Arg.parse (Options.spec @ L.Guest.Options.specs) anonymous usage;
       if !Options.server_mode then
-        Server.start ~socket:!Options.socket_path ~fn:service
+        Server.start ~socket_port:!Options.socket_port ~service
       else
         begin
           print_banner ();
