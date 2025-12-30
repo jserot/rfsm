@@ -37,8 +37,8 @@ doc.html:
 	chmod -R u+w ./docs
 
 doc.pdf:
-	(cd ./docs/user_manual; make)
-	(cd ./docs/ref_manual; make)
+	make -C ./docs/user_manual
+	make -C /docs/ref_manual
 
 ifeq ($(OS),Windows_NT)
 clean:

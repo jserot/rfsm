@@ -1,6 +1,5 @@
 COMPILER
 
-- update `src/host/lib/server_protocol.md`
 - support for synchronous actions (allow `examples/full/single/pgcd:sim` for ex.)
 - allow shared signals with multiple writers in VHDL
 - allow arrays as parameters (ex: `fsm model fir <c: int array[3],...)`)
@@ -25,4 +24,5 @@ DIST
 - opam install `etc/lib/{systemc,vhdl}`  and `src/host/lib/options_spec.txt` (to be used when building `grasp`)
 
 DOC
+- update `src/host/lib/server_protocol.md`
 - clean .tex files
