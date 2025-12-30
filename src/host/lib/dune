@@ -4,10 +4,18 @@
   (libraries ocamlgraph str unix yojson)
   (public_name rfsm))
 
-
-; Warning: the following rule may fail when building under Windows with "Error: CreateProcess(): Exec format error"
-; As a workaround, run [make options.ml] 
 (rule
-  (target options.ml)
-  (deps   options_spec.txt options.cppo.ml)
-  (action (run ./build_options_spec %{deps} %{target})))
+ (target options.ml)
+ (deps options_spec.txt options.cppo.ml build_options_spec)
+ (action (chdir %{workspace_root}/src/host/lib
+         (run "C:/Program Files/Git/bin/bash.exe"
+              ./build_options_spec
+              %{dep:options_spec.txt}
+              %{dep:options.cppo.ml}
+              %{target}))))
+
+(rule
+ (target options.ml)
+ (deps options_spec.txt options.cppo.ml)
+ (enabled_if (or (= %{os_type} "linux") (= %{os_type} "macos")))
+ (action (run bash ./build_options_spec %{deps} %{target})))
