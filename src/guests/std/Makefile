@@ -4,5 +4,5 @@ all:
 	dune build ./bin/rfsmc.exe
 
 clean:
-	(cd lib; make clean)
-	(cd bin; make clean)
+	make -C lib clean
+	make -C bin clean

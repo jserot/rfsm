@@ -1,4 +1,4 @@
 SUBDIRS=lib
 
 clean:
-	for i in $(SUBDIRS); do (cd $$i; make clean); done
+	$(foreach dir,$(SUBDIRS),make -C $(dir) clean;)

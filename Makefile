@@ -1,15 +1,27 @@
+ifeq ($(OS),Windows_NT)
+  CLEAN_CMD = cmd /c "if exist _build rmdir /s /q _build"
+else
+  CLEAN_CMD = dune clean
+endif
+
+ifeq ($(OS),Windows_NT)
+all: host std_guest 
+else
 all: host std_guest doc
+endif
 
 host:
-	(cd src/host; make)
+	make -C src/host
 
 all_guests: std_guest other_guests
 
 std_guest:
-	(cd src/guests/std; make)
+	make -C src/guests/std
+
+OTHER_GUESTS := core mini simple szdints szvars
 
 other_guests:
-	for i in src/guests/others/{core,mini,simple,szdints,szvars}; do (cd $$i; make); done
+	$(foreach guest,$(OTHER_GUESTS),make -C $(guest);)
 
 install:
 	dune build @install
@@ -28,9 +40,16 @@ doc.pdf:
 	(cd ./docs/user_manual; make)
 	(cd ./docs/ref_manual; make)
 
+ifeq ($(OS),Windows_NT)
+clean:
+	cmd /c "if exist _build rmdir /s /q _build"
+	make -C examples clean
+clobber: clean
+	del /Q *~
+else
 clean:
 	dune clean
-	(cd examples; make clean)
-
+	make -C examples clean
 clobber: clean
 	rm -f *~
+endif

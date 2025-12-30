@@ -1,14 +1,11 @@
+SUBDIRS := systemc vhdl
+
 all:
-	(cd systemc; make)
-	(cd vhdl; make)
+	$(foreach dir,$(SUBDIRS),make -C $(dir);)
 
 clean:
-	(cd systemc; make clean)
-	(cd vhdl; make clean)
+	$(foreach dir,$(SUBDIRS),make -C $(dir) clean;)
 
 clobber: clean
-	(cd systemc; make clobber)
-	(cd vhdl; make clobber)
-	\rm -f ml/*
-	\rm -f etc/*~
+	$(foreach dir,$(SUBDIRS),make -C $(dir) clobber;)
 

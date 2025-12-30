@@ -1,3 +1,8 @@
+# 2.3 (Dec 30, 2025)
+
+* Switched to TCP sockets in server mode
+* Now builds under Windows without special hacks
+
 # 2.2 (Nov 1, 2025)
 
 * Server mode (used by the `Grasp` GUI application)

@@ -1,10 +1,21 @@
 include ../etc/platform
 
-makefiles:
-	@for i in std/{single,multi}/*; do (cd $$i; $(RFSMMAKE) -with-test-targets -no-confirm -lib $(LIBDIR) -compiler $(RFSMC) -o Makefile ./main.pro) done
+SUBDIRS := $(wildcard std/single/* std/multi/*)
+CLEAN_SUBDIRS := $(filter $(wildcard %/Makefile), $(SUBDIRS:%=%/Makefile))
+CLEAN_DIRS := $(patsubst %/Makefile,%,$(CLEAN_SUBDIRS))
 
 clean:
-	@for i in std/{single,multi}/*; do (cd $$i; make clean) done
+	$(foreach dir,$(CLEAN_DIRS),make -C $(dir) clean;)
 
 clobber:
-	@for i in std/{single,multi}/*; do (cd $$i; make clobber) done
+	$(foreach dir,$(CLEAN_DIRS),make -C $(dir) clobber;)
+
+MAKEFILES_DIRS := $(filter $(wildcard %/main.pro), $(SUBDIRS:%=%/main.pro))
+MAKEFILES_DIRS := $(patsubst %/main.pro,%,$(MAKEFILES_DIRS))
+
+ifneq ($(OS),Windows_NT)
+makefiles:
+	$(foreach dir,$(MAKEFILES_DIRS),\
+		$(RFSMMAKE) -with-test-targets -no-confirm -lib $(LIBDIR) -compiler $(RFSMC) -o $(dir)/Makefile $(dir)/main.pro;)
+endif
+

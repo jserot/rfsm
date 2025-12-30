@@ -1,9 +1,7 @@
+SUBIDRS := simplel szdints szvars
+
 all:
-	(cd simple; make)
-	(cd szdints; make)
-	(cd szvars; make)
+	$(foreach dir,$(SUBDIRS),$(MAKE) -C $(dir);)
 
 clean:
-	(cd simple; make clean)
-	(cd szdints; make clean)
-	(cd szvars; make clean)
+	$(foreach dir,$(SUBDIRS),$(MAKE) -C $(dir) clean;)
