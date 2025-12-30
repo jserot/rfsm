@@ -6,7 +6,14 @@
 
 (rule
  (target options.ml)
+ (deps options_spec.txt options.cppo.ml)
+ (enabled_if (= %{os_type} "Unix"))
+ (action (run ./build_options_spec %{deps} %{target})))
+
+(rule
+ (target options.ml)
  (deps options_spec.txt options.cppo.ml build_options_spec)
+ (enabled_if (= %{os_type} "Win32"))
  (action (chdir %{workspace_root}/src/host/lib
          (run "C:/Program Files/Git/bin/bash.exe"
               ./build_options_spec
@@ -14,8 +21,3 @@
               %{dep:options.cppo.ml}
               %{target}))))
 
-(rule
- (target options.ml)
- (deps options_spec.txt options.cppo.ml)
- (enabled_if (or (= %{os_type} "linux") (= %{os_type} "macos")))
- (action (run bash ./build_options_spec %{deps} %{target})))
